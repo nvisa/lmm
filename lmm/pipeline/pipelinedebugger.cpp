@@ -275,12 +275,7 @@ PipelineDebugger::PipelineDebugger(QObject *parent) :
 	elementEvents = new EventData(CMD_INFO_ELEMENT_EVENTS, QDateTime::currentDateTime().toTime_t());
 	sock = new QUdpSocket(this);
 	sock->bind(19000);
-	connect(sock, SIGNAL(readyRead()), SLOT(udpDataReady()));
-
-#ifdef HAVE_GRPC
-	GrpcThread *thr = new GrpcThread(19101, new GRpcServerImpl(this));
-	thr->start();
-#endif
+	started = false;
 }
 
 PipelineDebugger *PipelineDebugger::GetInstance()
@@ -312,6 +307,25 @@ BaseLmmPipeline *PipelineDebugger::getPipeline(int ind)
 void PipelineDebugger::removePipeline(BaseLmmPipeline *pl)
 {
 	pipelines.removeAll(pl);
+}
+
+int PipelineDebugger::start()
+{
+	connect(sock, SIGNAL(readyRead()), SLOT(udpDataReady()));
+
+#ifdef HAVE_GRPC
+	GrpcThread *thr = new GrpcThread(19101, new GRpcServerImpl(this));
+	thr->start();
+#endif
+
+	started = true;
+
+	return 0;
+}
+
+bool PipelineDebugger::isStarted()
+{
+	return started;
 }
 
 void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, int ev, BaseLmmElement *src)
