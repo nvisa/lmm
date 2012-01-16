@@ -16,6 +16,7 @@ public:
 	explicit Mad(QObject *parent = 0);
 	int addBuffer(RawBuffer *buf);
 	int decode();
+	int decodeAll();
 	RawBuffer * nextBuffer();
 signals:
 	
@@ -26,6 +27,7 @@ private:
 	struct mad_synth *synth;
 	QList<RawBuffer *> buffers;
 	QList<RawBuffer *> outputBuffers;
+	QByteArray madBuffer;
 };
 
 #endif // MAD_H

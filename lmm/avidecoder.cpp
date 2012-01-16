@@ -2,6 +2,7 @@
 #include "avidemux.h"
 #include "mad.h"
 #include "rawbuffer.h"
+#include "alsaoutput.h"
 #include "emdesk/debug.h"
 
 #include <QTime>
@@ -47,6 +48,7 @@ int AviDecoder::startDecoding()
 {
 	streamTime = new QTime;
 	audioDecoder = new Mad;
+	audioOutput = new AlsaOutput;
 	demux = new AviDemux;
 	int err = demux->setSource("/media/net/Fringe.S04E06.HDTV.XviD-LOL.[VTV].avi");
 	if (err)
@@ -87,21 +89,20 @@ void AviDecoder::decodeLoop()
 	demux->demuxOne();
 	audioLoop();
 	//qDebug() << demux->getCurrentPosition() / 1000000 << demux->getTotalDuration() / 1000000;
-	timer->start(10);
+	timer->start(5);
 }
 
 void AviDecoder::audioLoop()
 {
 	RawBuffer *buf = demux->nextAudioBuffer();
 	if (buf) {
-		//qDebug() << buf->getDuration() << buf->size();
 		audioDecoder->addBuffer(buf);
 	}
-	audioDecoder->decode();
-
+	audioDecoder->decodeAll();
 	buf = audioDecoder->nextBuffer();
 	if (buf) {
 		qDebug() << streamTime->elapsed() << "decoded: " << buf->size() << buf;
-		delete buf;
+		audioOutput->addBuffer(buf);
 	}
+	audioOutput->output();
 }

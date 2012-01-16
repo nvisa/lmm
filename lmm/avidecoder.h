@@ -6,6 +6,7 @@
 
 class AviDemux;
 class Mad;
+class AlsaOutput;
 class QTimer;
 class QTime;
 
@@ -23,6 +24,7 @@ public slots:
 private:
 	AviDemux *demux;
 	Mad *audioDecoder;
+	AlsaOutput *audioOutput;
 	QTimer *timer;
 	QTime *streamTime;
 	QFuture<void> future;

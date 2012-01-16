@@ -16,14 +16,18 @@ SOURCES += main.cpp\
     lmm/avidemux.cpp \
     lmm/rawbuffer.cpp \
     lmm/avidecoder.cpp \
-    lmm/mad.cpp
+    lmm/mad.cpp \
+    lmm/alsa/alsa.cpp \
+    lmm/alsaoutput.cpp
 
 HEADERS  += lmsdemo.h \
     lmm/filesource.h \
     lmm/avidemux.h \
     lmm/rawbuffer.h \
     lmm/avidecoder.h \
-    lmm/mad.h
+    lmm/mad.h \
+    lmm/alsa/alsa.h \
+    lmm/alsaoutput.h
 
 FORMS    += lmsdemo.ui
 
@@ -48,4 +52,4 @@ arm {
 
 QMAKE_CXXFLAGS = -D__STDC_CONSTANT_MACROS
 
-LIBS += -lasound -lavformat -lmad
+LIBS += -lasound -lavformat -lmad -ltag
