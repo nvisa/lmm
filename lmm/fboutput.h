@@ -5,6 +5,7 @@
 #include <QList>
 
 class RawBuffer;
+class QTime;
 
 class FbOutput : public QObject
 {
@@ -13,6 +14,8 @@ public:
 	explicit FbOutput(QObject *parent = 0);
 	int addBuffer(RawBuffer *buffer);
 	int output();
+	void setStreamTime(QTime *t) { streamTime = t; }
+	void setStreamDuration(qint64 duration) { streamDuration = duration; }
 signals:
 	
 public slots:
@@ -23,6 +26,8 @@ private:
 	int fbLineLen;
 	int fbHeight;
 	QList<RawBuffer *> buffers;
+	QTime *streamTime;
+	qint64 streamDuration;
 
 	int openFb(QString filename);
 };

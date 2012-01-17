@@ -14,7 +14,7 @@ class AviDemux : public QObject
 public:
 	explicit AviDemux(QObject *parent = 0);
 	int setSource(QString filename);
-	unsigned int getTotalDuration();
+	qint64 getTotalDuration();
 	int getCurrentPosition();
 	RawBuffer * nextAudioBuffer();
 	RawBuffer * nextVideoBuffer();
@@ -37,7 +37,8 @@ private:
 	int streamPosition;
 
 	/* derived stats */
-	unsigned int audioFrameDuration; /* in usecs */
+	unsigned int audioTimeBase; /* in usecs */
+	unsigned int videoTimeBase; /* in usecs */
 	AVPacket * nextPacket();
 };
 

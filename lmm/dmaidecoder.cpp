@@ -17,6 +17,15 @@
 #define gst_tidmaibuffer_VIDEOSINK_FREE  0x4
 #define gst_tidmaibuffer_DISPLAY_FREE    0x8
 
+#define TIMESTAMP_MIN_DURATION 2000
+
+struct decodeTimeStamp {
+	int duration;
+	int validDuration;
+	int usedDuration;
+	qint64 pts;
+};
+
 static DmaiDecoder *instance = NULL;
 
 DmaiDecoder::DmaiDecoder(QObject *parent) :
@@ -25,6 +34,7 @@ DmaiDecoder::DmaiDecoder(QObject *parent) :
 	hEngine = NULL;
 	hCodec = NULL;
 	instance = this;
+	timestamp = NULL;
 }
 
 DmaiDecoder::~DmaiDecoder()
@@ -47,6 +57,8 @@ int DmaiDecoder::start()
 		circBufData = NULL;
 		circBuf = NULL;
 	}
+	timestamp = NULL;
+	decodeCount = 0;
 	return err;
 }
 
@@ -75,13 +87,33 @@ int DmaiDecoder::decodeOne()
 			mInfo("adding %d bytes to circular buffer", buf->size());
 			if (circBuf->addData(buf->data(), buf->size()))
 				mDebug("error adding data to circular buffer");
+			qint64 pts = buf->getPts();
+			if (pts != -1) {
+				decodeTimeStamp *ts = new decodeTimeStamp;
+				ts->pts = pts;
+				ts->duration = buf->getDuration();
+				ts->validDuration = buf->getDuration();
+				ts->usedDuration = 0;
+				inTimeStamps << ts;
+				if (!timestamp)
+					timestamp = inTimeStamps.first();
+			} else {
+				/* increase validty of last ts */
+				if (inTimeStamps.size()) {
+					decodeTimeStamp *ts = inTimeStamps.last();
+					ts->validDuration += buf->getDuration();
+				} else
+					mDebug("no last ts present");
+			}
 			delete buf;
 		}
-
 		Buffer_Handle hBuf = BufTab_getFreeBuf(hBufTab);
 		if (!hBuf) {
+			/*
+			 * This is not an error, probably buffers are not displayed yet
+			 * and we don't need to decode any more
+			 */
 			mDebug("cannot get new buf from buftab");
-			BufTab_freeAll(hBufTab);
 			return -ENOENT;
 		}
 		/* Make sure the whole buffer is used for output */
@@ -121,12 +153,28 @@ int DmaiDecoder::decodeOne()
 		if (outbuf) {
 			BufferGfx_Dimensions dim;
 			BufferGfx_getDimensions(outbuf, &dim);
-			mDebug("decoded frame width=%d height=%d", int(dim.width), (int)dim.height);
+			mInfo("decoded frame width=%d height=%d", int(dim.width), (int)dim.height);
 			RawBuffer *newbuf = new RawBuffer;
 			newbuf->setRefData(Buffer_getUserPtr(outbuf), Buffer_getSize(outbuf));
 			newbuf->addBufferParameter("width", (int)dim.width);
 			newbuf->addBufferParameter("height", (int)dim.height);
 			newbuf->addBufferParameter("dmaiBuffer", (int)outbuf);
+			newbuf->setStreamBufferNo(decodeCount++);
+			/* handle timestamps */
+			if (timestamp) {
+				if (timestamp->validDuration - timestamp->usedDuration < TIMESTAMP_MIN_DURATION) {
+					/* our timestamp is not valid anymore */
+					inTimeStamps.removeFirst();
+					delete timestamp;
+					if (inTimeStamps.size())
+						timestamp = inTimeStamps.first();
+					else
+						mDebug("timestamp is not valid and we don't have more");
+				}
+				newbuf->setPts(timestamp->pts + timestamp->usedDuration);
+				newbuf->setDuration(timestamp->duration);
+				timestamp->usedDuration += timestamp->duration;
+			}
 			outputBuffers << newbuf;
 		} else
 			mDebug("unable to find a free display buffer");

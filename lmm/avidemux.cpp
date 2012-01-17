@@ -50,7 +50,10 @@ int AviDemux::setSource(QString filename)
 
 	/* derive necessary information */
 	AVRational r = audioStream->time_base;
-	audioFrameDuration = 1000000 * r.num / r.den;
+	audioTimeBase = 1000000 * r.num / r.den;
+	r = videoStream->time_base;
+	videoTimeBase = 1000000 * r.num / r.den;
+	mDebug("audioBase=%d videoBase=%d", audioTimeBase, videoTimeBase);
 	streamPosition = 0;
 	if (debugMessagesAvailable())
 		dump_format(context, 0, qPrintable(filename), false);
@@ -77,15 +80,25 @@ void AviDemux::demuxOne()
 	if (!packet)
 		return;
 	if (packet->stream_index == audioStreamIndex) {
-		mDebug("new audio stream: size=%d", packet->size);
+		mInfo("new audio stream: size=%d", packet->size);
 		RawBuffer *buf = new RawBuffer(packet->data, packet->size);
-		buf->setDuration(packet->duration * audioFrameDuration);
+		buf->setDuration(packet->duration * audioTimeBase);
+		if (packet->pts != (int64_t)AV_NOPTS_VALUE)
+			buf->setPts(packet->pts * audioTimeBase);
+		else
+			buf->setPts(-1);
 		audioBuffers << buf;
 		streamPosition += buf->getDuration();
 	} else if (packet->stream_index == videoStreamIndex) {
-		mDebug("new video stream: size=%d", packet->size);
+		mInfo("new video stream: size=%d pts=%lld duration=%d dflags=%d", packet->size,
+			   packet->pts == (int64_t)AV_NOPTS_VALUE ? -1 : packet->pts ,
+			   packet->duration, packet->flags);
 		RawBuffer *buf = new RawBuffer(packet->data, packet->size);
-		/* TODO: buffer duration ??? */
+		buf->setDuration(packet->duration * videoTimeBase);
+		if (packet->pts != (int64_t)AV_NOPTS_VALUE)
+			buf->setPts(packet->pts * videoTimeBase);
+		else
+			buf->setPts(-1);
 		videoBuffers << buf;
 	}
 }
@@ -97,7 +110,7 @@ void AviDemux::demuxAll()
 		if (packet->stream_index == audioStreamIndex) {
 			mDebug("new audio stream: size=%d", packet->size);
 			RawBuffer *buf = new RawBuffer(packet->data, packet->size);
-			buf->setDuration(packet->duration * audioFrameDuration);
+			buf->setDuration(packet->duration * audioTimeBase);
 			audioBuffers << buf;
 			streamPosition += buf->getDuration();
 			emit newAudioFrame();
@@ -107,12 +120,12 @@ void AviDemux::demuxAll()
 	}
 }
 
-unsigned int AviDemux::getTotalDuration()
+qint64 AviDemux::getTotalDuration()
 {
 	if (!audioStream)
 		return -1;
 
-	return audioStream->duration * audioFrameDuration;
+	return audioStream->duration * audioTimeBase;
 }
 
 int AviDemux::getCurrentPosition()

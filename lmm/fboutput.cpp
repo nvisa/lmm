@@ -12,6 +12,7 @@
 #include <errno.h>
 
 #include <QVariant>
+#include <QTime>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +28,8 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+#define DISP_DIFF 1
 
 int FbOutput::openFb(QString filename)
 {
@@ -68,6 +71,7 @@ int FbOutput::openFb(QString filename)
 FbOutput::FbOutput(QObject *parent) :
 	QObject(parent)
 {
+	streamTime = NULL;
 	fd = -1;
 	if (openFb("/dev/fb3"))
 		mDebug("error opening framebuffer");
@@ -83,7 +87,17 @@ int FbOutput::output()
 {
 	if (!buffers.size())
 		return -ENOENT;
-	RawBuffer *buf = buffers.takeFirst();
+	RawBuffer *buf = buffers.first();
+	int time = streamTime->elapsed();
+	qint64 rpts = buf->getPts();
+	if (rpts > 0) {
+		int pts = buf->getPts() / 1000;
+		if (pts < streamDuration / 1000 && pts - DISP_DIFF > time) {
+			mInfo("it is not time to display, pts=%d time=%d", pts, time);
+			return 0;
+		}
+	}
+	buffers.removeFirst();
 	const char *data = (const char *)buf->constData();
 	if (fd > 0) {
 		if (buf->size() == fbSize)
@@ -96,7 +110,8 @@ int FbOutput::output()
 			if (startX < 0)
 				startX = 0;
 			int startY = (fbSize / fbLineLen - inH) / 2 * fbLineLen;
-			mDebug("displaying video frame %d x %d, fbsize is %d", inW, inH, fbSize);
+			mDebug("buffer=%d time=%d frame: %d x %d, fbsize is %d, ts is %lld",
+				   buf->streamBufferNo(), time, inW, inH, fbSize, buf->getPts() / 1000);
 			int j = 0;
 			for (int i = startY; i < fbSize; i += fbLineLen) {
 				memcpy(fbAddr + i + startX, data + j, inW * 2);

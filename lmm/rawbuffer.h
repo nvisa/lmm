@@ -22,6 +22,11 @@ public:
 	int size() { return rawDataLen; }
 	void setDuration(unsigned int val) { duration = val; }
 	unsigned int getDuration() { return duration; }
+	void setPts(qint64 val) { pts = val; }
+	qint64 getPts() { return pts; }
+
+	void setStreamBufferNo(int val) { bufferNo = val; }
+	int streamBufferNo() { return bufferNo; }
 signals:
 	
 public slots:
@@ -33,7 +38,9 @@ private:
 	int prependLen;
 	int appendLen;
 	unsigned int duration;
+	qint64 pts;
 	QMap<QString, QVariant> parameters;
+	int bufferNo;
 };
 
 #endif // RAWBUFFER_H

@@ -21,6 +21,7 @@ extern "C" {
 
 class CircularBuffer;
 class RawBuffer;
+struct decodeTimeStamp;
 
 class DmaiDecoder : public QObject
 {
@@ -49,6 +50,9 @@ private:
 	QList<RawBuffer *> outputBuffers;
 	CircularBuffer *circBuf;
 	Buffer_Handle circBufData;
+	QList<decodeTimeStamp *> inTimeStamps;
+	decodeTimeStamp *timestamp;
+	int decodeCount;
 
 	int startCodec();
 	int stopCodec();

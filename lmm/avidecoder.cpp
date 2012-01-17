@@ -50,6 +50,8 @@ AviDecoder::AviDecoder(QObject *parent) :
 	audioOutput = new AlsaOutput;
 	videoOutput = new FbOutput;
 	demux = new AviDemux;
+
+	videoOutput->setStreamTime(streamTime);
 }
 
 AviDecoder::~AviDecoder()
@@ -79,6 +81,7 @@ int AviDecoder::startDecoding()
 	connect(timer, SIGNAL(timeout()), this, SLOT(decodeLoop()));
 	timer->start(10);
 	streamTime->start();
+	videoOutput->setStreamDuration(demux->getTotalDuration());
 
 	return 0;
 }
