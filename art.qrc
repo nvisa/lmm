@@ -1,0 +1,39 @@
+<RCC>
+    <qresource prefix="/">
+        <file>art/active_button.png</file>
+        <file>art/anamenuyazi.png</file>
+        <file>art/anamenuyazihover.png</file>
+        <file>art/backwardbutton.png</file>
+        <file>art/backwardbuttonhover.png</file>
+        <file>art/bos_blue_1.png</file>
+        <file>art/bos_kategori.png</file>
+        <file>art/bos_kategori_beyaz.png</file>
+        <file>art/bos_kategori_beyaz_2.png</file>
+        <file>art/bos_red_1.png</file>
+        <file>art/bos_tus_kilavye.png</file>
+        <file>art/down_button.png</file>
+        <file>art/down_button_pressed.png</file>
+        <file>art/filmmenuyazi.png</file>
+        <file>art/filmmenuyazihover.png</file>
+        <file>art/forwardbutton.png</file>
+        <file>art/forwardbuttonhover.png</file>
+        <file>art/geriyazi.png</file>
+        <file>art/geriyazihover.png</file>
+        <file>art/movie.png</file>
+        <file>art/movie_info.png</file>
+        <file>art/movie_pressed.png</file>
+        <file>art/movies_category_background.png</file>
+        <file>art/mutebutton.png</file>
+        <file>art/muzik_backround_11.png</file>
+        <file>art/playbutton.png</file>
+        <file>art/playbuttonhover.png</file>
+        <file>art/playerbg.png</file>
+        <file>art/stopbutton.png</file>
+        <file>art/stopbuttonhover.png</file>
+        <file>art/unselected_list.png</file>
+        <file>art/up_button.png</file>
+        <file>art/up_button_pressed.png</file>
+        <file>art/volumebgall.png</file>
+        <file>art/volumebutton.png</file>
+    </qresource>
+</RCC>

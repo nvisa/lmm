@@ -3,12 +3,14 @@
 #include "mad.h"
 #include "rawbuffer.h"
 #include "alsaoutput.h"
+#include "fboutput.h"
+#include "dmaidecoder.h"
 #include "emdesk/debug.h"
+#include "emdesk/hardwareoperations.h"
 
 #include <QTime>
 #include <QTimer>
 #include <QThread>
-#include <QtConcurrentRun>
 
 /*class DemuxThread : public QThread
 {
@@ -42,29 +44,50 @@ AviDecoder::AviDecoder(QObject *parent) :
 	demuxThread->start();
 	QTimer::singleShot(0, demux, SLOT(decode()));
 #endif
+	streamTime = new QTime;
+	audioDecoder = new Mad;
+	videoDecoder = new DmaiDecoder;
+	audioOutput = new AlsaOutput;
+	videoOutput = new FbOutput;
+	demux = new AviDemux;
+}
+
+AviDecoder::~AviDecoder()
+{
+	if (videoDecoder) {
+		delete videoDecoder;
+		delete audioDecoder;
+		delete videoDecoder;
+		delete audioOutput;
+		delete videoOutput;
+		delete demux;
+		videoDecoder = NULL;
+	}
 }
 
 int AviDecoder::startDecoding()
 {
-	streamTime = new QTime;
-	audioDecoder = new Mad;
-	audioOutput = new AlsaOutput;
-	demux = new AviDemux;
+	state = RUNNING;
 	int err = demux->setSource("/media/net/Fringe.S04E06.HDTV.XviD-LOL.[VTV].avi");
 	if (err)
 		return err;
 	connect(demux, SIGNAL(newAudioFrame()), SLOT(newAudioFrame()), Qt::QueuedConnection);
-
-#if 1
+	HardwareOperations::blendOSD(true, 31);
+	videoDecoder->start();
 	timer = new QTimer(this);
 	timer->setSingleShot(true);
 	connect(timer, SIGNAL(timeout()), this, SLOT(decodeLoop()));
 	timer->start(10);
 	streamTime->start();
-#endif
-	//future = QtConcurrent::run(demux, &AviDemux::decode);
 
 	return 0;
+}
+
+void AviDecoder::stopDecoding()
+{
+	state = STOPPED;
+	videoDecoder->stop();
+	HardwareOperations::blendOSD(false);
 }
 
 int AviDecoder::getDuration()
@@ -86,9 +109,13 @@ void AviDecoder::newAudioFrame()
 
 void AviDecoder::decodeLoop()
 {
+	if (state != RUNNING) {
+		mDebug("we are not in a running state");
+		return;
+	}
 	demux->demuxOne();
-	audioLoop();
-	//qDebug() << demux->getCurrentPosition() / 1000000 << demux->getTotalDuration() / 1000000;
+	//audioLoop();
+	videoLoop();
 	timer->start(5);
 }
 
@@ -105,4 +132,18 @@ void AviDecoder::audioLoop()
 		audioOutput->addBuffer(buf);
 	}
 	audioOutput->output();
+}
+
+void AviDecoder::videoLoop()
+{
+	RawBuffer *buf = demux->nextVideoBuffer();
+	if (buf) {
+		videoDecoder->addBuffer(buf);
+	}
+	videoDecoder->decodeOne();
+	buf = videoDecoder->nextBuffer();
+	if (buf) {
+		videoOutput->addBuffer(buf);
+	}
+	videoOutput->output();
 }

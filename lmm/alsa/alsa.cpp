@@ -16,7 +16,6 @@
 #include <alsa/control.h>
 #include <alsa/error.h>
 
-#define DEBUG
 #include "emdesk/debug.h"
 
 Alsa::Alsa()

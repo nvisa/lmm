@@ -17,6 +17,7 @@ public:
 	unsigned int getTotalDuration();
 	int getCurrentPosition();
 	RawBuffer * nextAudioBuffer();
+	RawBuffer * nextVideoBuffer();
 	int audioBufferCount();
 signals:
 	void newAudioFrame();

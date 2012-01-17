@@ -46,6 +46,7 @@ int AviDemux::setSource(QString filename)
 		return err;
 #endif
 	audioStream = context->streams[audioStreamIndex];
+	videoStream = context->streams[videoStreamIndex];
 
 	/* derive necessary information */
 	AVRational r = audioStream->time_base;
@@ -81,6 +82,11 @@ void AviDemux::demuxOne()
 		buf->setDuration(packet->duration * audioFrameDuration);
 		audioBuffers << buf;
 		streamPosition += buf->getDuration();
+	} else if (packet->stream_index == videoStreamIndex) {
+		mDebug("new video stream: size=%d", packet->size);
+		RawBuffer *buf = new RawBuffer(packet->data, packet->size);
+		/* TODO: buffer duration ??? */
+		videoBuffers << buf;
 	}
 }
 
@@ -114,10 +120,17 @@ int AviDemux::getCurrentPosition()
 	return streamPosition;
 }
 
-RawBuffer *AviDemux::nextAudioBuffer()
+RawBuffer * AviDemux::nextAudioBuffer()
 {
 	if (audioBuffers.size())
 		return audioBuffers.takeFirst();
+	return NULL;
+}
+
+RawBuffer * AviDemux::nextVideoBuffer()
+{
+	if (videoBuffers.size())
+		return videoBuffers.takeFirst();
 	return NULL;
 }
 

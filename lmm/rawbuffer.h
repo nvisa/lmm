@@ -2,6 +2,7 @@
 #define RAWBUFFER_H
 
 #include <QObject>
+#include <QMap>
 
 class RawBuffer : public QObject
 {
@@ -11,6 +12,9 @@ public:
 	explicit RawBuffer(void *data, int size, QObject *parent = 0);
 	~RawBuffer();
 
+	void setRefData(void *data, int size);
+	void addBufferParameter(QString, QVariant);
+	QVariant getBufferParameter(QString);
 	void setSize(int size);
 	int prepend(const void *data, int size);
 	const void * constData();
@@ -22,12 +26,14 @@ signals:
 	
 public slots:
 private:
+	bool refData;
 	char *rawData;
 	int rawDataLen;
 	int prependPos;
 	int prependLen;
 	int appendLen;
 	unsigned int duration;
+	QMap<QString, QVariant> parameters;
 };
 
 #endif // RAWBUFFER_H
