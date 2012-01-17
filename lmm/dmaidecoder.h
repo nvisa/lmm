@@ -1,7 +1,7 @@
 #ifndef DMAIDECODER_H
 #define DMAIDECODER_H
 
-#include <QObject>
+#include "baselmmdecoder.h"
 #include <QList>
 
 #ifdef __cplusplus
@@ -21,9 +21,10 @@ extern "C" {
 
 class CircularBuffer;
 class RawBuffer;
+class BaseLmmElement;
 struct decodeTimeStamp;
 
-class DmaiDecoder : public QObject
+class DmaiDecoder : public BaseLmmDecoder
 {
 	Q_OBJECT
 public:
@@ -32,9 +33,7 @@ public:
 
 	int start();
 	int stop();
-	int addBuffer(RawBuffer *);
 	int decodeOne();
-	RawBuffer * nextBuffer();
 
 	static void initCodecEngine();
 	static void cleanUpDsp();
@@ -46,12 +45,8 @@ private:
 	Vdec2_Handle hCodec;
 	BufTab_Handle hBufTab;
 	int numOutputBufs;
-	QList<RawBuffer *> inputBuffers;
-	QList<RawBuffer *> outputBuffers;
 	CircularBuffer *circBuf;
 	Buffer_Handle circBufData;
-	QList<decodeTimeStamp *> inTimeStamps;
-	decodeTimeStamp *timestamp;
 	int decodeCount;
 
 	int startCodec();

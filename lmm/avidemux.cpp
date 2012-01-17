@@ -1,6 +1,6 @@
 #include "avidemux.h"
 #include "rawbuffer.h"
-//#define DEBUG
+#define DEBUG
 #include "emdesk/debug.h"
 
 extern "C" {
@@ -9,12 +9,23 @@ extern "C" {
 }
 
 AviDemux::AviDemux(QObject *parent) :
-	QObject(parent)
+	BaseLmmElement(parent)
 {
-	//av_register_input_format(&avi_demuxer);
 	av_register_all();
 }
 
+#if 0
+	AVCodecContext *codecContext;
+	AVCodec *codec;
+	codecContext = context->streams[audioStream]->codec;
+	codec = avcodec_find_decoder(codecContext->codec_id);
+	if (codec)
+		return -ENOENT;
+	mDebug("found audio codec");
+	err = avcodec_open(codecContext, codec);
+	if (err < 0)
+		return err;
+#endif
 int AviDemux::setSource(QString filename)
 {
 	if (av_open_input_file(&context, qPrintable(filename), NULL, 0, NULL))
@@ -33,18 +44,6 @@ int AviDemux::setSource(QString filename)
 	if (audioStreamIndex < 0 || videoStreamIndex < 0)
 		return -EINVAL;
 	mDebug("streams found");
-#if 0
-	AVCodecContext *codecContext;
-	AVCodec *codec;
-	codecContext = context->streams[audioStream]->codec;
-	codec = avcodec_find_decoder(codecContext->codec_id);
-	if (codec)
-		return -ENOENT;
-	mDebug("found audio codec");
-	err = avcodec_open(codecContext, codec);
-	if (err < 0)
-		return err;
-#endif
 	audioStream = context->streams[audioStreamIndex];
 	videoStream = context->streams[videoStreamIndex];
 
@@ -99,6 +98,8 @@ void AviDemux::demuxOne()
 			buf->setPts(packet->pts * videoTimeBase);
 		else
 			buf->setPts(-1);
+		if (audioStreamIndex < 0)
+			streamPosition += buf->getDuration();
 		videoBuffers << buf;
 	}
 }
@@ -122,13 +123,14 @@ void AviDemux::demuxAll()
 
 qint64 AviDemux::getTotalDuration()
 {
-	if (!audioStream)
-		return -1;
-
-	return audioStream->duration * audioTimeBase;
+	if (audioStream)
+		return audioStream->duration * audioTimeBase;
+	if (videoStream)
+		return videoStream->duration * videoTimeBase;
+	return 0;
 }
 
-int AviDemux::getCurrentPosition()
+qint64 AviDemux::getCurrentPosition()
 {
 	return streamPosition;
 }
@@ -137,6 +139,7 @@ RawBuffer * AviDemux::nextAudioBuffer()
 {
 	if (audioBuffers.size())
 		return audioBuffers.takeFirst();
+	outputBufferCount++;
 	return NULL;
 }
 
@@ -144,12 +147,25 @@ RawBuffer * AviDemux::nextVideoBuffer()
 {
 	if (videoBuffers.size())
 		return videoBuffers.takeFirst();
+	outputBufferCount++;
 	return NULL;
 }
 
 int AviDemux::audioBufferCount()
 {
 	return audioBuffers.count();
+}
+
+int AviDemux::start()
+{
+	return 0;
+}
+
+int AviDemux::stop()
+{
+	av_close_input_file(context);
+	context = NULL;
+	return 0;
 }
 
 AVPacket * AviDemux::nextPacket()

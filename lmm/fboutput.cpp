@@ -29,7 +29,11 @@ extern "C" {
 }
 #endif
 
-#define DISP_DIFF 1
+/* TODO: Get rid of these flags(their names) */
+#define gst_tidmaibuffer_GST_FREE        0x1
+#define gst_tidmaibuffer_CODEC_FREE      0x2
+#define gst_tidmaibuffer_VIDEOSINK_FREE  0x4
+#define gst_tidmaibuffer_DISPLAY_FREE    0x8
 
 int FbOutput::openFb(QString filename)
 {
@@ -69,35 +73,21 @@ int FbOutput::openFb(QString filename)
 }
 
 FbOutput::FbOutput(QObject *parent) :
-	QObject(parent)
+	BaseLmmOutput(parent)
 {
 	streamTime = NULL;
 	fd = -1;
-	if (openFb("/dev/fb3"))
-		mDebug("error opening framebuffer");
-}
-
-int FbOutput::addBuffer(RawBuffer *buffer)
-{
-	buffers << buffer;
-	return 0;
 }
 
 int FbOutput::output()
 {
-	if (!buffers.size())
+	if (!inputBuffers.size())
 		return -ENOENT;
-	RawBuffer *buf = buffers.first();
+	RawBuffer *buf = inputBuffers.first();
 	int time = streamTime->elapsed();
-	qint64 rpts = buf->getPts();
-	if (rpts > 0) {
-		int pts = buf->getPts() / 1000;
-		if (pts < streamDuration / 1000 && pts - DISP_DIFF > time) {
-			mInfo("it is not time to display, pts=%d time=%d", pts, time);
-			return 0;
-		}
-	}
-	buffers.removeFirst();
+	if (checkBufferTimeStamp(buf))
+		return 0;
+	inputBuffers.removeFirst();
 	const char *data = (const char *)buf->constData();
 	if (fd > 0) {
 		if (buf->size() == fbSize)
@@ -110,7 +100,7 @@ int FbOutput::output()
 			if (startX < 0)
 				startX = 0;
 			int startY = (fbSize / fbLineLen - inH) / 2 * fbLineLen;
-			mDebug("buffer=%d time=%d frame: %d x %d, fbsize is %d, ts is %lld",
+			mInfo("buffer=%d time=%d frame: %d x %d, fbsize is %d, ts is %lld",
 				   buf->streamBufferNo(), time, inW, inH, fbSize, buf->getPts() / 1000);
 			int j = 0;
 			for (int i = startY; i < fbSize; i += fbLineLen) {
@@ -123,7 +113,24 @@ int FbOutput::output()
 	} else
 		mDebug("fb device is not opened");
 	Buffer_Handle dmaiBuf = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
-	BufTab_freeBuf(dmaiBuf);
+	Buffer_freeUseMask(dmaiBuf, gst_tidmaibuffer_VIDEOSINK_FREE);
 	delete buf;
+	return 0;
+}
+
+int FbOutput::start()
+{
+	int err = openFb("/dev/fb3");
+	if (err)
+		mDebug("error opening framebuffer");
+	return err;
+}
+
+int FbOutput::stop()
+{
+	if (fd == -1)
+		return 0;
+	munmap(fbAddr, fbSize);
+	::close(fd);
 	return 0;
 }

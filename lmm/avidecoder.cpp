@@ -50,6 +50,11 @@ AviDecoder::AviDecoder(QObject *parent) :
 	audioOutput = new AlsaOutput;
 	videoOutput = new FbOutput;
 	demux = new AviDemux;
+	elements << demux;
+	elements << videoDecoder;
+	elements << videoOutput;
+	elements << audioDecoder;
+	elements << audioOutput;
 
 	videoOutput->setStreamTime(streamTime);
 }
@@ -64,6 +69,7 @@ AviDecoder::~AviDecoder()
 		delete videoOutput;
 		delete demux;
 		videoDecoder = NULL;
+		elements.clear();
 	}
 }
 
@@ -75,7 +81,10 @@ int AviDecoder::startDecoding()
 		return err;
 	connect(demux, SIGNAL(newAudioFrame()), SLOT(newAudioFrame()), Qt::QueuedConnection);
 	HardwareOperations::blendOSD(true, 31);
-	videoDecoder->start();
+
+	foreach (BaseLmmElement *el, elements)
+		el->start();
+
 	timer = new QTimer(this);
 	timer->setSingleShot(true);
 	connect(timer, SIGNAL(timeout()), this, SLOT(decodeLoop()));
@@ -89,13 +98,22 @@ int AviDecoder::startDecoding()
 void AviDecoder::stopDecoding()
 {
 	state = STOPPED;
-	videoDecoder->stop();
+	foreach (BaseLmmElement *el, elements)
+		el->stop();
 	HardwareOperations::blendOSD(false);
+	demux->printStats();
+	videoDecoder->printStats();
+	videoOutput->printStats();
 }
 
-int AviDecoder::getDuration()
+qint64 AviDecoder::getDuration()
 {
 	return demux->getTotalDuration();
+}
+
+qint64 AviDecoder::getPosition()
+{
+	return streamTime->elapsed() * 1000;
 }
 
 void AviDecoder::newAudioFrame()
@@ -117,7 +135,7 @@ void AviDecoder::decodeLoop()
 		return;
 	}
 	demux->demuxOne();
-	//audioLoop();
+	audioLoop();
 	videoLoop();
 	timer->start(5);
 }
@@ -131,7 +149,7 @@ void AviDecoder::audioLoop()
 	audioDecoder->decodeAll();
 	buf = audioDecoder->nextBuffer();
 	if (buf) {
-		qDebug() << streamTime->elapsed() << "decoded: " << buf->size() << buf;
+		//qDebug() << streamTime->elapsed() << "decoded: " << buf->size() << buf;
 		audioOutput->addBuffer(buf);
 	}
 	audioOutput->output();

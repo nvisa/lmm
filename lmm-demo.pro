@@ -22,7 +22,10 @@ SOURCES += main.cpp\
     lmm/dmaidecoder.cpp \
     xdc_runtime.c \
     lmm/circularbuffer.cpp \
-    lmm/fboutput.cpp
+    lmm/fboutput.cpp \
+    lmm/baselmmelement.cpp \
+    lmm/baselmmdecoder.cpp \
+    lmm/baselmmoutput.cpp
 
 HEADERS  += lmsdemo.h \
     lmm/filesource.h \
@@ -34,7 +37,10 @@ HEADERS  += lmsdemo.h \
     lmm/alsaoutput.h \
     lmm/dmaidecoder.h \
     lmm/circularbuffer.h \
-    lmm/fboutput.h
+    lmm/fboutput.h \
+    lmm/baselmmelement.h \
+    lmm/baselmmdecoder.h \
+    lmm/baselmmoutput.h
 
 FORMS    += lmsdemo.ui
 

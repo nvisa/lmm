@@ -8,6 +8,7 @@ class LmsDemo;
 }
 
 class AviDecoder;
+class QTimer;
 
 class LmsDemo : public QWidget
 {
@@ -18,6 +19,7 @@ public:
 	void exitLater();
 	~LmsDemo();
 private slots:
+	void timeout();
 	void cleanUpAndExit();
 	void on_toolPlay_clicked();
 
@@ -28,6 +30,12 @@ private slots:
 private:
 	Ui::LmsDemo *ui;
 	AviDecoder *dec;
+	QTimer *timer;
+	bool enableSliderUpdate;
+	int hideCounter;
+	int labelHideCounter;
+
+	void updateVirtPosition(int val);
 };
 
 #endif // LMSDEMO_H

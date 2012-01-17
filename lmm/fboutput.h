@@ -1,21 +1,21 @@
 #ifndef FBOUTPUT_H
 #define FBOUTPUT_H
 
-#include <QObject>
+#include "baselmmoutput.h"
 #include <QList>
 
 class RawBuffer;
 class QTime;
+class BaseLmmElement;
 
-class FbOutput : public QObject
+class FbOutput : public BaseLmmOutput
 {
 	Q_OBJECT
 public:
 	explicit FbOutput(QObject *parent = 0);
-	int addBuffer(RawBuffer *buffer);
 	int output();
-	void setStreamTime(QTime *t) { streamTime = t; }
-	void setStreamDuration(qint64 duration) { streamDuration = duration; }
+	int start();
+	int stop();
 signals:
 	
 public slots:
@@ -25,9 +25,6 @@ private:
 	unsigned char *fbAddr;
 	int fbLineLen;
 	int fbHeight;
-	QList<RawBuffer *> buffers;
-	QTime *streamTime;
-	qint64 streamDuration;
 
 	int openFb(QString filename);
 };

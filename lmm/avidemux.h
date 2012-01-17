@@ -1,24 +1,27 @@
 #ifndef AVIDEMUX_H
 #define AVIDEMUX_H
 
-#include <QObject>
+#include "baselmmelement.h"
 
 struct AVPacket;
 struct AVFormatContext;
 struct AVStream;
 class RawBuffer;
+class BaseLmmElement;
 
-class AviDemux : public QObject
+class AviDemux : public BaseLmmElement
 {
 	Q_OBJECT
 public:
 	explicit AviDemux(QObject *parent = 0);
 	int setSource(QString filename);
 	qint64 getTotalDuration();
-	int getCurrentPosition();
+	qint64 getCurrentPosition();
 	RawBuffer * nextAudioBuffer();
 	RawBuffer * nextVideoBuffer();
 	int audioBufferCount();
+	int start();
+	int stop();
 signals:
 	void newAudioFrame();
 	void newVideoFrame();
@@ -34,7 +37,7 @@ private:
 	QList<RawBuffer *> audioBuffers;
 	QList<RawBuffer *> videoBuffers;
 
-	int streamPosition;
+	qint64 streamPosition;
 
 	/* derived stats */
 	unsigned int audioTimeBase; /* in usecs */

@@ -10,22 +10,8 @@
 #include <taglib/id3v2tag.h>
 
 Mad::Mad(QObject *parent) :
-	QObject(parent)
+	BaseLmmDecoder(parent)
 {
-	stream = new mad_stream;
-	frame = new mad_frame;
-	synth = new mad_synth;
-	mad_stream_init(stream);
-	mad_frame_init(frame);
-	mad_synth_init(synth);
-}
-
-int Mad::addBuffer(RawBuffer *buf)
-{
-	if (!buf)
-		return -EINVAL;
-	buffers.append(buf);
-	return 0;
 }
 
 static signed short madToShort(mad_fixed_t Fixed)
@@ -79,7 +65,7 @@ static inline qint16 scale(mad_fixed_t sample)
 int Mad::decodeAll()
 {
 	RawBuffer *buf = NULL;
-	while (buffers.size()) {
+	while (inputBuffers.size()) {
 		/* TODO: free finished buffers */
 		if (buf) {
 			if (stream->next_frame) {
@@ -87,10 +73,11 @@ int Mad::decodeAll()
 				madBuffer.prepend((const char *)stream->next_frame, left);
 			}
 		}
-		buf = buffers.takeFirst();
+		buf = inputBuffers.takeFirst();
 		if (!buf)
 			return -ENOENT;
 		madBuffer.append((const char *)buf->data(), buf->size());
+		handleInputTimeStamps(buf);
 		delete buf;
 		buf = NULL;
 		mad_stream_buffer(stream, (const unsigned char *)madBuffer.constData(), madBuffer.size());
@@ -153,6 +140,7 @@ int Mad::decodeAll()
 			*out++ = scale(*leftCh++) & 0xffff;
 			*out++ = scale(*rightCh++) & 0xffff;
 		}
+		setOutputTimeStamp(outbuf);
 		outputBuffers << outbuf;
 
 		int cons = stream->next_frame - (unsigned char *)madBuffer.constData();
@@ -163,12 +151,34 @@ int Mad::decodeAll()
 	return 0;
 }
 
+int Mad::start()
+{
+	stream = new mad_stream;
+	frame = new mad_frame;
+	synth = new mad_synth;
+	mad_stream_init(stream);
+	mad_frame_init(frame);
+	mad_synth_init(synth);
+	return 0;
+}
+
+int Mad::stop()
+{
+	mad_synth_finish(synth);
+	mad_frame_finish(frame);
+	mad_stream_finish(stream);
+	delete synth;
+	delete frame;
+	delete stream;
+	return 0;
+}
+
 int Mad::decode()
 {
 	if (stream->buffer == NULL || stream->error == MAD_ERROR_BUFLEN) {
-		if (buffers.size() == 0)
+		if (inputBuffers.size() == 0)
 			return -ENOENT;
-		RawBuffer *buf = buffers.takeFirst();
+		RawBuffer *buf = inputBuffers.takeFirst();
 		if (stream->next_frame) {
 			size_t left = stream->bufend - stream->next_frame;
 			if (buf->prepend(stream->next_frame, left))
@@ -179,6 +189,7 @@ int Mad::decode()
 		/* Pipe the new buffer content to libmad's stream decoder facility. */
 		mad_stream_buffer(stream, (const unsigned char *)buf->data(), buf->size());
 		stream->error = MAD_ERROR_NONE;
+		handleInputTimeStamps(buf);
 		delete buf;
 	}
 	if (mad_frame_decode(frame, stream)) {
@@ -205,15 +216,10 @@ int Mad::decode()
 			data[i * 2] = lsample;
 			data[i * 2 + 1] = rsample;
 		}
+		setOutputTimeStamp(buf);
 		outputBuffers << buf;
 	}
 
 	return 0;
 }
 
-RawBuffer * Mad::nextBuffer()
-{
-	if (outputBuffers.size() == 0)
-		return NULL;
-	return outputBuffers.takeFirst();
-}

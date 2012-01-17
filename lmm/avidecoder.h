@@ -11,6 +11,7 @@ class FbOutput;
 class DmaiDecoder;
 class QTimer;
 class QTime;
+class BaseLmmElement;
 
 class AviDecoder : public QObject
 {
@@ -20,8 +21,8 @@ public:
 	~AviDecoder();
 	int startDecoding();
 	void stopDecoding();
-	int getDuration();
-	int getPosition();
+	qint64 getDuration();
+	qint64 getPosition();
 public slots:
 	void newAudioFrame();
 	void decodeLoop();
@@ -38,6 +39,7 @@ private:
 	FbOutput *videoOutput;
 	QTimer *timer;
 	QTime *streamTime;
+	QList<BaseLmmElement *> elements;
 
 	void audioLoop();
 	void videoLoop();

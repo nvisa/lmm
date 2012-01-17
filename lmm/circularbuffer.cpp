@@ -1,7 +1,8 @@
 #include "circularbuffer.h"
+#define DEBUG
+#include "emdesk/debug.h"
 
 #include <errno.h>
-#include <QDebug>
 
 CircularBuffer::CircularBuffer(QObject *parent) :
 	QObject(parent)
@@ -32,8 +33,10 @@ int CircularBuffer::useData(int size)
 	if (size > usedBufLen)
 		size = usedBufLen;
 	tail += size;
-	if (tail > rawData + rawDataLen)
+	if (tail > rawData + rawDataLen) {
 		tail -= rawDataLen;
+		mDebug("tail passed end of circ buf, resetting");
+	}
 	freeBufLen += size;
 	usedBufLen -= size;
 	return size;
@@ -46,8 +49,10 @@ int CircularBuffer::addData(const void *data, int size)
 		return -EINVAL;
 
 	if (head + size > rawData + rawDataLen) {
-		/* At this point it is guarenteed thah head > tail due to not overriding */
-		memcpy(tail, rawData, usedBufLen);
+		mDebug("no space left, shifting");
+		/* At this point it is guarenteed that head > tail due to not overriding */
+		/* TODO: Following memcpy may be optimized */
+		memcpy(rawData, tail, usedBufLen);
 		head = rawData + usedBufLen;
 		tail = rawData;
 	}
@@ -55,6 +60,7 @@ int CircularBuffer::addData(const void *data, int size)
 	head += size;
 	freeBufLen -= size;
 	usedBufLen += size;
+
 	return 0;
 }
 

@@ -6,25 +6,32 @@
 #include <errno.h>
 
 AlsaOutput::AlsaOutput(QObject *parent) :
-	QObject(parent)
+	BaseLmmOutput(parent)
 {
 	alsaOut = new Alsa;
 	alsaOut->open();
 }
 
-int AlsaOutput::addBuffer(RawBuffer *buffer)
-{
-	buffers << buffer;
-	return 0;
-}
-
 int AlsaOutput::output()
 {
-	if (!buffers.size())
+	if (!inputBuffers.size())
 		return -ENOENT;
-	RawBuffer *buf = buffers.takeFirst();
+	RawBuffer *buf = inputBuffers.first();
+	if (checkBufferTimeStamp(buf))
+		return 0;
+	inputBuffers.removeFirst();
 	const char *data = (const char *)buf->constData();
 	alsaOut->write(data, buf->size());
 	delete buf;
 	return 0;
+}
+
+int AlsaOutput::start()
+{
+	return alsaOut->open();
+}
+
+int AlsaOutput::stop()
+{
+	return alsaOut->close();
 }

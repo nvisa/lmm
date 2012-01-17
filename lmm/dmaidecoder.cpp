@@ -17,24 +17,14 @@
 #define gst_tidmaibuffer_VIDEOSINK_FREE  0x4
 #define gst_tidmaibuffer_DISPLAY_FREE    0x8
 
-#define TIMESTAMP_MIN_DURATION 2000
-
-struct decodeTimeStamp {
-	int duration;
-	int validDuration;
-	int usedDuration;
-	qint64 pts;
-};
-
 static DmaiDecoder *instance = NULL;
 
 DmaiDecoder::DmaiDecoder(QObject *parent) :
-	QObject(parent)
+	BaseLmmDecoder(parent)
 {
 	hEngine = NULL;
 	hCodec = NULL;
 	instance = this;
-	timestamp = NULL;
 }
 
 DmaiDecoder::~DmaiDecoder()
@@ -64,15 +54,17 @@ int DmaiDecoder::start()
 
 int DmaiDecoder::stop()
 {
-	return stopCodec();
-}
+	int err = stopCodec();
+	if (circBufData) {
+		Buffer_delete(circBufData);
+		circBufData = NULL;
+	}
+	if (circBuf) {
+		delete circBuf;
+		circBuf = NULL;
+	}
 
-int DmaiDecoder::addBuffer(RawBuffer *buf)
-{
-	if (!buf)
-		return -EINVAL;
-	inputBuffers.append(buf);
-	return 0;
+	return err;
 }
 
 int DmaiDecoder::decodeOne()
@@ -87,24 +79,7 @@ int DmaiDecoder::decodeOne()
 			mInfo("adding %d bytes to circular buffer", buf->size());
 			if (circBuf->addData(buf->data(), buf->size()))
 				mDebug("error adding data to circular buffer");
-			qint64 pts = buf->getPts();
-			if (pts != -1) {
-				decodeTimeStamp *ts = new decodeTimeStamp;
-				ts->pts = pts;
-				ts->duration = buf->getDuration();
-				ts->validDuration = buf->getDuration();
-				ts->usedDuration = 0;
-				inTimeStamps << ts;
-				if (!timestamp)
-					timestamp = inTimeStamps.first();
-			} else {
-				/* increase validty of last ts */
-				if (inTimeStamps.size()) {
-					decodeTimeStamp *ts = inTimeStamps.last();
-					ts->validDuration += buf->getDuration();
-				} else
-					mDebug("no last ts present");
-			}
+			handleInputTimeStamps(buf);
 			delete buf;
 		}
 		Buffer_Handle hBuf = BufTab_getFreeBuf(hBufTab);
@@ -113,9 +88,10 @@ int DmaiDecoder::decodeOne()
 			 * This is not an error, probably buffers are not displayed yet
 			 * and we don't need to decode any more
 			 */
-			mDebug("cannot get new buf from buftab");
+			mInfo("cannot get new buf from buftab");
 			return -ENOENT;
 		}
+
 		/* Make sure the whole buffer is used for output */
 		BufferGfx_resetDimensions(hBuf);
 
@@ -144,6 +120,7 @@ int DmaiDecoder::decodeOne()
 					mDebug("fatal dmai bit error");
 			}
 		}
+		Buffer_delete(hCircBufWindow);
 		mInfo("decoder used %d bytes out of %d", consumed, circBuf->usedSize());
 		if (circBuf->useData(consumed) != consumed)
 			mDebug("something wrong with circ buffer");
@@ -160,22 +137,13 @@ int DmaiDecoder::decodeOne()
 			newbuf->addBufferParameter("height", (int)dim.height);
 			newbuf->addBufferParameter("dmaiBuffer", (int)outbuf);
 			newbuf->setStreamBufferNo(decodeCount++);
+
 			/* handle timestamps */
-			if (timestamp) {
-				if (timestamp->validDuration - timestamp->usedDuration < TIMESTAMP_MIN_DURATION) {
-					/* our timestamp is not valid anymore */
-					inTimeStamps.removeFirst();
-					delete timestamp;
-					if (inTimeStamps.size())
-						timestamp = inTimeStamps.first();
-					else
-						mDebug("timestamp is not valid and we don't have more");
-				}
-				newbuf->setPts(timestamp->pts + timestamp->usedDuration);
-				newbuf->setDuration(timestamp->duration);
-				timestamp->usedDuration += timestamp->duration;
-			}
+			setOutputTimeStamp(newbuf);
+
 			outputBuffers << newbuf;
+			/* set the resulting buffer in use by video output */
+			Buffer_setUseMask(outbuf, Buffer_getUseMask(outbuf) | gst_tidmaibuffer_VIDEOSINK_FREE);
 		} else
 			mDebug("unable to find a free display buffer");
 		/* Release buffers no longer in use by the codec */
@@ -188,13 +156,6 @@ int DmaiDecoder::decodeOne()
 	}
 
 	return 0;
-}
-
-RawBuffer * DmaiDecoder::nextBuffer()
-{
-	if (outputBuffers.size() == 0)
-		return NULL;
-	return outputBuffers.takeFirst();
 }
 
 void DmaiDecoder::initCodecEngine()
@@ -308,7 +269,7 @@ int DmaiDecoder::startCodec()
 	gfxAttrs.dim.width = params.maxWidth;
 	gfxAttrs.dim.height = params.maxHeight;
 	gfxAttrs.dim.lineLength = BufferGfx_calcLineLength(gfxAttrs.dim.width, gfxAttrs.colorSpace);
-	/* By default, new buffers are marked as in-use by the codec */
+	/* TODO: By default, new buffers are marked as in-use by the codec */
 	gfxAttrs.bAttrs.useMask = gst_tidmaibuffer_CODEC_FREE;
 	hBufTab = BufTab_create(numOutputBufs, Vdec2_getOutBufSize(hCodec), BufferGfx_getBufferAttrs(&gfxAttrs));
 	if (hBufTab == NULL) {
