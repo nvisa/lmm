@@ -22,12 +22,13 @@ public:
 	int audioBufferCount();
 	int start();
 	int stop();
+	int seekTo(qint64 pos);
 signals:
 	void newAudioFrame();
 	void newVideoFrame();
 public slots:
-	void demuxAll();
-	void demuxOne();
+	int demuxAll();
+	int demuxOne();
 private:
 	int videoStreamIndex;
 	int audioStreamIndex;

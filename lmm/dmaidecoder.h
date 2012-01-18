@@ -32,6 +32,7 @@ public:
 	~DmaiDecoder();
 
 	int decodeOne();
+	int flush();
 
 	static void initCodecEngine();
 	static void cleanUpDsp();

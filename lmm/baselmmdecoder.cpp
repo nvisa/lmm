@@ -23,6 +23,16 @@ int BaseLmmDecoder::stop()
 	return stopDecoding();
 }
 
+int BaseLmmDecoder::flush()
+{
+	if (inTimeStamps.size()) {
+		qDeleteAll(inTimeStamps);
+		inTimeStamps.clear();
+	}
+	timestamp = NULL;
+	return BaseLmmElement::flush();
+}
+
 void BaseLmmDecoder::handleInputTimeStamps(RawBuffer *buf)
 {
 	qint64 pts = buf->getPts();

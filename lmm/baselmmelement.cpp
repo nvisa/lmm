@@ -1,5 +1,6 @@
 #include "baselmmelement.h"
 #include "emdesk/debug.h"
+#include "rawbuffer.h"
 
 #include <errno.h>
 
@@ -31,4 +32,13 @@ RawBuffer * BaseLmmElement::nextBuffer()
 void BaseLmmElement::printStats()
 {
 	qDebug() << this << inputBufferCount << outputBufferCount;
+}
+
+int BaseLmmElement::flush()
+{
+	qDeleteAll(inputBuffers.begin(), inputBuffers.end());
+	qDeleteAll(outputBuffers.begin(), outputBuffers.end());
+	inputBuffers.clear();
+	outputBuffers.clear();
+	return 0;
 }

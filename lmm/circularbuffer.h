@@ -14,6 +14,7 @@ public:
 	int usedSize();
 	int useData(int size);
 	int addData(const void *data, int size);
+	int reset();
 signals:
 	
 public slots:

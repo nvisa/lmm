@@ -13,6 +13,8 @@
 #include <QTimer>
 #include <QThread>
 
+#include <errno.h>
+
 /*class DemuxThread : public QThread
 {
 public:
@@ -121,6 +123,21 @@ qint64 AviDecoder::getPosition()
 	return streamTime->getCurrentTime();
 }
 
+int AviDecoder::seekTo(qint64 pos)
+{
+	if (!demux->seekTo(pos)) {
+		mDebug("seek ok");
+		foreach (BaseLmmElement *el, elements)
+			el->flush();
+	}
+	return 0;
+}
+
+int AviDecoder::seek(qint64 pos)
+{
+	return demux->seekTo(demux->getCurrentPosition() + pos);
+}
+
 void AviDecoder::newAudioFrame()
 {
 	qDebug() << demux->getCurrentPosition() << demux->getTotalDuration();
@@ -139,11 +156,15 @@ void AviDecoder::decodeLoop()
 		mDebug("we are not in a running state");
 		return;
 	}
-	demux->demuxOne();
-	streamTime->setCurrentTime(demux->getCurrentPosition());
-	audioLoop();
-	videoOutput->setOutputDelay(audioOutput->getLatency());
-	videoLoop();
+	int err = demux->demuxOne();
+	if (!err) {
+		streamTime->setCurrentTime(demux->getCurrentPosition());
+		audioLoop();
+		videoOutput->setOutputDelay(audioOutput->getLatency());
+		videoLoop();
+	} else if (err == -ENOENT) {
+		mDebug("decoding finished");
+	}
 	timer->start(5);
 }
 

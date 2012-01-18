@@ -13,9 +13,8 @@ CircularBuffer::CircularBuffer(void *source, int size, QObject *parent) :
 	QObject(parent)
 {
 	rawData = (char *)source;
-	rawDataLen = freeBufLen = size;
-	head = tail = rawData;
-	usedBufLen = 0;
+	rawDataLen = size;
+	reset();
 }
 
 void * CircularBuffer::getDataPointer()
@@ -61,6 +60,14 @@ int CircularBuffer::addData(const void *data, int size)
 	freeBufLen -= size;
 	usedBufLen += size;
 
+	return 0;
+}
+
+int CircularBuffer::reset()
+{
+	freeBufLen = rawDataLen;
+	head = tail = rawData;
+	usedBufLen = 0;
 	return 0;
 }
 

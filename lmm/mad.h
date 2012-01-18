@@ -16,6 +16,7 @@ public:
 	explicit Mad(QObject *parent = 0);
 	int decode();
 	int decodeAll();
+	int flush();
 signals:
 	
 public slots:

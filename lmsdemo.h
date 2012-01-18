@@ -26,7 +26,12 @@ private slots:
 	void on_toolStop_clicked();
 
 	void on_toolPrevPage_clicked();
+	void on_toolForward_clicked();
 
+	void on_toolBackward_clicked();
+
+protected:
+	bool eventFilter(QObject *, QEvent *);
 private:
 	Ui::LmsDemo *ui;
 	AviDecoder *dec;

@@ -70,41 +70,47 @@ static void deletePacket(AVPacket *packet)
 	delete packet;
 }
 
-void AviDemux::demuxOne()
+int AviDemux::demuxOne()
 {
 	static AVPacket *packet = NULL;
 	if (packet)
 		deletePacket(packet);
 	packet = nextPacket();
 	if (!packet)
-		return;
+		return -ENOENT;
 	if (packet->stream_index == audioStreamIndex) {
 		mInfo("new audio stream: size=%d", packet->size);
 		RawBuffer *buf = new RawBuffer(packet->data, packet->size);
 		buf->setDuration(packet->duration * audioTimeBase);
-		if (packet->pts != (int64_t)AV_NOPTS_VALUE)
+		if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 			buf->setPts(packet->pts * audioTimeBase);
-		else
+			streamPosition = buf->getPts();
+		} else {
 			buf->setPts(-1);
+			streamPosition += buf->getDuration();
+		}
 		audioBuffers << buf;
-		streamPosition += buf->getDuration();
 	} else if (packet->stream_index == videoStreamIndex) {
 		mInfo("new video stream: size=%d pts=%lld duration=%d dflags=%d", packet->size,
 			   packet->pts == (int64_t)AV_NOPTS_VALUE ? -1 : packet->pts ,
 			   packet->duration, packet->flags);
 		RawBuffer *buf = new RawBuffer(packet->data, packet->size);
 		buf->setDuration(packet->duration * videoTimeBase);
-		if (packet->pts != (int64_t)AV_NOPTS_VALUE)
+		if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 			buf->setPts(packet->pts * videoTimeBase);
-		else
+			if (audioStreamIndex < 0)
+				streamPosition = buf->getPts();
+		} else {
 			buf->setPts(-1);
-		if (audioStreamIndex < 0)
-			streamPosition += buf->getDuration();
+			if (audioStreamIndex < 0)
+				streamPosition += buf->getDuration();
+		}
 		videoBuffers << buf;
 	}
+	return 0;
 }
 
-void AviDemux::demuxAll()
+int AviDemux::demuxAll()
 {
 	AVPacket *packet = nextPacket();
 	while (packet) {
@@ -119,6 +125,7 @@ void AviDemux::demuxAll()
 		deletePacket(packet);
 		packet = nextPacket();
 	}
+	return 0;
 }
 
 qint64 AviDemux::getTotalDuration()
@@ -165,6 +172,37 @@ int AviDemux::stop()
 {
 	av_close_input_file(context);
 	context = NULL;
+	return 0;
+}
+
+int AviDemux::seekTo(qint64 pos)
+{
+	int flags = 0;
+	if (pos < streamPosition)
+		flags = AVSEEK_FLAG_BACKWARD;
+	if (videoStreamIndex != -1) {
+		int err = av_seek_frame(context, videoStreamIndex,
+								pos / videoTimeBase, flags);
+		if (err < 0) {
+			mDebug("error during seek");
+			return err;
+		}
+	} else if (audioStreamIndex != -1) {
+		int err = av_seek_frame(context, audioStreamIndex,
+								pos / audioTimeBase, flags);
+		if (err < 0) {
+			mDebug("error during seek");
+			return err;
+		}
+	} else {
+		int err = av_seek_frame(context, -1, pos, flags);
+		if (err < 0) {
+			mDebug("error during seek");
+			return err;
+		}
+	}
+	videoBuffers.clear();
+	audioBuffers.clear();
 	return 0;
 }
 

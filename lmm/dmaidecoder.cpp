@@ -158,6 +158,16 @@ int DmaiDecoder::decodeOne()
 	return 0;
 }
 
+int DmaiDecoder::flush()
+{
+	circBuf->reset();
+	/*
+	 * Note: Do not flush dsp codec here, it is not needed and
+	 * it causes more problems. i.e. buffer display order switching
+	 */
+	return BaseLmmDecoder::flush();
+}
+
 void DmaiDecoder::initCodecEngine()
 {
 	CERuntime_init();

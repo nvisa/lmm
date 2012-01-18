@@ -151,6 +151,14 @@ int Mad::decodeAll()
 	return 0;
 }
 
+int Mad::flush()
+{
+	mad_frame_mute(frame);
+	mad_synth_mute(synth);
+	madBuffer.clear();
+	return BaseLmmDecoder::flush();
+}
+
 int Mad::startDecoding()
 {
 	stream = new mad_stream;

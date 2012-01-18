@@ -6,6 +6,9 @@
 #include "emdesk/debug.h"
 
 #include <QTimer>
+#include <QMouseEvent>
+
+#define HIDE_COUNT 40
 
 LmsDemo::LmsDemo(QWidget *parent) :
 	QWidget(parent),
@@ -20,6 +23,9 @@ LmsDemo::LmsDemo(QWidget *parent) :
 	enableSliderUpdate = true;
 	hideCounter = -1;
 	labelHideCounter = -1;
+
+	ui->sliderPosition->installEventFilter(this);
+	ui->frameMask->installEventFilter(this);
 }
 
 void LmsDemo::exitLater()
@@ -98,4 +104,38 @@ void LmsDemo::on_toolStop_clicked()
 
 void LmsDemo::on_toolPrevPage_clicked()
 {
+}
+
+bool LmsDemo::eventFilter(QObject *obj, QEvent *ev)
+{
+	if (obj == ui->frameMask && ev->type() == QEvent::MouseButtonPress) {
+		ui->frameBack->show();
+		hideCounter = HIDE_COUNT;
+		return true;
+	} else if (obj == ui->sliderPosition) {
+		if (ev->type() == QEvent::MouseButtonPress) {
+			QMouseEvent *mev = (QMouseEvent *)ev;
+			ui->labelVirtPos->setVisible(true);
+			int val = ui->sliderPosition->maximum() * mev->x() / ui->sliderPosition->width();
+			updateVirtPosition(val);
+		} else if (ev->type() == QEvent::MouseButtonRelease) {
+			QMouseEvent *mev = (QMouseEvent *)ev;
+			labelHideCounter = HIDE_COUNT;
+			int val = ui->sliderPosition->maximum() * mev->x() / ui->sliderPosition->width();
+			dec->seekTo(val * 1000000ll);
+			updateVirtPosition(val);
+		}
+	}
+
+	return false;
+}
+
+void LmsDemo::on_toolForward_clicked()
+{
+	dec->seek(10000000);
+}
+
+void LmsDemo::on_toolBackward_clicked()
+{
+    dec->seek(-10000000);
 }

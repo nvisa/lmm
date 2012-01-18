@@ -21,6 +21,7 @@ public:
 	explicit BaseLmmDecoder(QObject *parent = 0);
 	int start();
 	int stop();
+	virtual int flush();
 signals:
 	
 public slots:

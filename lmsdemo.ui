@@ -125,7 +125,7 @@ QAbstractButton::pressed {
        <x>752</x>
        <y>80</y>
        <width>31</width>
-       <height>321</height>
+       <height>301</height>
       </rect>
      </property>
      <property name="styleSheet">
@@ -170,9 +170,9 @@ QAbstractButton::pressed {
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>420</y>
+       <y>400</y>
        <width>771</width>
-       <height>51</height>
+       <height>71</height>
       </rect>
      </property>
      <property name="styleSheet">
@@ -393,7 +393,7 @@ QAbstractButton::checked {
        <x>10</x>
        <y>90</y>
        <width>721</width>
-       <height>321</height>
+       <height>301</height>
       </rect>
      </property>
      <property name="frameShape">

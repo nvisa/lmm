@@ -19,6 +19,7 @@ public:
 	void printStats();
 	virtual int start() { return 0; }
 	virtual int stop() { return 0; }
+	virtual int flush();
 signals:
 	
 public slots:

@@ -23,6 +23,8 @@ public:
 	void stopDecoding();
 	qint64 getDuration();
 	qint64 getPosition();
+	int seekTo(qint64 pos);
+	int seek(qint64 pos);
 public slots:
 	void newAudioFrame();
 	void decodeLoop();
