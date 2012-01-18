@@ -15,38 +15,9 @@
 
 #include <errno.h>
 
-/*class DemuxThread : public QThread
-{
-public:
-	DemuxThread()
-	{
-		demux = new AviDemux();
-	}
-	AviDemux * getDemux() { return demux; }
-	void run()
-	{
-		QTimer::singleShot(0, demux, SLOT(decode()));
-		exec();
-	}
-private:
-	AviDemux *demux;
-};*/
-
 AviDecoder::AviDecoder(QObject *parent) :
 	QObject(parent)
 {
-#if 0
-	//DemuxThread *demuxThread = new DemuxThread();
-	demux = new AviDemux;//demuxThread->getDemux();
-	int err = demux->setSource("/media/net/Fringe.S04E06.HDTV.XviD-LOL.[VTV].avi");
-	if (err)
-		return;
-	connect(demux, SIGNAL(newAudioFrame()), SLOT(newAudioFrame()), Qt::QueuedConnection);
-	QThread *demuxThread = new QThread;
-	demux->moveToThread(demuxThread);
-	demuxThread->start();
-	QTimer::singleShot(0, demux, SLOT(decode()));
-#endif
 	streamTime = new StreamTime;
 	audioDecoder = new Mad;
 	videoDecoder = new DmaiDecoder;
@@ -107,9 +78,6 @@ void AviDecoder::stopDecoding()
 		foreach (BaseLmmElement *el, elements)
 			el->stop();
 		HardwareOperations::blendOSD(false);
-		demux->printStats();
-		videoDecoder->printStats();
-		videoOutput->printStats();
 	}
 }
 
@@ -140,14 +108,6 @@ int AviDecoder::seek(qint64 pos)
 
 void AviDecoder::newAudioFrame()
 {
-	qDebug() << demux->getCurrentPosition() << demux->getTotalDuration();
-	//timer->start(10);
-	return;
-	RawBuffer *buf = demux->nextAudioBuffer();
-	if (buf)
-		qDebug() << buf->getDuration();
-	//if (future->isFinished())
-	//qDebug() << "decoding finished";
 }
 
 void AviDecoder::decodeLoop()
@@ -171,28 +131,23 @@ void AviDecoder::decodeLoop()
 void AviDecoder::audioLoop()
 {
 	RawBuffer *buf = demux->nextAudioBuffer();
-	if (buf) {
+	if (buf)
 		audioDecoder->addBuffer(buf);
-	}
 	audioDecoder->decodeAll();
 	buf = audioDecoder->nextBuffer();
-	if (buf) {
-		//qDebug() << streamTime->elapsed() << "decoded: " << buf->size() << buf;
+	if (buf)
 		audioOutput->addBuffer(buf);
-	}
 	audioOutput->output();
 }
 
 void AviDecoder::videoLoop()
 {
 	RawBuffer *buf = demux->nextVideoBuffer();
-	if (buf) {
+	if (buf)
 		videoDecoder->addBuffer(buf);
-	}
 	videoDecoder->decodeOne();
 	buf = videoDecoder->nextBuffer();
-	if (buf) {
+	if (buf)
 		videoOutput->addBuffer(buf);
-	}
 	videoOutput->output();
 }
