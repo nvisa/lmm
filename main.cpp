@@ -4,6 +4,7 @@
 #include "lmsdemo.h"
 #include "lmm/dmaidecoder.h"
 #include "emdesk/hardwareoperations.h"
+#include "emdesk/debug.h"
 
 #include <signal.h>
 
@@ -41,6 +42,7 @@ static void installSignalHandlers()
 
 int main(int argc, char *argv[])
 {
+	initDebug();
 	HardwareOperations::writeRegister(0x1c7260c, 0x3004);
 	DmaiDecoder::initCodecEngine();
 	installSignalHandlers();

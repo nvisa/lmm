@@ -16,8 +16,6 @@ public:
 	explicit Mad(QObject *parent = 0);
 	int decode();
 	int decodeAll();
-	int start();
-	int stop();
 signals:
 	
 public slots:
@@ -27,6 +25,9 @@ private:
 	struct mad_synth *synth;
 
 	QByteArray madBuffer;
+
+	int startDecoding();
+	int stopDecoding();
 };
 
 #endif // MAD_H

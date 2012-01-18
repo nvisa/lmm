@@ -34,7 +34,7 @@ DmaiDecoder::~DmaiDecoder()
 	instance = NULL;
 }
 
-int DmaiDecoder::start()
+int DmaiDecoder::startDecoding()
 {
 	int err = startCodec();
 	if (!err) {
@@ -52,7 +52,7 @@ int DmaiDecoder::start()
 	return err;
 }
 
-int DmaiDecoder::stop()
+int DmaiDecoder::stopDecoding()
 {
 	int err = stopCodec();
 	if (circBufData) {

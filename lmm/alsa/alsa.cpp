@@ -18,7 +18,8 @@
 
 #include "emdesk/debug.h"
 
-Alsa::Alsa()
+Alsa::Alsa(QObject *parent) :
+	QObject(parent)
 {
 	bytesPerSample = 2;
 	bufferTime = 200000;
@@ -74,12 +75,12 @@ int Alsa::resume()
 
 static int xrun_recovery(snd_pcm_t *handle, int err)
 {
-	mDebug("xrun recovery %d", err);
+	fDebug("xrun recovery %d", err);
 
 	if (err == -EPIPE) {          /* under-run */
 		err = snd_pcm_prepare(handle);
 		if (err < 0)
-			mDebug("Can't recovery from underrun, prepare failed: %s", snd_strerror (err));
+			fDebug("Can't recovery from underrun, prepare failed: %s", snd_strerror (err));
 		return 0;
 	} else if (err == -ESTRPIPE) {
 		while ((err = snd_pcm_resume(handle)) == -EAGAIN)
@@ -88,7 +89,7 @@ static int xrun_recovery(snd_pcm_t *handle, int err)
 		if (err < 0) {
 			err = snd_pcm_prepare(handle);
 			if (err < 0)
-				mDebug("Can't recovery from suspend, prepare failed: %s",
+				fDebug("Can't recovery from suspend, prepare failed: %s",
 									snd_strerror (err));
 		}
 		return 0;

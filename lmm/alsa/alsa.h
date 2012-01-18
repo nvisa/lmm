@@ -4,15 +4,17 @@
 typedef struct _snd_pcm snd_pcm_t;
 typedef unsigned long snd_pcm_uframes_t;
 
+#include <QObject>
 #include <QThread>
 #include <QSemaphore>
 #include <QMutex>
 #include <QTime>
 
-class Alsa
+class Alsa : public QObject
 {
+	Q_OBJECT
 public:
-	Alsa();
+	Alsa(QObject *parent = NULL);
 	int open();
 	int close();
 	int pause();

@@ -6,7 +6,21 @@
 BaseLmmDecoder::BaseLmmDecoder(QObject *parent) :
 	BaseLmmElement(parent)
 {
+}
+
+int BaseLmmDecoder::start()
+{
+	if (inTimeStamps.size()) {
+		qDeleteAll(inTimeStamps);
+		inTimeStamps.clear();
+	}
 	timestamp = NULL;
+	return startDecoding();
+}
+
+int BaseLmmDecoder::stop()
+{
+	return stopDecoding();
 }
 
 void BaseLmmDecoder::handleInputTimeStamps(RawBuffer *buf)

@@ -31,8 +31,6 @@ public:
 	explicit DmaiDecoder(QObject *parent = 0);
 	~DmaiDecoder();
 
-	int start();
-	int stop();
 	int decodeOne();
 
 	static void initCodecEngine();
@@ -51,6 +49,8 @@ private:
 
 	int startCodec();
 	int stopCodec();
+	int startDecoding();
+	int stopDecoding();
 };
 
 #endif // DMAIDECODER_H

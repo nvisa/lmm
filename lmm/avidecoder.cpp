@@ -55,8 +55,6 @@ AviDecoder::AviDecoder(QObject *parent) :
 	elements << videoOutput;
 	elements << audioDecoder;
 	elements << audioOutput;
-
-	videoOutput->setStreamTime(streamTime);
 }
 
 AviDecoder::~AviDecoder()
@@ -82,15 +80,17 @@ int AviDecoder::startDecoding()
 	connect(demux, SIGNAL(newAudioFrame()), SLOT(newAudioFrame()), Qt::QueuedConnection);
 	HardwareOperations::blendOSD(true, 31);
 
-	foreach (BaseLmmElement *el, elements)
+	foreach (BaseLmmElement *el, elements) {
 		el->start();
+		el->setStreamDuration(demux->getTotalDuration());
+		el->setStreamTime(streamTime);
+	}
 
 	timer = new QTimer(this);
 	timer->setSingleShot(true);
 	connect(timer, SIGNAL(timeout()), this, SLOT(decodeLoop()));
 	timer->start(10);
 	streamTime->start();
-	videoOutput->setStreamDuration(demux->getTotalDuration());
 
 	return 0;
 }

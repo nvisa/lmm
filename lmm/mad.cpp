@@ -151,7 +151,7 @@ int Mad::decodeAll()
 	return 0;
 }
 
-int Mad::start()
+int Mad::startDecoding()
 {
 	stream = new mad_stream;
 	frame = new mad_frame;
@@ -162,7 +162,7 @@ int Mad::start()
 	return 0;
 }
 
-int Mad::stop()
+int Mad::stopDecoding()
 {
 	mad_synth_finish(synth);
 	mad_frame_finish(frame);
@@ -170,6 +170,7 @@ int Mad::stop()
 	delete synth;
 	delete frame;
 	delete stream;
+	madBuffer.clear();
 	return 0;
 }
 
