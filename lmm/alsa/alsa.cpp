@@ -135,6 +135,14 @@ write_error:
 	}
 }
 
+int Alsa::delay()
+{
+	snd_pcm_sframes_t delay;
+	if (snd_pcm_delay(handle, &delay))
+		return 0;
+	return 1000000ll * delay / sampleRate;
+}
+
 int Alsa::setHwParams()
 {
 	unsigned int rrate;
@@ -159,6 +167,7 @@ int Alsa::setHwParams()
 		goto out;
 	mDebug("channels ok");
 	rrate = 48000;
+	sampleRate = rrate;
 	err = snd_pcm_hw_params_set_rate_near(handle, params, &rrate, NULL);
 	if (err)
 		goto out;
@@ -190,8 +199,8 @@ int Alsa::setSwParams()
 	if (err)
 		goto out;
 	mDebug("current ok");
-	//err = snd_pcm_sw_params_set_start_threshold(handle, params, bufferSize / periodSize * periodSize);
-	err = snd_pcm_sw_params_set_start_threshold(handle, params, periodSize * 6);
+	err = snd_pcm_sw_params_set_start_threshold(handle, params, bufferSize / periodSize * periodSize);
+	//err = snd_pcm_sw_params_set_start_threshold(handle, params, periodSize * 6);
 	if (err)
 		goto out;
 	mDebug("threshold ok");

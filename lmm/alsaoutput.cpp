@@ -35,3 +35,8 @@ int AlsaOutput::stop()
 {
 	return alsaOut->close();
 }
+
+qint64 AlsaOutput::getLatency()
+{
+	return alsaOut->delay();
+}

@@ -20,6 +20,8 @@ public:
 	int pause();
 	int resume();
 	int write(const void *buf, int length);
+	/* return os delay in microseconds */
+	int delay();
 private:
 	snd_pcm_t *handle;
 	snd_pcm_uframes_t bufferSize;
@@ -29,6 +31,7 @@ private:
 	int bytesPerSample;
 	QMutex mutex;
 	bool running;
+	int sampleRate;
 
 	int setHwParams();
 	int setSwParams();

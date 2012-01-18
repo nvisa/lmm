@@ -10,7 +10,7 @@ class AlsaOutput;
 class FbOutput;
 class DmaiDecoder;
 class QTimer;
-class QTime;
+class StreamTime;
 class BaseLmmElement;
 
 class AviDecoder : public QObject
@@ -38,7 +38,7 @@ private:
 	AlsaOutput *audioOutput;
 	FbOutput *videoOutput;
 	QTimer *timer;
-	QTime *streamTime;
+	StreamTime *streamTime;
 	QList<BaseLmmElement *> elements;
 
 	void audioLoop();

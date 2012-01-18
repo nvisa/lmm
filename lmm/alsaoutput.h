@@ -16,6 +16,7 @@ public:
 	int output();
 	int start();
 	int stop();
+	qint64 getLatency();
 signals:
 	
 public slots:

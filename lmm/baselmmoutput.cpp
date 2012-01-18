@@ -1,28 +1,29 @@
 #include "baselmmoutput.h"
 #include "rawbuffer.h"
+#include "streamtime.h"
 #include "emdesk/debug.h"
-
-#include <QTime>
 
 BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 	BaseLmmElement(parent)
 {
+	outputDelay = 0;
 }
 
 int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 {
 	qint64 rpts = buf->getPts();
-	int pts = rpts / 1000;
-	int time = streamTime->elapsed();
+	qint64 time = streamTime->getCurrentTime();
+	if (outputDelay)
+		jitter = outputDelay;
 	if (rpts > 0) {
-		if (pts < streamDuration / 1000 && pts - jitter > time) {
-			mInfo("it is not time to display buf %d, pts=%d time=%d",
-				  buf->streamBufferNo(), pts, time);
+		if (rpts < streamDuration && rpts - jitter > time) {
+			mInfo("it is not time to display buf %d, pts=%lld time=%lld",
+				  buf->streamBufferNo(), rpts, time);
 			return -1;
 		}
 	}
 
-	mDebug("%s: streamTime=%d ts=%d diff=%d", this->metaObject()->className(),
-		   time, pts, time - pts);
+	mDebug("%s: streamTime=%lld ts=%lld diff=%lld", this->metaObject()->className(),
+		   time, rpts, time - rpts);
 	return 0;
 }

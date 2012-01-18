@@ -2,6 +2,7 @@
 #define DEBUG
 #include "emdesk/debug.h"
 #include "rawbuffer.h"
+#include "streamtime.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -12,7 +13,6 @@
 #include <errno.h>
 
 #include <QVariant>
-#include <QTime>
 
 #ifdef __cplusplus
 extern "C" {
@@ -84,9 +84,9 @@ int FbOutput::output()
 	if (!inputBuffers.size())
 		return -ENOENT;
 	RawBuffer *buf = inputBuffers.first();
-	int time = streamTime->elapsed();
 	if (checkBufferTimeStamp(buf))
 		return 0;
+	qint64 time = streamTime->getCurrentTime();
 	inputBuffers.removeFirst();
 	const char *data = (const char *)buf->constData();
 	if (fd > 0) {
@@ -100,7 +100,7 @@ int FbOutput::output()
 			if (startX < 0)
 				startX = 0;
 			int startY = (fbSize / fbLineLen - inH) / 2 * fbLineLen;
-			mInfo("buffer=%d time=%d frame: %d x %d, fbsize is %d, ts is %lld",
+			mInfo("buffer=%d time=%lld frame: %d x %d, fbsize is %d, ts is %lld",
 				   buf->streamBufferNo(), time, inW, inH, fbSize, buf->getPts() / 1000);
 			int j = 0;
 			for (int i = startY; i < fbSize; i += fbLineLen) {

@@ -5,6 +5,7 @@
 #include "alsaoutput.h"
 #include "fboutput.h"
 #include "dmaidecoder.h"
+#include "streamtime.h"
 #include "emdesk/debug.h"
 #include "emdesk/hardwareoperations.h"
 
@@ -44,7 +45,7 @@ AviDecoder::AviDecoder(QObject *parent) :
 	demuxThread->start();
 	QTimer::singleShot(0, demux, SLOT(decode()));
 #endif
-	streamTime = new QTime;
+	streamTime = new StreamTime;
 	audioDecoder = new Mad;
 	videoDecoder = new DmaiDecoder;
 	audioOutput = new AlsaOutput;
@@ -55,6 +56,7 @@ AviDecoder::AviDecoder(QObject *parent) :
 	elements << videoOutput;
 	elements << audioDecoder;
 	elements << audioOutput;
+	state = STOPPED;
 }
 
 AviDecoder::~AviDecoder()
@@ -73,37 +75,40 @@ AviDecoder::~AviDecoder()
 
 int AviDecoder::startDecoding()
 {
-	state = RUNNING;
-	int err = demux->setSource("/media/net/Fringe.S04E06.HDTV.XviD-LOL.[VTV].avi");
-	if (err)
-		return err;
-	connect(demux, SIGNAL(newAudioFrame()), SLOT(newAudioFrame()), Qt::QueuedConnection);
-	HardwareOperations::blendOSD(true, 31);
+	if (state == STOPPED) {
+		state = RUNNING;
+		int err = demux->setSource("/media/net/Fringe.S04E06.HDTV.XviD-LOL.[VTV].avi");
+		if (err)
+			return err;
+		connect(demux, SIGNAL(newAudioFrame()), SLOT(newAudioFrame()), Qt::QueuedConnection);
+		HardwareOperations::blendOSD(true, 31);
 
-	foreach (BaseLmmElement *el, elements) {
-		el->start();
-		el->setStreamDuration(demux->getTotalDuration());
-		el->setStreamTime(streamTime);
+		foreach (BaseLmmElement *el, elements) {
+			el->start();
+			el->setStreamDuration(demux->getTotalDuration());
+			el->setStreamTime(streamTime);
+		}
+
+		timer = new QTimer(this);
+		timer->setSingleShot(true);
+		connect(timer, SIGNAL(timeout()), this, SLOT(decodeLoop()));
+		timer->start(10);
 	}
-
-	timer = new QTimer(this);
-	timer->setSingleShot(true);
-	connect(timer, SIGNAL(timeout()), this, SLOT(decodeLoop()));
-	timer->start(10);
-	streamTime->start();
 
 	return 0;
 }
 
 void AviDecoder::stopDecoding()
 {
-	state = STOPPED;
-	foreach (BaseLmmElement *el, elements)
-		el->stop();
-	HardwareOperations::blendOSD(false);
-	demux->printStats();
-	videoDecoder->printStats();
-	videoOutput->printStats();
+	if (state == RUNNING) {
+		state = STOPPED;
+		foreach (BaseLmmElement *el, elements)
+			el->stop();
+		HardwareOperations::blendOSD(false);
+		demux->printStats();
+		videoDecoder->printStats();
+		videoOutput->printStats();
+	}
 }
 
 qint64 AviDecoder::getDuration()
@@ -113,7 +118,7 @@ qint64 AviDecoder::getDuration()
 
 qint64 AviDecoder::getPosition()
 {
-	return streamTime->elapsed() * 1000;
+	return streamTime->getCurrentTime();
 }
 
 void AviDecoder::newAudioFrame()
@@ -135,7 +140,9 @@ void AviDecoder::decodeLoop()
 		return;
 	}
 	demux->demuxOne();
+	streamTime->setCurrentTime(demux->getCurrentPosition());
 	audioLoop();
+	videoOutput->setOutputDelay(audioOutput->getLatency());
 	videoLoop();
 	timer->start(5);
 }

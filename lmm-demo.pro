@@ -25,7 +25,8 @@ SOURCES += main.cpp\
     lmm/fboutput.cpp \
     lmm/baselmmelement.cpp \
     lmm/baselmmdecoder.cpp \
-    lmm/baselmmoutput.cpp
+    lmm/baselmmoutput.cpp \
+    lmm/streamtime.cpp
 
 HEADERS  += lmsdemo.h \
     lmm/filesource.h \
@@ -40,7 +41,8 @@ HEADERS  += lmsdemo.h \
     lmm/fboutput.h \
     lmm/baselmmelement.h \
     lmm/baselmmdecoder.h \
-    lmm/baselmmoutput.h
+    lmm/baselmmoutput.h \
+    lmm/streamtime.h
 
 FORMS    += lmsdemo.ui
 
