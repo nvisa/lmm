@@ -16,10 +16,17 @@ public:
 	RawBuffer * nextBuffer();
 	void setStreamTime(StreamTime *t) { streamTime = t; }
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
-	void printStats();
-	virtual int start() { return 0; }
-	virtual int stop() { return 0; }
+
+	virtual int start();
+	virtual int stop();
 	virtual int flush();
+
+	/* stat information */
+	void printStats();
+	int getInputBufferCount() { return inputBuffers.size(); }
+	int getOutputBufferCount() { return outputBuffers.size(); }
+	int getReceivedBufferCount() { return receivedBufferCount; }
+	int getSentBufferCount() { return sentBufferCount; }
 signals:
 	
 public slots:
@@ -28,8 +35,8 @@ protected:
 	QList<RawBuffer *> outputBuffers;
 	StreamTime *streamTime;
 	qint64 streamDuration;
-	int inputBufferCount;
-	int outputBufferCount;
+	int receivedBufferCount;
+	int sentBufferCount;
 };
 
 #endif // BASELMMELEMENT_H

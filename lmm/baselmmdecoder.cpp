@@ -15,12 +15,18 @@ int BaseLmmDecoder::start()
 		inTimeStamps.clear();
 	}
 	timestamp = NULL;
-	return startDecoding();
+	int err = startDecoding();
+	if (err)
+		return err;
+	return BaseLmmElement::start();
 }
 
 int BaseLmmDecoder::stop()
 {
-	return stopDecoding();
+	int err = stopDecoding();
+	if (err)
+		return err;
+	return BaseLmmElement::start();
 }
 
 int BaseLmmDecoder::flush()

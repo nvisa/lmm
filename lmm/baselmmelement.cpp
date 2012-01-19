@@ -9,7 +9,7 @@
 BaseLmmElement::BaseLmmElement(QObject *parent) :
 	QObject(parent)
 {
-	inputBufferCount = outputBufferCount = 0;
+	receivedBufferCount = sentBufferCount = 0;
 }
 
 int BaseLmmElement::addBuffer(RawBuffer *buffer)
@@ -17,7 +17,7 @@ int BaseLmmElement::addBuffer(RawBuffer *buffer)
 	if (!buffer)
 		return -EINVAL;
 	inputBuffers << buffer;
-	inputBufferCount++;
+	receivedBufferCount++;
 	return 0;
 }
 
@@ -25,13 +25,24 @@ RawBuffer * BaseLmmElement::nextBuffer()
 {
 	if (outputBuffers.size() == 0)
 		return NULL;
-	outputBufferCount++;
+	sentBufferCount++;
 	return outputBuffers.takeFirst();
+}
+
+int BaseLmmElement::start()
+{
+	receivedBufferCount = sentBufferCount = 0;
+	return 0;
+}
+
+int BaseLmmElement::stop()
+{
+	return 0;
 }
 
 void BaseLmmElement::printStats()
 {
-	qDebug() << this << inputBufferCount << outputBufferCount;
+	qDebug() << this << receivedBufferCount << sentBufferCount;
 }
 
 int BaseLmmElement::flush()

@@ -146,7 +146,7 @@ RawBuffer * AviDemux::nextAudioBuffer()
 {
 	if (audioBuffers.size())
 		return audioBuffers.takeFirst();
-	outputBufferCount++;
+	sentBufferCount++;
 	return NULL;
 }
 
@@ -154,7 +154,7 @@ RawBuffer * AviDemux::nextVideoBuffer()
 {
 	if (videoBuffers.size())
 		return videoBuffers.takeFirst();
-	outputBufferCount++;
+	sentBufferCount++;
 	return NULL;
 }
 
@@ -165,14 +165,14 @@ int AviDemux::audioBufferCount()
 
 int AviDemux::start()
 {
-	return 0;
+	return BaseLmmElement::start();
 }
 
 int AviDemux::stop()
 {
 	av_close_input_file(context);
 	context = NULL;
-	return 0;
+	return BaseLmmElement::stop();
 }
 
 int AviDemux::seekTo(qint64 pos)
