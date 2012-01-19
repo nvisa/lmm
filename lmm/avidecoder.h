@@ -25,9 +25,16 @@ public:
 	qint64 getPosition();
 	int seekTo(qint64 pos);
 	int seek(qint64 pos);
-public slots:
+	const QList<BaseLmmElement *> getElements() { return elements; }
+
+	/* TODO: Following sound controls do not belong here */
+	void setMute(bool mute);
+	void setVolumeLevel(int per);
+	int getVolumeLevel();
+private slots:
 	void newAudioFrame();
 	void decodeLoop();
+	void audioPopTimerTimeout();
 private:
 	enum runState {
 		RUNNING,

@@ -8,6 +8,7 @@
 #include "streamtime.h"
 #include "emdesk/debug.h"
 #include "emdesk/hardwareoperations.h"
+#include "alsa/alsa.h"
 
 #include <QTime>
 #include <QTimer>
@@ -93,6 +94,8 @@ qint64 AviDecoder::getPosition()
 
 int AviDecoder::seekTo(qint64 pos)
 {
+	audioOutput->alsaControl()->mute(true);
+	QTimer::singleShot(200, this, SLOT(audioPopTimerTimeout()));
 	if (!demux->seekTo(pos)) {
 		mDebug("seek ok");
 		foreach (BaseLmmElement *el, elements)
@@ -104,6 +107,21 @@ int AviDecoder::seekTo(qint64 pos)
 int AviDecoder::seek(qint64 pos)
 {
 	return demux->seekTo(demux->getCurrentPosition() + pos);
+}
+
+void AviDecoder::setMute(bool mute)
+{
+	audioOutput->alsaControl()->mute(mute);
+}
+
+void AviDecoder::setVolumeLevel(int per)
+{
+	audioOutput->alsaControl()->setCurrentVolumeLevel(per);
+}
+
+int AviDecoder::getVolumeLevel()
+{
+	return audioOutput->alsaControl()->currentVolumeLevel();
 }
 
 void AviDecoder::newAudioFrame()
@@ -128,12 +146,18 @@ void AviDecoder::decodeLoop()
 	timer->start(5);
 }
 
+void AviDecoder::audioPopTimerTimeout()
+{
+	audioOutput->alsaControl()->mute(false);
+}
+
 void AviDecoder::audioLoop()
 {
 	RawBuffer *buf = demux->nextAudioBuffer();
 	if (buf)
 		audioDecoder->addBuffer(buf);
-	audioDecoder->decodeAll();
+	if (audioDecoder->decodeAll())
+		mDebug("audio decoder reported error");
 	buf = audioDecoder->nextBuffer();
 	if (buf)
 		audioOutput->addBuffer(buf);
