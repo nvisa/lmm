@@ -10,6 +10,12 @@ typedef unsigned long snd_pcm_uframes_t;
 #include <QMutex>
 #include <QTime>
 
+#include <alsa/input.h>
+#include <alsa/output.h>
+#include <alsa/conf.h>
+#include <alsa/global.h>
+#include <alsa/control.h>
+
 class Alsa : public QObject
 {
 	Q_OBJECT
@@ -20,8 +26,12 @@ public:
 	int pause();
 	int resume();
 	int write(const void *buf, int length);
+	int mute(bool mute);
 	/* return os delay in microseconds */
 	int delay();
+
+	int currentVolumeLevel();
+	int setCurrentVolumeLevel(int per);
 private:
 	snd_pcm_t *handle;
 	snd_pcm_uframes_t bufferSize;
@@ -33,8 +43,17 @@ private:
 	bool running;
 	int sampleRate;
 
+	snd_hctl_t *hctl;
+	snd_hctl_elem_t *mixerVolumeElem;
+	snd_ctl_elem_value_t *mixerVolumeControl;
+	snd_ctl_elem_id_t *mixerVolumeElemId;
+	snd_hctl_elem_t *mixerSwitchElem;
+	snd_ctl_elem_value_t *mixerSwitchControl;
+	snd_ctl_elem_id_t *mixerSwitchElemId;
+
 	int setHwParams();
 	int setSwParams();
+	void initVolumeControl();
 };
 
 #endif // ALSA_H

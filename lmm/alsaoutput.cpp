@@ -28,12 +28,23 @@ int AlsaOutput::output()
 
 int AlsaOutput::start()
 {
-	return alsaOut->open();
+	int err = alsaOut->open();
+	if (err)
+		return err;
+	return BaseLmmElement::start();
 }
 
 int AlsaOutput::stop()
 {
-	return alsaOut->close();
+	int err = alsaOut->close();
+	if (err)
+		return err;
+	return BaseLmmElement::stop();
+}
+
+int AlsaOutput::flush()
+{
+	return BaseLmmOutput::flush();
 }
 
 qint64 AlsaOutput::getLatency()

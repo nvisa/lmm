@@ -16,6 +16,8 @@ public:
 	int output();
 	int start();
 	int stop();
+	int flush();
+	Alsa * alsaControl() { return alsaOut; }
 	qint64 getLatency();
 signals:
 	

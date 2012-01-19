@@ -15,8 +15,8 @@
 #include <alsa/asoundlib.h>
 #include <alsa/control.h>
 #include <alsa/error.h>
-
 #include "emdesk/debug.h"
+#include "emdesk/platform_info.h"
 
 Alsa::Alsa(QObject *parent) :
 	QObject(parent)
@@ -25,6 +25,7 @@ Alsa::Alsa(QObject *parent) :
 	bufferTime = 200000;
 	periodTime = 10000;
 	handle = NULL;
+	initVolumeControl();
 }
 
 int Alsa::open()
@@ -213,4 +214,95 @@ int Alsa::setSwParams()
 out:
 	snd_pcm_sw_params_free(params);
 	return err;
+}
+
+void Alsa::initVolumeControl()
+{
+	QString volumeControlName;
+	QString switchControlName;
+	if (cpu_is_x86())
+		volumeControlName = "Master Playback Volume";
+	else
+		volumeControlName = "PCM Playback Volume";
+	if (cpu_is_x86())
+		switchControlName = "Master Playback Switch";
+	else
+		switchControlName = "HP Playback Switch";
+	/* init sound card interface */
+	int err;
+	err = snd_hctl_open(&hctl, "default", 0);
+	if (err == 0 && hctl) {
+		err = snd_hctl_load(hctl);
+		if (err < 0) {
+			snd_hctl_close(hctl);
+			hctl = NULL;
+		} else {
+			snd_ctl_elem_id_malloc(&mixerVolumeElemId);
+			snd_ctl_elem_id_set_interface(mixerVolumeElemId, SND_CTL_ELEM_IFACE_MIXER);
+			snd_ctl_elem_id_set_name(mixerVolumeElemId, qPrintable(volumeControlName));
+			mixerVolumeElem = snd_hctl_find_elem(hctl, mixerVolumeElemId);
+			if (!mixerVolumeElem) {
+				snd_hctl_close(hctl);
+				hctl = NULL;
+			} else {
+				snd_ctl_elem_value_malloc(&mixerVolumeControl);
+				snd_ctl_elem_value_set_id(mixerVolumeControl, mixerVolumeElemId);
+
+				snd_ctl_elem_id_malloc(&mixerSwitchElemId);
+				snd_ctl_elem_id_set_interface(mixerSwitchElemId, SND_CTL_ELEM_IFACE_MIXER);
+				snd_ctl_elem_id_set_name(mixerSwitchElemId, qPrintable(switchControlName));
+				mixerSwitchElem = snd_hctl_find_elem(hctl, mixerSwitchElemId);
+				if (!mixerSwitchElem) {
+					snd_hctl_close(hctl);
+					hctl = NULL;
+				} else {
+					snd_ctl_elem_value_malloc(&mixerSwitchControl);
+					snd_ctl_elem_value_set_id(mixerSwitchControl, mixerSwitchElemId);
+				}
+			}
+		}
+	} else
+		hctl = NULL;
+}
+
+int Alsa::mute(bool mute)
+{
+	if (!hctl)
+		return -EINVAL;
+	if (mute) {
+		snd_ctl_elem_value_set_integer(mixerSwitchControl, 0, 0);
+		snd_ctl_elem_value_set_integer(mixerSwitchControl, 1, 0);
+	} else {
+		snd_ctl_elem_value_set_integer(mixerSwitchControl, 0, 1);
+		snd_ctl_elem_value_set_integer(mixerSwitchControl, 1, 1);
+	}
+	return snd_hctl_elem_write(mixerSwitchElem, mixerSwitchControl);
+}
+
+int Alsa::currentVolumeLevel()
+{
+	if (!snd_hctl_elem_read(mixerVolumeElem, mixerVolumeControl)) {
+		/* assume left and right are the same */
+		int x = snd_ctl_elem_value_get_integer(mixerVolumeControl, 0) * 100 / 127.0;
+		if (x > 100)
+			x = 100;
+		return x;
+	}
+
+	return -1;
+}
+
+int Alsa::setCurrentVolumeLevel(int per)
+{
+	if (!hctl)
+		return -EINVAL;
+
+	int x = 127 * per / 100;
+
+	snd_ctl_elem_value_set_integer(mixerVolumeControl, 0, x);
+	snd_hctl_elem_write(mixerVolumeElem, mixerVolumeControl);
+	snd_ctl_elem_value_set_integer(mixerVolumeControl, 1, x);
+	snd_hctl_elem_write(mixerVolumeElem, mixerVolumeControl);
+
+	return 0;
 }
