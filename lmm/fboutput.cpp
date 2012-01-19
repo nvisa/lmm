@@ -123,7 +123,7 @@ int FbOutput::start()
 	int err = openFb("/dev/fb3");
 	if (err)
 		mDebug("error opening framebuffer");
-	return err;
+	return BaseLmmElement::start();
 }
 
 int FbOutput::stop()
@@ -132,5 +132,14 @@ int FbOutput::stop()
 		return 0;
 	munmap(fbAddr, fbSize);
 	::close(fd);
-	return 0;
+	return BaseLmmElement::stop();
+}
+
+int FbOutput::flush()
+{
+	foreach (RawBuffer *buf, inputBuffers) {
+		Buffer_Handle dmaiBuf = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
+		Buffer_freeUseMask(dmaiBuf, gst_tidmaibuffer_VIDEOSINK_FREE);
+	}
+	return BaseLmmOutput::flush();
 }

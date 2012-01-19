@@ -16,6 +16,7 @@ public:
 	int output();
 	int start();
 	int stop();
+	int flush();
 signals:
 	
 public slots:
