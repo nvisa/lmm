@@ -88,13 +88,16 @@ QAbstractButton::pressed {
 	
 	border-image: url(:/art/filmmenuyazi.png);
 }
-QAbstractButton::pressed {
+QAbstractButton::checked {
 	
 	border-image: url(:/art/filmmenuyazihover.png);
 }</string>
      </property>
      <property name="text">
       <string/>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
      </property>
     </widget>
     <widget class="QToolButton" name="toolMainPage">
@@ -259,6 +262,12 @@ QAbstractButton::pressed {
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>31</height>
+         </size>
+        </property>
         <property name="styleSheet">
          <string notr="true">QSlider::groove:horizontal {
 	background-color: rgb(254, 191, 1);
@@ -381,7 +390,7 @@ QAbstractButton::checked {
          <bool>true</bool>
         </property>
         <property name="checked">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -392,7 +401,7 @@ QAbstractButton::checked {
       <rect>
        <x>10</x>
        <y>90</y>
-       <width>721</width>
+       <width>731</width>
        <height>301</height>
       </rect>
      </property>
@@ -402,27 +411,57 @@ QAbstractButton::checked {
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <widget class="QLabel" name="labelVirtPos">
-      <property name="geometry">
-       <rect>
-        <x>240</x>
-        <y>90</y>
-        <width>271</width>
-        <height>121</height>
-       </rect>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <property name="margin">
+       <number>0</number>
       </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: blue;
+      <item>
+       <widget class="QStackedWidget" name="stackedWidget">
+        <property name="styleSheet">
+         <string notr="true">/*QWidget#stackedWidget {*/
+	background-color: rgba(48, 48, 48, 0);
+/*}*/</string>
+        </property>
+        <property name="currentIndex">
+         <number>0</number>
+        </property>
+        <widget class="QWidget" name="page">
+         <widget class="QLabel" name="labelVirtPos">
+          <property name="geometry">
+           <rect>
+            <x>240</x>
+            <y>80</y>
+            <width>271</width>
+            <height>121</height>
+           </rect>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: blue;
 color: yellow;
 font: 62pt &quot;Sans Serif&quot;;</string>
-      </property>
-      <property name="text">
-       <string>21:45</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
+          </property>
+          <property name="text">
+           <string>21:45</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </widget>
+        <widget class="QWidget" name="page_2">
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QGraphicsView" name="graphicsView">
+            <property name="styleSheet">
+             <string notr="true">background: white;</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </widget>
   </widget>
