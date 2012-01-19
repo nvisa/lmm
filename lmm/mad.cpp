@@ -95,8 +95,12 @@ int Mad::decodeAll()
 					continue;
 				mDebug("sync error");
 				continue;//goto next_no_samples;
-			} else if (stream->error == MAD_ERROR_BADDATAPTR)
+			} else if (stream->error == MAD_ERROR_BADDATAPTR) {
+				mDebug("not enough data, available is %d", madBuffer.size());
+				if (madBuffer.size() > 2500)
+					madBuffer.clear();
 				continue;//goto next_no_samples;
+			}
 			/* handle errors */
 			mDebug("mad frame decode error handling");
 			if (!MAD_RECOVERABLE(stream->error))
