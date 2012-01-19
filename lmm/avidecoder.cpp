@@ -95,18 +95,18 @@ qint64 AviDecoder::getPosition()
 int AviDecoder::seekTo(qint64 pos)
 {
 	audioOutput->alsaControl()->mute(true);
-	QTimer::singleShot(200, this, SLOT(audioPopTimerTimeout()));
 	if (!demux->seekTo(pos)) {
 		mDebug("seek ok");
 		foreach (BaseLmmElement *el, elements)
 			el->flush();
 	}
+	QTimer::singleShot(200, this, SLOT(audioPopTimerTimeout()));
 	return 0;
 }
 
 int AviDecoder::seek(qint64 pos)
 {
-	return demux->seekTo(demux->getCurrentPosition() + pos);
+	return seekTo(demux->getCurrentPosition() + pos);
 }
 
 void AviDecoder::setMute(bool mute)
@@ -142,6 +142,7 @@ void AviDecoder::decodeLoop()
 		videoLoop();
 	} else if (err == -ENOENT) {
 		mDebug("decoding finished");
+		stopDecoding();
 	}
 	timer->start(5);
 }

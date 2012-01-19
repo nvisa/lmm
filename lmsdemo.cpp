@@ -243,12 +243,12 @@ bool LmsDemo::eventFilter(QObject *obj, QEvent *ev)
 
 void LmsDemo::on_toolForward_clicked()
 {
-	dec->seek(10000000);
+	dec->seek(60000000);
 }
 
 void LmsDemo::on_toolBackward_clicked()
 {
-	dec->seek(-10000000);
+	dec->seek(-60000000);
 }
 
 void LmsDemo::on_toolMoviePage_clicked()

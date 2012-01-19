@@ -180,6 +180,10 @@ int AviDemux::seekTo(qint64 pos)
 	int flags = 0;
 	if (pos < streamPosition)
 		flags = AVSEEK_FLAG_BACKWARD;
+	if (pos < 0)
+		pos = 0;
+	if (pos > streamDuration)
+		return -EINVAL;
 	if (videoStreamIndex != -1) {
 		int err = av_seek_frame(context, videoStreamIndex,
 								pos / videoTimeBase, flags);
