@@ -188,6 +188,7 @@ int Mad::stopDecoding()
 
 int Mad::decode()
 {
+	return decodeAll();
 	if (stream->buffer == NULL || stream->error == MAD_ERROR_BUFLEN) {
 		if (inputBuffers.size() == 0)
 			return -ENOENT;

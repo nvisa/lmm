@@ -22,6 +22,8 @@ public:
 	int start();
 	int stop();
 	virtual int flush();
+	virtual int decode() = 0;
+
 signals:
 	
 public slots:

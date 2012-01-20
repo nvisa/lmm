@@ -31,6 +31,7 @@ public:
 	explicit DmaiDecoder(QObject *parent = 0);
 	~DmaiDecoder();
 
+	int decode() { return decodeOne(); }
 	int decodeOne();
 	int flush();
 
