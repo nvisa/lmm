@@ -2,6 +2,7 @@
 #include "ui_lmsdemo.h"
 #include "lmm/avidecoder.h"
 #include "lmm/baselmmelement.h"
+#include "lmm/baselmmplayer.h"
 #include "emdesk/emdeskwindowmanager.h"
 #define DEBUG
 #include "emdesk/debug.h"
@@ -23,7 +24,7 @@ LmsDemo::LmsDemo(QWidget *parent) :
 	ui->setupUi(this);
 	emdeskWindowManager::addWindow(this);
 
-	dec = new AviDecoder;
+	dec = new AviPlayer;
 	timer = new QTimer;
 	connect(timer, SIGNAL(timeout()), SLOT(timeout()));
 	enableSliderUpdate = true;
@@ -186,7 +187,7 @@ void LmsDemo::showDecodeInfo()
 void LmsDemo::on_toolPlay_clicked()
 {
 	ui->frameBack->setStyleSheet("QFrame#frameBack { background-color: blue;}");
-	dec->startDecoding();
+	dec->play();
 	timer->start(100);
 	ui->sliderPosition->setMaximum(dec->getDuration() / 1000000);
 	ui->sliderPosition->setValue(0);
@@ -196,7 +197,7 @@ void LmsDemo::on_toolPlay_clicked()
 void LmsDemo::on_toolStop_clicked()
 {
 	ui->frameBack->setStyleSheet("QFrame#frameBack { background-color: rgb(48, 48, 48);}");
-	dec->stopDecoding();
+	dec->stop();
 	timer->stop();
 }
 

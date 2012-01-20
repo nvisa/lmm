@@ -11,6 +11,7 @@ public:
 	virtual qint64 getLatency() { return 0; }
 	void setOutputDelay(int val) { outputDelay = val; }
 	int getOutputDelay() { return outputDelay; }
+	virtual int output() = 0;
 signals:
 	
 public slots:

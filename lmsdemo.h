@@ -8,10 +8,11 @@ namespace Ui {
 class LmsDemo;
 }
 
-class AviDecoder;
+class AviPlayer;
 class QTimer;
 class QGraphicsScene;
 class BaseLmmElement;
+class BaseLmmPlayer;
 class QGraphicsSimpleTextItem;
 
 class LmsDemo : public QWidget
@@ -42,7 +43,7 @@ protected:
 	bool eventFilter(QObject *, QEvent *);
 private:
 	Ui::LmsDemo *ui;
-	AviDecoder *dec;
+	BaseLmmPlayer *dec;
 	QTimer *timer;
 	QGraphicsScene *scene;
 	QMap<BaseLmmElement *, QList<QGraphicsSimpleTextItem *> > visuals;

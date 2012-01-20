@@ -1,8 +1,7 @@
 #ifndef AVIDECODER_H
 #define AVIDECODER_H
 
-#include <QObject>
-#include <QFuture>
+#include "baselmmplayer.h"
 
 class AviDemux;
 class Mad;
@@ -13,45 +12,15 @@ class QTimer;
 class StreamTime;
 class BaseLmmElement;
 
-class AviDecoder : public QObject
+class AviPlayer : public BaseLmmPlayer
 {
 	Q_OBJECT
 public:
-	explicit AviDecoder(QObject *parent = 0);
-	~AviDecoder();
+	explicit AviPlayer(QObject *parent = 0);
+	~AviPlayer();
 	int startDecoding();
 	void stopDecoding();
-	qint64 getDuration();
-	qint64 getPosition();
-	int seekTo(qint64 pos);
-	int seek(qint64 pos);
-	const QList<BaseLmmElement *> getElements() { return elements; }
-
-	/* TODO: Following sound controls do not belong here */
-	void setMute(bool mute);
-	void setVolumeLevel(int per);
-	int getVolumeLevel();
-private slots:
-	void newAudioFrame();
-	void decodeLoop();
-	void audioPopTimerTimeout();
 private:
-	enum runState {
-		RUNNING,
-		STOPPED
-	};
-	runState state;
-	AviDemux *demux;
-	Mad *audioDecoder;
-	DmaiDecoder *videoDecoder;
-	AlsaOutput *audioOutput;
-	FbOutput *videoOutput;
-	QTimer *timer;
-	StreamTime *streamTime;
-	QList<BaseLmmElement *> elements;
-
-	void audioLoop();
-	void videoLoop();
 };
 
 #endif // AVIDECODER_H
