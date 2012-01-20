@@ -29,7 +29,6 @@ public:
 
 	const QList<BaseLmmElement *> getElements() { return elements; }
 
-	/* TODO: Following sound controls do not belong here */
 	void setMute(bool mute);
 	void setVolumeLevel(int per);
 	int getVolumeLevel();
