@@ -11,12 +11,6 @@
 #include <ti/sdo/ce/Engine.h>
 #include <errno.h>
 
-/* TODO: Get rid of these flags(their names) */
-#define gst_tidmaibuffer_GST_FREE        0x1
-#define gst_tidmaibuffer_CODEC_FREE      0x2
-#define gst_tidmaibuffer_VIDEOSINK_FREE  0x4
-#define gst_tidmaibuffer_DISPLAY_FREE    0x8
-
 static DmaiDecoder *instance = NULL;
 
 DmaiDecoder::DmaiDecoder(QObject *parent) :
@@ -143,13 +137,13 @@ int DmaiDecoder::decodeOne()
 
 			outputBuffers << newbuf;
 			/* set the resulting buffer in use by video output */
-			Buffer_setUseMask(outbuf, Buffer_getUseMask(outbuf) | gst_tidmaibuffer_VIDEOSINK_FREE);
+			Buffer_setUseMask(outbuf, Buffer_getUseMask(outbuf) | OUTPUT_USE);
 		} else
 			mDebug("unable to find a free display buffer");
 		/* Release buffers no longer in use by the codec */
 		outbuf = Vdec2_getFreeBuf(hCodec);
 		while (outbuf) {
-			Buffer_freeUseMask(outbuf, gst_tidmaibuffer_CODEC_FREE);
+			Buffer_freeUseMask(outbuf, CODEC_USE);
 			outbuf = Vdec2_getFreeBuf(hCodec);
 		}
 		break;
@@ -279,8 +273,7 @@ int DmaiDecoder::startCodec()
 	gfxAttrs.dim.width = params.maxWidth;
 	gfxAttrs.dim.height = params.maxHeight;
 	gfxAttrs.dim.lineLength = BufferGfx_calcLineLength(gfxAttrs.dim.width, gfxAttrs.colorSpace);
-	/* TODO: By default, new buffers are marked as in-use by the codec */
-	gfxAttrs.bAttrs.useMask = gst_tidmaibuffer_CODEC_FREE;
+	gfxAttrs.bAttrs.useMask = CODEC_USE;
 	hBufTab = BufTab_create(numOutputBufs, Vdec2_getOutBufSize(hCodec), BufferGfx_getBufferAttrs(&gfxAttrs));
 	if (hBufTab == NULL) {
 		mDebug("no BufTab available for codec output");

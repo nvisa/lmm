@@ -4,6 +4,9 @@
 #include "rawbuffer.h"
 #include "streamtime.h"
 
+#include <QVariant>
+#include "dmaidecoder.h"
+
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/fb.h>
@@ -12,11 +15,6 @@
 #include <sys/mman.h>
 #include <errno.h>
 
-#include <QVariant>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include <ti/sdo/dmai/Dmai.h>
 #include <ti/sdo/dmai/VideoStd.h>
 #include <ti/sdo/dmai/Cpu.h>
@@ -25,15 +23,6 @@ extern "C" {
 #include <ti/sdo/dmai/BufTab.h>
 #include <ti/sdo/dmai/ce/Vdec2.h>
 #include <ti/sdo/dmai/Time.h>
-#ifdef __cplusplus
-}
-#endif
-
-/* TODO: Get rid of these flags(their names) */
-#define gst_tidmaibuffer_GST_FREE        0x1
-#define gst_tidmaibuffer_CODEC_FREE      0x2
-#define gst_tidmaibuffer_VIDEOSINK_FREE  0x4
-#define gst_tidmaibuffer_DISPLAY_FREE    0x8
 
 int FbOutput::openFb(QString filename)
 {
@@ -113,7 +102,7 @@ int FbOutput::output()
 	} else
 		mDebug("fb device is not opened");
 	Buffer_Handle dmaiBuf = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
-	Buffer_freeUseMask(dmaiBuf, gst_tidmaibuffer_VIDEOSINK_FREE);
+	Buffer_freeUseMask(dmaiBuf, DmaiDecoder::OUTPUT_USE);
 	delete buf;
 	return 0;
 }

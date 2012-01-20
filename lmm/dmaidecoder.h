@@ -4,9 +4,6 @@
 #include "baselmmdecoder.h"
 #include <QList>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include <ti/sdo/dmai/Dmai.h>
 #include <ti/sdo/dmai/VideoStd.h>
 #include <ti/sdo/dmai/Cpu.h>
@@ -15,9 +12,6 @@ extern "C" {
 #include <ti/sdo/dmai/BufTab.h>
 #include <ti/sdo/dmai/ce/Vdec2.h>
 #include <ti/sdo/dmai/Time.h>
-#ifdef __cplusplus
-}
-#endif
 
 class CircularBuffer;
 class RawBuffer;
@@ -28,6 +22,10 @@ class DmaiDecoder : public BaseLmmDecoder
 {
 	Q_OBJECT
 public:
+	enum bufferUseFlags {
+		CODEC_USE	= 0x1,
+		OUTPUT_USE	= 0x2
+	};
 	explicit DmaiDecoder(QObject *parent = 0);
 	~DmaiDecoder();
 
