@@ -4,7 +4,7 @@
 #include "lmm/baselmmelement.h"
 #include "lmm/baselmmplayer.h"
 #include "emdesk/emdeskwindowmanager.h"
-#define DEBUG
+#include "emdesk/hardwareoperations.h"
 #include "emdesk/debug.h"
 
 #include <QTimer>
@@ -186,19 +186,23 @@ void LmsDemo::showDecodeInfo()
 
 void LmsDemo::on_toolPlay_clicked()
 {
-	ui->frameBack->setStyleSheet("QFrame#frameBack { background-color: blue;}");
-	dec->play();
-	timer->start(100);
-	ui->sliderPosition->setMaximum(dec->getDuration() / 1000000);
-	ui->sliderPosition->setValue(0);
-	hideCounter = HIDE_COUNT;
+	if (!dec->play()) {
+		ui->frameBack->setStyleSheet("QFrame#frameBack { background-color: blue;}");
+		HardwareOperations::blendOSD(true, 31);
+		timer->start(100);
+		ui->sliderPosition->setMaximum(dec->getDuration() / 1000000);
+		ui->sliderPosition->setValue(0);
+		hideCounter = HIDE_COUNT;
+	}
 }
 
 void LmsDemo::on_toolStop_clicked()
 {
-	ui->frameBack->setStyleSheet("QFrame#frameBack { background-color: rgb(48, 48, 48);}");
-	dec->stop();
-	timer->stop();
+	if (!dec->stop()) {
+		ui->frameBack->setStyleSheet("QFrame#frameBack { background-color: rgb(48, 48, 48);}");
+		HardwareOperations::blendOSD(false);
+		timer->stop();
+	}
 }
 
 void LmsDemo::on_toolPrevPage_clicked()

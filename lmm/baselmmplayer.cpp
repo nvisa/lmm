@@ -5,7 +5,6 @@
 #include "rawbuffer.h"
 #include "streamtime.h"
 #include "emdesk/debug.h"
-#include "emdesk/hardwareoperations.h"
 #include "alsa/alsa.h"
 
 #include <QTime>
@@ -42,8 +41,6 @@ int BaseLmmPlayer::play()
 	int err = demux->setSource("/media/net/Fringe.S04E06.HDTV.XviD-LOL.[VTV].avi");
 	if (err)
 		return err;
-	/* TODO: Find a better place for the following: */
-	HardwareOperations::blendOSD(true, 31);
 
 	foreach (BaseLmmElement *el, elements) {
 		el->start();
@@ -67,7 +64,6 @@ int BaseLmmPlayer::stop()
 	state = STOPPED;
 	foreach (BaseLmmElement *el, elements)
 		el->stop();
-	HardwareOperations::blendOSD(false);
 
 	return 0;
 }
