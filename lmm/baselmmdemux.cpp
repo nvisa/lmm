@@ -18,6 +18,7 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 {
 	static bool avRegistered = false;
 	if (!avRegistered) {
+		mDebug("registering all formats");
 		av_register_all();
 		avRegistered = true;
 	}
@@ -37,23 +38,23 @@ qint64 BaseLmmDemux::getTotalDuration()
 	return 0;
 }
 
-int BaseLmmDemux::setSource(QString filename)
+int BaseLmmDemux::findStreamInfo()
 {
-	if (av_open_input_file(&context, qPrintable(filename), NULL, 0, NULL))
-		return -ENOENT;
 	int err = av_find_stream_info(context);
 	if (err < 0)
 		return err;
-	videoStreamIndex = audioStreamIndex = -1;
-	audioStream = videoStream = NULL;
+	mDebug("%d streams, %d programs present in the file", context->nb_streams, context->nb_programs);
 	for (unsigned int i = 0; i < context->nb_streams; ++i) {
+		mDebug("stream: type %d", context->streams[i]->codec->codec_type);
 		if (context->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
 			videoStreamIndex = i;
 		if (context->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO)
 			audioStreamIndex = i;
 	}
-	if (audioStreamIndex < 0 && videoStreamIndex < 0)
+	if (audioStreamIndex < 0 && videoStreamIndex < 0) {
+		mDebug("no compatiple stream found");
 		return -EINVAL;
+	}
 
 	/* derive necessary information from streams */
 	if (audioStreamIndex >= 0) {
@@ -61,7 +62,7 @@ int BaseLmmDemux::setSource(QString filename)
 		audioStream = context->streams[audioStreamIndex];
 		AVRational r = audioStream->time_base;
 		audioTimeBase = 1000000 * r.num / r.den;
-		mDebug("audioBase=%d videoBase=%d", audioTimeBase, videoTimeBase);
+		mDebug("audioBase=%d", audioTimeBase);
 	}
 	if (videoStreamIndex >= 0) {
 		mDebug("video stream found at index %d", videoStreamIndex);
@@ -69,13 +70,22 @@ int BaseLmmDemux::setSource(QString filename)
 		AVRational r = audioStream->time_base;
 		r = videoStream->time_base;
 		videoTimeBase = 1000000 * r.num / r.den;
+		mDebug("videoBase=%d", videoTimeBase);
 	}
 
 	streamPosition = 0;
-	if (debugMessagesAvailable())
-		dump_format(context, 0, qPrintable(filename), false);
 
 	return 0;
+}
+
+int BaseLmmDemux::setSource(QString filename)
+{
+	if (av_open_input_file(&context, qPrintable(filename), NULL, 0, NULL))
+		return -ENOENT;
+	int err = findStreamInfo();
+	if (debugMessagesAvailable())
+		dump_format(context, 0, qPrintable(filename), false);
+	return err;
 }
 
 int BaseLmmDemux::demuxOne()
@@ -141,6 +151,8 @@ int BaseLmmDemux::audioBufferCount()
 
 int BaseLmmDemux::start()
 {
+	videoStreamIndex = audioStreamIndex = -1;
+	audioStream = videoStream = NULL;
 	return BaseLmmElement::start();
 }
 

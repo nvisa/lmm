@@ -7,6 +7,7 @@ struct AVPacket;
 struct AVFormatContext;
 struct AVStream;
 class RawBuffer;
+class CircularBuffer;
 
 class BaseLmmDemux : public BaseLmmElement
 {
@@ -17,16 +18,17 @@ public:
 		STREAM_AUDIO
 	};
 	explicit BaseLmmDemux(QObject *parent = 0);
-	int setSource(QString filename);
-	qint64 getTotalDuration();
-	qint64 getCurrentPosition();
-	RawBuffer * nextAudioBuffer();
-	RawBuffer * nextVideoBuffer();
-	int audioBufferCount();
-	int start();
-	int stop();
-	int seekTo(qint64 pos);
-	int demuxOne();
+	virtual int setSource(QString filename);
+	virtual int setSource(CircularBuffer *) { return -1; }
+	virtual qint64 getTotalDuration();
+	virtual qint64 getCurrentPosition();
+	virtual RawBuffer * nextAudioBuffer();
+	virtual RawBuffer * nextVideoBuffer();
+	virtual int audioBufferCount();
+	virtual int start();
+	virtual int stop();
+	virtual int seekTo(qint64 pos);
+	virtual int demuxOne();
 signals:
 	
 public slots:
@@ -44,7 +46,8 @@ protected:
 	unsigned int audioTimeBase; /* in usecs */
 	unsigned int videoTimeBase; /* in usecs */
 
-	AVPacket * nextPacket();
+	virtual AVPacket * nextPacket();
+	int findStreamInfo();
 };
 
 #endif // BASELMMDEMUX_H

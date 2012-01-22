@@ -34,8 +34,8 @@ public:
 	int getVolumeLevel();
 signals:
 	
-private slots:
-	void decodeLoop();
+protected slots:
+	virtual void decodeLoop();
 	void audioPopTimerTimeout();
 protected:
 	enum runState {

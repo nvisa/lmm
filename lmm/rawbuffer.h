@@ -10,6 +10,7 @@ class RawBuffer : public QObject
 public:
 	explicit RawBuffer(QObject *parent = 0);
 	explicit RawBuffer(void *data, int size, QObject *parent = 0);
+	explicit RawBuffer(int size, QObject *parent = 0);
 	~RawBuffer();
 
 	void setRefData(void *data, int size);
@@ -19,7 +20,8 @@ public:
 	int prepend(const void *data, int size);
 	const void * constData();
 	void * data();
-	int size() { return rawDataLen; }
+	int size() { return usedLen; }
+	int setUsedSize(int size);
 	void setDuration(unsigned int val) { duration = val; }
 	unsigned int getDuration() { return duration; }
 	void setPts(qint64 val) { pts = val; }
@@ -33,6 +35,7 @@ public slots:
 private:
 	bool refData;
 	char *rawData;
+	int usedLen;
 	int rawDataLen;
 	int prependPos;
 	int prependLen;

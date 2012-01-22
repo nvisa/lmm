@@ -128,7 +128,7 @@ int FbOutput::flush()
 {
 	foreach (RawBuffer *buf, inputBuffers) {
 		Buffer_Handle dmaiBuf = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
-		Buffer_freeUseMask(dmaiBuf, gst_tidmaibuffer_VIDEOSINK_FREE);
+		Buffer_freeUseMask(dmaiBuf, DmaiDecoder::OUTPUT_USE);
 	}
 	return BaseLmmOutput::flush();
 }

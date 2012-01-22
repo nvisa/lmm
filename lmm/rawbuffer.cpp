@@ -13,6 +13,14 @@ RawBuffer::RawBuffer(void *data, int size, QObject *parent) :
 	memcpy(rawData + prependPos, data, size);
 }
 
+RawBuffer::RawBuffer(int size, QObject *parent) :
+	QObject(parent)
+{
+	refData = false;
+	rawData = NULL;
+	setSize(size);
+}
+
 RawBuffer::RawBuffer(QObject *parent) :
 	QObject(parent)
 {
@@ -56,6 +64,7 @@ void RawBuffer::setSize(int size)
 	appendLen = 0;
 	rawData = new char[prependLen + size + appendLen];
 	rawDataLen = size;
+	usedLen = size;
 }
 
 int RawBuffer::prepend(const void *data, int size)
@@ -78,4 +87,12 @@ const void *RawBuffer::constData()
 void *RawBuffer::data()
 {
 	return rawData + prependPos;
+}
+
+int RawBuffer::setUsedSize(int size)
+{
+	if (size > rawDataLen)
+		return -EINVAL;
+	usedLen = size;
+	return 0;
 }

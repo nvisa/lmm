@@ -28,7 +28,13 @@ SOURCES += main.cpp\
     lmm/baselmmoutput.cpp \
     lmm/streamtime.cpp \
     lmm/baselmmplayer.cpp \
-    lmm/baselmmdemux.cpp
+    lmm/baselmmdemux.cpp \
+    lmm/v4l2input.cpp \
+    lmm/dvbplayer.cpp \
+    lmm/fileoutput.cpp \
+    lmm/mpegtsdemux.cpp \
+    lmm/dvb/tsdemux.cpp \
+    lmm/dvb/dvbutils.cpp
 
 HEADERS  += lmsdemo.h \
     lmm/filesource.h \
@@ -46,7 +52,13 @@ HEADERS  += lmsdemo.h \
     lmm/baselmmoutput.h \
     lmm/streamtime.h \
     lmm/baselmmplayer.h \
-    lmm/baselmmdemux.h
+    lmm/baselmmdemux.h \
+    lmm/v4l2input.h \
+    lmm/dvbplayer.h \
+    lmm/fileoutput.h \
+    lmm/mpegtsdemux.h \
+    lmm/dvb/tsdemux.h \
+    lmm/dvb/dvbutils.h
 
 FORMS    += lmsdemo.ui
 

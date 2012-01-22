@@ -13,7 +13,7 @@ class BaseLmmElement : public QObject
 public:
 	explicit BaseLmmElement(QObject *parent = 0);
 	int addBuffer(RawBuffer *buffer);
-	RawBuffer * nextBuffer();
+	virtual RawBuffer * nextBuffer();
 	void setStreamTime(StreamTime *t) { streamTime = t; }
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
 

@@ -4,17 +4,44 @@
 
 #include <errno.h>
 
+#include <QMutex>
+
 CircularBuffer::CircularBuffer(QObject *parent) :
 	QObject(parent)
 {
+	mutex = new QMutex;
 }
 
 CircularBuffer::CircularBuffer(void *source, int size, QObject *parent) :
 	QObject(parent)
 {
+	dataOwner = false;
 	rawData = (char *)source;
 	rawDataLen = size;
+	mutex = new QMutex;
 	reset();
+}
+
+CircularBuffer::CircularBuffer(int size, QObject *parent) :
+	QObject(parent)
+{
+	dataOwner = true;
+	rawData = new char[size];
+	rawDataLen = size;
+	mutex = new QMutex;
+	reset();
+}
+
+CircularBuffer::~CircularBuffer()
+{
+	if (dataOwner && rawData) {
+		delete rawData;
+		rawData = NULL;
+	}
+	if (mutex) {
+		delete mutex;
+		mutex = NULL;
+	}
 }
 
 void * CircularBuffer::getDataPointer()
@@ -25,6 +52,16 @@ void * CircularBuffer::getDataPointer()
 int CircularBuffer::usedSize()
 {
 	return usedBufLen;
+}
+
+int CircularBuffer::freeSize()
+{
+	return freeBufLen;
+}
+
+int CircularBuffer::totalSize()
+{
+	return rawDataLen;
 }
 
 int CircularBuffer::useData(int size)
@@ -38,6 +75,7 @@ int CircularBuffer::useData(int size)
 	}
 	freeBufLen += size;
 	usedBufLen -= size;
+
 	return size;
 }
 
@@ -48,7 +86,7 @@ int CircularBuffer::addData(const void *data, int size)
 		return -EINVAL;
 
 	if (head + size > rawData + rawDataLen) {
-		mDebug("no space left, shifting");
+		mDebug("no space left, shifting %d bytes", usedBufLen);
 		/* At this point it is guarenteed that head > tail due to not overriding */
 		/* TODO: Following memcpy may be optimized */
 		memcpy(rawData, tail, usedBufLen);
@@ -68,6 +106,17 @@ int CircularBuffer::reset()
 	freeBufLen = rawDataLen;
 	head = tail = rawData;
 	usedBufLen = 0;
+
 	return 0;
+}
+
+void CircularBuffer::lock()
+{
+	mutex->lock();
+}
+
+void CircularBuffer::unlock()
+{
+	mutex->unlock();
 }
 

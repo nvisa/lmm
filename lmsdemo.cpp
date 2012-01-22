@@ -1,6 +1,7 @@
 #include "lmsdemo.h"
 #include "ui_lmsdemo.h"
 #include "lmm/avidecoder.h"
+#include "lmm/dvbplayer.h"
 #include "lmm/baselmmelement.h"
 #include "lmm/baselmmplayer.h"
 #include "emdesk/emdeskwindowmanager.h"
@@ -24,7 +25,7 @@ LmsDemo::LmsDemo(QWidget *parent) :
 	ui->setupUi(this);
 	emdeskWindowManager::addWindow(this);
 
-	dec = new AviPlayer;
+	dec = new DvbPlayer;
 	timer = new QTimer;
 	connect(timer, SIGNAL(timeout()), SLOT(timeout()));
 	enableSliderUpdate = true;

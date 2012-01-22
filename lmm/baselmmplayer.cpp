@@ -38,13 +38,11 @@ int BaseLmmPlayer::play()
 		return -EBUSY;
 
 	state = RUNNING;
-	int err = demux->setSource("/media/net/Fringe.S04E06.HDTV.XviD-LOL.[VTV].avi");
-	if (err)
-		return err;
 
 	foreach (BaseLmmElement *el, elements) {
 		el->start();
-		el->setStreamDuration(demux->getTotalDuration());
+		if (demux)
+			el->setStreamDuration(demux->getTotalDuration());
 		el->setStreamTime(streamTime);
 	}
 
@@ -80,7 +78,9 @@ int BaseLmmPlayer::resume()
 
 qint64 BaseLmmPlayer::getDuration()
 {
-	return demux->getTotalDuration();
+	if (demux)
+		return demux->getTotalDuration();
+	return 0;
 }
 
 qint64 BaseLmmPlayer::getPosition()
@@ -131,6 +131,7 @@ void BaseLmmPlayer::decodeLoop()
 		mDebug("we are not in a running state");
 		return;
 	}
+
 	int err = demux->demuxOne();
 	if (!err) {
 		streamTime->setCurrentTime(demux->getCurrentPosition());
