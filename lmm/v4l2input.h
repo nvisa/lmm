@@ -37,7 +37,6 @@ private:
 	QList<struct v4l2_buffer *> v4l2buf;
 	QList<char *> userptr;
 	CircularBuffer *circBuf;
-	QTimer *fetchTimer;
 	captureThread *cThread;
 
 	int openCamera();

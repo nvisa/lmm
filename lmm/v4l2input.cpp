@@ -90,9 +90,6 @@ V4l2Input::V4l2Input(QObject *parent) :
 	inputIndex = 1;
 	cThread = new captureThread(this);
 	circBuf = new CircularBuffer(1024 * 1024 * 3, this);
-	fetchTimer = new QTimer(this);
-	fetchTimer->setSingleShot(false);
-	connect(fetchTimer, SIGNAL(timeout()), SLOT(fetchTimeout()));
 }
 
 int V4l2Input::start()
