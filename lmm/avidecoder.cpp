@@ -20,7 +20,7 @@ AviPlayer::AviPlayer(QObject *parent) :
 	BaseLmmPlayer(parent)
 {
 	audioDecoder = new Mad;
-	videoDecoder = new DmaiDecoder;
+	videoDecoder = new DmaiDecoder(DmaiDecoder::MPEG4);
 	audioOutput = new AlsaOutput;
 	videoOutput = new FbOutput;
 	demux = new AviDemux;
