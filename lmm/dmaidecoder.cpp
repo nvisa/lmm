@@ -13,12 +13,13 @@
 
 static DmaiDecoder *instance = NULL;
 
-DmaiDecoder::DmaiDecoder(QObject *parent) :
+DmaiDecoder::DmaiDecoder(codecType c, QObject *parent) :
 	BaseLmmDecoder(parent)
 {
 	hEngine = NULL;
 	hCodec = NULL;
 	instance = this;
+	codec = c;
 }
 
 DmaiDecoder::~DmaiDecoder()
@@ -259,11 +260,15 @@ int DmaiDecoder::startCodec()
 		break;
 	}
 
-	const char *codecName = "mpeg4dec";
-	mDebug("opening video decoder \"%s\"", codecName);
-	hCodec = Vdec2_create(hEngine, (char *)codecName, &params, &dynParams);
+	QString codecName;
+	if (codec == MPEG2)
+		codecName = "mpeg2dec";
+	else if (codec == MPEG4)
+		codecName = "mpeg4dec";
+	mDebug("opening video decoder \"%s\"", qPrintable(codecName));
+	hCodec = Vdec2_create(hEngine, (char *)qPrintable(codecName), &params, &dynParams);
 	if (hCodec == NULL) {
-		mDebug("failed to create video decoder: %s",codecName);
+		mDebug("failed to create video decoder: %s", qPrintable(codecName));
 		return -EINVAL;
 	}
 

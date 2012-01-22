@@ -26,7 +26,11 @@ public:
 		CODEC_USE	= 0x1,
 		OUTPUT_USE	= 0x2
 	};
-	explicit DmaiDecoder(QObject *parent = 0);
+	enum codecType {
+		MPEG2,
+		MPEG4
+	};
+	explicit DmaiDecoder(codecType c,QObject *parent = 0);
 	~DmaiDecoder();
 
 	int decode() { return decodeOne(); }
@@ -46,6 +50,7 @@ private:
 	CircularBuffer *circBuf;
 	Buffer_Handle circBufData;
 	int decodeCount;
+	codecType codec;
 
 	int startCodec();
 	int stopCodec();
