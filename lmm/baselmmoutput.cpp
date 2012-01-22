@@ -7,10 +7,13 @@ BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	outputDelay = 0;
+	doSync = true;
 }
 
 int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 {
+	if (!doSync)
+		return 0;
 	qint64 rpts = buf->getPts();
 	qint64 time = streamTime->getCurrentTime();
 	if (outputDelay)

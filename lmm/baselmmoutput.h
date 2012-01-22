@@ -11,6 +11,7 @@ public:
 	virtual qint64 getLatency() { return 0; }
 	void setOutputDelay(int val) { outputDelay = val; }
 	int getOutputDelay() { return outputDelay; }
+	void syncOnClock(bool val) { doSync = val; }
 	virtual int output() = 0;
 signals:
 	
@@ -19,6 +20,7 @@ protected:
 	int checkBufferTimeStamp(RawBuffer *, int jitter = 1);
 private:
 	int outputDelay;
+	bool doSync;
 };
 
 #endif // BASELMMOUTPUT_H
