@@ -89,6 +89,8 @@ int FbOutput::output()
 			if (startX < 0)
 				startX = 0;
 			int startY = (fbSize / fbLineLen - inH) / 2 * fbLineLen;
+			if (startY < 0)
+				startY = 0;
 			mInfo("buffer=%d time=%lld frame: %d x %d, fbsize is %d, ts is %lld",
 				   buf->streamBufferNo(), time, inW, inH, fbSize, buf->getPts() / 1000);
 			int j = 0;
