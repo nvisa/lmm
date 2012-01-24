@@ -22,7 +22,9 @@ BaseLmmPlayer::BaseLmmPlayer(QObject *parent) :
 	audioOutput = NULL;
 	videoOutput = NULL;
 	demux = NULL;
+#ifdef CONFIG_ALSA
 	alsaControl = NULL;
+#endif
 
 	live = false;
 }
@@ -95,8 +97,10 @@ qint64 BaseLmmPlayer::getPosition()
 
 int BaseLmmPlayer::seekTo(qint64 pos)
 {
+#ifdef CONFIG_ALSA
 	if (alsaControl)
 		alsaControl->mute(true);
+#endif
 	if (!demux->seekTo(pos)) {
 		mDebug("seek ok");
 		foreach (BaseLmmElement *el, elements)
@@ -113,21 +117,29 @@ int BaseLmmPlayer::seek(qint64 value)
 
 void BaseLmmPlayer::setMute(bool mute)
 {
+#ifdef CONFIG_ALSA
 	if (alsaControl)
 		alsaControl->mute(mute);
+#endif
 }
 
 void BaseLmmPlayer::setVolumeLevel(int per)
 {
+#ifdef CONFIG_ALSA
 	if (alsaControl)
 		alsaControl->setCurrentVolumeLevel(per);
+#endif
 }
 
 int BaseLmmPlayer::getVolumeLevel()
 {
+#ifdef CONFIG_ALSA
 	if (alsaControl)
 		return alsaControl->currentVolumeLevel();
 	return 0;
+#else
+	return -ENOENT;
+#endif
 }
 
 void BaseLmmPlayer::decodeLoop()
@@ -153,8 +165,10 @@ void BaseLmmPlayer::decodeLoop()
 
 void BaseLmmPlayer::audioPopTimerTimeout()
 {
+#ifdef CONFIG_ALSA
 	if (alsaControl)
 		alsaControl->mute(false);
+#endif
 }
 
 void BaseLmmPlayer::audioLoop()

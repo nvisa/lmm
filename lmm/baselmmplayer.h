@@ -51,7 +51,9 @@ protected:
 	BaseLmmOutput *audioOutput;
 	BaseLmmOutput *videoOutput;
 	QTimer *timer;
+#ifdef CONFIG_ALSA
 	Alsa *alsaControl;
+#endif
 	bool live;
 private:
 	void audioLoop();

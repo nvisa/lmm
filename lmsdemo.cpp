@@ -1,7 +1,9 @@
 #include "lmsdemo.h"
 #include "ui_lmsdemo.h"
 #include "lmm/avidecoder.h"
+#ifdef CONFIG_FFMPEG
 #include "lmm/dvbplayer.h"
+#endif
 #include "lmm/baselmmelement.h"
 #include "lmm/baselmmplayer.h"
 #include "lmm/circularbuffer.h"
