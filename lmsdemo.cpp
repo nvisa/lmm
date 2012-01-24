@@ -4,6 +4,7 @@
 #include "lmm/dvbplayer.h"
 #include "lmm/baselmmelement.h"
 #include "lmm/baselmmplayer.h"
+#include "lmm/circularbuffer.h"
 #include "emdesk/emdeskwindowmanager.h"
 #include "emdesk/hardwareoperations.h"
 #include "emdesk/debug.h"
@@ -64,7 +65,8 @@ void LmsDemo::timeout()
 	if (hideCounter > 0) {
 		hideCounter--;
 	} else if (hideCounter == 0) {
-		ui->frameBack->hide();
+		if (ui->stackedWidget->currentIndex() != 1)
+			ui->frameBack->hide();
 		hideCounter = -1;
 	}
 	if (labelHideCounter > 0) {
@@ -98,25 +100,29 @@ void LmsDemo::updateVirtPosition(int val)
 	}
 }
 
+#define DEMUX_X (10 + 10 + rectW)
 void LmsDemo::addElement(BaseLmmElement *el)
 {
 	int x, y, spacing = 20, rectW = 150, rectH = 100;
 	QString className = el->metaObject()->className();
-	if (className == "AviDemux") {
-		x = 10;
+	if (el->inherits("BaseLmmDemux")) {
+		x = DEMUX_X;
 		y = scene->height() / 2 - rectH / 2;
 	} else if (className == "DmaiDecoder") {
-		x = 10 + rectW + 10;
+		x = DEMUX_X + rectW + 10;
 		y = 10;
 	} else if (className == "FbOutput") {
-		x = 10 + 2 * rectW + 20;
+		x = DEMUX_X + 2 * rectW + 20;
 		y = 10;
 	} else if (className == "Mad") {
-		x = 10 + rectW + 10;
+		x = DEMUX_X + rectW + 10;
 		y = scene->height() - rectH - 10;
 	} else if (className == "AlsaOutput") {
-		x = 10 + 2 * rectW + 20;
+		x = DEMUX_X + 2 * rectW + 20;
 		y = scene->height() - rectH - 10;
+	} else if (className == "V4l2Input") {
+		x = 10;
+		y = scene->height() / 2 - rectH / 2;
 	}
 	QGraphicsRectItem *rectItem = new QGraphicsRectItem();
 	rectItem->setRect(x, y, rectW, rectH);
@@ -178,10 +184,18 @@ void LmsDemo::showDecodeInfo()
 		ui->graphicsView->setScene(scene);
 	}
 	foreach (BaseLmmElement *el, elements) {
-		visuals[el][0]->setText(QString("inputBuffers: %1").arg(el->getInputBufferCount()));
-		visuals[el][1]->setText(QString("outpuBuffers: %1").arg(el->getOutputBufferCount()));
-		visuals[el][2]->setText(QString("receivedBuffers: %1").arg(el->getReceivedBufferCount()));
-		visuals[el][3]->setText(QString("sentBuffers: %1").arg(el->getSentBufferCount()));
+		CircularBuffer *circ = el->getCircularBuffer();
+		if (circ) {
+			/* circular buffer based element */
+			visuals[el][0]->setText(QString("totalSize: %1 kB").arg(circ->totalSize() >> 10));
+			visuals[el][1]->setText(QString("usedSize: %1 kB").arg(circ->usedSize() >> 10));
+			visuals[el][2]->setText(QString("freeSize: %1 kB").arg(circ->freeSize() >> 10));
+		} else {
+			visuals[el][0]->setText(QString("inputBuffers: %1").arg(el->getInputBufferCount()));
+			visuals[el][1]->setText(QString("outpuBuffers: %1").arg(el->getOutputBufferCount()));
+			visuals[el][2]->setText(QString("receivedBuffers: %1").arg(el->getReceivedBufferCount()));
+			visuals[el][3]->setText(QString("sentBuffers: %1").arg(el->getSentBufferCount()));
+		}
 	}
 }
 

@@ -57,7 +57,7 @@ public:
 						continue;
 					}
 					int pid = data[i + 2] + ((data[i + 1] & 0x1f) << 8);
-					if (pid != 512 && pid != 513 && pid != 256 && pid > 32)
+					if (pid != 514 && pid != 670 && pid != 0 && pid > 32)
 						continue;
 					circBuf->lock();
 					if (circBuf->addData(&data[i], 188)) {
@@ -89,7 +89,7 @@ V4l2Input::V4l2Input(QObject *parent) :
 	fd = -1;
 	inputIndex = 1;
 	cThread = new captureThread(this);
-	circBuf = new CircularBuffer(1024 * 1024 * 3, this);
+	circBuf = new CircularBuffer(1024 * 1024 * 10, this);
 }
 
 int V4l2Input::start()

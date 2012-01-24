@@ -31,6 +31,7 @@ private:
 	unsigned char *ffFileBuffer;
 	ByteIOContext *ffIoContext;
 	CircularBuffer *circBuf;
+	AVInputFormat *mpegtsraw;
 
 	int startDemuxer();
 };

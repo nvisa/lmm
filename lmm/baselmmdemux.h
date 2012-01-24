@@ -8,6 +8,7 @@ struct AVFormatContext;
 struct AVStream;
 class RawBuffer;
 class CircularBuffer;
+class StreamTime;
 
 class BaseLmmDemux : public BaseLmmElement
 {
@@ -29,6 +30,7 @@ public:
 	virtual int stop();
 	virtual int seekTo(qint64 pos);
 	virtual int demuxOne();
+	virtual StreamTime * getStreamTime(streamType);
 signals:
 	
 public slots:
@@ -41,6 +43,9 @@ protected:
 	AVStream *videoStream;
 	QList<RawBuffer *> audioBuffers;
 	QList<RawBuffer *> videoBuffers;
+
+	StreamTime *audioClock;
+	StreamTime *videoClock;
 
 	/* derived stats */
 	unsigned int audioTimeBase; /* in usecs */

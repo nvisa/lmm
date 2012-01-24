@@ -116,6 +116,7 @@ int DmaiDecoder::decodeOne()
 			}
 		}
 		Buffer_delete(hCircBufWindow);
+
 		mInfo("decoder used %d bytes out of %d", consumed, circBuf->usedSize());
 		if (circBuf->useData(consumed) != consumed)
 			mDebug("something wrong with circ buffer");

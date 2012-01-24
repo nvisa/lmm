@@ -15,7 +15,6 @@
 BaseLmmPlayer::BaseLmmPlayer(QObject *parent) :
 	QObject(parent)
 {
-	streamTime = new StreamTime;
 	state = STOPPED;
 
 	audioDecoder = NULL;
@@ -24,6 +23,8 @@ BaseLmmPlayer::BaseLmmPlayer(QObject *parent) :
 	videoOutput = NULL;
 	demux = NULL;
 	alsaControl = NULL;
+
+	live = false;
 }
 
 BaseLmmPlayer::~BaseLmmPlayer()
@@ -39,11 +40,15 @@ int BaseLmmPlayer::play()
 
 	state = RUNNING;
 
+	streamTime = demux->getStreamTime(BaseLmmDemux::STREAM_VIDEO);
+	streamTime->start();
 	foreach (BaseLmmElement *el, elements) {
-		el->start();
-		if (demux)
+		if (demux && !live)
 			el->setStreamDuration(demux->getTotalDuration());
+		else
+			el->setStreamDuration(-1);
 		el->setStreamTime(streamTime);
+		el->start();
 	}
 
 	timer = new QTimer(this);
@@ -134,12 +139,12 @@ void BaseLmmPlayer::decodeLoop()
 
 	int err = demux->demuxOne();
 	if (!err) {
-		streamTime->setCurrentTime(demux->getCurrentPosition());
 		if (audioDecoder)
 			audioLoop();
 		if (videoDecoder)
 			videoLoop();
 	} else if (err == -ENOENT) {
+		qDebug("0");
 		mDebug("decoding finished");
 		stop();
 	}

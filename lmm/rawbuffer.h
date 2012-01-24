@@ -26,6 +26,8 @@ public:
 	unsigned int getDuration() { return duration; }
 	void setPts(qint64 val) { pts = val; }
 	qint64 getPts() { return pts; }
+	void setDts(qint64 val) { dts = val; }
+	qint64 getDts() { return dts; }
 
 	void setStreamBufferNo(int val) { bufferNo = val; }
 	int streamBufferNo() { return bufferNo; }
@@ -42,6 +44,7 @@ private:
 	int appendLen;
 	unsigned int duration;
 	qint64 pts;
+	qint64 dts;
 	QMap<QString, QVariant> parameters;
 	int bufferNo;
 };

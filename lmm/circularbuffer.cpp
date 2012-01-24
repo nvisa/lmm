@@ -5,6 +5,7 @@
 #include <errno.h>
 
 #include <QMutex>
+#include <QThread>
 
 CircularBuffer::CircularBuffer(QObject *parent) :
 	QObject(parent)
@@ -19,6 +20,7 @@ CircularBuffer::CircularBuffer(void *source, int size, QObject *parent) :
 	rawData = (char *)source;
 	rawDataLen = size;
 	mutex = new QMutex;
+	lockThread = NULL;
 	reset();
 }
 
@@ -29,6 +31,7 @@ CircularBuffer::CircularBuffer(int size, QObject *parent) :
 	rawData = new char[size];
 	rawDataLen = size;
 	mutex = new QMutex;
+	lockThread = NULL;
 	reset();
 }
 
@@ -86,12 +89,15 @@ int CircularBuffer::addData(const void *data, int size)
 		return -EINVAL;
 
 	if (head + size > rawData + rawDataLen) {
-		mDebug("no space left, shifting %d bytes", usedBufLen);
-		/* At this point it is guarenteed that head > tail due to not overriding */
-		/* TODO: Following memcpy may be optimized */
-		memcpy(rawData, tail, usedBufLen);
-		head = rawData + usedBufLen;
-		tail = rawData;
+		if (usedBufLen) {
+			mDebug("no space left, shifting %d bytes out of %d bytes", usedBufLen, rawDataLen);
+			/* At this point it is guarenteed that head > tail due to not overriding */
+			/* TODO: Following memcpy may be optimized */
+			memcpy(rawData, tail, usedBufLen);
+			head = rawData + usedBufLen;
+			tail = rawData;
+		} else
+			reset();
 	}
 	memcpy(head, data, size);
 	head += size;
@@ -112,11 +118,16 @@ int CircularBuffer::reset()
 
 void CircularBuffer::lock()
 {
+	if (lockThread == NULL)
+		lockThread = QThread::currentThreadId();
+	else if (lockThread == QThread::currentThreadId())
+		mDebug("locking from thread %p twice, deadlock huh :)", QThread::currentThreadId());
 	mutex->lock();
 }
 
 void CircularBuffer::unlock()
 {
+	lockThread = NULL;
 	mutex->unlock();
 }
 

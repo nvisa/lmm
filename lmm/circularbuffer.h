@@ -37,6 +37,7 @@ private:
 	int usedBufLen;
 
 	QMutex *mutex;
+	void *lockThread;
 };
 
 #endif // CIRCULARBUFFER_H

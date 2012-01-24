@@ -1,5 +1,6 @@
 #include "baselmmdemux.h"
 #include "rawbuffer.h"
+#include "streamtime.h"
 #include "emdesk/debug.h"
 
 extern "C" {
@@ -22,11 +23,13 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 		av_register_all();
 		avRegistered = true;
 	}
+	audioClock = new StreamTime(this);
+	videoClock = new StreamTime(this);
 }
 
 qint64 BaseLmmDemux::getCurrentPosition()
 {
-	return streamPosition;
+	return audioClock->getCurrentTime();
 }
 
 qint64 BaseLmmDemux::getTotalDuration()
@@ -56,6 +59,8 @@ int BaseLmmDemux::findStreamInfo()
 		return -EINVAL;
 	}
 
+	audioClock->setStartTime(0);
+	videoClock->setStartTime(0);
 	/* derive necessary information from streams */
 	if (audioStreamIndex >= 0) {
 		mDebug("audio stream found at index %d", audioStreamIndex);
@@ -67,7 +72,7 @@ int BaseLmmDemux::findStreamInfo()
 	if (videoStreamIndex >= 0) {
 		mDebug("video stream found at index %d", videoStreamIndex);
 		videoStream = context->streams[videoStreamIndex];
-		AVRational r = audioStream->time_base;
+		AVRational r = videoStream->time_base;
 		r = videoStream->time_base;
 		videoTimeBase = 1000000 * r.num / r.den;
 		mDebug("videoBase=%d", videoTimeBase);
@@ -102,10 +107,13 @@ int BaseLmmDemux::demuxOne()
 		buf->setDuration(packet->duration * audioTimeBase);
 		if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 			buf->setPts(packet->pts * audioTimeBase);
-			streamPosition = buf->getPts();
 		} else {
 			buf->setPts(-1);
-			streamPosition += buf->getDuration();
+		}
+		if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
+			buf->setDts(packet->dts * audioTimeBase);
+		} else {
+			buf->setDts(-1);
 		}
 		audioBuffers << buf;
 	} else if (packet->stream_index == videoStreamIndex) {
@@ -116,31 +124,45 @@ int BaseLmmDemux::demuxOne()
 		buf->setDuration(packet->duration * videoTimeBase);
 		if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 			buf->setPts(packet->pts * videoTimeBase);
-			if (audioStreamIndex < 0)
-				streamPosition = buf->getPts();
 		} else {
 			buf->setPts(-1);
-			if (audioStreamIndex < 0)
-				streamPosition += buf->getDuration();
+		}
+		if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
+			buf->setDts(packet->dts * videoTimeBase);
+		} else {
+			buf->setDts(-1);
 		}
 		videoBuffers << buf;
 	}
 	return 0;
 }
 
+StreamTime * BaseLmmDemux::getStreamTime(BaseLmmDemux::streamType stream)
+{
+	if (stream == STREAM_AUDIO)
+		return audioClock;
+	if (stream == STREAM_VIDEO)
+		return videoClock;
+	return audioClock;
+}
+
 RawBuffer * BaseLmmDemux::nextAudioBuffer()
 {
-	if (audioBuffers.size())
+	if (audioBuffers.size()) {
+		sentBufferCount++;
 		return audioBuffers.takeFirst();
-	sentBufferCount++;
+	}
+
 	return NULL;
 }
 
 RawBuffer * BaseLmmDemux::nextVideoBuffer()
 {
-	if (videoBuffers.size())
+	if (videoBuffers.size()) {
+		sentBufferCount++;
 		return videoBuffers.takeFirst();
-	sentBufferCount++;
+	}
+
 	return NULL;
 }
 

@@ -58,6 +58,13 @@ MpegTsDemux::MpegTsDemux(QObject *parent) :
 		av_register_protocol2 (lmmUrlProtocol, sizeof (URLProtocol));
 		demuxPriv = this;
 	}
+
+	mpegtsraw = av_iformat_next(NULL);
+	while (mpegtsraw) {
+		if (strcmp(mpegtsraw->name, "mpegtsraw") == 0)
+			break;
+		mpegtsraw = av_iformat_next(mpegtsraw);
+	}
 }
 
 int MpegTsDemux::setSource(CircularBuffer *buf)
@@ -90,7 +97,12 @@ int MpegTsDemux::demuxOne()
 			mDebug("error in stream info");
 	}
 
-	return BaseLmmDemux::demuxOne();
+	while (circBuf->usedSize() > 1024 * 100) {
+		int err = BaseLmmDemux::demuxOne();
+		if (err)
+			return err;
+	}
+	return 0;
 }
 
 int MpegTsDemux::readPacket(uint8_t *buf, int buf_size)

@@ -52,6 +52,7 @@ protected:
 	BaseLmmOutput *videoOutput;
 	QTimer *timer;
 	Alsa *alsaControl;
+	bool live;
 private:
 	void audioLoop();
 	void videoLoop();

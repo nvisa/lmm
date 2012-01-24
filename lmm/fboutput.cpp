@@ -64,7 +64,6 @@ int FbOutput::openFb(QString filename)
 FbOutput::FbOutput(QObject *parent) :
 	BaseLmmOutput(parent)
 {
-	streamTime = NULL;
 	fd = -1;
 }
 
@@ -75,7 +74,10 @@ int FbOutput::output()
 	RawBuffer *buf = inputBuffers.first();
 	if (checkBufferTimeStamp(buf))
 		return 0;
-	qint64 time = streamTime->getCurrentTime();
+	qint64 time = streamTime->getCurrentTime() - streamTime->getStartTime();
+	static qint64 firstPts = 0;
+	if (firstPts == 0)
+		firstPts = buf->getPts();
 	inputBuffers.removeFirst();
 	const char *data = (const char *)buf->constData();
 	if (fd > 0) {
@@ -92,7 +94,7 @@ int FbOutput::output()
 			if (startY < 0)
 				startY = 0;
 			mInfo("buffer=%d time=%lld frame: %d x %d, fbsize is %d, ts is %lld",
-				   buf->streamBufferNo(), time, inW, inH, fbSize, buf->getPts() / 1000);
+				   buf->streamBufferNo(), time / 1000, inW, inH, fbSize, (buf->getPts() - firstPts) / 1000);
 			int j = 0;
 			for (int i = startY; i < fbSize; i += fbLineLen) {
 				memcpy(fbAddr + i + startX, data + j, inW * 2);
@@ -105,6 +107,9 @@ int FbOutput::output()
 		mDebug("fb device is not opened");
 	Buffer_Handle dmaiBuf = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
 	Buffer_freeUseMask(dmaiBuf, DmaiDecoder::OUTPUT_USE);
+	if (streamTime->getStartTime() == 0) {
+		streamTime->setStartTime(streamTime->getCurrentTime());
+	}
 	delete buf;
 	return 0;
 }
