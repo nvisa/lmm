@@ -28,7 +28,7 @@ signals:
 	
 private slots:
 
-private:
+protected:
 	int captureWidth;
 	int captureHeight;
 	QString deviceName;
@@ -39,12 +39,12 @@ private:
 	CircularBuffer *circBuf;
 	captureThread *cThread;
 
-	int openCamera();
-	int closeCamera();
+	virtual int openCamera();
+	virtual int closeCamera();
 	int adjustCropping(int width, int height);
 	int allocBuffers(unsigned int buf_cnt, enum v4l2_buf_type type);
-	int putFrame(struct v4l2_buffer *);
-	v4l2_buffer * getFrame();
+	virtual int putFrame(struct v4l2_buffer *);
+	virtual v4l2_buffer * getFrame();
 };
 
 #endif // V4L2INPUT_H

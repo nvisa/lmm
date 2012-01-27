@@ -9,10 +9,9 @@ QT       += core gui
 TARGET = lmm-demo
 TEMPLATE = app
 
-CONFIG += ffmpeg mad alsa
+CONFIG += ffmpeg mad alsa dm365
 
-SOURCES += main.cpp\
-        lmsdemo.cpp \
+SOURCES += \
     lmm/filesource.cpp \
     lmm/rawbuffer.cpp \
     lmm/dmaidecoder.cpp \
@@ -26,9 +25,11 @@ SOURCES += main.cpp\
     lmm/v4l2input.cpp \
     lmm/fileoutput.cpp \
     lmm/dvb/tsdemux.cpp \
-    lmm/dvb/dvbutils.cpp
+    lmm/dvb/dvbutils.cpp \
+    lmm/dmaiencoder.cpp \
+    lmm/dm365capture.cpp
 
-HEADERS  += lmsdemo.h \
+HEADERS  += \
     lmm/filesource.h \
     lmm/rawbuffer.h \
     lmm/dmaidecoder.h \
@@ -43,7 +44,8 @@ HEADERS  += lmsdemo.h \
     lmm/fileoutput.h \
     lmm/dvb/tsdemux.h \
     lmm/dvb/dvbutils.h \
-    lmm/dmaiencoder.h
+    lmm/dmaiencoder.h \
+    lmm/dm365capture.h
 
 alsa {
     HEADERS += \
@@ -101,7 +103,21 @@ x86 {
 arm {
     include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/qtCommon-arm.pri)
     include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/emdesk/emdeskCommon-arm.pri)
+}
+
+dm365 {
     include(dm365.pri)
+    QT -= gui
+    SOURCES += main-dm365.cpp
+
+}
+dm6446 {
+    include(dm6446.pri)
+    SOURCES += \
+        main.cpp\
+        lmsdemo.cpp
+
+    HEADERS += lmsdemo.h
 }
 
 QMAKE_CXXFLAGS += -D__STDC_CONSTANT_MACROS
