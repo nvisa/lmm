@@ -41,7 +41,7 @@ struct ts_program {
 	bool foundStart;
 };
 
-static void fill_header(struct ts_header *h, unsigned char *src)
+static void fill_header(struct ts_header *h, const unsigned char *src)
 {
 	h->sync_byte = src[0];
 	h->transport_error_indicator = (src[1] >> 7) & 1;
@@ -152,6 +152,50 @@ const char * tsDemux::getStream(int pid, int *size)
 	*size = prog->payloadLen;
 	prog->foundStart = false;
 	return (const char *)prog->payload;
+}
+
+#define read32(x) \
+	(((const uint8_t*)(x))[0] << 24) | \
+	(((const uint8_t*)(x))[1] << 16) | \
+	(((const uint8_t*)(x))[2] <<  8) | \
+	((const uint8_t*)(x))[3]
+
+qint64 tsDemux::parsePcr(const unsigned char *data)
+{
+	int afc = (data[3] >> 4) & 3;
+	if (afc <= 1)
+		return -1;
+	/* adaption field exists in packet */
+	data = data + 4;
+	int len = data[0];
+	if (len == 0)
+		return -2;
+	data++;
+	int flags = *data++;
+	len--;
+	if (!(flags & 0x10))
+		return -3;
+	if (len < 6)
+		return -4;
+	unsigned int value = read32(data);
+	qint64 pcrHigh = ((qint64)value << 1) | (data[4] >> 7);
+	int pcrLow = ((data[4] & 1) << 8) | data[5];
+	qint64 time = pcrHigh * 300 + pcrLow;
+	return time * 1000 / 27000000 * 1000;
+}
+
+int tsDemux::parsePmt(const unsigned char *data)
+{
+	struct ts_header hdr;
+	fill_header(&hdr, data);
+	int afc = hdr.adaptation_field_control;
+	qDebug() << hdr.PID << hdr.adaptation_field_control;
+	if (afc != 0x10 && afc != 0x11)
+		return -1;
+	/* ok, adaption field exists */
+	const unsigned char *af = &data[4];
+	qDebug() << af[0];
+	return 0;
 }
 
 #if 0
