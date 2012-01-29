@@ -1,5 +1,6 @@
 #include "lmsdemo.h"
 #include "ui_lmsdemo.h"
+#include "lmm/baselmmdemux.h"
 #include "lmm/avidecoder.h"
 #ifdef CONFIG_FFMPEG
 #include "lmm/dvbplayer.h"
@@ -77,8 +78,18 @@ void LmsDemo::timeout()
 	} else {
 		ui->labelVirtPos->setVisible(false);
 	}
-	if (ui->toolMoviePage->isChecked())
-		showDecodeInfo();
+	if (ui->toolMoviePage->isChecked()) {
+		/*
+		 * Refreshing information at every 100 msec is fancy
+		 * but it causes too much overhead, so we refresh it
+		 * at every 1 sec
+		 */
+		static int count = 10;
+		if (count-- == 0) {
+			showDecodeInfo();
+			count = 10;
+		}
+	}
 }
 
 void LmsDemo::cleanUpAndExit()
@@ -169,6 +180,9 @@ void LmsDemo::addElement(BaseLmmElement *el)
 	visuals[el] << outCnt;
 }
 
+/*
+ * Note that this function has an overhead of ~10 msec
+ */
 void LmsDemo::showDecodeInfo()
 {
 	const QList<BaseLmmElement *> elements = dec->getElements();
@@ -187,16 +201,24 @@ void LmsDemo::showDecodeInfo()
 	}
 	foreach (BaseLmmElement *el, elements) {
 		CircularBuffer *circ = el->getCircularBuffer();
+		const QList<QGraphicsSimpleTextItem *> & widgets = visuals[el];
 		if (circ) {
 			/* circular buffer based element */
-			visuals[el][0]->setText(QString("totalSize: %1 kB").arg(circ->totalSize() >> 10));
-			visuals[el][1]->setText(QString("usedSize: %1 kB").arg(circ->usedSize() >> 10));
-			visuals[el][2]->setText(QString("freeSize: %1 kB").arg(circ->freeSize() >> 10));
+			widgets[0]->setText(QString("totalSize: %1 kB").arg(circ->totalSize() >> 10));
+			widgets[1]->setText(QString("usedSize: %1 kB").arg(circ->usedSize() >> 10));
+			widgets[2]->setText(QString("freeSize: %1 kB").arg(circ->freeSize() >> 10));
 		} else {
-			visuals[el][0]->setText(QString("inputBuffers: %1").arg(el->getInputBufferCount()));
-			visuals[el][1]->setText(QString("outpuBuffers: %1").arg(el->getOutputBufferCount()));
-			visuals[el][2]->setText(QString("receivedBuffers: %1").arg(el->getReceivedBufferCount()));
-			visuals[el][3]->setText(QString("sentBuffers: %1").arg(el->getSentBufferCount()));
+			BaseLmmDemux *demux = qobject_cast<BaseLmmDemux *>(el);
+			if (demux) {
+				/* demux elements are special */
+				widgets[0]->setText(QString("audioBuffers: %1").arg(demux->audioBufferCount()));
+				widgets[1]->setText(QString("videoBuffers: %1").arg(demux->videoBufferCount()));
+			} else {
+				widgets[0]->setText(QString("inputBuffers: %1").arg(el->getInputBufferCount()));
+				widgets[1]->setText(QString("outpuBuffers: %1").arg(el->getOutputBufferCount()));
+			}
+			widgets[2]->setText(QString("receivedBuffers: %1").arg(el->getReceivedBufferCount()));
+			widgets[3]->setText(QString("sentBuffers: %1").arg(el->getSentBufferCount()));
 		}
 	}
 }
