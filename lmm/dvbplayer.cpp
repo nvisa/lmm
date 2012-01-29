@@ -16,20 +16,19 @@ DvbPlayer::DvbPlayer(QObject *parent) :
 {
 	demux = new MpegTsDemux;
 	v4l2 = new V4l2Input;
-	audioDecoder = new Mad;
-	audioOutput = new AlsaOutput;
-	videoDecoder = new DmaiDecoder(DmaiDecoder::MPEG2);
-	videoOutput = new FbOutput;
-
 	elements << demux;
 	elements << v4l2;
-	elements << audioDecoder;
-	elements << audioOutput;
+
+	videoDecoder = new DmaiDecoder(DmaiDecoder::MPEG2);
+	videoOutput = new FbOutput;
 	elements << videoDecoder;
 	elements << videoOutput;
 
-	//videoOutput->syncOnClock(false);
-	//audioOutput->syncOnClock(false);
+	audioDecoder = new Mad;
+	audioOutput = new AlsaOutput;
+	elements << audioDecoder;
+	elements << audioOutput;
+
 	live = true;
 }
 
