@@ -25,9 +25,7 @@ SOURCES += \
     lmm/v4l2input.cpp \
     lmm/fileoutput.cpp \
     lmm/dvb/tsdemux.cpp \
-    lmm/dvb/dvbutils.cpp \
-    lmm/dmaiencoder.cpp \
-    lmm/dm365capture.cpp
+    lmm/dvb/dvbutils.cpp
 
 HEADERS  += \
     lmm/filesource.h \
@@ -44,8 +42,6 @@ HEADERS  += \
     lmm/fileoutput.h \
     lmm/dvb/tsdemux.h \
     lmm/dvb/dvbutils.h \
-    lmm/dmaiencoder.h \
-    lmm/dm365capture.h
 
 alsa {
     HEADERS += \
@@ -108,7 +104,12 @@ arm {
 dm365 {
     include(dm365.pri)
     QT -= gui
-    SOURCES += main-dm365.cpp
+    SOURCES += main-dm365.cpp \
+        lmm/dmaiencoder.cpp \
+        lmm/dm365capture.cpp \
+
+    HEADERS += lmm/dmaiencoder.h \
+        lmm/dm365capture.h \
 
 }
 dm6446 {
