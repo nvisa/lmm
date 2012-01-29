@@ -171,6 +171,11 @@ int BaseLmmDemux::audioBufferCount()
 	return audioBuffers.count();
 }
 
+int BaseLmmDemux::videoBufferCount()
+{
+	return videoBuffers.count();
+}
+
 int BaseLmmDemux::start()
 {
 	videoStreamIndex = audioStreamIndex = -1;

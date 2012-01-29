@@ -26,6 +26,7 @@ public:
 	virtual RawBuffer * nextAudioBuffer();
 	virtual RawBuffer * nextVideoBuffer();
 	virtual int audioBufferCount();
+	virtual int videoBufferCount();
 	virtual int start();
 	virtual int stop();
 	virtual int seekTo(qint64 pos);
