@@ -67,15 +67,21 @@ int DmaiDecoder::decodeOne()
 	RawBuffer *buf = NULL;
 	while (inputBuffers.size()) {
 		bool decodeOk = true;
-		buf = inputBuffers.takeFirst();
-		if (!buf && circBuf->usedSize() == 0)
-			return -ENOENT;
-		if (buf) {
-			mInfo("adding %d bytes to circular buffer", buf->size());
-			if (circBuf->addData(buf->data(), buf->size()))
-				mDebug("error adding data to circular buffer");
-			handleInputTimeStamps(buf);
-			delete buf;
+		/*
+		 * if too much data is accumulated on the circ buffer
+		 * then do not push more
+		 */
+		if (circBuf->usedSize() < circBuf->totalSize() / 4) {
+			buf = inputBuffers.takeFirst();
+			if (!buf && circBuf->usedSize() == 0)
+				return -ENOENT;
+			if (buf) {
+				mInfo("adding %d bytes to circular buffer", buf->size());
+				if (circBuf->addData(buf->data(), buf->size()))
+					mDebug("error adding data to circular buffer");
+				handleInputTimeStamps(buf);
+				delete buf;
+			}
 		}
 		Buffer_Handle hBuf = BufTab_getFreeBuf(hBufTab);
 		if (!hBuf) {
