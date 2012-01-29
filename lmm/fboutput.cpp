@@ -107,9 +107,6 @@ int FbOutput::output()
 		mDebug("fb device is not opened");
 	Buffer_Handle dmaiBuf = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
 	Buffer_freeUseMask(dmaiBuf, DmaiDecoder::OUTPUT_USE);
-	if (streamTime->getStartTime() == 0) {
-		streamTime->setStartTime(streamTime->getCurrentTime());
-	}
 	delete buf;
 	return 0;
 }

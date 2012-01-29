@@ -14,19 +14,30 @@ int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 {
 	if (!doSync)
 		return 0;
+	if (streamTime->getStartTime() == 0) {
+		streamTime->setStartTime(streamTime->getCurrentTime());
+		streamTime->setStartPts(buf->getPts());
+	}
+	qint64 encDelay = streamTime->getStartTime() - streamTime->getStartPts();
 	qint64 rpts = buf->getPts();
-	qint64 time = streamTime->getCurrentTime();
+	qint64 time = streamTime->getCurrentTime() - encDelay;
+
 	if (outputDelay)
 		jitter = outputDelay;
+
+	qint64 rpts_j = rpts - jitter;
 	if (rpts > 0) {
-		if (rpts < streamDuration && rpts - jitter > time) {
+		if ((rpts < streamDuration || streamDuration < 0) && rpts_j >= time) {
 			mInfo("it is not time to display buf %d, pts=%lld time=%lld",
 				  buf->streamBufferNo(), rpts, time);
+			last_rpts = rpts;
+			last_time = time;
 			return -1;
 		}
 	}
-
-	mDebug("%s: streamTime=%lld ts=%lld diff=%lld", this->metaObject()->className(),
-		   time, rpts, time - rpts);
+	mDebug("%s: streamTime=%lld s_diff=%lld ts=%lld ts_diff=%lld sync_diff=%lld", this->metaObject()->className(),
+		   time, time - last_time, rpts, rpts - last_rpts, time - rpts);
+	last_rpts = rpts;
+	last_time = time;
 	return 0;
 }

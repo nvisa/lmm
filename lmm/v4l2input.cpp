@@ -1,6 +1,7 @@
 #include "v4l2input.h"
 #include "rawbuffer.h"
 #include "circularbuffer.h"
+#include "streamtime.h"
 #include "emdesk/debug.h"
 #include "dvb/tsdemux.h"
 
@@ -57,7 +58,13 @@ public:
 						continue;
 					}
 					int pid = data[i + 2] + ((data[i + 1] & 0x1f) << 8);
-					if (pid != 514 && pid != 670 && pid != 0 && pid > 32)
+					int vpid = 512;
+					int apid = 513;
+					int pmt = 256;
+					int pcr = 7190;
+					if (pid == pcr)
+						v4l2->setSystemClock(tsDemux::parsePcr(&data[i]));
+					if (pid != vpid && pid != apid && pid != pmt && pid != pcr && pid > 32)
 						continue;
 					circBuf->lock();
 					if (circBuf->addData(&data[i], 188)) {
@@ -332,6 +339,12 @@ v4l2_buffer *V4l2Input::getFrame()
 	}
 
 	return v4l2buf[buffer.index];
+}
+
+int V4l2Input::setSystemClock(qint64 time)
+{
+	streamTime->setCurrentTime(time);
+	return 0;
 }
 
 /**

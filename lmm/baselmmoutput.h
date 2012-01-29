@@ -21,6 +21,9 @@ protected:
 private:
 	int outputDelay;
 	bool doSync;
+
+	qint64 last_rpts;
+	qint64 last_time;
 };
 
 #endif // BASELMMOUTPUT_H

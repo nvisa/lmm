@@ -45,6 +45,8 @@ protected:
 	int allocBuffers(unsigned int buf_cnt, enum v4l2_buf_type type);
 	virtual int putFrame(struct v4l2_buffer *);
 	virtual v4l2_buffer * getFrame();
+
+	int setSystemClock(qint64 time);
 };
 
 #endif // V4L2INPUT_H
