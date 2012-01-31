@@ -3,17 +3,19 @@
 
 #include "baselmmelement.h"
 
+class QTime;
+
 class BaseLmmOutput : public BaseLmmElement
 {
 	Q_OBJECT
 public:
 	explicit BaseLmmOutput(QObject *parent = 0);
-	virtual qint64 getLatency() { return 0; }
 	virtual qint64 getAvailableBufferTime() { return 0; }
 	void setOutputDelay(int val) { outputDelay = val; }
 	int getOutputDelay() { return outputDelay; }
 	void syncOnClock(bool val) { doSync = val; }
 	virtual int output() = 0;
+	virtual qint64 getLatency();
 signals:
 	
 public slots:

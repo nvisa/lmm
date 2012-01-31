@@ -15,6 +15,11 @@ BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 	fpsTiming->start();
 }
 
+qint64 BaseLmmOutput::getLatency()
+{
+	return getAvailableBufferTime() + outputLatency;
+}
+
 int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 {
 	if (!doSync)

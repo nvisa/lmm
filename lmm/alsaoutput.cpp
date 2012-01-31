@@ -48,11 +48,6 @@ int AlsaOutput::flush()
 	return BaseLmmOutput::flush();
 }
 
-qint64 AlsaOutput::getLatency()
-{
-	return getAvailableBufferTime() + outputLatency;
-}
-
 qint64 AlsaOutput::getAvailableBufferTime()
 {
 	qint64 delay = alsaOut->delay();

@@ -18,7 +18,7 @@ public:
 	void setStreamTime(StreamTime *t) { streamTime = t; }
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
 	virtual CircularBuffer * getCircularBuffer() { return NULL; }
-
+	virtual qint64 getLatency() { return 0; }
 	virtual int start();
 	virtual int stop();
 	virtual int flush();
