@@ -2,7 +2,11 @@
 #define FBOUTPUT_H
 
 #include "baselmmoutput.h"
+
 #include <QList>
+#include <QVariant>
+
+#include <ti/sdo/dmai/Resize.h>
 
 class RawBuffer;
 class QTime;
@@ -26,6 +30,9 @@ private:
 	unsigned char *fbAddr;
 	int fbLineLen;
 	int fbHeight;
+	Resize_Handle hResize;
+	Buffer_Handle fbOutBuf;
+	bool resizerConfigured;
 
 	int openFb(QString filename);
 };
