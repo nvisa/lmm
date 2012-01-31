@@ -138,6 +138,8 @@ write_error:
 
 int Alsa::delay()
 {
+	if (!handle)
+		return 0;
 	snd_pcm_sframes_t delay;
 	if (snd_pcm_delay(handle, &delay))
 		return 0;
