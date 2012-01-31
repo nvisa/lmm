@@ -9,7 +9,6 @@ AlsaOutput::AlsaOutput(QObject *parent) :
 	BaseLmmOutput(parent)
 {
 	alsaOut = new Alsa;
-	alsaOut->open();
 }
 
 int AlsaOutput::outputBuffer(RawBuffer *buf)

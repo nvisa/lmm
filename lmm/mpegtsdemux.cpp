@@ -81,6 +81,8 @@ int MpegTsDemux::start()
 
 int MpegTsDemux::stop()
 {
+	av_close_input_file(context);
+	context = NULL;
 	return BaseLmmElement::stop();
 }
 

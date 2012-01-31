@@ -148,6 +148,7 @@ int FbOutput::stop()
 	::close(fd);
 	if (hResize) {
 		Resize_delete(hResize);
+		Buffer_delete(fbOutBuf);
 		hResize = NULL;
 	}
 	return BaseLmmElement::stop();

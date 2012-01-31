@@ -37,6 +37,7 @@ int BaseLmmElement::start()
 
 int BaseLmmElement::stop()
 {
+	flush();
 	return 0;
 }
 

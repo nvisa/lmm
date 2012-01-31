@@ -31,6 +31,7 @@ public:
 	virtual int stop();
 	virtual int seekTo(qint64 pos);
 	virtual int demuxOne();
+	virtual int flush();
 	virtual StreamTime * getStreamTime(streamType);
 
 	void setAudioDemuxing(bool v) { demuxAudio = v; }

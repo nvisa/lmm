@@ -144,6 +144,15 @@ int BaseLmmDemux::demuxOne()
 	return 0;
 }
 
+int BaseLmmDemux::flush()
+{
+	qDeleteAll(videoBuffers);
+	qDeleteAll(audioBuffers);
+	videoBuffers.clear();
+	audioBuffers.clear();
+	return BaseLmmElement::flush();
+}
+
 StreamTime * BaseLmmDemux::getStreamTime(BaseLmmDemux::streamType stream)
 {
 	if (stream == STREAM_AUDIO)
