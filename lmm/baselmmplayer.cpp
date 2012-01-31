@@ -151,12 +151,21 @@ void BaseLmmPlayer::decodeLoop()
 
 	int err = demux->demuxOne();
 	if (!err) {
-		if (audioDecoder)
+		if (audioDecoder) {
 			audioLoop();
+			qint64 lat = audioOutput->getLatency();
+			while (lat < 50000) {
+				audioLoop();
+				lat = audioOutput->getLatency();
+				if (audioOutput->getInputBufferCount() == 0 && demux->audioBufferCount() == 0)
+					break;
+			}
+			if (videoOutput)
+				videoOutput->setOutputDelay(lat);
+		}
 		if (videoDecoder)
 			videoLoop();
 	} else if (err == -ENOENT) {
-		qDebug("0");
 		mDebug("decoding finished");
 		stop();
 	}
@@ -186,8 +195,6 @@ void BaseLmmPlayer::audioLoop()
 
 void BaseLmmPlayer::videoLoop()
 {
-	if (audioOutput)
-		videoOutput->setOutputDelay(audioOutput->getLatency());
 	RawBuffer *buf = demux->nextVideoBuffer();
 	if (buf)
 		videoDecoder->addBuffer(buf);

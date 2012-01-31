@@ -189,12 +189,9 @@ int tsDemux::parsePmt(const unsigned char *data)
 	struct ts_header hdr;
 	fill_header(&hdr, data);
 	int afc = hdr.adaptation_field_control;
-	qDebug() << hdr.PID << hdr.adaptation_field_control;
 	if (afc != 0x10 && afc != 0x11)
 		return -1;
 	/* ok, adaption field exists */
-	const unsigned char *af = &data[4];
-	qDebug() << af[0];
 	return 0;
 }
 

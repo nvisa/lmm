@@ -17,6 +17,7 @@ int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 	if (streamTime->getStartTime() == 0) {
 		streamTime->setStartTime(streamTime->getCurrentTime());
 		streamTime->setStartPts(buf->getPts());
+		mDebug("%s: setting stream start point", this->metaObject()->className());
 	}
 	qint64 encDelay = streamTime->getStartTime() - streamTime->getStartPts();
 	qint64 rpts = buf->getPts();
