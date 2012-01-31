@@ -56,6 +56,8 @@ protected:
 	/* derived stats */
 	unsigned int audioTimeBase; /* in usecs */
 	unsigned int videoTimeBase; /* in usecs */
+	qint64 audioTimeBaseN;		/* in nano secs */
+	qint64 videoTimeBaseN;		/* in nano secs */
 
 	virtual AVPacket * nextPacket();
 	int findStreamInfo();

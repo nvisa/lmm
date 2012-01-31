@@ -36,9 +36,9 @@ qint64 BaseLmmDemux::getCurrentPosition()
 qint64 BaseLmmDemux::getTotalDuration()
 {
 	if (audioStream)
-		return audioStream->duration * audioTimeBase;
+		return audioStream->duration * audioTimeBaseN / 1000;
 	if (videoStream)
-		return videoStream->duration * videoTimeBase;
+		return videoStream->duration * videoTimeBaseN / 1000;
 	return 0;
 }
 
@@ -68,6 +68,7 @@ int BaseLmmDemux::findStreamInfo()
 		audioStream = context->streams[audioStreamIndex];
 		AVRational r = audioStream->time_base;
 		audioTimeBase = 1000000 * r.num / r.den;
+		audioTimeBaseN = 1000000000 * r.num / r.den;
 		mDebug("audioBase=%d", audioTimeBase);
 	}
 	if (videoStreamIndex >= 0) {
@@ -76,6 +77,7 @@ int BaseLmmDemux::findStreamInfo()
 		AVRational r = videoStream->time_base;
 		r = videoStream->time_base;
 		videoTimeBase = 1000000 * r.num / r.den;
+		videoTimeBaseN = 1000000000 * r.num / r.den;
 		mDebug("videoBase=%d", videoTimeBase);
 	}
 
@@ -108,12 +110,12 @@ int BaseLmmDemux::demuxOne()
 			RawBuffer *buf = new RawBuffer(packet->data, packet->size);
 			buf->setDuration(packet->duration * audioTimeBase);
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
-				buf->setPts(packet->pts * audioTimeBase);
+				buf->setPts(packet->pts * audioTimeBaseN / 1000);
 			} else {
 				buf->setPts(-1);
 			}
 			if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
-				buf->setDts(packet->dts * audioTimeBase);
+				buf->setDts(packet->dts * audioTimeBaseN / 1000);
 			} else {
 				buf->setDts(-1);
 			}
@@ -127,12 +129,12 @@ int BaseLmmDemux::demuxOne()
 			RawBuffer *buf = new RawBuffer(packet->data, packet->size);
 			buf->setDuration(packet->duration * videoTimeBase);
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
-				buf->setPts(packet->pts * videoTimeBase);
+				buf->setPts(packet->pts * videoTimeBaseN / 1000);
 			} else {
 				buf->setPts(-1);
 			}
 			if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
-				buf->setDts(packet->dts * videoTimeBase);
+				buf->setDts(packet->dts * videoTimeBaseN / 1000);
 			} else {
 				buf->setDts(-1);
 			}
