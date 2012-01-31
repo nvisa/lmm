@@ -5,6 +5,8 @@
 
 #include <QTime>
 
+#include <errno.h>
+
 BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 	BaseLmmElement(parent)
 {
@@ -22,8 +24,6 @@ qint64 BaseLmmOutput::getLatency()
 
 int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 {
-	if (!doSync)
-		return 0;
 	if (streamTime->getStartTime() == 0) {
 		streamTime->setStartTime(streamTime->getCurrentTime());
 		streamTime->setStartPts(buf->getPts());
@@ -58,4 +58,25 @@ int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 		fpsBufferCount = 0;
 	}
 	return 0;
+}
+
+int BaseLmmOutput::outputBuffer(RawBuffer *)
+{
+	return 0;
+}
+
+int BaseLmmOutput::output()
+{
+	if (!inputBuffers.size())
+		return -ENOENT;
+	RawBuffer *buf = inputBuffers.first();
+	if (checkBufferTimeStamp(buf)) {
+		if (doSync)
+			return -EBUSY;
+	}
+	sentBufferCount++;
+	inputBuffers.removeFirst();
+	int err = outputBuffer(buf);
+	delete buf;
+	return err;
 }

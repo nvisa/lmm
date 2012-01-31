@@ -67,19 +67,12 @@ FbOutput::FbOutput(QObject *parent) :
 	fd = -1;
 }
 
-int FbOutput::output()
+int FbOutput::outputBuffer(RawBuffer *buf)
 {
-	if (!inputBuffers.size())
-		return -ENOENT;
-	RawBuffer *buf = inputBuffers.first();
-	if (checkBufferTimeStamp(buf))
-		return 0;
-	sentBufferCount++;
 	qint64 time = streamTime->getCurrentTime() - streamTime->getStartTime();
 	static qint64 firstPts = 0;
 	if (firstPts == 0)
 		firstPts = buf->getPts();
-	inputBuffers.removeFirst();
 	const char *data = (const char *)buf->constData();
 	if (fd > 0) {
 		if (buf->size() == fbSize)
@@ -108,7 +101,6 @@ int FbOutput::output()
 		mDebug("fb device is not opened");
 	Buffer_Handle dmaiBuf = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
 	Buffer_freeUseMask(dmaiBuf, DmaiDecoder::OUTPUT_USE);
-	delete buf;
 	return 0;
 }
 

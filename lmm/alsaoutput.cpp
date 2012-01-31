@@ -12,18 +12,10 @@ AlsaOutput::AlsaOutput(QObject *parent) :
 	alsaOut->open();
 }
 
-int AlsaOutput::output()
+int AlsaOutput::outputBuffer(RawBuffer *buf)
 {
-	if (!inputBuffers.size())
-		return -ENOENT;
-	RawBuffer *buf = inputBuffers.first();
-	if (checkBufferTimeStamp(buf))
-		return 0;
-	sentBufferCount++;
-	inputBuffers.removeFirst();
 	const char *data = (const char *)buf->constData();
 	alsaOut->write(data, buf->size());
-	delete buf;
 	return 0;
 }
 

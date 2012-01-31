@@ -14,14 +14,14 @@ public:
 	void setOutputDelay(int val) { outputDelay = val; }
 	int getOutputDelay() { return outputDelay; }
 	void syncOnClock(bool val) { doSync = val; }
-	virtual int output() = 0;
+	virtual int output();
 	virtual qint64 getLatency();
 signals:
 	
 public slots:
 protected:
 	int checkBufferTimeStamp(RawBuffer *, int jitter = 1);
-
+	virtual int outputBuffer(RawBuffer *buf);
 	qint64 outputLatency;
 private:
 	int outputDelay;
