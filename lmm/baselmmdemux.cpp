@@ -25,6 +25,7 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	}
 	audioClock = new StreamTime(this);
 	videoClock = new StreamTime(this);
+	demuxAudio = demuxVideo = true;
 }
 
 qint64 BaseLmmDemux::getCurrentPosition()
@@ -103,36 +104,40 @@ int BaseLmmDemux::demuxOne()
 		return -ENOENT;
 	if (packet->stream_index == audioStreamIndex) {
 		mInfo("new audio stream: size=%d", packet->size);
-		RawBuffer *buf = new RawBuffer(packet->data, packet->size);
-		buf->setDuration(packet->duration * audioTimeBase);
-		if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
-			buf->setPts(packet->pts * audioTimeBase);
-		} else {
-			buf->setPts(-1);
+		if (demuxAudio) {
+			RawBuffer *buf = new RawBuffer(packet->data, packet->size);
+			buf->setDuration(packet->duration * audioTimeBase);
+			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
+				buf->setPts(packet->pts * audioTimeBase);
+			} else {
+				buf->setPts(-1);
+			}
+			if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
+				buf->setDts(packet->dts * audioTimeBase);
+			} else {
+				buf->setDts(-1);
+			}
+			audioBuffers << buf;
 		}
-		if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
-			buf->setDts(packet->dts * audioTimeBase);
-		} else {
-			buf->setDts(-1);
-		}
-		audioBuffers << buf;
 	} else if (packet->stream_index == videoStreamIndex) {
 		mInfo("new video stream: size=%d pts=%lld duration=%d dflags=%d", packet->size,
 			   packet->pts == (int64_t)AV_NOPTS_VALUE ? -1 : packet->pts ,
 			   packet->duration, packet->flags);
-		RawBuffer *buf = new RawBuffer(packet->data, packet->size);
-		buf->setDuration(packet->duration * videoTimeBase);
-		if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
-			buf->setPts(packet->pts * videoTimeBase);
-		} else {
-			buf->setPts(-1);
+		if (demuxVideo) {
+			RawBuffer *buf = new RawBuffer(packet->data, packet->size);
+			buf->setDuration(packet->duration * videoTimeBase);
+			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
+				buf->setPts(packet->pts * videoTimeBase);
+			} else {
+				buf->setPts(-1);
+			}
+			if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
+				buf->setDts(packet->dts * videoTimeBase);
+			} else {
+				buf->setDts(-1);
+			}
+			videoBuffers << buf;
 		}
-		if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
-			buf->setDts(packet->dts * videoTimeBase);
-		} else {
-			buf->setDts(-1);
-		}
-		videoBuffers << buf;
 	}
 	return 0;
 }

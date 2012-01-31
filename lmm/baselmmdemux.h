@@ -32,6 +32,9 @@ public:
 	virtual int seekTo(qint64 pos);
 	virtual int demuxOne();
 	virtual StreamTime * getStreamTime(streamType);
+
+	void setAudioDemuxing(bool v) { demuxAudio = v; }
+	void setVideoDemuxing(bool v) { demuxVideo = v; }
 signals:
 	
 public slots:
@@ -44,6 +47,8 @@ protected:
 	AVStream *videoStream;
 	QList<RawBuffer *> audioBuffers;
 	QList<RawBuffer *> videoBuffers;
+	bool demuxAudio;
+	bool demuxVideo;
 
 	StreamTime *audioClock;
 	StreamTime *videoClock;
