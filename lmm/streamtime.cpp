@@ -24,6 +24,7 @@ qint64 StreamTime::getCurrentTime()
 void StreamTime::start()
 {
 	clock->restart();
+	drifter->restart();
 }
 
 void StreamTime::stop()
