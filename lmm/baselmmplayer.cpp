@@ -144,32 +144,38 @@ int BaseLmmPlayer::getVolumeLevel()
 
 void BaseLmmPlayer::decodeLoop()
 {
+	QTime time; time.restart();
+	int dTime, aTime, vTime;
 	if (state != RUNNING) {
 		mDebug("we are not in a running state");
 		return;
 	}
 
+	dTime = time.elapsed();
 	int err = demux->demuxOne();
+	dTime = time.elapsed() - dTime;
 	if (!err) {
 		if (audioDecoder) {
+			aTime = time.elapsed();
 			audioLoop();
-			qint64 lat = audioOutput->getAvailableBufferTime();
-			while (lat < 50000) {
-				audioLoop();
-				lat = audioOutput->getAvailableBufferTime();
-				if (audioOutput->getInputBufferCount() == 0 && demux->audioBufferCount() == 0)
-					break;
-			}
+			aTime = time.elapsed() - aTime;
+
 			if (videoOutput)
 				videoOutput->setOutputDelay(audioOutput->getLatency());
-		}
+		} else
+			demux->setAudioDemuxing(false);
+		vTime = time.elapsed();
 		if (videoDecoder)
 			videoLoop();
+		else
+			demux->setVideoDemuxing(false);
+		vTime = time.elapsed() - vTime;
 	} else if (err == -ENOENT) {
 		mDebug("decoding finished");
 		stop();
 	}
-	timer->start(5);
+	mInfo("loop time=%d demux=%d audio=%d video=%d", time.elapsed(), dTime, aTime, vTime);
+	timer->start(1);
 }
 
 void BaseLmmPlayer::audioPopTimerTimeout()
