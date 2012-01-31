@@ -9,6 +9,7 @@
 
 #include <QTime>
 #include <QTimer>
+#include <QtConcurrentRun>
 
 #include <errno.h>
 
@@ -201,10 +202,14 @@ void BaseLmmPlayer::audioLoop()
 
 void BaseLmmPlayer::videoLoop()
 {
+	if (!videoDecodeFuture.isFinished()) {
+		mInfo("previous decode operation is not finished");
+		return;
+	}
 	RawBuffer *buf = demux->nextVideoBuffer();
 	if (buf)
 		videoDecoder->addBuffer(buf);
-	videoDecoder->decode();
+	videoDecodeFuture = QtConcurrent::run(videoDecoder, &BaseLmmDecoder::decode);
 	buf = videoDecoder->nextBuffer();
 	if (buf)
 		videoOutput->addBuffer(buf);

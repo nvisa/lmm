@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QList>
+#include <QFuture>
 
 class BaseLmmElement;
 class BaseLmmDemux;
@@ -58,6 +59,8 @@ protected:
 private:
 	void audioLoop();
 	void videoLoop();
+
+	QFuture<int> videoDecodeFuture;
 };
 
 #endif // BASELMMPLAYER_H
