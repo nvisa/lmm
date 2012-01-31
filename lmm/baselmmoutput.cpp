@@ -36,7 +36,7 @@ int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 	if (outputDelay)
 		jitter = outputDelay;
 
-	qint64 rpts_j = rpts - jitter;
+	qint64 rpts_j = rpts + jitter;
 	if (rpts > 0) {
 		if ((rpts < streamDuration || streamDuration < 0) && rpts_j >= time) {
 			mInfo("it is not time to display buf %d, pts=%lld time=%lld",
