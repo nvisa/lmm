@@ -153,15 +153,15 @@ void BaseLmmPlayer::decodeLoop()
 	if (!err) {
 		if (audioDecoder) {
 			audioLoop();
-			qint64 lat = audioOutput->getLatency();
+			qint64 lat = audioOutput->getAvailableBufferTime();
 			while (lat < 50000) {
 				audioLoop();
-				lat = audioOutput->getLatency();
+				lat = audioOutput->getAvailableBufferTime();
 				if (audioOutput->getInputBufferCount() == 0 && demux->audioBufferCount() == 0)
 					break;
 			}
 			if (videoOutput)
-				videoOutput->setOutputDelay(lat);
+				videoOutput->setOutputDelay(audioOutput->getLatency());
 		}
 		if (videoDecoder)
 			videoLoop();

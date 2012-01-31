@@ -74,6 +74,7 @@ int FbOutput::output()
 	RawBuffer *buf = inputBuffers.first();
 	if (checkBufferTimeStamp(buf))
 		return 0;
+	sentBufferCount++;
 	qint64 time = streamTime->getCurrentTime() - streamTime->getStartTime();
 	static qint64 firstPts = 0;
 	if (firstPts == 0)

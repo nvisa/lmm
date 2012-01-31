@@ -19,6 +19,7 @@ int AlsaOutput::output()
 	RawBuffer *buf = inputBuffers.first();
 	if (checkBufferTimeStamp(buf))
 		return 0;
+	sentBufferCount++;
 	inputBuffers.removeFirst();
 	const char *data = (const char *)buf->constData();
 	alsaOut->write(data, buf->size());
@@ -48,6 +49,11 @@ int AlsaOutput::flush()
 }
 
 qint64 AlsaOutput::getLatency()
+{
+	return getAvailableBufferTime() + outputLatency;
+}
+
+qint64 AlsaOutput::getAvailableBufferTime()
 {
 	qint64 delay = alsaOut->delay();
 	if (delay < 10000) {

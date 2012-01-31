@@ -36,8 +36,9 @@ int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 			return -1;
 		}
 	}
-	mDebug("%s: streamTime=%lld s_diff=%lld ts=%lld ts_diff=%lld sync_diff=%lld", this->metaObject()->className(),
-		   time, time - last_time, rpts, rpts - last_rpts, time - rpts);
+	outputLatency = time -rpts;
+	mDebug("%s: streamTime=%lld s_diff=%lld ts=%lld ts_diff=%lld sync_diff=%lld (delay=%d)", this->metaObject()->className(),
+		   time, time - last_time, rpts, rpts - last_rpts, outputLatency, outputDelay);
 	last_rpts = rpts;
 	last_time = time;
 	return 0;

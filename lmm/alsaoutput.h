@@ -19,6 +19,7 @@ public:
 	int flush();
 	Alsa * alsaControl() { return alsaOut; }
 	qint64 getLatency();
+	qint64 getAvailableBufferTime();
 signals:
 	
 public slots:
