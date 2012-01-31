@@ -1,6 +1,7 @@
 #include "mpegtsdemux.h"
 #include "circularbuffer.h"
 #include "rawbuffer.h"
+#include "streamtime.h"
 #include "emdesk/debug.h"
 
 #include <QFile>
@@ -97,11 +98,22 @@ int MpegTsDemux::demuxOne()
 			mDebug("error in stream info");
 	}
 
+	int bCnt = audioBufferCount();
 	while (circBuf->usedSize() > 1024 * 100) {
 		int err = BaseLmmDemux::demuxOne();
 		if (err)
 			return err;
 	}
+
+	if (audioBufferCount() - bCnt > 100) {
+		qDeleteAll(audioBuffers);
+		qDeleteAll(videoBuffers);
+		audioBuffers.clear();
+		videoBuffers.clear();
+		streamTime->setStartTime(0);
+		streamTime->setStartPts(0);
+	}
+
 	return 0;
 }
 
