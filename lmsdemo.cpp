@@ -232,6 +232,10 @@ void LmsDemo::on_toolPlay_clicked()
 		ui->sliderPosition->setMaximum(dec->getDuration() / 1000000);
 		ui->sliderPosition->setValue(0);
 		hideCounter = HIDE_COUNT;
+
+		/* sound bar */
+		ui->sliderVolume->setMaximum(100);
+		ui->sliderVolume->setValue(dec->getVolumeLevel());
 	}
 }
 
@@ -268,18 +272,13 @@ bool LmsDemo::eventFilter(QObject *obj, QEvent *ev)
 			updateVirtPosition(val);
 		}
 	} else if (obj == ui->sliderVolume) {
-		/*if (ev->type() == QEvent::MouseButtonPress) {
-			QMouseEvent *mev = (QMouseEvent *)ev;
-			ui->labelVirtPos->setVisible(true);
-			int val = ui->sliderPosition->maximum() * mev->x() / ui->sliderPosition->width();
-			updateVirtPosition(val);
+		if (ev->type() == QEvent::MouseButtonPress) {
 		} else if (ev->type() == QEvent::MouseButtonRelease) {
 			QMouseEvent *mev = (QMouseEvent *)ev;
 			labelHideCounter = HIDE_COUNT;
-			int val = ui->sliderPosition->maximum() * mev->x() / ui->sliderPosition->width();
-			dec->seekTo(val * 1000000ll);
-			updateVirtPosition(val);
-		}*/
+			int val = ui->sliderVolume->maximum() * mev->y() / ui->sliderVolume->height();
+			dec->setVolumeLevel(val);
+		}
 	}
 
 	return false;
