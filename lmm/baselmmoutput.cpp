@@ -3,11 +3,16 @@
 #include "streamtime.h"
 #include "emdesk/debug.h"
 
+#include <QTime>
+
 BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	outputDelay = 0;
 	doSync = true;
+	fpsTiming = new QTime;
+	fps = fpsBufferCount = 0;
+	fpsTiming->start();
 }
 
 int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
@@ -41,5 +46,11 @@ int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 		   time, time - last_time, rpts, rpts - last_rpts, outputLatency, outputDelay);
 	last_rpts = rpts;
 	last_time = time;
+	fpsBufferCount++;
+	if (fpsTiming->elapsed() > 1000) {
+		int elapsed = fpsTiming->restart();
+		fps = fpsBufferCount * 1000 / elapsed;
+		fpsBufferCount = 0;
+	}
 	return 0;
 }
