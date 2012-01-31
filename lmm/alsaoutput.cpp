@@ -49,5 +49,9 @@ int AlsaOutput::flush()
 
 qint64 AlsaOutput::getLatency()
 {
-	return alsaOut->delay();
+	qint64 delay = alsaOut->delay();
+	if (delay < 10000) {
+		mDebug("audio buffer will underrun, check for slow decoding ???");
+	}
+	return delay;
 }
