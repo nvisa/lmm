@@ -116,7 +116,7 @@ void LmsDemo::updateVirtPosition(int val)
 #define DEMUX_X (10 + 10 + rectW)
 void LmsDemo::addElement(BaseLmmElement *el)
 {
-	int x, y, spacing = 20, rectW = 150, rectH = 100;
+	int x, y, spacing = 20, rectW = 150, rectH = 120;
 	QString className = el->metaObject()->className();
 	if (el->inherits("BaseLmmDemux")) {
 		x = DEMUX_X;
@@ -167,17 +167,24 @@ void LmsDemo::addElement(BaseLmmElement *el)
 	outCnt->setBrush(QBrush(Qt::black));
 	outCnt->setPos(x, y);
 
+	y += spacing;
+	QGraphicsSimpleTextItem *latency = new QGraphicsSimpleTextItem();
+	latency->setBrush(QBrush(Qt::black));
+	latency->setPos(x, y);
+
 	scene->addItem(rectItem);
 	scene->addItem(name);
 	scene->addItem(inBufCnt);
 	scene->addItem(outBufCnt);
 	scene->addItem(inCnt);
 	scene->addItem(outCnt);
+	scene->addItem(latency);
 
 	visuals[el] << inBufCnt;
 	visuals[el] << outBufCnt;
 	visuals[el] << inCnt;
 	visuals[el] << outCnt;
+	visuals[el] << latency;
 }
 
 /*
@@ -219,6 +226,7 @@ void LmsDemo::showDecodeInfo()
 			}
 			widgets[2]->setText(QString("receivedBuffers: %1").arg(el->getReceivedBufferCount()));
 			widgets[3]->setText(QString("sentBuffers: %1").arg(el->getSentBufferCount()));
+			widgets[4]->setText(QString("latency: %1").arg(el->getLatency()));
 		}
 	}
 }

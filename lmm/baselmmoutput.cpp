@@ -46,9 +46,9 @@ int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 			return -1;
 		}
 	}
-	outputLatency = time -rpts;
-	mDebug("%s: streamTime=%lld s_diff=%lld ts=%lld ts_diff=%lld sync_diff=%lld (delay=%d)", this->metaObject()->className(),
-		   time, time - last_time, rpts, rpts - last_rpts, outputLatency, outputDelay);
+	outputLatency = time - rpts_j;
+	mDebug("%s: outputLatency=%lld outputDelay=%d time=%lld rpts=%lld runningTime=%lld fps=%d", this->metaObject()->className(),
+		   outputLatency, outputDelay, time - streamTime->getStartPts(), rpts - streamTime->getStartPts(), streamTime->getFreeRunningTime(), fps);
 	last_rpts = rpts;
 	last_time = time;
 	fpsBufferCount++;

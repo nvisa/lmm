@@ -9,7 +9,7 @@ QT       += core gui
 TARGET = lmm-demo
 TEMPLATE = app
 
-CONFIG += ffmpeg mad alsa dm365
+CONFIG += ffmpeg mad alsa dm6446
 
 SOURCES += \
     lmm/filesource.cpp \
@@ -41,7 +41,7 @@ HEADERS  += \
     lmm/v4l2input.h \
     lmm/fileoutput.h \
     lmm/dvb/tsdemux.h \
-    lmm/dvb/dvbutils.h \
+    lmm/dvb/dvbutils.h
 
 alsa {
     HEADERS += \
