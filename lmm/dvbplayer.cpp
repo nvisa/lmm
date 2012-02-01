@@ -25,7 +25,7 @@ DvbPlayer::DvbPlayer(QObject *parent) :
 	elements << videoDecoder;
 	elements << videoOutput;
 
-	audioDecoder = new Mad;
+	audioDecoder = new MadDecoder;
 	audioOutput = new AlsaOutput;
 	alsaControl = ((AlsaOutput *)audioOutput)->alsaControl();
 	elements << audioDecoder;

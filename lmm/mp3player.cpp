@@ -9,7 +9,7 @@ Mp3Player::Mp3Player(QObject *parent) :
 	demux = new Mp3Demux;
 	elements << demux;
 
-	audioDecoder = new Mad;
+	audioDecoder = new MadDecoder;
 	audioOutput = new AlsaOutput;
 	elements << audioDecoder;
 	elements << audioOutput;

@@ -9,7 +9,7 @@
 #include <taglib/id3v2header.h>
 #include <taglib/id3v2tag.h>
 
-Mad::Mad(QObject *parent) :
+MadDecoder::MadDecoder(QObject *parent) :
 	BaseLmmDecoder(parent)
 {
 }
@@ -29,7 +29,7 @@ static inline qint16 scale(mad_fixed_t sample)
 	return sample >> (MAD_F_FRACBITS + 1 - 16);
 }
 
-int Mad::decodeAll()
+int MadDecoder::decodeAll()
 {
 	RawBuffer *buf = NULL;
 	while (inputBuffers.size()) {
@@ -121,7 +121,7 @@ int Mad::decodeAll()
 	return 0;
 }
 
-int Mad::flush()
+int MadDecoder::flush()
 {
 	mad_frame_mute(frame);
 	mad_synth_mute(synth);
@@ -129,7 +129,7 @@ int Mad::flush()
 	return BaseLmmDecoder::flush();
 }
 
-int Mad::startDecoding()
+int MadDecoder::startDecoding()
 {
 	stream = new mad_stream;
 	frame = new mad_frame;
@@ -140,7 +140,7 @@ int Mad::startDecoding()
 	return 0;
 }
 
-int Mad::stopDecoding()
+int MadDecoder::stopDecoding()
 {
 	mad_synth_finish(synth);
 	mad_frame_finish(frame);
@@ -152,7 +152,7 @@ int Mad::stopDecoding()
 	return 0;
 }
 
-int Mad::decode()
+int MadDecoder::decode()
 {
 	return decodeAll();
 }

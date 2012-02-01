@@ -9,11 +9,11 @@ struct mad_frame;
 struct mad_synth;
 class RawBuffer;
 
-class Mad : public BaseLmmDecoder
+class MadDecoder : public BaseLmmDecoder
 {
 	Q_OBJECT
 public:
-	explicit Mad(QObject *parent = 0);
+	explicit MadDecoder(QObject *parent = 0);
 	int decode();
 	int decodeAll();
 	int flush();
