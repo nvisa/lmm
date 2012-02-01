@@ -3,6 +3,7 @@
 #include "baselmmdemux.h"
 #include "baselmmoutput.h"
 #include "rawbuffer.h"
+#include "circularbuffer.h"
 #include "streamtime.h"
 #include "emdesk/debug.h"
 #include "alsa/alsa.h"
@@ -18,6 +19,7 @@ BaseLmmPlayer::BaseLmmPlayer(QObject *parent) :
 {
 	state = STOPPED;
 
+	mainSource = NULL;
 	audioDecoder = NULL;
 	videoDecoder = NULL;
 	audioOutput = NULL;
@@ -143,18 +145,40 @@ int BaseLmmPlayer::getVolumeLevel()
 #endif
 }
 
-void BaseLmmPlayer::decodeLoop()
+int BaseLmmPlayer::decodeLoop()
 {
 	QTime time; time.restart();
 	int dTime, aTime, vTime;
 	if (state != RUNNING) {
 		mDebug("we are not in a running state");
-		return;
+		return -EINVAL;
 	}
 
-	dTime = time.elapsed();
-	int err = demux->demuxOne();
-	dTime = time.elapsed() - dTime;
+	int err = 0;
+	if (!live || mainSource == NULL) {
+		dTime = time.elapsed();
+		demux->demuxOne();
+		dTime = time.elapsed() - dTime;
+	} else {
+		/*
+		 * live pipeline may produce a lot of data, so they may needed to
+		 * be pulled more often
+		 */
+		CircularBuffer *buf = mainSource->getCircularBuffer();
+		int bCnt = demux->audioBufferCount();
+		while (buf->usedSize() > 1024 * 100) {
+			int err = demux->demuxOne();
+			if (err)
+				return err;
+		}
+		/*
+		 * During discontinuties, live pipelines may create hundreds of
+		 * buffers, which should be discarded. Otherwise long latencies
+		 * are faced.
+		 */
+		if (demux->audioBufferCount() - bCnt > 100)
+			demux->flush();
+	}
 	if (!err) {
 		if (audioDecoder) {
 			aTime = time.elapsed();
@@ -177,6 +201,7 @@ void BaseLmmPlayer::decodeLoop()
 	}
 	mInfo("loop time=%d demux=%d audio=%d video=%d", time.elapsed(), dTime, aTime, vTime);
 	timer->start(1);
+	return 0;
 }
 
 void BaseLmmPlayer::audioPopTimerTimeout()

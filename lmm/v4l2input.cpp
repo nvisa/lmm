@@ -21,6 +21,42 @@
 #include <QTimer>
 #include <QTime>
 
+static URLProtocol *lmmUrlProtocol = NULL;
+/* TODO: Fix single instance MpegTsDemux */
+static V4l2Input *demuxPriv = NULL;
+
+static int lmmUrlOpen(URLContext *h, const char *url, int flags)
+{
+	h->priv_data = demuxPriv;
+	return ((V4l2Input *)h->priv_data)->openUrl(url, flags);
+}
+
+int lmmUrlRead(URLContext *h, unsigned char *buf, int size)
+{
+	return ((V4l2Input *)h->priv_data)->readPacket(buf, size);
+}
+
+int lmmUrlWrite(URLContext *h, const unsigned char *buf, int size)
+{
+	(void)h;
+	(void)buf;
+	(void)size;
+	return -EINVAL;
+}
+
+int64_t lmmUrlSeek(URLContext *h, int64_t pos, int whence)
+{
+	(void)h;
+	(void)pos;
+	(void)whence;
+	return -EINVAL;
+}
+
+int lmmUrlClose(URLContext *h)
+{
+	return ((V4l2Input *)h->priv_data)->closeUrl(h);
+}
+
 class captureThread : public QThread
 {
 public:
@@ -47,35 +83,9 @@ public:
 	void run()
 	{
 		exit = false;
-		CircularBuffer *circBuf = v4l2->getCircularBuffer();
 		while (!exit) {
-			struct v4l2_buffer *buffer = v4l2->getFrame();
-			if (buffer) {
-				unsigned char *data = (unsigned char *)v4l2->userptr[buffer->index];
-				for (int i = 0; i < (int)buffer->length; i += 224) {
-					if (data[i] != 0x47) {
-						qDebug("sync error expected 0x47 got 0x%x", data[i]);
-						continue;
-					}
-					int pid = data[i + 2] + ((data[i + 1] & 0x1f) << 8);
-					int vpid = 512;
-					int apid = 513;
-					int pmt = 256;
-					int pcr = 7190;
-					if (pid == pcr)
-						v4l2->setSystemClock(tsDemux::parsePcr(&data[i]));
-					if (pid != vpid && pid != apid && pid != pmt && pid != pcr && pid > 32)
-						continue;
-					circBuf->lock();
-					if (circBuf->addData(&data[i], 188)) {
-						qDebug("no space left on the circular buffer");
-						circBuf->unlock();
-						break;
-					}
-					circBuf->unlock();
-				}
-				v4l2->putFrame(buffer);
-			}
+			if (v4l2->captureLoop())
+				break;
 		}
 	}
 private:
@@ -90,6 +100,25 @@ private:
 V4l2Input::V4l2Input(QObject *parent) :
 	BaseLmmElement(parent)
 {
+	mpegtsraw = av_iformat_next(NULL);
+	while (mpegtsraw) {
+		if (strcmp(mpegtsraw->name, "mpegtsraw") == 0)
+			break;
+		mpegtsraw = av_iformat_next(mpegtsraw);
+	}
+	if (!lmmUrlProtocol) {
+		lmmUrlProtocol = new URLProtocol;
+		memset(lmmUrlProtocol , 0 , sizeof(URLProtocol));
+		lmmUrlProtocol->name = "lmm";
+		lmmUrlProtocol->url_open = lmmUrlOpen;
+		lmmUrlProtocol->url_read = lmmUrlRead;
+		lmmUrlProtocol->url_write = lmmUrlWrite;
+		lmmUrlProtocol->url_seek = lmmUrlSeek;
+		lmmUrlProtocol->url_close = lmmUrlClose;
+		av_register_protocol2 (lmmUrlProtocol, sizeof (URLProtocol));
+		demuxPriv = this;
+	}
+
 	captureWidth = 102;
 	captureHeight = 480;
 	deviceName = "/dev/video0";
@@ -97,6 +126,40 @@ V4l2Input::V4l2Input(QObject *parent) :
 	inputIndex = 1;
 	cThread = new captureThread(this);
 	circBuf = new CircularBuffer(1024 * 1024 * 10, this);
+}
+
+int V4l2Input::readPacket(uint8_t *buf, int buf_size)
+{
+	while (buf_size > circBuf->usedSize()) {
+		/* wait data to become availabe in circBuf */
+		usleep(50000);
+	}
+	circBuf->lock();
+	memcpy(buf, circBuf->getDataPointer(), buf_size);
+	circBuf->useData(buf_size);
+	circBuf->unlock();
+	mInfo("read %d bytes into ffmpeg buffer", buf_size);
+	return buf_size;
+}
+
+int V4l2Input::openUrl(QString url, int)
+{
+	url.remove("lmm://");
+	QStringList fields = url.split(":");
+	QString stream = "tv";
+	QString channel;
+	if (fields.size() == 2) {
+		stream = fields[0];
+		channel = fields[1];
+	} else
+		channel = fields[0];
+	return 0;
+}
+
+int V4l2Input::closeUrl(URLContext *)
+{
+	/* no need to do anything, stream will be closed later */
+	return 0;
 }
 
 int V4l2Input::start()
@@ -339,6 +402,38 @@ v4l2_buffer *V4l2Input::getFrame()
 	}
 
 	return v4l2buf[buffer.index];
+}
+
+bool V4l2Input::captureLoop()
+{
+	struct v4l2_buffer *buffer = getFrame();
+	if (buffer) {
+		unsigned char *data = (unsigned char *)userptr[buffer->index];
+		for (int i = 0; i < (int)buffer->length; i += 224) {
+			if (data[i] != 0x47) {
+				qDebug("sync error expected 0x47 got 0x%x", data[i]);
+				continue;
+			}
+			int pid = data[i + 2] + ((data[i + 1] & 0x1f) << 8);
+			int vpid = 512;
+			int apid = 513;
+			int pmt = 256;
+			int pcr = 7190;
+			if (pid == pcr)
+				setSystemClock(tsDemux::parsePcr(&data[i]));
+			if (pid != vpid && pid != apid && pid != pmt && pid != pcr && pid > 32)
+				continue;
+			circBuf->lock();
+			if (circBuf->addData(&data[i], 188)) {
+				qDebug("no space left on the circular buffer");
+				circBuf->unlock();
+				break;
+			}
+			circBuf->unlock();
+		}
+		putFrame(buffer);
+	}
+	return false;
 }
 
 int V4l2Input::setSystemClock(qint64 time)

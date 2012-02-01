@@ -20,7 +20,6 @@ public:
 	};
 	explicit BaseLmmDemux(QObject *parent = 0);
 	virtual int setSource(QString filename);
-	virtual int setSource(CircularBuffer *) { return -1; }
 	virtual qint64 getTotalDuration();
 	virtual qint64 getCurrentPosition();
 	virtual RawBuffer * nextAudioBuffer();
@@ -40,6 +39,7 @@ signals:
 	
 public slots:
 protected:
+	QString sourceUrlName;
 	qint64 streamPosition;
 	int videoStreamIndex;
 	int audioStreamIndex;

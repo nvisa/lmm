@@ -16,6 +16,7 @@ DvbPlayer::DvbPlayer(QObject *parent) :
 {
 	demux = new MpegTsDemux;
 	v4l2 = new V4l2Input;
+	mainSource = v4l2;
 	elements << demux;
 	elements << v4l2;
 
@@ -39,7 +40,7 @@ DvbPlayer::~DvbPlayer()
 
 int DvbPlayer::play()
 {
-	demux->setSource(v4l2->getCircularBuffer());
+	demux->setSource("lmm://somechannel");
 	return BaseLmmPlayer::play();
 }
 

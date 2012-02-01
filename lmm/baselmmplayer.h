@@ -36,7 +36,7 @@ public:
 signals:
 	
 protected slots:
-	virtual void decodeLoop();
+	virtual int decodeLoop();
 	void audioPopTimerTimeout();
 protected:
 	enum runState {
@@ -46,6 +46,7 @@ protected:
 	runState state;
 	QList<BaseLmmElement *> elements;
 	StreamTime *streamTime;
+	BaseLmmElement *mainSource;
 	BaseLmmDemux *demux;
 	BaseLmmDecoder *audioDecoder;
 	BaseLmmDecoder *videoDecoder;

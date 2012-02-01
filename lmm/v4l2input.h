@@ -7,6 +7,8 @@
 
 extern "C" {
 	#include <linux/videodev2.h>
+	#include "libavformat/avformat.h"
+	#include "libavutil/avutil.h"
 }
 
 class captureThread;
@@ -22,6 +24,9 @@ public:
 	CircularBuffer * getCircularBuffer() { return circBuf; }
 	int start();
 	int stop();
+	int readPacket(uint8_t *buf, int buf_size);
+	int openUrl(QString url, int flags);
+	int closeUrl(URLContext *h);
 
 	friend class captureThread;
 signals:
@@ -38,6 +43,7 @@ protected:
 	QList<char *> userptr;
 	CircularBuffer *circBuf;
 	captureThread *cThread;
+	AVInputFormat *mpegtsraw;
 
 	virtual int openCamera();
 	virtual int closeCamera();
@@ -45,7 +51,7 @@ protected:
 	int allocBuffers(unsigned int buf_cnt, enum v4l2_buf_type type);
 	virtual int putFrame(struct v4l2_buffer *);
 	virtual v4l2_buffer * getFrame();
-
+	bool captureLoop();
 	int setSystemClock(qint64 time);
 };
 

@@ -26,6 +26,7 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	audioClock = new StreamTime(this);
 	videoClock = new StreamTime(this);
 	demuxAudio = demuxVideo = true;
+	context = NULL;
 }
 
 qint64 BaseLmmDemux::getCurrentPosition()
@@ -88,16 +89,20 @@ int BaseLmmDemux::findStreamInfo()
 
 int BaseLmmDemux::setSource(QString filename)
 {
-	if (av_open_input_file(&context, qPrintable(filename), NULL, 0, NULL))
-		return -ENOENT;
-	int err = findStreamInfo();
-	if (debugMessagesAvailable())
-		dump_format(context, 0, qPrintable(filename), false);
-	return err;
+	sourceUrlName = filename;
+	return 0;
 }
 
 int BaseLmmDemux::demuxOne()
 {
+	if (context == NULL) {
+		if (av_open_input_file(&context, qPrintable(sourceUrlName), NULL, 0, NULL))
+			return -ENOENT;
+		if (findStreamInfo()) {
+			mDebug("error in stream info");
+		} else if (debugMessagesAvailable())
+			dump_format(context, 0, qPrintable(sourceUrlName), false);
+	}
 	static AVPacket *packet = NULL;
 	if (packet)
 		deletePacket(packet);
