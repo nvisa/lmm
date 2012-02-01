@@ -5,7 +5,6 @@
 
 extern "C" {
 	#include "libavformat/avformat.h"
-	#include "libavcodec/avcodec.h"
 }
 
 AviDemux::AviDemux(QObject *parent) :

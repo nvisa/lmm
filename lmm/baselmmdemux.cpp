@@ -174,6 +174,13 @@ StreamTime * BaseLmmDemux::getStreamTime(BaseLmmDemux::streamType stream)
 	return audioClock;
 }
 
+int BaseLmmDemux::getAudioSampleRate()
+{
+	if (audioStream)
+		return audioStream->codec->sample_rate;
+	return 0;
+}
+
 RawBuffer * BaseLmmDemux::nextAudioBuffer()
 {
 	if (audioBuffers.size()) {

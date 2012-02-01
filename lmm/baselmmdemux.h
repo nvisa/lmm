@@ -35,6 +35,9 @@ public:
 
 	void setAudioDemuxing(bool v) { demuxAudio = v; }
 	void setVideoDemuxing(bool v) { demuxVideo = v; }
+
+	/* stream information APIs */
+	int getAudioSampleRate();
 signals:
 	void streamInfoFound();
 public slots:
