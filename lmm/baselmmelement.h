@@ -3,6 +3,8 @@
 
 #include <QObject>
 #include <QList>
+#include <QMap>
+#include <QVariant>
 
 class RawBuffer;
 class StreamTime;
@@ -22,6 +24,8 @@ public:
 	virtual int start();
 	virtual int stop();
 	virtual int flush();
+	virtual int setParameter(QString param, QVariant value);
+	virtual QVariant getParameter(QString param);
 
 	/* stat information */
 	void printStats();
@@ -39,6 +43,8 @@ protected:
 	qint64 streamDuration;
 	int receivedBufferCount;
 	int sentBufferCount;
+private:
+	QMap<QString, QVariant> parameters;
 };
 
 #endif // BASELMMELEMENT_H

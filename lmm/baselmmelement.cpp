@@ -55,3 +55,16 @@ int BaseLmmElement::flush()
 	outputBuffers.clear();
 	return 0;
 }
+
+int BaseLmmElement::setParameter(QString param, QVariant value)
+{
+	parameters.insert(param, value);
+	return 0;
+}
+
+QVariant BaseLmmElement::getParameter(QString param)
+{
+	if (parameters.contains(param))
+		return parameters[param];
+	return QVariant();
+}
