@@ -10,6 +10,7 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	QObject(parent)
 {
 	receivedBufferCount = sentBufferCount = 0;
+	streamTime = NULL;
 }
 
 int BaseLmmElement::addBuffer(RawBuffer *buffer)

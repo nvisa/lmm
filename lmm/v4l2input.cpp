@@ -4,6 +4,7 @@
 #include "streamtime.h"
 #include "emdesk/debug.h"
 #include "dvb/tsdemux.h"
+#include "dvb/dvbutils.h"
 
 #include <asm/errno.h>
 #include <stdio.h>
@@ -130,6 +131,9 @@ V4l2Input::V4l2Input(QObject *parent) :
 
 int V4l2Input::readPacket(uint8_t *buf, int buf_size)
 {
+	/* This routine may be called before the stream started */
+	if (fd < 0)
+		start();
 	while (buf_size > circBuf->usedSize()) {
 		/* wait data to become availabe in circBuf */
 		usleep(50000);
@@ -153,6 +157,13 @@ int V4l2Input::openUrl(QString url, int)
 		channel = fields[1];
 	} else
 		channel = fields[0];
+	if (!DVBUtils::tuneToChannel(channel))
+		return -EINVAL;
+	struct dvb_ch_info info = DVBUtils::currentChannelInfo();
+	apid = info.apid;
+	vpid = info.vpid;
+	pmt = 256;
+	pcr = 7190;
 	return 0;
 }
 
@@ -164,10 +175,12 @@ int V4l2Input::closeUrl(URLContext *)
 
 int V4l2Input::start()
 {
-	int err = openCamera();
-	if (err)
-		return err;
-	cThread->start();
+	if (fd < 0) {
+		int err = openCamera();
+		if (err)
+			return err;
+		cThread->start();
+	}
 	return 0;
 }
 
@@ -411,14 +424,10 @@ bool V4l2Input::captureLoop()
 		unsigned char *data = (unsigned char *)userptr[buffer->index];
 		for (int i = 0; i < (int)buffer->length; i += 224) {
 			if (data[i] != 0x47) {
-				qDebug("sync error expected 0x47 got 0x%x", data[i]);
+				mDebug("sync error expected 0x47 got 0x%x", data[i]);
 				continue;
 			}
 			int pid = data[i + 2] + ((data[i + 1] & 0x1f) << 8);
-			int vpid = 512;
-			int apid = 513;
-			int pmt = 256;
-			int pcr = 7190;
 			if (pid == pcr)
 				setSystemClock(tsDemux::parsePcr(&data[i]));
 			if (pid != vpid && pid != apid && pid != pmt && pid != pcr && pid > 32)
@@ -438,7 +447,8 @@ bool V4l2Input::captureLoop()
 
 int V4l2Input::setSystemClock(qint64 time)
 {
-	streamTime->setCurrentTime(time);
+	if (streamTime)
+		streamTime->setCurrentTime(time);
 	return 0;
 }
 

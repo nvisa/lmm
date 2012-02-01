@@ -53,6 +53,12 @@ protected:
 	virtual v4l2_buffer * getFrame();
 	bool captureLoop();
 	int setSystemClock(qint64 time);
+
+	/* mpegts demuxing */
+	int vpid;
+	int apid;
+	int pmt;
+	int pcr;
 };
 
 #endif // V4L2INPUT_H
