@@ -1,6 +1,6 @@
 #include "avidecoder.h"
 #include "avidemux.h"
-#include "mad.h"
+#include "maddecoder.h"
 #include "rawbuffer.h"
 #include "alsaoutput.h"
 #include "fboutput.h"

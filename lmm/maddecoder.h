@@ -1,5 +1,5 @@
-#ifndef MAD_H
-#define MAD_H
+#ifndef MADDECODER_H
+#define MADDECODER__H
 
 #include "baselmmdecoder.h"
 #include <QList>
@@ -31,4 +31,4 @@ private:
 	int stopDecoding();
 };
 
-#endif // MAD_H
+#endif // MADMADDECODER__H

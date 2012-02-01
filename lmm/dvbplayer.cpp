@@ -2,7 +2,7 @@
 #include "rawbuffer.h"
 #include "v4l2input.h"
 #include "fileoutput.h"
-#include "mad.h"
+#include "maddecoder.h"
 #include "alsaoutput.h"
 #include "fboutput.h"
 #include "dmaidecoder.h"

@@ -1,4 +1,4 @@
-#include "mad.h"
+#include "maddecoder.h"
 #include "rawbuffer.h"
 #define DEBUG
 #include "emdesk/debug.h"

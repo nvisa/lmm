@@ -1,6 +1,6 @@
 #include "mp3player.h"
 #include "mp3demux.h"
-#include "mad.h"
+#include "maddecoder.h"
 #include "alsaoutput.h"
 
 Mp3Player::Mp3Player(QObject *parent) :
