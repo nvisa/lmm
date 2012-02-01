@@ -29,6 +29,7 @@ AviPlayer::AviPlayer(QObject *parent) :
 	elements << videoOutput;
 	elements << audioDecoder;
 	elements << audioOutput;
+	alsaControl = ((AlsaOutput *)audioOutput)->alsaControl();
 }
 
 AviPlayer::~AviPlayer()
