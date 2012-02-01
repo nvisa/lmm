@@ -90,18 +90,22 @@ int BaseLmmDemux::findStreamInfo()
 int BaseLmmDemux::setSource(QString filename)
 {
 	sourceUrlName = filename;
+	int err = av_open_input_file(&context, qPrintable(sourceUrlName), NULL, 0, NULL);
+	if (err)
+		return err;
 	return 0;
 }
 
 int BaseLmmDemux::demuxOne()
 {
-	if (context == NULL) {
-		if (av_open_input_file(&context, qPrintable(sourceUrlName), NULL, 0, NULL))
-			return -ENOENT;
+	if (!foundStreamInfo) {
 		if (findStreamInfo()) {
 			mDebug("error in stream info");
-		} else if (debugMessagesAvailable())
-			dump_format(context, 0, qPrintable(sourceUrlName), false);
+		} else {
+			foundStreamInfo = true;
+			if (debugMessagesAvailable())
+				dump_format(context, 0, qPrintable(sourceUrlName), false);
+		}
 	}
 	static AVPacket *packet = NULL;
 	if (packet)
@@ -201,6 +205,7 @@ int BaseLmmDemux::start()
 {
 	videoStreamIndex = audioStreamIndex = -1;
 	audioStream = videoStream = NULL;
+	foundStreamInfo = false;
 	return BaseLmmElement::start();
 }
 

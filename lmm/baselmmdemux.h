@@ -50,6 +50,7 @@ protected:
 	QList<RawBuffer *> videoBuffers;
 	bool demuxAudio;
 	bool demuxVideo;
+	bool foundStreamInfo;
 
 	StreamTime *audioClock;
 	StreamTime *videoClock;
