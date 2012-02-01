@@ -1,4 +1,4 @@
-SOURCES += xdc_runtime.c
+SOURCES += ../xdc_runtime.c
 
 TI_PATH = /home/caglar/myfs/work/tasks/openembedded/old/build/tmp/sysroots/bilkon-blec32-angstrom-linux-gnueabi/usr/share/ti/
 INCLUDEPATH += "$${TI_PATH}/ti-xdctools-tree/packages" \
@@ -24,5 +24,4 @@ QMAKE_CFLAGS += -DPlatform_dm6446 \
     -Dxdc_target_name__=GCArmv5T \
     -Dxdc_cfg__header__="xdc_config.h"
 
-
-LIBS += -Wl,-T,../lmm-demo/xdc_linker.cmd
+QMAKE_CXXFLAGS += -D__STDC_CONSTANT_MACROS

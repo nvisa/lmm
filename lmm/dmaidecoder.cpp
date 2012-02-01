@@ -6,7 +6,7 @@
 #include "circularbuffer.h"
 #define DEBUG
 #include "emdesk/debug.h"
-#include "xdc_config.h"
+#include "../xdc_config.h"
 
 #include <ti/sdo/ce/Engine.h>
 #include <errno.h>
