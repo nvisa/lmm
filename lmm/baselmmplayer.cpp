@@ -235,8 +235,17 @@ void BaseLmmPlayer::audioLoop()
 	if (audioDecoder->decode())
 		mDebug("audio decoder reported error");
 	buf = audioDecoder->nextBuffer();
-	if (buf)
+	if (buf) {
 		audioOutput->addBuffer(buf);
+		/*
+		 * If we are not a live pipeline, sync current time
+		 * with audio timestamp. In live pipelines, most of the
+		 * time there are other clock providers which explicitly
+		 * syncs stream time with their internal clock
+		 */
+		if (!live)
+			streamTime->setCurrentTime(buf->getPts());
+	}
 	audioOutput->output();
 }
 

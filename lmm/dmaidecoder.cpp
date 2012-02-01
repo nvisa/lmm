@@ -169,6 +169,7 @@ int DmaiDecoder::flush()
 	 * Note: Do not flush dsp codec here, it is not needed and
 	 * it causes more problems. i.e. buffer display order switching
 	 */
+	BufTab_freeAll(hBufTab);
 	return BaseLmmDecoder::flush();
 }
 
