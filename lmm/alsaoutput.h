@@ -17,6 +17,7 @@ public:
 	int start();
 	int stop();
 	int flush();
+	int setParameter(QString param, QVariant value);
 	Alsa * alsaControl() { return alsaOut; }
 	qint64 getAvailableBufferTime();
 signals:

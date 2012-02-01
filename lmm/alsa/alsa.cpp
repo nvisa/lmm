@@ -28,13 +28,13 @@ Alsa::Alsa(QObject *parent) :
 	initVolumeControl();
 }
 
-int Alsa::open()
+int Alsa::open(int rate)
 {
 	int err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
 	if (err)
 		return err;
 	mDebug("pcm device opened");
-	err = setHwParams();
+	err = setHwParams(rate);
 	if (err)
 		return err;
 	mDebug("hw params ok");
@@ -146,9 +146,11 @@ int Alsa::delay()
 	return 1000000ll * delay / sampleRate;
 }
 
-int Alsa::setHwParams()
+int Alsa::setHwParams(int rate)
 {
-	unsigned int rrate;
+	unsigned int rrate = rate;
+	if (rrate == 0)
+		rrate = 48000;
 	int err;
 	snd_pcm_hw_params_t *params;
 
@@ -169,7 +171,6 @@ int Alsa::setHwParams()
 	if (err)
 		goto out;
 	mDebug("channels ok");
-	rrate = 48000;
 	sampleRate = rrate;
 	err = snd_pcm_hw_params_set_rate_near(handle, params, &rrate, NULL);
 	if (err)

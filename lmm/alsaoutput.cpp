@@ -20,7 +20,8 @@ int AlsaOutput::outputBuffer(RawBuffer *buf)
 
 int AlsaOutput::start()
 {
-	int err = alsaOut->open();
+	/* alsa defaults 48000 for invalid sample rates */
+	int err = alsaOut->open(getParameter("audioRate").toInt());
 	if (err)
 		return err;
 	return BaseLmmElement::start();
@@ -37,6 +38,19 @@ int AlsaOutput::stop()
 int AlsaOutput::flush()
 {
 	return BaseLmmOutput::flush();
+}
+
+int AlsaOutput::setParameter(QString param, QVariant value)
+{
+	int err = BaseLmmElement::setParameter(param, value);
+	if (err)
+		return err;
+	if (param == "audioRate") {
+		qDebug() << "new audio rate" << value;
+		alsaOut->close();
+		alsaOut->open(value.toInt());
+	}
+	return 0;
 }
 
 qint64 AlsaOutput::getAvailableBufferTime()

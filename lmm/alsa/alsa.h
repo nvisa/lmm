@@ -21,7 +21,7 @@ class Alsa : public QObject
 	Q_OBJECT
 public:
 	Alsa(QObject *parent = NULL);
-	int open();
+	int open(int rate = 48000);
 	int close();
 	int pause();
 	int resume();
@@ -51,7 +51,7 @@ private:
 	snd_ctl_elem_value_t *mixerSwitchControl;
 	snd_ctl_elem_id_t *mixerSwitchElemId;
 
-	int setHwParams();
+	int setHwParams(int rate);
 	int setSwParams();
 	void initVolumeControl();
 };
