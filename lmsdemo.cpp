@@ -233,7 +233,7 @@ void LmsDemo::showDecodeInfo()
 
 void LmsDemo::on_toolPlay_clicked()
 {
-	if (!dec->play()) {
+	if (!dec->play("lmm://tv:TRT 1")) {
 		ui->frameBack->setStyleSheet("QFrame#frameBack { background-color: blue;}");
 		HardwareOperations::blendOSD(true, 31);
 		timer->start(100);

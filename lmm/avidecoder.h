@@ -8,7 +8,6 @@ class AviPlayer : public BaseLmmPlayer
 	Q_OBJECT
 public:
 	explicit AviPlayer(QObject *parent = 0);
-	int play();
 	~AviPlayer();
 private:
 };

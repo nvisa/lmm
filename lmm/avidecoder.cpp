@@ -31,14 +31,6 @@ AviPlayer::AviPlayer(QObject *parent) :
 	elements << audioOutput;
 }
 
-int AviPlayer::play()
-{
-	int err = demux->setSource("/media/net/Fringe.S04E06.HDTV.XviD-LOL.[VTV].avi");
-	if (err)
-		return err;
-	return BaseLmmPlayer::play();
-}
-
 AviPlayer::~AviPlayer()
 {
 

@@ -37,14 +37,3 @@ DvbPlayer::DvbPlayer(QObject *parent) :
 DvbPlayer::~DvbPlayer()
 {
 }
-
-int DvbPlayer::play()
-{
-	demux->setSource("lmm://somechannel");
-	return BaseLmmPlayer::play();
-}
-
-int DvbPlayer::stop()
-{
-	return BaseLmmPlayer::stop();
-}

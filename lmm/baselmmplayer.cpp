@@ -38,11 +38,14 @@ BaseLmmPlayer::~BaseLmmPlayer()
 	elements.clear();
 }
 
-int BaseLmmPlayer::play()
+int BaseLmmPlayer::play(QString url)
 {
 	if (state != STOPPED)
 		return -EBUSY;
 
+	int err = demux->setSource(url);
+	if (err)
+		return err;
 	state = RUNNING;
 
 	streamTime = demux->getStreamTime(BaseLmmDemux::STREAM_VIDEO);

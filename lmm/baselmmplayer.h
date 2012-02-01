@@ -19,7 +19,7 @@ class BaseLmmPlayer : public QObject
 public:
 	explicit BaseLmmPlayer(QObject *parent = 0);
 	~BaseLmmPlayer();
-	virtual int play();
+	virtual int play(QString url);
 	virtual int stop();
 	virtual int pause();
 	virtual int resume();

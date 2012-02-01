@@ -12,9 +12,6 @@ class DvbPlayer : public BaseLmmPlayer
 public:
 	explicit DvbPlayer(QObject *parent = 0);
 	~DvbPlayer();
-
-	int play();
-	int stop();
 signals:
 	
 protected slots:
