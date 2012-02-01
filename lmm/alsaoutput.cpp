@@ -46,7 +46,6 @@ int AlsaOutput::setParameter(QString param, QVariant value)
 	if (err)
 		return err;
 	if (param == "audioRate") {
-		qDebug() << "new audio rate" << value;
 		alsaOut->close();
 		alsaOut->open(value.toInt());
 	}
