@@ -43,6 +43,9 @@ int BaseLmmPlayer::play(QString url)
 	if (state != STOPPED)
 		return -EBUSY;
 
+	mInfo("starting playback");
+
+	connect(demux, SIGNAL(streamInfoFound()), SLOT(streamInfoFound()));
 	int err = demux->setSource(url);
 	if (err)
 		return err;
@@ -51,14 +54,12 @@ int BaseLmmPlayer::play(QString url)
 	streamTime = demux->getStreamTime(BaseLmmDemux::STREAM_VIDEO);
 	streamTime->start();
 	foreach (BaseLmmElement *el, elements) {
-		if (demux && !live)
-			el->setStreamDuration(demux->getTotalDuration());
-		else
-			el->setStreamDuration(-1);
 		el->setStreamTime(streamTime);
 		el->start();
+		mInfo("started element %s", el->metaObject()->className());
 	}
 
+	mInfo("all elements started, game is a foot");
 	timer = new QTimer(this);
 	timer->setSingleShot(true);
 	connect(timer, SIGNAL(timeout()), this, SLOT(decodeLoop()));
@@ -72,6 +73,7 @@ int BaseLmmPlayer::stop()
 	if (state != RUNNING)
 		return -EBUSY;
 
+	disconnect(demux, SIGNAL(streamInfoFound()));
 	state = STOPPED;
 	foreach (BaseLmmElement *el, elements)
 		el->stop();
@@ -213,6 +215,16 @@ void BaseLmmPlayer::audioPopTimerTimeout()
 	if (alsaControl)
 		alsaControl->mute(false);
 #endif
+}
+
+void BaseLmmPlayer::streamInfoFound()
+{
+	foreach (BaseLmmElement *el, elements) {
+		if (demux && !live)
+			el->setStreamDuration(demux->getTotalDuration());
+		else
+			el->setStreamDuration(-1);
+	}
 }
 
 void BaseLmmPlayer::audioLoop()

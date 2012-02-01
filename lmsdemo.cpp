@@ -54,6 +54,8 @@ LmsDemo::~LmsDemo()
 
 void LmsDemo::timeout()
 {
+	if (ui->sliderPosition->maximum() == 0)
+		ui->sliderPosition->setMaximum(dec->getDuration() / 1000000);
 	int duration = ui->sliderPosition->maximum();
 	int pos = dec->getPosition() / 1000000;
 	ui->labelDuration->setText(QString("%1:%2:%3 / %4:%5:%6")
@@ -237,7 +239,7 @@ void LmsDemo::on_toolPlay_clicked()
 		ui->frameBack->setStyleSheet("QFrame#frameBack { background-color: blue;}");
 		HardwareOperations::blendOSD(true, 31);
 		timer->start(100);
-		ui->sliderPosition->setMaximum(dec->getDuration() / 1000000);
+		ui->sliderPosition->setMaximum(0);
 		ui->sliderPosition->setValue(0);
 		hideCounter = HIDE_COUNT;
 

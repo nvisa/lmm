@@ -5,6 +5,7 @@
 StreamTime::StreamTime(QObject *parent) :
 	QObject(parent)
 {
+	startPts = 0;
 	startTime = 0;
 	drifter = new QTime;
 	clock = new QTime;
@@ -23,6 +24,7 @@ qint64 StreamTime::getCurrentTime()
 
 void StreamTime::start()
 {
+	currentTime = 0;
 	clock->restart();
 	drifter->restart();
 }

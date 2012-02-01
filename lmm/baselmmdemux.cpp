@@ -27,6 +27,8 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	videoClock = new StreamTime(this);
 	demuxAudio = demuxVideo = true;
 	context = NULL;
+	audioStream = NULL;
+	videoStream = NULL;
 }
 
 qint64 BaseLmmDemux::getCurrentPosition()
@@ -69,7 +71,7 @@ int BaseLmmDemux::findStreamInfo()
 		audioStream = context->streams[audioStreamIndex];
 		AVRational r = audioStream->time_base;
 		audioTimeBase = 1000000 * r.num / r.den;
-		audioTimeBaseN = 1000000000 * r.num / r.den;
+		audioTimeBaseN = qint64(1000000000) * r.num / r.den;
 		mDebug("audioBase=%d", audioTimeBase);
 	}
 	if (videoStreamIndex >= 0) {
@@ -78,7 +80,7 @@ int BaseLmmDemux::findStreamInfo()
 		AVRational r = videoStream->time_base;
 		r = videoStream->time_base;
 		videoTimeBase = 1000000 * r.num / r.den;
-		videoTimeBaseN = 1000000000 * r.num / r.den;
+		videoTimeBaseN = qint64(1000000000) * r.num / r.den;
 		mDebug("videoBase=%d", videoTimeBase);
 	}
 
@@ -105,6 +107,7 @@ int BaseLmmDemux::demuxOne()
 			foundStreamInfo = true;
 			if (debugMessagesAvailable())
 				dump_format(context, 0, qPrintable(sourceUrlName), false);
+			emit streamInfoFound();
 		}
 	}
 	static AVPacket *packet = NULL;

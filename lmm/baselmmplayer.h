@@ -38,6 +38,7 @@ signals:
 protected slots:
 	virtual int decodeLoop();
 	void audioPopTimerTimeout();
+	void streamInfoFound();
 protected:
 	enum runState {
 		RUNNING,

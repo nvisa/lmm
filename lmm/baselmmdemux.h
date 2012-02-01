@@ -36,7 +36,7 @@ public:
 	void setAudioDemuxing(bool v) { demuxAudio = v; }
 	void setVideoDemuxing(bool v) { demuxVideo = v; }
 signals:
-	
+	void streamInfoFound();
 public slots:
 protected:
 	QString sourceUrlName;
