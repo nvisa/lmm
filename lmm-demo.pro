@@ -25,7 +25,9 @@ SOURCES += \
     lmm/v4l2input.cpp \
     lmm/fileoutput.cpp \
     lmm/dvb/tsdemux.cpp \
-    lmm/dvb/dvbutils.cpp
+    lmm/dvb/dvbutils.cpp \
+    lmm/mp3player.cpp \
+    lmm/mp3demux.cpp
 
 HEADERS  += \
     lmm/filesource.h \
@@ -41,7 +43,9 @@ HEADERS  += \
     lmm/v4l2input.h \
     lmm/fileoutput.h \
     lmm/dvb/tsdemux.h \
-    lmm/dvb/dvbutils.h
+    lmm/dvb/dvbutils.h \
+    lmm/mp3player.h \
+    lmm/mp3demux.h
 
 alsa {
     HEADERS += \
