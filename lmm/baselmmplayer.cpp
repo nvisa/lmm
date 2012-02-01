@@ -225,6 +225,10 @@ void BaseLmmPlayer::streamInfoFound()
 		else
 			el->setStreamDuration(-1);
 	}
+	int rate = demux->getAudioSampleRate();
+	/* default audio rate is 48 khz, change if needed */
+	if (rate != 48000 && audioOutput)
+		audioOutput->setParameter("audioRate", rate);
 }
 
 void BaseLmmPlayer::audioLoop()
