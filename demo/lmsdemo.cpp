@@ -2,9 +2,9 @@
 #include "ui_lmsdemo.h"
 #include "lmm/baselmmdemux.h"
 #ifdef CONFIG_FFMPEG
-#include "lmm/dvbplayer.h>
-#include "lmm/avidecoder.h>
-#include "lmm/mp3player.h>
+#include "lmm/dvbplayer.h"
+#include "lmm/avidecoder.h"
+#include "lmm/mp3player.h"
 #endif
 #include "lmm/baselmmelement.h"
 #include "lmm/baselmmplayer.h"

@@ -31,11 +31,11 @@ isEmpty(CROSS_COMPILE) {
 
 x86 {
     include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/qtCommon.pri)
-    include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/emdesk/emdeskCommon.pri)
     include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/lmm/lmm.pri)
+    include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/emdesk/emdeskCommon.pri)
 }
 arm {
     include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/qtCommon-arm.pri)
-    include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/emdesk/emdeskCommon-arm.pri)
     include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/lmm/lmm-arm.pri)
+    include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/emdesk/emdeskCommon-arm.pri)
 }
