@@ -134,9 +134,12 @@ int V4l2Input::readPacket(uint8_t *buf, int buf_size)
 	/* This routine may be called before the stream started */
 	if (fd < 0)
 		start();
+	QTime timeout; timeout.start();
 	while (buf_size > circBuf->usedSize()) {
 		/* wait data to become availabe in circBuf */
 		usleep(50000);
+		if (timeout.elapsed() > 10000)
+			return -ENOENT;
 	}
 	circBuf->lock();
 	memcpy(buf, circBuf->getDataPointer(), buf_size);
