@@ -6,11 +6,13 @@
 #include <QList>
 #include <QVariant>
 
-#include <ti/sdo/dmai/Resize.h>
-
 class RawBuffer;
 class QTime;
 class BaseLmmElement;
+struct Resize_Object;
+struct _Buffer_Object;
+typedef struct Resize_Object *Resize_Handle;
+typedef struct _Buffer_Object *Buffer_Handle;
 
 class FbOutput : public BaseLmmOutput
 {

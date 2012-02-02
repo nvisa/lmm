@@ -15,13 +15,7 @@
 #include <errno.h>
 
 #include <ti/sdo/dmai/Dmai.h>
-/*#include <ti/sdo/dmai/VideoStd.h>
-#include <ti/sdo/dmai/Cpu.h>
-#include <ti/sdo/dmai/Buffer.h>
-#include <ti/sdo/dmai/BufferGfx.h>
-#include <ti/sdo/dmai/BufTab.h>
-#include <ti/sdo/dmai/ce/Vdec2.h>
-#include <ti/sdo/dmai/Time.h>*/
+#include <ti/sdo/dmai/Resize.h>
 #include <ti/sdo/dmai/Buffer.h>
 #include <ti/sdo/dmai/BufferGfx.h>
 

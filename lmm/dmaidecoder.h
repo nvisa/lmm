@@ -4,19 +4,18 @@
 #include "baselmmdecoder.h"
 #include <QList>
 
-#include <ti/sdo/dmai/Dmai.h>
-#include <ti/sdo/dmai/VideoStd.h>
-#include <ti/sdo/dmai/Cpu.h>
-#include <ti/sdo/dmai/Buffer.h>
-#include <ti/sdo/dmai/BufferGfx.h>
-#include <ti/sdo/dmai/BufTab.h>
-#include <ti/sdo/dmai/ce/Vdec2.h>
-#include <ti/sdo/dmai/Time.h>
-
 class CircularBuffer;
 class RawBuffer;
 class BaseLmmElement;
 struct decodeTimeStamp;
+struct _Buffer_Object;
+struct Engine_Obj;
+struct Vdec2_Object;
+struct BufTab_Object;
+typedef struct _Buffer_Object *Buffer_Handle;
+typedef struct Engine_Obj *Engine_Handle;
+typedef struct Vdec2_Object *Vdec2_Handle;
+typedef struct BufTab_Object *BufTab_Handle;
 
 class DmaiDecoder : public BaseLmmDecoder
 {
