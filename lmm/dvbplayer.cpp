@@ -34,6 +34,11 @@ DvbPlayer::DvbPlayer(QObject *parent) :
 	live = true;
 }
 
+int DvbPlayer::tuneToChannel(QString channelUrl)
+{
+	return demux->setSource(channelUrl);
+}
+
 DvbPlayer::~DvbPlayer()
 {
 }

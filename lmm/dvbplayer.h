@@ -11,6 +11,7 @@ class DvbPlayer : public BaseLmmPlayer
 	Q_OBJECT
 public:
 	explicit DvbPlayer(QObject *parent = 0);
+	int tuneToChannel(QString channelUrl);
 	~DvbPlayer();
 signals:
 	
