@@ -20,6 +20,7 @@ SOURCES += \
     fileoutput.cpp \
     dvb/tsdemux.cpp \
     dvb/dvbutils.cpp \
+    lmmcommon.cpp
 
 
 HEADERS  += \
@@ -37,6 +38,7 @@ HEADERS  += \
     fileoutput.h \
     dvb/tsdemux.h \
     dvb/dvbutils.h \
+    lmmcommon.h
 
 alsa {
     HEADERS += \
@@ -123,3 +125,5 @@ xdc.path = /usr/local/share/lmm
 target.path = /usr/local/lib
 
 INSTALLS += target headers xdc
+
+OTHER_FILES +=
