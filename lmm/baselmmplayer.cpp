@@ -30,6 +30,9 @@ BaseLmmPlayer::BaseLmmPlayer(QObject *parent) :
 #endif
 
 	live = false;
+	timer = new QTimer(this);
+	timer->setSingleShot(true);
+	connect(timer, SIGNAL(timeout()), this, SLOT(decodeLoop()));
 }
 
 BaseLmmPlayer::~BaseLmmPlayer()
@@ -46,10 +49,11 @@ int BaseLmmPlayer::play(QString url)
 	mInfo("starting playback");
 
 	connect(demux, SIGNAL(streamInfoFound()), SLOT(streamInfoFound()));
-	int err = demux->setSource(url);
-	if (err)
-		return err;
-	state = RUNNING;
+	if (!url.isEmpty()) {
+		int err = demux->setSource(url);
+		if (err)
+			return err;
+	}
 
 	streamTime = demux->getStreamTime(BaseLmmDemux::STREAM_VIDEO);
 	streamTime->start();
@@ -60,10 +64,8 @@ int BaseLmmPlayer::play(QString url)
 	}
 
 	mInfo("all elements started, game is a foot");
-	timer = new QTimer(this);
-	timer->setSingleShot(true);
-	connect(timer, SIGNAL(timeout()), this, SLOT(decodeLoop()));
 	timer->start(10);
+	state = RUNNING;
 
 	return 0;
 }
@@ -123,6 +125,13 @@ int BaseLmmPlayer::seek(qint64 value)
 	return seekTo(demux->getCurrentPosition() + value);
 }
 
+int BaseLmmPlayer::flush()
+{
+	foreach (BaseLmmElement *el, elements)
+		el->flush();
+	return 0;
+}
+
 void BaseLmmPlayer::setMute(bool mute)
 {
 #ifdef CONFIG_ALSA
@@ -162,7 +171,7 @@ int BaseLmmPlayer::decodeLoop()
 	int err = 0;
 	if (!live || mainSource == NULL) {
 		dTime = time.elapsed();
-		demux->demuxOne();
+		err = demux->demuxOne();
 		dTime = time.elapsed() - dTime;
 	} else {
 		/*
@@ -172,9 +181,10 @@ int BaseLmmPlayer::decodeLoop()
 		CircularBuffer *buf = mainSource->getCircularBuffer();
 		int bCnt = demux->audioBufferCount();
 		while (buf->usedSize() > 1024 * 100) {
+			mInfo("demuxing next packet");
 			int err = demux->demuxOne();
 			if (err)
-				return err;
+				break;
 		}
 		/*
 		 * During discontinuties, live pipelines may create hundreds of
@@ -203,6 +213,7 @@ int BaseLmmPlayer::decodeLoop()
 	} else if (err == -ENOENT) {
 		mDebug("decoding finished");
 		stop();
+		return 0;
 	}
 	mInfo("loop time=%d demux=%d audio=%d video=%d", time.elapsed(), dTime, aTime, vTime);
 	timer->start(1);

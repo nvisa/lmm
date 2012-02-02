@@ -17,16 +17,22 @@ class BaseLmmPlayer : public QObject
 {
 	Q_OBJECT
 public:
+	enum runState {
+		RUNNING,
+		STOPPED
+	};
 	explicit BaseLmmPlayer(QObject *parent = 0);
 	~BaseLmmPlayer();
 	virtual int play(QString url);
 	virtual int stop();
 	virtual int pause();
 	virtual int resume();
+	virtual runState getRunningState() { return state; }
 	virtual qint64 getDuration();
 	virtual qint64 getPosition();
 	virtual int seekTo(qint64 pos);
 	virtual int seek(qint64 value);
+	virtual int flush();
 
 	const QList<BaseLmmElement *> getElements() { return elements; }
 
@@ -40,10 +46,6 @@ protected slots:
 	void audioPopTimerTimeout();
 	void streamInfoFound();
 protected:
-	enum runState {
-		RUNNING,
-		STOPPED
-	};
 	runState state;
 	QList<BaseLmmElement *> elements;
 	StreamTime *streamTime;
