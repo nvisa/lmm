@@ -63,12 +63,12 @@ int BaseLmmPlayer::play(QString url)
 			return err;
 	}
 
-
 	streamTime = demux->getStreamTime(BaseLmmDemux::STREAM_VIDEO);
 	streamTime->start();
 	foreach (BaseLmmElement *el, elements) {
 		mInfo("starting element %s", el->metaObject()->className());
 		el->setStreamTime(streamTime);
+		el->flush();
 		el->start();
 	}
 
