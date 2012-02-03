@@ -29,6 +29,8 @@ DmaiDecoder::DmaiDecoder(codecType c, QObject *parent) :
 	hCodec = NULL;
 	instance = this;
 	codec = c;
+	circBuf = NULL;
+	hBufTab = NULL;
 }
 
 DmaiDecoder::~DmaiDecoder()
@@ -173,12 +175,14 @@ int DmaiDecoder::decodeOne()
 
 int DmaiDecoder::flush()
 {
-	circBuf->reset();
+	if (circBuf)
+		circBuf->reset();
 	/*
 	 * Note: Do not flush dsp codec here, it is not needed and
 	 * it causes more problems. i.e. buffer display order switching
 	 */
-	BufTab_freeAll(hBufTab);
+	if (hBufTab)
+		BufTab_freeAll(hBufTab);
 	return BaseLmmDecoder::flush();
 }
 

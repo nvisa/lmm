@@ -12,6 +12,9 @@
 MadDecoder::MadDecoder(QObject *parent) :
 	BaseLmmDecoder(parent)
 {
+	stream = NULL;
+	frame = NULL;
+	synth = NULL;
 }
 
 static inline qint16 scale(mad_fixed_t sample)
@@ -123,8 +126,10 @@ int MadDecoder::decodeAll()
 
 int MadDecoder::flush()
 {
-	mad_frame_mute(frame);
-	mad_synth_mute(synth);
+	if (frame)
+		mad_frame_mute(frame);
+	if (synth)
+		mad_synth_mute(synth);
 	madBuffer.clear();
 	return BaseLmmDecoder::flush();
 }
@@ -148,6 +153,9 @@ int MadDecoder::stopDecoding()
 	delete synth;
 	delete frame;
 	delete stream;
+	stream = NULL;
+	frame = NULL;
+	synth = NULL;
 	madBuffer.clear();
 	return 0;
 }
