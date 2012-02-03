@@ -4,16 +4,13 @@
 #include "baselmmelement.h"
 
 #include <QList>
-
-extern "C" {
-	#include <linux/videodev2.h>
-	#include "libavformat/avformat.h"
-	#include "libavutil/avutil.h"
-}
+#include <linux/videodev2.h>
 
 class captureThread;
 class CircularBuffer;
 class QTimer;
+struct URLContext;
+struct AVInputFormat;
 
 class V4l2Input : public BaseLmmElement
 {
@@ -59,6 +56,7 @@ protected:
 	int apid;
 	int pmt;
 	int pcr;
+	int sid;
 };
 
 #endif // V4L2INPUT_H

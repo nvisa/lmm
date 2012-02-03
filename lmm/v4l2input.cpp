@@ -22,6 +22,12 @@
 #include <QTimer>
 #include <QTime>
 
+extern "C" {
+	#include <linux/videodev2.h>
+	#include "libavformat/avformat.h"
+	#include "libavutil/avutil.h"
+}
+
 static URLProtocol *lmmUrlProtocol = NULL;
 /* TODO: Fix single instance MpegTsDemux */
 static V4l2Input *demuxPriv = NULL;
@@ -73,12 +79,10 @@ public:
 	}
 	void releaseBuffer(struct v4l2_buffer *)
 	{
-		sem.release();
 	}
 	void stop()
 	{
 		exit = true;
-		sem.release();
 	}
 
 	void run()
@@ -92,7 +96,6 @@ public:
 private:
 	V4l2Input *v4l2;
 	QList<v4l2_buffer *> buffers;
-	QSemaphore sem;
 	bool exit;
 };
 
@@ -164,6 +167,7 @@ int V4l2Input::openUrl(QString url, int)
 	struct dvb_ch_info info = DVBUtils::currentChannelInfo();
 	apid = info.apid;
 	vpid = info.vpid;
+	sid = info.spid;
 	pmt = -1;
 	pcr = -1;
 	return 0;
@@ -453,7 +457,7 @@ bool V4l2Input::captureLoop()
 				continue;
 			circBuf->lock();
 			if (circBuf->addData(&data[i], 188)) {
-				qDebug("no space left on the circular buffer");
+				mDebug("no space left on the circular buffer");
 				circBuf->unlock();
 				break;
 			}
