@@ -17,6 +17,19 @@ BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 	fpsTiming->start();
 }
 
+int BaseLmmOutput::start()
+{
+	outputDelay = 0;
+	fps = fpsBufferCount = 0;
+	fpsTiming->start();
+	return BaseLmmElement::start();
+}
+
+int BaseLmmOutput::stop()
+{
+	return BaseLmmElement::stop();
+}
+
 qint64 BaseLmmOutput::getLatency()
 {
 	return getAvailableBufferTime() + outputLatency;

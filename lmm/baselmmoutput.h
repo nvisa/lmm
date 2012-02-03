@@ -14,6 +14,8 @@ public:
 	void setOutputDelay(int val) { outputDelay = val; }
 	int getOutputDelay() { return outputDelay; }
 	void syncOnClock(bool val) { doSync = val; }
+	virtual int start();
+	virtual int stop();
 	virtual int output();
 	virtual qint64 getLatency();
 signals:

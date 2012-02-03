@@ -131,7 +131,7 @@ int FbOutput::start()
 	Buffer_setNumBytesUsed(fbOutBuf, fbLineLen * fbHeight);
 	resizerConfigured = false;
 
-	return BaseLmmElement::start();
+	return BaseLmmOutput::start();
 }
 
 int FbOutput::stop()
@@ -145,7 +145,7 @@ int FbOutput::stop()
 		Buffer_delete(fbOutBuf);
 		hResize = NULL;
 	}
-	return BaseLmmElement::stop();
+	return BaseLmmOutput::stop();
 }
 
 int FbOutput::flush()

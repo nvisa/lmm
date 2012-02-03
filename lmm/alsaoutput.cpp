@@ -24,7 +24,7 @@ int AlsaOutput::start()
 	int err = alsaOut->open(getParameter("audioRate").toInt());
 	if (err)
 		return err;
-	return BaseLmmElement::start();
+	return BaseLmmOutput::start();
 }
 
 int AlsaOutput::stop()
@@ -32,7 +32,7 @@ int AlsaOutput::stop()
 	int err = alsaOut->close();
 	if (err)
 		return err;
-	return BaseLmmElement::stop();
+	return BaseLmmOutput::stop();
 }
 
 int AlsaOutput::flush()
