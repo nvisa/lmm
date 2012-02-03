@@ -15,6 +15,7 @@
 #include <QGraphicsTextItem>
 #include <QBrush>
 #include <QMetaObject>
+#include <QThreadPool>
 
 static void signalHandler(int signalNumber)
 {
@@ -38,6 +39,7 @@ LmmCommon::LmmCommon(QObject *parent) :
 
 int LmmCommon::init()
 {
+	QThreadPool::globalInstance()->setMaxThreadCount(5);
 	initDebug();
 	HardwareOperations::writeRegister(0x1c7260c, 0x3004);
 	DmaiDecoder::initCodecEngine();
