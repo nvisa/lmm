@@ -61,7 +61,7 @@ int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 	last_rpts = rpts;
 	last_time = time;
 	if (!err) {
-		outputLatency = time - rpts_j;
+		outputLatency = time - rpts;
 		mDebug("%s: outputLatency=%lld outputDelay=%d time=%lld rpts=%lld runningTime=%lld fps=%d", this->metaObject()->className(),
 			   outputLatency, outputDelay, time - streamTime->getStartPts(), rpts - streamTime->getStartPts(), streamTime->getFreeRunningTime(), fps);
 		fpsBufferCount++;
