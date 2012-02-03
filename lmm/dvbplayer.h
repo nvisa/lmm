@@ -17,7 +17,6 @@ signals:
 	
 protected slots:
 private:
-	V4l2Input *v4l2;
 };
 
 #endif // DVBPLAYER_H

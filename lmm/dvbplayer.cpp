@@ -15,9 +15,10 @@ DvbPlayer::DvbPlayer(QObject *parent) :
 	BaseLmmPlayer(parent)
 {
 	demux = new MpegTsDemux;
-	v4l2 = new V4l2Input;
-	mainSource = v4l2;
 	elements << demux;
+
+	V4l2Input *v4l2 = new V4l2Input;
+	mainSource = v4l2;
 	elements << v4l2;
 
 	videoDecoder = new DmaiDecoder(DmaiDecoder::MPEG2);

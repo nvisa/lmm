@@ -76,9 +76,11 @@ int BaseLmmPlayer::stop()
 		return -EBUSY;
 
 	disconnect(demux, SIGNAL(streamInfoFound()));
-	state = STOPPED;
-	foreach (BaseLmmElement *el, elements)
+	foreach (BaseLmmElement *el, elements) {
+		el->setStreamTime(NULL);
 		el->stop();
+	}
+	state = STOPPED;
 
 	return 0;
 }

@@ -213,6 +213,8 @@ int BaseLmmDemux::videoBufferCount()
 
 int BaseLmmDemux::start()
 {
+	streamPosition = 0;
+	sourceUrlName = "";
 	videoStreamIndex = audioStreamIndex = -1;
 	audioStream = videoStream = NULL;
 	foundStreamInfo = false;
@@ -221,8 +223,16 @@ int BaseLmmDemux::start()
 
 int BaseLmmDemux::stop()
 {
-	av_close_input_file(context);
-	context = NULL;
+	if (context) {
+		av_close_input_file(context);
+		context = NULL;
+		videoClock->setStartPts(0);
+		videoClock->setStartTime(0);
+		videoClock->stop();
+		audioClock->setStartPts(0);
+		audioClock->setStartTime(0);
+		audioClock->stop();
+	}
 	return BaseLmmElement::stop();
 }
 

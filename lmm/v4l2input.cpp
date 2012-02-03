@@ -125,7 +125,6 @@ V4l2Input::V4l2Input(QObject *parent) :
 	deviceName = "/dev/video0";
 	fd = -1;
 	inputIndex = 1;
-	cThread = new captureThread(this);
 	circBuf = new CircularBuffer(1024 * 1024 * 10, this);
 }
 
@@ -182,7 +181,9 @@ int V4l2Input::start()
 		int err = openCamera();
 		if (err)
 			return err;
+		cThread = new captureThread(this);
 		cThread->start();
+		return BaseLmmElement::start();
 	}
 	return 0;
 }
@@ -191,8 +192,10 @@ int V4l2Input::stop()
 {
 	cThread->stop();
 	cThread->wait();
+	cThread->deleteLater();
 	circBuf->reset();
-	return closeCamera();
+	closeCamera();
+	return BaseLmmElement::stop();
 }
 
 int V4l2Input::closeCamera()
@@ -200,19 +203,28 @@ int V4l2Input::closeCamera()
 	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	int i;
 
+	struct v4l2_requestbuffers req;
+	req.count = 0;
+	req.type = type;
+	req.memory = V4L2_MEMORY_MMAP;
+	/* Release buffers in the capture device driver */
+	if (ioctl(fd, VIDIOC_REQBUFS, &req) == -1) {
+		mDebug("error in ioctl VIDIOC_REQBUFS");
+	}
+	for (i = 0; i < 3; i++)
+		munmap(userptr[i], v4l2buf[i]->length);
+
 	/* Stop the video streaming */
 	if (ioctl(fd, VIDIOC_STREAMOFF, &type) == -1) {
 		mDebug("VIDIOC_STREAMOFF failed on device");
 	}
-
-	for (i = 0; i < 3; i++)
-		munmap(userptr[i], v4l2buf[i]->length);
 
 	qDeleteAll(v4l2buf);
 	v4l2buf.clear();
 	userptr.clear();
 	close(fd);
 	fd = -1;
+
 	return 0;
 }
 

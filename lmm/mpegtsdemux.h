@@ -17,9 +17,6 @@ signals:
 	
 public slots:
 private:
-	CircularBuffer *circBuf;
-
-	int startDemuxer();
 };
 
 #endif // MPEGTSDEMUX_H

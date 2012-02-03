@@ -324,5 +324,11 @@ int DmaiDecoder::stopCodec()
 		hEngine = NULL;
 	}
 
+	if (hBufTab) {
+		/* buffer tab cleans its buffers */
+		BufTab_delete(hBufTab);
+		hBufTab = NULL;
+	}
+
 	return 0;
 }
