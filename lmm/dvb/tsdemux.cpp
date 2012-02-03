@@ -195,30 +195,55 @@ int tsDemux::parsePmt(const unsigned char *data)
 	return 0;
 }
 
-#if 0
-static int findChannelPMTPID(unsigned char *data, int program)
+int tsDemux::findPmt(const unsigned char *data, int program)
 {
-	mDebug("searching PMT program id for program %d", program);
+	fDebug("searching PMT program id for program %d", program);
+	data = &data[3];
 	int afe = (*data++ >> 4) & 3;
 	if (afe == 0)
 		return 0;
 	if (afe > 1) {
 		data += *data + 1;
 	}
+	/* TODO: should we check ??? h->payload_unit_start_indicator */
 	if (afe & 0x1) {
 		/* handle pointer_field */
 		data += *data + 1;
+		/* parsing according to table 2-25 */
 		int sl = (((data[1] >> 0) & 0xf) << 8) + data[2];
-		unsigned char *pmtid = data + 8;
+		const unsigned char *pmtid = data + 8;
 		for (int i = 0; i < sl - 9; i += 4) {
 			if (((pmtid[i] << 8) + pmtid[i + 1]) == program) {
-				mDebug("found PMT program id for program %d: %d", program,
+				fDebug("found PMT program id for program %d: %d", program,
 					   ((pmtid[i + 2] & 0x1f) << 8) + pmtid[i + 3]);
 				return ((pmtid[i + 2] & 0x1f) << 8) + pmtid[i + 3];
 			}
 		}
 	}
 
-	return 0;
+	return -1;
 }
-#endif
+
+int tsDemux::findPcr(const unsigned char *data, int pmt)
+{
+	fDebug("parsing PMT %d for PCR pid", pmt);
+	data = &data[3];
+	int afe = (*data++ >> 4) & 3;
+	if (afe == 0)
+		return 0;
+	if (afe > 1) {
+		data += *data + 1;
+	}
+	/* TODO: should we check ??? h->payload_unit_start_indicator */
+	if (afe & 0x1) {
+		/* handle pointer_field */
+		data += *data + 1;
+		/* parsing according to table 2-28 */
+		int program = (data[4] << 8) + data[3];
+		int pcr_pid = ((data[8] & 0x1f) << 8) + data[9];
+		fDebug("pcr pid for program %d is %d", program, pcr_pid);
+		return pcr_pid;
+	}
+
+	return -1;
+}

@@ -12,6 +12,8 @@ public:
 	explicit tsDemux(QObject *parent = 0);
 	int newData(unsigned char *data);
 	const char * getStream(int pid, int *size);
+	static int findPmt(const unsigned char *data, int program);
+	static int findPcr(const unsigned char *data, int pmt);
 	static qint64 parsePcr(const unsigned char *data);
 	static int parsePmt(const unsigned char *data);
 signals:

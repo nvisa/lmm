@@ -165,8 +165,8 @@ int V4l2Input::openUrl(QString url, int)
 	struct dvb_ch_info info = DVBUtils::currentChannelInfo();
 	apid = info.apid;
 	vpid = info.vpid;
-	pmt = 256;
-	pcr = 7190;
+	pmt = -1;
+	pcr = -1;
 	return 0;
 }
 
@@ -433,6 +433,10 @@ bool V4l2Input::captureLoop()
 			int pid = data[i + 2] + ((data[i + 1] & 0x1f) << 8);
 			if (pid == pcr)
 				setSystemClock(tsDemux::parsePcr(&data[i]));
+			if (pid == 0 && pmt < 1)
+				pmt = tsDemux::findPmt(&data[i], 1);
+			if (pcr < 0 && pmt > 0 && pid == pmt)
+				pcr = tsDemux::findPcr(&data[i], pmt);
 			if (pid != vpid && pid != apid && pid != pmt && pid != pcr && pid > 32)
 				continue;
 			circBuf->lock();
