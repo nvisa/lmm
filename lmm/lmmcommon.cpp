@@ -29,6 +29,9 @@ static void signalHandler(int signalNumber)
 	} else if (signalNumber == SIGTERM) {
 		DmaiDecoder::cleanUpDsp();
 		exit(0);
+	} else if (signalNumber == SIGABRT) {
+		DmaiDecoder::cleanUpDsp();
+		exit(0);
 	}
 }
 
@@ -59,6 +62,7 @@ int LmmCommon::installSignalHandlers()
 	sigaction(SIGSEGV, &sigInstaller, NULL);
 	sigaction(SIGINT, &sigInstaller, NULL);
 	sigaction(SIGTERM, &sigInstaller, NULL);
+	sigaction(SIGABRT, &sigInstaller, NULL);
 	return 0;
 }
 
