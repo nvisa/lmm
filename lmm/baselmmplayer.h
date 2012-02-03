@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QList>
 #include <QFuture>
+#include <QFutureWatcher>
 
 class BaseLmmElement;
 class BaseLmmDemux;
@@ -11,6 +12,7 @@ class BaseLmmDecoder;
 class BaseLmmOutput;
 class StreamTime;
 class QTimer;
+class QSemaphore;
 class Alsa;
 
 class BaseLmmPlayer : public QObject
@@ -27,6 +29,7 @@ public:
 	virtual int stop();
 	virtual int pause();
 	virtual int resume();
+	virtual int wait(int timeout);
 	virtual runState getRunningState() { return state; }
 	virtual qint64 getDuration();
 	virtual qint64 getPosition();
@@ -56,6 +59,8 @@ protected:
 	BaseLmmOutput *audioOutput;
 	BaseLmmOutput *videoOutput;
 	QTimer *timer;
+	QSemaphore *waitProducer;
+	QSemaphore *waitConsumer;
 #ifdef CONFIG_ALSA
 	Alsa *alsaControl;
 #endif
@@ -64,7 +69,7 @@ private:
 	void audioLoop();
 	void videoLoop();
 
-	QFuture<int> videoDecodeFuture;
+	QFutureWatcher<int> *videoThreadWatcher;
 };
 
 #endif // BASELMMPLAYER_H

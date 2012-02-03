@@ -11,6 +11,7 @@
 #include <QTime>
 #include <QTimer>
 #include <QtConcurrentRun>
+#include <QSemaphore>
 
 #include <errno.h>
 
@@ -33,10 +34,17 @@ BaseLmmPlayer::BaseLmmPlayer(QObject *parent) :
 	timer = new QTimer(this);
 	timer->setSingleShot(true);
 	connect(timer, SIGNAL(timeout()), this, SLOT(decodeLoop()));
+
+	waitProducer = new QSemaphore;
+	waitConsumer = new QSemaphore;
+	videoThreadWatcher = new QFutureWatcher<int>;
+	connect(videoThreadWatcher, SIGNAL(finished()), SLOT(decodeCompleted()));
+	QThreadPool::globalInstance()->reserveThread();
 }
 
 BaseLmmPlayer::~BaseLmmPlayer()
 {
+	QThreadPool::globalInstance()->releaseThread();
 	qDeleteAll(elements);
 	elements.clear();
 }
@@ -55,12 +63,13 @@ int BaseLmmPlayer::play(QString url)
 			return err;
 	}
 
+
 	streamTime = demux->getStreamTime(BaseLmmDemux::STREAM_VIDEO);
 	streamTime->start();
 	foreach (BaseLmmElement *el, elements) {
+		mInfo("starting element %s", el->metaObject()->className());
 		el->setStreamTime(streamTime);
 		el->start();
-		mInfo("started element %s", el->metaObject()->className());
 	}
 
 	mInfo("all elements started, game is a foot");
@@ -93,6 +102,15 @@ int BaseLmmPlayer::pause()
 int BaseLmmPlayer::resume()
 {
 	return 0;
+}
+
+int BaseLmmPlayer::wait(int timeout)
+{
+	waitConsumer->release(1);
+	/* TODO: Thread handling */
+	if (waitProducer->tryAcquire(1, timeout))
+		return 0;
+	return -ETIMEDOUT;
 }
 
 qint64 BaseLmmPlayer::getDuration()
@@ -263,21 +281,27 @@ void BaseLmmPlayer::audioLoop()
 		if (!live)
 			streamTime->setCurrentTime(buf->getPts());
 	}
-	audioOutput->output();
+	if (!audioOutput->output()) {
+		if (waitConsumer->tryAcquire(1))
+			waitProducer->release(1);
+	}
 }
 
 void BaseLmmPlayer::videoLoop()
 {
-	if (!videoDecodeFuture.isFinished()) {
-		mInfo("previous decode operation is not finished");
+	if (!videoThreadWatcher->future().isFinished()) {
+		mDebug("previous decode operation is not finished");
 		return;
 	}
 	RawBuffer *buf = demux->nextVideoBuffer();
 	if (buf)
 		videoDecoder->addBuffer(buf);
-	videoDecodeFuture = QtConcurrent::run(videoDecoder, &BaseLmmDecoder::decode);
+	videoThreadWatcher->setFuture(QtConcurrent::run(videoDecoder, &BaseLmmDecoder::decode));
 	buf = videoDecoder->nextBuffer();
 	if (buf)
 		videoOutput->addBuffer(buf);
-	videoOutput->output();
+	if (!videoOutput->output()) {
+		if (waitConsumer->tryAcquire())
+			waitProducer->release(1);
+	}
 }
