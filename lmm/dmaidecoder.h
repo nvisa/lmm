@@ -2,7 +2,9 @@
 #define DMAIDECODER_H
 
 #include "baselmmdecoder.h"
+
 #include <QList>
+#include <QHash>
 
 class CircularBuffer;
 class RawBuffer;
@@ -50,6 +52,7 @@ private:
 	Buffer_Handle circBufData;
 	int decodeCount;
 	codecType codec;
+	QHash<int, RawBuffer *> bufferMapping;
 
 	int startCodec();
 	int stopCodec();

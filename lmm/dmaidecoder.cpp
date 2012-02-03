@@ -82,18 +82,6 @@ int DmaiDecoder::decodeOne()
 		 * if too much data is accumulated on the circ buffer
 		 * then do not push more
 		 */
-		if (circBuf->usedSize() < circBuf->totalSize() / 4) {
-			buf = inputBuffers.takeFirst();
-			if (!buf && circBuf->usedSize() == 0)
-				return -ENOENT;
-			if (buf) {
-				mInfo("adding %d bytes to circular buffer", buf->size());
-				if (circBuf->addData(buf->data(), buf->size()))
-					mDebug("error adding data to circular buffer");
-				handleInputTimeStamps(buf);
-				delete buf;
-			}
-		}
 		Buffer_Handle hBuf = BufTab_getFreeBuf(hBufTab);
 		if (!hBuf) {
 			/*
@@ -103,7 +91,21 @@ int DmaiDecoder::decodeOne()
 			mInfo("cannot get new buf from buftab");
 			return -ENOENT;
 		}
-
+		if (circBuf->usedSize() < circBuf->totalSize() / 4) {
+			buf = inputBuffers.takeFirst();
+			if (!buf && circBuf->usedSize() == 0) {
+				BufTab_freeBuf(hBuf);
+				return -ENOENT;
+			}
+			if (buf) {
+				mDebug("adding %d bytes to circular buffer", buf->size());
+				if (circBuf->addData(buf->data(), buf->size()))
+					mDebug("error adding data to circular buffer");
+			}
+		}
+		if (bufferMapping.contains(Buffer_getId(hBuf)))
+			mDebug("ooppppsss! buffer mapping exists");
+		bufferMapping.insert(Buffer_getId(hBuf), buf);
 		/* Make sure the whole buffer is used for output */
 		BufferGfx_resetDimensions(hBuf);
 
@@ -152,7 +154,14 @@ int DmaiDecoder::decodeOne()
 			newbuf->setStreamBufferNo(decodeCount++);
 
 			/* handle timestamps */
-			setOutputTimeStamp(newbuf);
+			int id = Buffer_getId(outbuf);
+			if (bufferMapping.contains(id)) {
+				RawBuffer *refbuf = bufferMapping[id];
+				bufferMapping.remove(id);
+				newbuf->setPts(refbuf->getPts());
+				delete refbuf;
+			} else
+				mDebug("oooppppsss no buffer mapping");
 
 			outputBuffers << newbuf;
 			/* set the resulting buffer in use by video output */
@@ -183,6 +192,9 @@ int DmaiDecoder::flush()
 	 */
 	if (hBufTab)
 		BufTab_freeAll(hBufTab);
+	for (int i = 0; i < bufferMapping.size(); ++i)
+		delete bufferMapping.values().at(i);
+	bufferMapping.clear();
 	return BaseLmmDecoder::flush();
 }
 
