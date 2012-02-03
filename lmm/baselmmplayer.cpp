@@ -38,7 +38,6 @@ BaseLmmPlayer::BaseLmmPlayer(QObject *parent) :
 	waitProducer = new QSemaphore;
 	waitConsumer = new QSemaphore;
 	videoThreadWatcher = new QFutureWatcher<int>;
-	connect(videoThreadWatcher, SIGNAL(finished()), SLOT(decodeCompleted()));
 	QThreadPool::globalInstance()->reserveThread();
 }
 
