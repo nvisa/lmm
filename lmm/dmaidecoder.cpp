@@ -177,8 +177,6 @@ int DmaiDecoder::decodeOne()
 		break;
 	}
 
-	if (inputBuffers.count() > 10)
-		flush();
 	return 0;
 }
 
