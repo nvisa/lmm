@@ -287,7 +287,7 @@ bool LmsDemo::eventFilter(QObject *obj, QEvent *ev)
 		} else if (ev->type() == QEvent::MouseButtonRelease) {
 			QMouseEvent *mev = (QMouseEvent *)ev;
 			labelHideCounter = HIDE_COUNT;
-			int val = ui->sliderVolume->maximum() * mev->y() / ui->sliderVolume->height();
+			int val = 100 - ui->sliderVolume->maximum() * mev->y() / ui->sliderVolume->height();
 			dec->setVolumeLevel(val);
 		}
 	}
