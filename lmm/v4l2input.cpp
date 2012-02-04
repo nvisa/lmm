@@ -168,6 +168,8 @@ int V4l2Input::openUrl(QString url, int)
 	apid = info.apid;
 	vpid = info.vpid;
 	sid = info.spid;
+	if (sid == 0)
+		sid = 1;
 	pmt = -1;
 	pcr = -1;
 	return 0;
@@ -450,7 +452,7 @@ bool V4l2Input::captureLoop()
 			if (pid == pcr)
 				setSystemClock(tsDemux::parsePcr(&data[i]));
 			if (pid == 0 && pmt < 1)
-				pmt = tsDemux::findPmt(&data[i], 1);
+				pmt = tsDemux::findPmt(&data[i], sid);
 			if (pcr < 0 && pmt > 0 && pid == pmt)
 				pcr = tsDemux::findPcr(&data[i], pmt);
 			if (pid != vpid && pid != apid && pid != pmt && pid != pcr && pid > 32)
