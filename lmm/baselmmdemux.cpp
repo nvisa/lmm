@@ -29,6 +29,7 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	context = NULL;
 	audioStream = NULL;
 	videoStream = NULL;
+	libavAnalayzeDuration = 5000000; /* this is ffmpeg default */
 }
 
 qint64 BaseLmmDemux::getCurrentPosition()
@@ -47,6 +48,7 @@ qint64 BaseLmmDemux::getTotalDuration()
 
 int BaseLmmDemux::findStreamInfo()
 {
+	context->max_analyze_duration = libavAnalayzeDuration;
 	int err = av_find_stream_info(context);
 	if (err < 0)
 		return err;

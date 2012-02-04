@@ -42,6 +42,7 @@ signals:
 	void streamInfoFound();
 public slots:
 protected:
+	int libavAnalayzeDuration;
 	QString sourceUrlName;
 	qint64 streamPosition;
 	int videoStreamIndex;

@@ -8,6 +8,7 @@ MpegTsDemux::MpegTsDemux(QObject *parent) :
 	BaseLmmDemux(parent)
 {
 	context = NULL;
+	libavAnalayzeDuration = 500000;
 }
 
 int MpegTsDemux::start()
