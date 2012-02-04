@@ -35,15 +35,14 @@ public:
 	static int checkStatus();
 	static struct dvb_ch_info currentChannelInfo();
 
-	static QStringList channelList(QString listName = "");
-	static QStringList tvChannelList(QString listName = "");
-	static QStringList radioChannelList(QString listName = "");
+	static QStringList createChannelList();
+	static QStringList tvChannelList();
+	static QStringList radioChannelList();
 
 	static QStringList fromTurksatList(QString packet = "all");
 	static void fillDbFromTurksatList();
 
-	static QStringList satteliteLists();
-	static void selectSatteliteList(QString listName);
+	static void fetchChannelsFromDb();
 
 signals:
 

@@ -48,8 +48,6 @@
 static QMap<QString, QString> channels;
 static QMap<QString, QString> tvChannels;
 static QMap<QString, QString> radioChannels;
-static QStringList chLists;
-static QString currentSelectedList;
 static struct dvb_ch_info currentCh;
 
 struct lnb_types_st {
@@ -362,8 +360,7 @@ bool DVBUtils::tuneToChannel(QString ch)
 {
 	QTime t;
 	t.start();
-	if (channels.size() == 0)
-		channelList();
+
 	fInfo("tuning to channel %s", qPrintable(ch));
 	int err = DVBUtils::zapTo(ch);
 	if (err == -ENOENT) {
@@ -496,65 +493,38 @@ void DVBUtils::fillDbFromTurksatList()
 	dbtools::database().driver()->commitTransaction();
 }
 
-QStringList DVBUtils::satteliteLists()
+void DVBUtils::fetchChannelsFromDb()
 {
-	if (chLists.size() == 0) {
-		QSqlQueryModel model;
-		model.setQuery("SELECT DISTINCT paket FROM uyduKanallari");
-		for (int i = 0; i < model.rowCount(); i++)
-			chLists << model.data(model.index(i, 0)).toString();
-	}
-	return chLists;
-}
-
-void DVBUtils::selectSatteliteList(QString listName)
-{
-	if (chLists.size() == 0)
-		satteliteLists();
-
-	if (listName == currentSelectedList)
-		return;
-
-	currentSelectedList = listName;
 	channels.clear();
 	tvChannels.clear();
 	radioChannels.clear();
 
-	if (chLists.contains(listName) || listName == "all") {
-		QSqlQueryModel model;
-		if (listName != "all")
-			model.setQuery(QString("SELECT * FROM uyduKanallari WHERE paket='%1'")
-						   .arg(listName));
+	QSqlQueryModel model;
+	model.setQuery(QString("SELECT * FROM uyduKanallari WHERE paket='favoriler'"));
+	for (int i = 0; i < model.rowCount(); i++) {
+		QSqlRecord rec = model.record(i);
+		QString ch = QString("%1:%2:%3:%4:%5:%6:%7:%8")
+				.arg(rec.value("kanalIsmi").toString())
+				.arg(rec.value("frekans").toString())
+				.arg(rec.value("polarizasyon").toString())
+				.arg(0)
+				.arg(rec.value("sembolHizi").toString())
+				.arg(rec.value("videoPid").toString())
+				.arg(rec.value("audioPid").toString())
+				.arg(rec.value("programNo").toString())
+				;
+		channels.insert(rec.value("kanalIsmi").toString().trimmed(), ch);
+		if (rec.value("videoPid").toInt() != 0)
+			tvChannels.insert(rec.value("kanalIsmi").toString().trimmed(), ch);
 		else
-			model.setQuery(QString("SELECT * FROM uyduKanallari"));
-		for (int i = 0; i < model.rowCount(); i++) {
-			QSqlRecord rec = model.record(i);
-			QString ch = QString("%1:%2:%3:%4:%5:%6:%7:%8")
-					.arg(rec.value("kanalIsmi").toString())
-					.arg(rec.value("frekans").toString())
-					.arg(rec.value("polarizasyon").toString())
-					.arg(0)
-					.arg(rec.value("sembolHizi").toString())
-					.arg(rec.value("videoPid").toString())
-					.arg(rec.value("audioPid").toString())
-					.arg(0)
-					;
-			channels.insert(rec.value("kanalIsmi").toString().trimmed(), ch);
-			if (rec.value("videoPid").toInt() != 0)
-				tvChannels.insert(rec.value("kanalIsmi").toString().trimmed(), ch);
-			else
-				radioChannels.insert(rec.value("kanalIsmi").toString().trimmed(), ch);
-		}
+			radioChannels.insert(rec.value("kanalIsmi").toString().trimmed(), ch);
 	}
 }
 
-QStringList DVBUtils::channelList(QString listName)
+QStringList DVBUtils::createChannelList()
 {
 	/* first check database */
-	if (listName == "")
-		listName = currentSelectedList;
-
-	selectSatteliteList(listName);
+	fetchChannelsFromDb();
 
 	/* if database contains nothing about channels, then use szap file */
 	if (channels.size() == 0) {
@@ -580,15 +550,13 @@ QStringList DVBUtils::channelList(QString listName)
 	return channels.keys();
 }
 
-QStringList DVBUtils::tvChannelList(QString listName)
+QStringList DVBUtils::tvChannelList()
 {
-	channelList(listName);
 	return tvChannels.keys();
 }
 
-QStringList DVBUtils::radioChannelList(QString listName)
+QStringList DVBUtils::radioChannelList()
 {
-	channelList(listName);
 	return radioChannels.keys();
 }
 
