@@ -72,18 +72,16 @@ int BaseLmmDemux::findStreamInfo()
 		mDebug("audio stream found at index %d", audioStreamIndex);
 		audioStream = context->streams[audioStreamIndex];
 		AVRational r = audioStream->time_base;
-		audioTimeBase = 1000000 * r.num / r.den;
 		audioTimeBaseN = qint64(1000000000) * r.num / r.den;
-		mDebug("audioBase=%d", audioTimeBase);
+		mDebug("audioBase=%lld", audioTimeBaseN);
 	}
 	if (videoStreamIndex >= 0) {
 		mDebug("video stream found at index %d", videoStreamIndex);
 		videoStream = context->streams[videoStreamIndex];
 		AVRational r = videoStream->time_base;
 		r = videoStream->time_base;
-		videoTimeBase = 1000000 * r.num / r.den;
 		videoTimeBaseN = qint64(1000000000) * r.num / r.den;
-		mDebug("videoBase=%d", videoTimeBase);
+		mDebug("videoBase=%lld", videoTimeBaseN);
 	}
 
 	streamPosition = 0;
@@ -122,7 +120,7 @@ int BaseLmmDemux::demuxOne()
 		mInfo("new audio stream: size=%d", packet->size);
 		if (demuxAudio) {
 			RawBuffer *buf = new RawBuffer(packet->data, packet->size);
-			buf->setDuration(packet->duration * audioTimeBase);
+			buf->setDuration(packet->duration * audioTimeBaseN / 1000);
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 				buf->setPts(packet->pts * audioTimeBaseN / 1000);
 			} else {
@@ -141,7 +139,7 @@ int BaseLmmDemux::demuxOne()
 			   packet->duration, packet->flags);
 		if (demuxVideo) {
 			RawBuffer *buf = new RawBuffer(packet->data, packet->size);
-			buf->setDuration(packet->duration * videoTimeBase);
+			buf->setDuration(packet->duration * videoTimeBaseN / 1000);
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 				buf->setPts(packet->pts * videoTimeBaseN / 1000);
 			} else {
@@ -249,14 +247,14 @@ int BaseLmmDemux::seekTo(qint64 pos)
 		return -EINVAL;
 	if (videoStreamIndex != -1) {
 		int err = av_seek_frame(context, videoStreamIndex,
-								pos / videoTimeBase, flags);
+								pos * 1000 / videoTimeBaseN, flags);
 		if (err < 0) {
 			mDebug("error during seek");
 			return err;
 		}
 	} else if (audioStreamIndex != -1) {
 		int err = av_seek_frame(context, audioStreamIndex,
-								pos / audioTimeBase, flags);
+								pos * 1000 / audioTimeBaseN, flags);
 		if (err < 0) {
 			mDebug("error during seek");
 			return err;
