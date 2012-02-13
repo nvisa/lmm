@@ -38,3 +38,17 @@ AviPlayer::~AviPlayer()
 {
 
 }
+
+int AviPlayer::decodeLoop()
+{
+	int err = BaseLmmPlayer::decodeLoop();
+	if (err)
+		return err;
+
+	err = videoOutput->getInputBufferCount();
+	if (err == 2) {
+		mDebug("buffer hold detected, flushing video output");
+		videoOutput->flush();
+	}
+	return 0;
+}

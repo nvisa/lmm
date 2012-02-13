@@ -9,6 +9,8 @@ class AviPlayer : public BaseLmmPlayer
 public:
 	explicit AviPlayer(QObject *parent = 0);
 	~AviPlayer();
+protected slots:
+	virtual int decodeLoop();
 private:
 };
 
