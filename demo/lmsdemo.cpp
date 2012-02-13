@@ -128,7 +128,7 @@ void LmsDemo::addElement(BaseLmmElement *el)
 	} else if (className == "FbOutput") {
 		x = DEMUX_X + 2 * rectW + 20;
 		y = 10;
-	} else if (className == "Mad") {
+	} else if (className == "MadDecoder") {
 		x = DEMUX_X + rectW + 10;
 		y = scene->height() - rectH - 10;
 	} else if (className == "AlsaOutput") {
