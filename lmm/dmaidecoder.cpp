@@ -75,6 +75,7 @@ int DmaiDecoder::stopDecoding()
 
 int DmaiDecoder::decodeOne()
 {
+	mInfo("starting decode operation");
 	RawBuffer *buf = NULL;
 	while (inputBuffers.size()) {
 		bool decodeOk = true;
@@ -152,6 +153,7 @@ int DmaiDecoder::decodeOne()
 			newbuf->addBufferParameter("dmaiBuffer", (int)outbuf);
 			newbuf->setStreamBufferNo(decodeCount++);
 
+			mInfo("handling timestamps");
 			/* handle timestamps */
 			int id = Buffer_getId(outbuf);
 			if (bufferMapping.contains(id)) {
@@ -167,6 +169,8 @@ int DmaiDecoder::decodeOne()
 			Buffer_setUseMask(outbuf, Buffer_getUseMask(outbuf) | OUTPUT_USE);
 		} else
 			mDebug("unable to find a free display buffer");
+
+		mInfo("releasing free buffers");
 		/* Release buffers no longer in use by the codec */
 		outbuf = Vdec2_getFreeBuf(hCodec);
 		while (outbuf) {
@@ -176,6 +180,7 @@ int DmaiDecoder::decodeOne()
 		break;
 	}
 
+	mInfo("decode finished");
 	return 0;
 }
 
