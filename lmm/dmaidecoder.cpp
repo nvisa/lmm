@@ -137,8 +137,7 @@ int DmaiDecoder::decodeOne()
 		Buffer_delete(hCircBufWindow);
 
 		mInfo("decoder used %d bytes out of %d", consumed, circBuf->usedSize());
-		if (circBuf->useData(consumed) != consumed)
-			mDebug("something wrong with circ buffer");
+		circBuf->useData(circBuf->usedSize());
 		if (!decodeOk)
 			break;
 		Buffer_Handle outbuf = Vdec2_getDisplayBuf(hCodec);

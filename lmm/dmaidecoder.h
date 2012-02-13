@@ -48,7 +48,7 @@ private:
 	Vdec2_Handle hCodec;
 	BufTab_Handle hBufTab;
 	int numOutputBufs;
-	CircularBuffer *circBuf;
+	CircularBuffer *circBuf; /* TODO: This is no longer needed, convert to RawBuffer */
 	Buffer_Handle circBufData;
 	int decodeCount;
 	codecType codec;
