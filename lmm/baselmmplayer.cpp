@@ -297,9 +297,16 @@ void BaseLmmPlayer::videoLoop()
 		videoDecoder->addBuffer(buf);
 	videoThreadWatcher->setFuture(QtConcurrent::run(videoDecoder, &BaseLmmDecoder::decode));
 	buf = videoDecoder->nextBuffer();
-	if (buf)
-		videoOutput->addBuffer(buf);
-	if (!videoOutput->output()) {
+	if (videoOutput) {
+		if (buf)
+			videoOutput->addBuffer(buf);
+		if (!videoOutput->output()) {
+			if (waitConsumer->tryAcquire())
+				waitProducer->release(1);
+		}
+	} else {
+		if (buf)
+			delete buf;
 		if (waitConsumer->tryAcquire())
 			waitProducer->release(1);
 	}
