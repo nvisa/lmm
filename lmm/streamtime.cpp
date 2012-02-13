@@ -27,6 +27,8 @@ void StreamTime::start()
 	currentTime = 0;
 	clock->restart();
 	drifter->restart();
+	setStartTime(0);
+	setStartPts(0);
 }
 
 void StreamTime::stop()
