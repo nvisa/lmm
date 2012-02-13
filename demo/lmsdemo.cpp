@@ -1,14 +1,12 @@
 #include "lmsdemo.h"
 #include "ui_lmsdemo.h"
-#include "lmm/baselmmdemux.h"
-#ifdef CONFIG_FFMPEG
-#include "lmm/dvbplayer.h"
-#include "lmm/avidecoder.h"
-#include "lmm/mp3player.h"
-#endif
-#include "lmm/baselmmelement.h"
-#include "lmm/baselmmplayer.h"
-#include "lmm/circularbuffer.h"
+#include "../lmm/baselmmdemux.h"
+#include "../lmm/dvbplayer.h"
+#include "../lmm/avidecoder.h"
+#include "../lmm/mp3player.h"
+#include "../lmm/baselmmelement.h"
+#include "../lmm/baselmmplayer.h"
+#include "../lmm/circularbuffer.h"
 #include "emdesk/emdeskwindowmanager.h"
 #include "emdesk/hardwareoperations.h"
 #include "emdesk/debug.h"
@@ -30,7 +28,7 @@ LmsDemo::LmsDemo(QWidget *parent) :
 	ui->setupUi(this);
 	emdeskWindowManager::addWindow(this);
 
-	//dec = new Mp3Player;
+	dec = new AviPlayer;
 	timer = new QTimer;
 	connect(timer, SIGNAL(timeout()), SLOT(timeout()));
 	enableSliderUpdate = true;
@@ -236,7 +234,8 @@ void LmsDemo::showDecodeInfo()
 
 void LmsDemo::on_toolPlay_clicked()
 {
-	if (!dec->play("/media/net/test.mp3")) {
+	if (!dec->play("/media/card/KamiL Koç ÇeviriLmiş FiLmLer/4.Dönem Lisanslı Filmler/Yabancı Filmler/Macera/Kanunsuzlar.avi")) {
+	//if (!dec->play("/media/net/Fringe.S04E06.HDTV.XviD-LOL.[VTV].avi")) {
 		ui->frameBack->setStyleSheet("QFrame#frameBack { background-color: blue;}");
 		HardwareOperations::blendOSD(true, 31);
 		timer->start(100);

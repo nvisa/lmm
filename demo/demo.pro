@@ -39,3 +39,6 @@ arm {
     include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/lmm/lmm-arm.pri)
     include(/home/caglar/myfs/work/tasks/source-codes/bilkon/build/usr/local/include/emdesk/emdeskCommon-arm.pri)
 }
+
+RESOURCES += \
+    art.qrc
