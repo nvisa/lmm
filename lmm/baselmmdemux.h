@@ -33,8 +33,8 @@ public:
 	virtual int flush();
 	virtual StreamTime * getStreamTime(streamType);
 
-	void setAudioDemuxing(bool v) { demuxAudio = v; }
-	void setVideoDemuxing(bool v) { demuxVideo = v; }
+	void setAudioDemuxing(bool v) { demuxAudio = v; } /* TODO: clear existing buffers */
+	void setVideoDemuxing(bool v) { demuxVideo = v; } /* TODO: clear existing buffers */
 
 	/* stream information APIs */
 	int getAudioSampleRate();
@@ -64,7 +64,7 @@ protected:
 	qint64 videoTimeBaseN;		/* in nano secs */
 
 	virtual AVPacket * nextPacket();
-	int findStreamInfo();
+	virtual int findStreamInfo();
 };
 
 #endif // BASELMMDEMUX_H

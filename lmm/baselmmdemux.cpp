@@ -39,10 +39,10 @@ qint64 BaseLmmDemux::getCurrentPosition()
 
 qint64 BaseLmmDemux::getTotalDuration()
 {
-	if (audioStream)
-		return audioStream->duration * audioTimeBaseN / 1000;
 	if (videoStream)
 		return videoStream->duration * videoTimeBaseN / 1000;
+	if (audioStream)
+		return audioStream->duration * audioTimeBaseN / 1000;
 	return 0;
 }
 
