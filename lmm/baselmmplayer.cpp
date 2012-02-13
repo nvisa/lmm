@@ -189,6 +189,7 @@ int BaseLmmPlayer::decodeLoop()
 
 	int err = 0;
 	if (!live || mainSource == NULL) {
+		mInfo("demuxing next packer");
 		dTime = time.elapsed();
 		err = demux->demuxOne();
 		dTime = time.elapsed() - dTime;
@@ -216,7 +217,9 @@ int BaseLmmPlayer::decodeLoop()
 	if (!err) {
 		if (audioDecoder) {
 			aTime = time.elapsed();
+			mInfo("decoding audio");
 			audioLoop();
+			mInfo("decoded audio");
 			aTime = time.elapsed() - aTime;
 
 			if (videoOutput)
@@ -224,6 +227,7 @@ int BaseLmmPlayer::decodeLoop()
 		} else
 			demux->setAudioDemuxing(false);
 		vTime = time.elapsed();
+		mInfo("decoding video");
 		if (videoDecoder)
 			videoLoop();
 		else
