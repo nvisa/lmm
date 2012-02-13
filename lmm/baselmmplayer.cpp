@@ -30,6 +30,7 @@ BaseLmmPlayer::BaseLmmPlayer(QObject *parent) :
 	alsaControl = NULL;
 #endif
 
+	streamTime = new StreamTime(this);
 	live = false;
 	timer = new QTimer(this);
 	timer->setSingleShot(true);
@@ -62,7 +63,6 @@ int BaseLmmPlayer::play(QString url)
 			return err;
 	}
 
-	streamTime = demux->getStreamTime(BaseLmmDemux::STREAM_VIDEO);
 	streamTime->start();
 	foreach (BaseLmmElement *el, elements) {
 		mInfo("starting element %s", el->metaObject()->className());
@@ -88,6 +88,7 @@ int BaseLmmPlayer::stop()
 		el->setStreamTime(NULL);
 		el->stop();
 	}
+	streamTime->stop();
 	state = STOPPED;
 
 	return 0;

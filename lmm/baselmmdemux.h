@@ -14,10 +14,6 @@ class BaseLmmDemux : public BaseLmmElement
 {
 	Q_OBJECT
 public:
-	enum streamType {
-		STREAM_VIDEO,
-		STREAM_AUDIO
-	};
 	explicit BaseLmmDemux(QObject *parent = 0);
 	virtual int setSource(QString filename);
 	virtual qint64 getTotalDuration();
@@ -31,7 +27,6 @@ public:
 	virtual int seekTo(qint64 pos);
 	virtual int demuxOne();
 	virtual int flush();
-	virtual StreamTime * getStreamTime(streamType);
 
 	void setAudioDemuxing(bool v) { demuxAudio = v; } /* TODO: clear existing buffers */
 	void setVideoDemuxing(bool v) { demuxVideo = v; } /* TODO: clear existing buffers */
@@ -55,9 +50,6 @@ protected:
 	bool demuxAudio;
 	bool demuxVideo;
 	bool foundStreamInfo;
-
-	StreamTime *audioClock;
-	StreamTime *videoClock;
 
 	/* derived stats */
 	qint64 audioTimeBaseN;		/* in nano secs */

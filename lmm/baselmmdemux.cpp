@@ -23,8 +23,6 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 		av_register_all();
 		avRegistered = true;
 	}
-	audioClock = new StreamTime(this);
-	videoClock = new StreamTime(this);
 	demuxAudio = demuxVideo = true;
 	context = NULL;
 	audioStream = NULL;
@@ -34,7 +32,7 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 
 qint64 BaseLmmDemux::getCurrentPosition()
 {
-	return audioClock->getCurrentTime();
+	return streamTime->getCurrentTime();
 }
 
 qint64 BaseLmmDemux::getTotalDuration()
@@ -65,8 +63,6 @@ int BaseLmmDemux::findStreamInfo()
 		return -EINVAL;
 	}
 
-	audioClock->setStartTime(0);
-	videoClock->setStartTime(0);
 	/* derive necessary information from streams */
 	if (audioStreamIndex >= 0) {
 		mDebug("audio stream found at index %d", audioStreamIndex);
@@ -165,15 +161,6 @@ int BaseLmmDemux::flush()
 	return BaseLmmElement::flush();
 }
 
-StreamTime * BaseLmmDemux::getStreamTime(BaseLmmDemux::streamType stream)
-{
-	if (stream == STREAM_AUDIO)
-		return audioClock;
-	if (stream == STREAM_VIDEO)
-		return videoClock;
-	return audioClock;
-}
-
 int BaseLmmDemux::getAudioSampleRate()
 {
 	if (audioStream)
@@ -226,12 +213,6 @@ int BaseLmmDemux::stop()
 	if (context) {
 		av_close_input_file(context);
 		context = NULL;
-		videoClock->setStartPts(0);
-		videoClock->setStartTime(0);
-		videoClock->stop();
-		audioClock->setStartPts(0);
-		audioClock->setStartTime(0);
-		audioClock->stop();
 	}
 	return BaseLmmElement::stop();
 }
@@ -239,7 +220,7 @@ int BaseLmmDemux::stop()
 int BaseLmmDemux::seekTo(qint64 pos)
 {
 	int flags = 0;
-	if (pos < streamPosition)
+	if (pos < streamTime->getCurrentTime())
 		flags = AVSEEK_FLAG_BACKWARD;
 	if (pos < 0)
 		pos = 0;
