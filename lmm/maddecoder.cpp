@@ -41,14 +41,12 @@ int MadDecoder::decodeAll()
 				size_t left = stream->bufend - stream->next_frame;
 				madBuffer.prepend((const char *)stream->next_frame, left);
 			}
+			delete buf;
 		}
 		buf = inputBuffers.takeFirst();
 		if (!buf)
 			return -ENOENT;
 		madBuffer.append((const char *)buf->data(), buf->size());
-		handleInputTimeStamps(buf);
-		delete buf;
-		buf = NULL;
 		mad_stream_buffer(stream, (const unsigned char *)madBuffer.constData(), madBuffer.size());
 		if (mad_header_decode(&frame->header, stream) == -1) {
 			if (stream->error == MAD_ERROR_BUFLEN) {
@@ -113,7 +111,7 @@ int MadDecoder::decodeAll()
 			*out++ = scale(*leftCh++) & 0xffff;
 			*out++ = scale(*rightCh++) & 0xffff;
 		}
-		setOutputTimeStamp(outbuf);
+		outbuf->setPts(buf->getPts());
 		outputBuffers << outbuf;
 
 		int cons = stream->next_frame - (unsigned char *)madBuffer.constData();
@@ -121,6 +119,8 @@ int MadDecoder::decodeAll()
 		if (cons > 0)
 			madBuffer.remove(0, cons);
 	}
+	if (buf)
+		delete buf;
 	return 0;
 }
 
