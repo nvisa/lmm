@@ -69,9 +69,11 @@ int MadDecoder::decodeAll()
 				continue;//goto next_no_samples;
 			}
 			/* handle errors */
-			mDebug("mad frame decode error handling");
-			if (!MAD_RECOVERABLE(stream->error))
+			mInfo("mad frame decode error handling, error is %d", stream->error);
+			if (!MAD_RECOVERABLE(stream->error)) {
+				mDebug("unrecoverable stream error");
 				return -EIO;
+			}
 			if (stream->error == MAD_ERROR_LOSTSYNC) {
 				TagLib::ByteVector vector((const char *)stream->this_frame, stream->bufend - stream->this_frame);
 				TagLib::ID3v2::Header header(vector);
@@ -87,7 +89,8 @@ int MadDecoder::decodeAll()
 
 					}*/
 				}
-			}
+			} else
+				flush();
 			mad_frame_mute(frame);
 			mad_synth_mute(synth);
 			const unsigned char *before = stream->ptr.byte;
@@ -126,6 +129,7 @@ int MadDecoder::decodeAll()
 
 int MadDecoder::flush()
 {
+	mDebug("flushing");
 	if (frame)
 		mad_frame_mute(frame);
 	if (synth)
