@@ -114,6 +114,7 @@ arm {
 
 arm {
     TARGET = lmm-arm
+    DEFINES += TARGET_ARM
 }
 
 headers.files = $$HEADERS lmm-arm.pri
