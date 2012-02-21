@@ -55,8 +55,11 @@ int BaseLmmDemux::findStreamInfo()
 		mDebug("stream: type %d", context->streams[i]->codec->codec_type);
 		if (context->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
 			videoStreamIndex = i;
-		if (context->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO)
-			audioStreamIndex = i;
+		if (context->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO) {
+			if (context->streams[i]->codec->channels != 0
+					|| context->streams[i]->codec->sample_rate != 0)
+				audioStreamIndex = i;
+		}
 	}
 	if (audioStreamIndex < 0 && videoStreamIndex < 0) {
 		mDebug("no compatiple stream found");
