@@ -40,6 +40,8 @@ BaseLmmPlayer::BaseLmmPlayer(QObject *parent) :
 	waitConsumer = new QSemaphore;
 	videoThreadWatcher = new QFutureWatcher<int>;
 	QThreadPool::globalInstance()->reserveThread();
+
+	noAudio = noVideo = false;
 }
 
 BaseLmmPlayer::~BaseLmmPlayer()
@@ -179,6 +181,16 @@ int BaseLmmPlayer::getVolumeLevel()
 #endif
 }
 
+void BaseLmmPlayer::useNoAudio()
+{
+	noAudio = true;
+}
+
+void BaseLmmPlayer::useNoVideo()
+{
+	noVideo = true;
+}
+
 int BaseLmmPlayer::decodeLoop()
 {
 	QTime time; time.restart();
@@ -190,7 +202,7 @@ int BaseLmmPlayer::decodeLoop()
 
 	int err = 0;
 	if (!live || mainSource == NULL) {
-		mInfo("demuxing next packer");
+		mInfo("demuxing next packet");
 		dTime = time.elapsed();
 		err = demux->demuxOne();
 		dTime = time.elapsed() - dTime;
@@ -269,6 +281,11 @@ void BaseLmmPlayer::streamInfoFound()
 void BaseLmmPlayer::audioLoop()
 {
 	RawBuffer *buf = demux->nextAudioBuffer();
+	if (noAudio) {
+		if (buf)
+			delete buf;
+		return;
+	}
 	if (buf)
 		audioDecoder->addBuffer(buf);
 	if (audioDecoder->decode())
@@ -298,6 +315,11 @@ void BaseLmmPlayer::videoLoop()
 		return;
 	}
 	RawBuffer *buf = demux->nextVideoBuffer();
+	if (noVideo) {
+		if (buf)
+			delete buf;
+		return;
+	}
 	if (buf)
 		videoDecoder->addBuffer(buf);
 	videoThreadWatcher->setFuture(QtConcurrent::run(videoDecoder, &BaseLmmDecoder::decode));

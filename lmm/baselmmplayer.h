@@ -42,6 +42,9 @@ public:
 	void setMute(bool mute);
 	void setVolumeLevel(int per);
 	int getVolumeLevel();
+
+	void useNoAudio();
+	void useNoVideo();
 signals:
 	
 protected slots:
@@ -70,6 +73,8 @@ private:
 	void videoLoop();
 
 	QFutureWatcher<int> *videoThreadWatcher;
+	bool noAudio;
+	bool noVideo;
 };
 
 #endif // BASELMMPLAYER_H
