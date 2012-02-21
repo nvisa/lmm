@@ -472,7 +472,7 @@ bool V4l2Input::captureLoop()
 
 int V4l2Input::setSystemClock(qint64 time)
 {
-	if (streamTime)
+	if (streamTime && time > 0)
 		streamTime->setCurrentTime(time);
 	return 0;
 }
