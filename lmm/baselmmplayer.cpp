@@ -235,8 +235,11 @@ int BaseLmmPlayer::decodeLoop()
 			mInfo("decoded audio");
 			aTime = time.elapsed() - aTime;
 
-			if (videoOutput)
-				videoOutput->setOutputDelay(audioOutput->getLatency());
+			if (!noAudio) {
+				if (videoOutput)
+					videoOutput->setOutputDelay(audioOutput->getLatency());
+			} else
+				videoOutput->setOutputDelay(0);
 		} else
 			demux->setAudioDemuxing(false);
 		vTime = time.elapsed();
