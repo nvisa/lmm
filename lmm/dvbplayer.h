@@ -16,6 +16,7 @@ public:
 signals:
 	
 protected slots:
+	int decodeLoop();
 private:
 };
 

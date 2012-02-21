@@ -37,9 +37,22 @@ DvbPlayer::DvbPlayer(QObject *parent) :
 
 int DvbPlayer::tuneToChannel(QString channelUrl)
 {
+	videoOutput->syncOnClock(true);
+	audioOutput->syncOnClock(true);
 	return demux->setSource(channelUrl);
 }
 
 DvbPlayer::~DvbPlayer()
 {
+}
+
+int DvbPlayer::decodeLoop()
+{
+	if (videoDecoder->getInputBufferCount() > 100) {
+		videoDecoder->flush();
+		videoOutput->flush();
+		videoOutput->syncOnClock(false);
+		audioOutput->syncOnClock(false);
+	}
+	return BaseLmmPlayer::decodeLoop();
 }
