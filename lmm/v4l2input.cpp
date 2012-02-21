@@ -170,6 +170,8 @@ int V4l2Input::openUrl(QString url, int)
 	sid = info.spid;
 	if (sid == 0)
 		sid = 1;
+	if (info.freq == 11981)
+		sid = 2;
 	pmt = -1;
 	pcr = -1;
 	return 0;
