@@ -128,7 +128,7 @@ V4l2Input::V4l2Input(QObject *parent) :
 	deviceName = "/dev/video0";
 	fd = -1;
 	inputIndex = 1;
-	circBuf = new CircularBuffer(1024 * 1024 * 10, this);
+	circBuf = new CircularBuffer(1024 * 1024 * 1, this);
 }
 
 int V4l2Input::readPacket(uint8_t *buf, int buf_size)
