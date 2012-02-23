@@ -25,11 +25,13 @@ Alsa::Alsa(QObject *parent) :
 	bufferTime = 200000;
 	periodTime = 10000;
 	handle = NULL;
-	initVolumeControl();
+	hctl = NULL;
 }
 
 int Alsa::open(int rate)
 {
+	if (!hctl)
+		initVolumeControl();
 	int err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
 	if (err)
 		return err;
@@ -271,7 +273,7 @@ void Alsa::initVolumeControl()
 int Alsa::mute(bool mute)
 {
 	if (!hctl)
-		return -EINVAL;
+		initVolumeControl();
 	if (mute) {
 		snd_ctl_elem_value_set_integer(mixerSwitchControl, 0, 0);
 		snd_ctl_elem_value_set_integer(mixerSwitchControl, 1, 0);
@@ -284,6 +286,8 @@ int Alsa::mute(bool mute)
 
 int Alsa::currentVolumeLevel()
 {
+	if (!hctl)
+		initVolumeControl();
 	if (!snd_hctl_elem_read(mixerVolumeElem, mixerVolumeControl)) {
 		/* assume left and right are the same */
 		int x = snd_ctl_elem_value_get_integer(mixerVolumeControl, 0) * 100 / 127.0;
@@ -298,7 +302,7 @@ int Alsa::currentVolumeLevel()
 int Alsa::setCurrentVolumeLevel(int per)
 {
 	if (!hctl)
-		return -EINVAL;
+		initVolumeControl();
 
 	int x = 127 * per / 100;
 
