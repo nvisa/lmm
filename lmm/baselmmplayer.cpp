@@ -129,6 +129,11 @@ qint64 BaseLmmPlayer::getPosition()
 
 int BaseLmmPlayer::seekTo(qint64 pos)
 {
+	if (pos > demux->getTotalDuration()) {
+		stop();
+		emit finished();
+		return -EINVAL;
+	}
 #ifdef CONFIG_ALSA
 	if (alsaControl)
 		alsaControl->mute(true);
@@ -252,6 +257,7 @@ int BaseLmmPlayer::decodeLoop()
 	} else if (err == -ENOENT) {
 		mDebug("decoding finished");
 		stop();
+		emit finished();
 		return 0;
 	}
 	mInfo("loop time=%d demux=%d audio=%d video=%d", time.elapsed(), dTime, aTime, vTime);

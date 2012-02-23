@@ -46,7 +46,7 @@ public:
 	void useNoAudio();
 	void useNoVideo();
 signals:
-	
+	void finished();
 protected slots:
 	virtual int decodeLoop();
 	void audioPopTimerTimeout();
