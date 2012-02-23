@@ -9,12 +9,17 @@ AlsaOutput::AlsaOutput(QObject *parent) :
 	BaseLmmOutput(parent)
 {
 	alsaOut = new Alsa;
+	unmute = false;
 }
 
 int AlsaOutput::outputBuffer(RawBuffer *buf)
 {
 	const char *data = (const char *)buf->constData();
 	alsaOut->write(data, buf->size());
+	if (unmute) {
+		alsaOut->mute(false);
+		unmute = false;
+	}
 	return 0;
 }
 
@@ -37,6 +42,7 @@ int AlsaOutput::stop()
 
 int AlsaOutput::flush()
 {
+	muteTillFirstOutput();
 	return BaseLmmOutput::flush();
 }
 
@@ -59,4 +65,11 @@ qint64 AlsaOutput::getAvailableBufferTime()
 		mDebug("audio buffer will underrun, check for slow decoding ???");
 	}
 	return delay;
+}
+
+int AlsaOutput::muteTillFirstOutput()
+{
+	alsaOut->mute(true);
+	unmute = true;
+	return 0;
 }

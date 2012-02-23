@@ -20,11 +20,14 @@ public:
 	int setParameter(QString param, QVariant value);
 	Alsa * alsaControl() { return alsaOut; }
 	qint64 getAvailableBufferTime();
+
+	int muteTillFirstOutput();
 signals:
 	
 public slots:
 private:
 	Alsa *alsaOut;
+	bool unmute;
 };
 
 #endif // ALSAOUTPUT_H
