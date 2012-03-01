@@ -1,12 +1,8 @@
 #include "v4l2input.h"
 #include "rawbuffer.h"
-#include "circularbuffer.h"
-#include "streamtime.h"
 #include "emdesk/debug.h"
-#include "dvb/tsdemux.h"
-#include "dvb/dvbutils.h"
 
-#include <asm/errno.h>
+#include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -24,44 +20,6 @@
 
 extern "C" {
 	#include <linux/videodev2.h>
-	#include "libavformat/avformat.h"
-	#include "libavutil/avutil.h"
-}
-
-static URLProtocol *lmmUrlProtocol = NULL;
-/* TODO: Fix single instance MpegTsDemux */
-static V4l2Input *demuxPriv = NULL;
-
-static int lmmUrlOpen(URLContext *h, const char *url, int flags)
-{
-	h->priv_data = demuxPriv;
-	return ((V4l2Input *)h->priv_data)->openUrl(url, flags);
-}
-
-int lmmUrlRead(URLContext *h, unsigned char *buf, int size)
-{
-	return ((V4l2Input *)h->priv_data)->readPacket(buf, size);
-}
-
-int lmmUrlWrite(URLContext *h, const unsigned char *buf, int size)
-{
-	(void)h;
-	(void)buf;
-	(void)size;
-	return -EINVAL;
-}
-
-int64_t lmmUrlSeek(URLContext *h, int64_t pos, int whence)
-{
-	(void)h;
-	(void)pos;
-	(void)whence;
-	return -EINVAL;
-}
-
-int lmmUrlClose(URLContext *h)
-{
-	return ((V4l2Input *)h->priv_data)->closeUrl(h);
 }
 
 class captureThread : public QThread
@@ -99,88 +57,14 @@ private:
 	bool exit;
 };
 
-#define V4L2_STD_525P_60 ((v4l2_std_id)(0x0001000000000000ULL))
-
 V4l2Input::V4l2Input(QObject *parent) :
 	BaseLmmElement(parent)
 {
-	mpegtsraw = av_iformat_next(NULL);
-	while (mpegtsraw) {
-		if (strcmp(mpegtsraw->name, "mpegtsraw") == 0)
-			break;
-		mpegtsraw = av_iformat_next(mpegtsraw);
-	}
-	if (!lmmUrlProtocol) {
-		lmmUrlProtocol = new URLProtocol;
-		memset(lmmUrlProtocol , 0 , sizeof(URLProtocol));
-		lmmUrlProtocol->name = "lmm";
-		lmmUrlProtocol->url_open = lmmUrlOpen;
-		lmmUrlProtocol->url_read = lmmUrlRead;
-		lmmUrlProtocol->url_write = lmmUrlWrite;
-		lmmUrlProtocol->url_seek = lmmUrlSeek;
-		lmmUrlProtocol->url_close = lmmUrlClose;
-		av_register_protocol2 (lmmUrlProtocol, sizeof (URLProtocol));
-		demuxPriv = this;
-	}
-
-	captureWidth = 102;
+	captureWidth = 720;
 	captureHeight = 480;
 	deviceName = "/dev/video0";
 	fd = -1;
-	inputIndex = 1;
-	circBuf = new CircularBuffer(1024 * 1024 * 1, this);
-}
-
-int V4l2Input::readPacket(uint8_t *buf, int buf_size)
-{
-	/* This routine may be called before the stream started */
-	if (fd < 0)
-		start();
-	QTime timeout; timeout.start();
-	while (buf_size > circBuf->usedSize()) {
-		/* wait data to become availabe in circBuf */
-		usleep(50000);
-		if (timeout.elapsed() > 10000)
-			return -ENOENT;
-	}
-	circBuf->lock();
-	memcpy(buf, circBuf->getDataPointer(), buf_size);
-	circBuf->useData(buf_size);
-	circBuf->unlock();
-	mInfo("read %d bytes into ffmpeg buffer", buf_size);
-	return buf_size;
-}
-
-int V4l2Input::openUrl(QString url, int)
-{
-	url.remove("lmm://");
-	QStringList fields = url.split(":");
-	QString stream = "tv";
-	QString channel;
-	if (fields.size() == 2) {
-		stream = fields[0];
-		channel = fields[1];
-	} else
-		channel = fields[0];
-	if (!DVBUtils::tuneToChannel(channel))
-		return -EINVAL;
-	struct dvb_ch_info info = DVBUtils::currentChannelInfo();
-	apid = info.apid;
-	vpid = info.vpid;
-	sid = info.spid;
-	if (sid == 0)
-		sid = 1;
-	if (info.freq == 11981)
-		sid = 2;
-	pmt = -1;
-	pcr = -1;
-	return 0;
-}
-
-int V4l2Input::closeUrl(URLContext *)
-{
-	/* no need to do anything, stream will be closed later */
-	return 0;
+	inputIndex = 0;
 }
 
 int V4l2Input::start()
@@ -201,7 +85,6 @@ int V4l2Input::stop()
 	cThread->stop();
 	cThread->wait();
 	cThread->deleteLater();
-	circBuf->reset();
 	closeCamera();
 	return BaseLmmElement::stop();
 }
@@ -238,7 +121,7 @@ int V4l2Input::closeCamera()
 
 int V4l2Input::openCamera()
 {
-	v4l2_std_id std_id = V4L2_STD_525P_60;
+	v4l2_std_id std_id = V4L2_STD_PAL_B;
 	struct v4l2_capability cap;
 	struct v4l2_format fmt;
 	struct v4l2_input input;
@@ -289,13 +172,10 @@ int V4l2Input::openCamera()
 		err = EINVAL;
 		goto cleanup_devnode;
 	}
-	/*case V4L2_PIX_FMT_SBGGR8:
-	case V4L2_PIX_FMT_SBGGR16:
-	case V4L2_PIX_FMT_SGRBG10:*/
 	fmt.fmt.pix.width        = width;
 	fmt.fmt.pix.height       = height;
 	fmt.fmt.pix.bytesperline = width * 2;
-	fmt.fmt.pix.pixelformat  = V4L2_PIX_FMT_SBGGR16;
+	fmt.fmt.pix.pixelformat  = V4L2_PIX_FMT_UYVY;
 	fmt.fmt.pix.field        = V4L2_FIELD_NONE;
 
 	adjustCropping(width, height);
@@ -444,39 +324,10 @@ bool V4l2Input::captureLoop()
 {
 	struct v4l2_buffer *buffer = getFrame();
 	if (buffer) {
-		unsigned char *data = (unsigned char *)userptr[buffer->index];
-		for (int i = 0; i < (int)buffer->length; i += 224) {
-			if (data[i] != 0x47) {
-				mDebug("sync error expected 0x47 got 0x%x", data[i]);
-				continue;
-			}
-			int pid = data[i + 2] + ((data[i + 1] & 0x1f) << 8);
-			if (pid == pcr)
-				setSystemClock(tsDemux::parsePcr(&data[i]));
-			if (pid == 0 && pmt < 1)
-				pmt = tsDemux::findPmt(&data[i], sid);
-			if (pcr < 0 && pmt > 0 && pid == pmt)
-				pcr = tsDemux::findPcr(&data[i], pmt);
-			if (pid != vpid && pid != apid && pid != pmt && pid != pcr && pid > 32)
-				continue;
-			circBuf->lock();
-			if (circBuf->addData(&data[i], 188)) {
-				mDebug("no space left on the circular buffer");
-				circBuf->unlock();
-				break;
-			}
-			circBuf->unlock();
-		}
+		//unsigned char *data = (unsigned char *)userptr[buffer->index];
 		putFrame(buffer);
 	}
 	return false;
-}
-
-int V4l2Input::setSystemClock(qint64 time)
-{
-	if (streamTime && time > 0)
-		streamTime->setCurrentTime(time);
-	return 0;
 }
 
 /**

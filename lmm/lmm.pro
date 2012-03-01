@@ -20,7 +20,9 @@ SOURCES += \
     fileoutput.cpp \
     dvb/tsdemux.cpp \
     dvb/dvbutils.cpp \
-    lmmcommon.cpp
+    lmmcommon.cpp \
+    blec32tunerinput.cpp \
+    cameraplayer.cpp
 
 
 HEADERS  += \
@@ -38,7 +40,9 @@ HEADERS  += \
     fileoutput.h \
     dvb/tsdemux.h \
     dvb/dvbutils.h \
-    lmmcommon.h
+    lmmcommon.h \
+    blec32tunerinput.h \
+    cameraplayer.h
 
 alsa {
     HEADERS += \
