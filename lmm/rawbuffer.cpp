@@ -1,37 +1,43 @@
 #include "rawbuffer.h"
+#include "baselmmelement.h"
 
 #include <errno.h>
 
 #include <QVariant>
 
-RawBuffer::RawBuffer(void *data, int size, QObject *parent) :
+RawBuffer::RawBuffer(void *data, int size, BaseLmmElement *parent) :
 	QObject(parent)
 {
 	refData = false;
 	rawData = NULL;
 	setSize(size);
 	memcpy(rawData + prependPos, data, size);
+	myParent = parent;
 }
 
-RawBuffer::RawBuffer(int size, QObject *parent) :
+RawBuffer::RawBuffer(int size, BaseLmmElement *parent) :
 	QObject(parent)
 {
 	refData = false;
 	rawData = NULL;
 	setSize(size);
+	myParent = parent;
 }
 
-RawBuffer::RawBuffer(QObject *parent) :
+RawBuffer::RawBuffer(BaseLmmElement *parent) :
 	QObject(parent)
 {
 	rawData = NULL;
 	refData = false;
+	myParent = parent;
 }
 
 RawBuffer::~RawBuffer()
 {
 	if (rawData && !refData)
 		delete [] rawData;
+	if (myParent)
+		myParent->aboutDeleteBuffer(this);
 }
 
 void RawBuffer::setRefData(void *data, int size)

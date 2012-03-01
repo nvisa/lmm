@@ -4,13 +4,15 @@
 #include <QObject>
 #include <QMap>
 
+class BaseLmmElement;
+
 class RawBuffer : public QObject
 {
 	Q_OBJECT
 public:
-	explicit RawBuffer(QObject *parent = 0);
-	explicit RawBuffer(void *data, int size, QObject *parent = 0);
-	explicit RawBuffer(int size, QObject *parent = 0);
+	explicit RawBuffer(BaseLmmElement *parent = 0);
+	explicit RawBuffer(void *data, int size, BaseLmmElement *parent = 0);
+	explicit RawBuffer(int size, BaseLmmElement *parent = 0);
 	~RawBuffer();
 
 	void setRefData(void *data, int size);
@@ -47,6 +49,7 @@ private:
 	qint64 dts;
 	QMap<QString, QVariant> parameters;
 	int bufferNo;
+	BaseLmmElement* myParent;
 };
 
 #endif // RAWBUFFER_H
