@@ -48,6 +48,7 @@ void RawBuffer::setRefData(void *data, int size)
 	rawDataLen = size;
 	refData = true;
 	prependPos = 0;
+	usedLen = size;
 }
 
 void RawBuffer::addBufferParameter(QString par, QVariant val)
