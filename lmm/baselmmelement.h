@@ -26,6 +26,7 @@ public:
 	virtual int flush();
 	virtual int setParameter(QString param, QVariant value);
 	virtual QVariant getParameter(QString param);
+	virtual void aboutDeleteBuffer(RawBuffer *) {}
 
 	/* stat information */
 	void printStats();
