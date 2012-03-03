@@ -320,12 +320,30 @@ v4l2_buffer *V4l2Input::getFrame()
 	return v4l2buf[buffer.index];
 }
 
+void V4l2Input::aboutDeleteBuffer(RawBuffer *buf)
+{
+	v4l2_buffer *buffer =
+			(v4l2_buffer *)buf->getBufferParameter("v4l2Buffer").toInt();
+	mDebug("buffer %p", buffer);
+	finishedBuffers << buffer;
+}
+
 bool V4l2Input::captureLoop()
 {
+	while (finishedBuffers.size())
+		putFrame(finishedBuffers.takeFirst());
 	struct v4l2_buffer *buffer = getFrame();
 	if (buffer) {
-		//unsigned char *data = (unsigned char *)userptr[buffer->index];
-		putFrame(buffer);
+		mInfo("new frame %p", buffer);
+		unsigned char *data = (unsigned char *)userptr[buffer->index];
+		RawBuffer *newbuf = new RawBuffer;
+		newbuf->setParentElement(this);
+
+		newbuf->setRefData(data, buffer->length);
+		newbuf->addBufferParameter("width", (int)captureWidth);
+		newbuf->addBufferParameter("height", (int)captureHeight);
+		newbuf->addBufferParameter("v4l2Buffer", (int)buffer);
+		outputBuffers << newbuf;
 	}
 	return false;
 }
@@ -335,6 +353,7 @@ bool V4l2Input::captureLoop()
  */
 int V4l2Input::putFrame(struct v4l2_buffer *buffer)
 {
+	mInfo("giving back frame %p to driver", buffer);
 	buffer->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 	/* Issue captured frame buffer back to device driver */

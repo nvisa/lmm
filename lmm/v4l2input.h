@@ -18,6 +18,7 @@ public:
 
 	virtual int start();
 	virtual int stop();
+	void aboutDeleteBuffer(RawBuffer *buf);
 
 	friend class captureThread;
 signals:
@@ -31,6 +32,7 @@ protected:
 	int fd;
 	int inputIndex;
 	QList<struct v4l2_buffer *> v4l2buf;
+	QList<struct v4l2_buffer *> finishedBuffers;
 	QList<char *> userptr;
 	captureThread *cThread;
 
