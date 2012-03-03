@@ -34,6 +34,7 @@ int FileOutput::stop()
 
 int FileOutput::output()
 {
+	mInfo("buffer count: %d", inputBuffers.count());
 	if (!inputBuffers.size())
 		return -ENOENT;
 	RawBuffer *buf = inputBuffers.takeFirst();
@@ -54,6 +55,7 @@ int FileOutput::output()
 		}
 		written += err;
 	}
+	mInfo("%d bytes written", buf->size());
 	delete buf;
 	return 0;
 }
