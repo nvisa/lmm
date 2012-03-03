@@ -15,6 +15,7 @@ public:
 	explicit RawBuffer(int size, BaseLmmElement *parent = 0);
 	~RawBuffer();
 
+	void setParentElement(BaseLmmElement *el) { myParent = el; }
 	void setRefData(void *data, int size);
 	void addBufferParameter(QString, QVariant);
 	QVariant getBufferParameter(QString);
