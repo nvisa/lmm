@@ -11,6 +11,8 @@
 #include <ti/sdo/dmai/VideoStd.h>
 #include <ti/sdo/dmai/BufferGfx.h>
 
+class captureThread;
+
 class DM365Capture : public BaseLmmElement
 {
 	Q_OBJECT
@@ -19,6 +21,12 @@ public:
 	QSize captureSize();
 	int putFrame(Buffer_Handle handle);
 	Buffer_Handle getFrame();
+
+	virtual int start();
+	virtual int stop();
+	virtual RawBuffer * nextBuffer();
+	int finishedBuffer(RawBuffer *buf);
+	void aboutDeleteBuffer(RawBuffer *buf);
 signals:
 	
 public slots:
@@ -26,10 +34,13 @@ private:
 	int openCamera();
 	int closeCamera();
 
+	captureThread *cThread;
 	Capture_Handle hCapture;
 	BufTab_Handle hBufTab;
 	int imageWidth;
 	int imageHeight;
+
+	int captureCount;
 };
 
 #endif // DM365CAPTURE_H

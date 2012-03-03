@@ -1,15 +1,56 @@
 #include "dm365capture.h"
-#include "emdesk/debug.h"
+#include "rawbuffer.h"
+
+#include <emdesk/debug.h>
 
 #include <errno.h>
 
+#include <QThread>
+
 #define NUM_CAPTURE_BUFS 3
+
+class captureThread : public QThread
+{
+public:
+	captureThread(DM365Capture *parent)
+	{
+		v4l2 = parent;
+	}
+	struct v4l2_buffer * getNextBuffer()
+	{
+		if (buffers.size())
+			return buffers.takeFirst();
+		return NULL;
+	}
+	void releaseBuffer(struct v4l2_buffer *)
+	{
+	}
+	void stop()
+	{
+		exit = true;
+	}
+
+	void run()
+	{
+		/*exit = false;
+		while (!exit) {
+			if (v4l2->captureLoop())
+				break;
+		}*/
+	}
+private:
+	DM365Capture *v4l2;
+	QList<v4l2_buffer *> buffers;
+	bool exit;
+};
 
 DM365Capture::DM365Capture(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	hCapture = NULL;
 	hBufTab = NULL;
+	cThread = NULL;
+	captureCount = 0;
 }
 
 QSize DM365Capture::captureSize()
@@ -36,6 +77,64 @@ Buffer_Handle DM365Capture::getFrame()
 	return handle;
 }
 
+int DM365Capture::start()
+{
+	if (!cThread) {
+		captureCount = 0;
+		int err = openCamera();
+		if (err)
+			return err;
+		cThread = new captureThread(this);
+		//cThread->start();
+		return BaseLmmElement::start();
+	}
+	return 0;
+}
+
+int DM365Capture::stop()
+{
+	/*cThread->stop();
+	cThread->wait();*/
+	cThread->deleteLater();
+	cThread = NULL;
+	closeCamera();
+	return BaseLmmElement::stop();
+}
+
+RawBuffer * DM365Capture::nextBuffer()
+{
+	Buffer_Handle dmaibuf = getFrame();
+	if (!dmaibuf)
+		return NULL;
+	BufferGfx_Dimensions dim;
+	BufferGfx_getDimensions(dmaibuf, &dim);
+	RawBuffer *newbuf = new RawBuffer;
+	newbuf->setRefData(Buffer_getUserPtr(dmaibuf), Buffer_getSize(dmaibuf));
+	newbuf->addBufferParameter("width", (int)dim.width);
+	newbuf->addBufferParameter("height", (int)dim.height);
+	newbuf->addBufferParameter("dmaiBuffer", (int)dmaibuf);
+	newbuf->setStreamBufferNo(captureCount++);
+	return newbuf;
+}
+
+int DM365Capture::finishedBuffer(RawBuffer *buf)
+{
+	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
+	return putFrame(dmai);
+}
+
+void DM365Capture::aboutDeleteBuffer(RawBuffer *buf)
+{
+	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
+	putFrame(dmai);
+}
+
+/**
+ *
+ * When DM365 ipipe works in cont mode(normally)
+ * then imp_chained is 1 and color space cannot
+ * be NV12(YUV420PSEMI)
+ */
 int DM365Capture::openCamera()
 {
 	Capture_Attrs cAttrs   = Capture_Attrs_DM365_DEFAULT;
@@ -43,16 +142,11 @@ int DM365Capture::openCamera()
 	BufferGfx_Dimensions  capDim;
 	VideoStd_Type         videoStd;
 	Int32                 bufSize;
-	ColorSpace_Type       colorSpace = ColorSpace_YUV420PSEMI;
+	ColorSpace_Type       colorSpace = ColorSpace_UYVY;
 	Int                   numCapBufs;
 
-	/* Create capture device driver instance */
-	cAttrs.numBufs = NUM_CAPTURE_BUFS;
-	cAttrs.videoInput = Capture_Input_COMPOSITE;
-	cAttrs.videoStd = VideoStd_D1_PAL;
-	cAttrs.colorSpace = colorSpace;
-
-	videoStd = VideoStd_D1_PAL;
+	/* When we use 720P_30 we get error */
+	videoStd = VideoStd_720P_60;
 
 	/* Note: we only support D1, 720P and 1080P input */
 
@@ -105,9 +199,16 @@ int DM365Capture::openCamera()
 	}
 #endif
 
+	/* Create capture device driver instance */
+	cAttrs.numBufs = NUM_CAPTURE_BUFS;
+	cAttrs.videoInput = Capture_Input_COMPONENT;
+	cAttrs.videoStd = videoStd;
+	cAttrs.colorSpace = colorSpace;
 	cAttrs.numBufs    = NUM_CAPTURE_BUFS;
 	cAttrs.colorSpace = colorSpace;
 	cAttrs.captureDimension = &gfxAttrs.dim;
+	//cAttrs.onTheFly = true;
+
 	/* Create the capture device driver instance */
 	hCapture = Capture_create(hBufTab, &cAttrs);
 
