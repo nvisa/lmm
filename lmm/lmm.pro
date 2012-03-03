@@ -22,7 +22,8 @@ SOURCES += \
     dvb/dvbutils.cpp \
     lmmcommon.cpp \
     blec32tunerinput.cpp \
-    cameraplayer.cpp
+    cameraplayer.cpp \
+    blec32fboutput.cpp
 
 
 HEADERS  += \
@@ -42,7 +43,8 @@ HEADERS  += \
     dvb/dvbutils.h \
     lmmcommon.h \
     blec32tunerinput.h \
-    cameraplayer.h
+    cameraplayer.h \
+    blec32fboutput.h
 
 alsa {
     HEADERS += \
