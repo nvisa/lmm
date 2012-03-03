@@ -54,14 +54,14 @@ MVTOOL_DIR=$${CSTOOL_DIR}
 MVTOOL_PREFIX=$${CSTOOL_PREFIX}
 
 XDC_PATH = $${USER_XDC_PATH};$${DMAI_INSTALL_DIR}/packages;$${CE_INSTALL_DIR}/packages;$${FC_INSTALL_DIR}/packages;$${LINK_INSTALL_DIR}/packages;$${XDAIS_INSTALL_DIR}/packages;$${CMEM_INSTALL_DIR}/packages;$${CODEC_INSTALL_DIR}/packages;$${CE_INSTALL_DIR}/examples
-XDC_CFGFILE = ../lmm-demo/dm365.cfg
+XDC_CFGFILE = $$INSTALL_PREFIX/usr/local/include/lmm/dm365/dm365.cfg
 XDC_CFG = dm365_config
 XDC_CFLAGS = $${XDC_CFG}/compiler.opt
 XDC_LFILE = $${XDC_CFG}/linker.cmd
 XDC_PLATFORM = ti.platforms.evmDM365
 XDC_TARGET = gnu.targets.arm.GCArmv5T
 CONFIGURO = $${XDC_INSTALL_DIR}/xs xdc.tools.configuro
-CONFIG_BLD = ../lmm-demo/config.bld
+CONFIG_BLD = $$INSTALL_PREFIX/usr/local/include/lmm/dm365/config.bld
 
 xdctarget.target = xdctarget
 xdctarget.commands = XDCPATH=\"$${XDC_PATH}\" $${CONFIGURO} -o $${XDC_CFG} -t $${XDC_TARGET} -p $${XDC_PLATFORM} -b $${CONFIG_BLD} $${XDC_CFGFILE}

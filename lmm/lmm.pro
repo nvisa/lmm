@@ -8,43 +8,28 @@ CONFIG += ffmpeg mad alsa dm6446
 SOURCES += \
     filesource.cpp \
     rawbuffer.cpp \
-    dmaidecoder.cpp \
     circularbuffer.cpp \
-    fboutput.cpp \
     baselmmelement.cpp \
     baselmmdecoder.cpp \
     baselmmoutput.cpp \
     streamtime.cpp \
     baselmmplayer.cpp \
-    v4l2input.cpp \
     fileoutput.cpp \
-    dvb/tsdemux.cpp \
-    dvb/dvbutils.cpp \
     lmmcommon.cpp \
-    blec32tunerinput.cpp \
     cameraplayer.cpp \
-    blec32fboutput.cpp
-
 
 HEADERS  += \
     filesource.h \
     rawbuffer.h \
-    dmaidecoder.h \
     circularbuffer.h \
-    fboutput.h \
     baselmmelement.h \
     baselmmdecoder.h \
     baselmmoutput.h \
     streamtime.h \
     baselmmplayer.h \
-    v4l2input.h \
     fileoutput.h \
-    dvb/tsdemux.h \
-    dvb/dvbutils.h \
     lmmcommon.h \
-    blec32tunerinput.h \
     cameraplayer.h \
-    blec32fboutput.h
 
 alsa {
     HEADERS += \
@@ -88,18 +73,46 @@ ffmpeg {
 }
 
 dm365 {
-    include(../dm365.pri)
+    #include(../dm365.pri)
+    QMAKE_CXXFLAGS += -march=armv5t -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/dmai_2_20_00_15/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/codec-engine_2_26_02_11/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/framework-components_2_26_00_01/packages" -I"/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/xdais_6_26_01_03/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/linuxutils_2_26_01_02/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/codecs-dm365_4_02_00_00/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/codec-engine_2_26_02_11/examples" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/xdctools_3_16_03_36/packages" -I"/home/caglar/myfs/work/tasks/source-codes/bilkon/lmm-demo-build-desktop-Qt_4_7_1__arm__Release/dm365_config/.."  -Dxdc_target_types__="gnu/targets/arm/std.h" -Dxdc_target_name__=GCArmv5T -Dxdc_cfg__header__="/home/caglar/myfs/work/tasks/source-codes/bilkon/lmm-demo-build-desktop-Qt_4_7_1__arm__Release/dm365_config/package/cfg/dm365_xv5T.h"
     SOURCES += \
-        lmm/dmaiencoder.cpp \
-        lmm/dm365capture.cpp \
+        dmaiencoder.cpp \
+        dm365capture.cpp \
+        h264encoder.cpp \
 
-    HEADERS += lmm/dmaiencoder.h \
-        lmm/dm365capture.h \
+    HEADERS += dmaiencoder.h \
+        dm365capture.h \
+        h264encoder.h \
 
+    xdc.files += ../dm365.pri
+    xdc.files += ../config.bld
+    xdc.files += ../dm365.cfg
+    xdc.files += ../xdc_linker.cmd
+    xdc.path = /usr/local/include/lmm/dm365
 }
 
 dm6446 {
     include(../dm6446.pri)
+SOURCES += \
+    dmaidecoder.cpp \
+    fboutput.cpp \
+    v4l2input.cpp \
+    dvb/tsdemux.cpp \
+    dvb/dvbutils.cpp \
+    blec32tunerinput.cpp \
+    blec32fboutput.cpp \
+
+HEADERS  += \
+    dmaidecoder.h \
+    fboutput.h \
+    v4l2input.h \
+    dvb/tsdemux.h \
+    dvb/dvbutils.h \
+    blec32tunerinput.h \
+    blec32fboutput.h \
+
+    xdc.files += ../xdc_linker.cmd
+    xdc.path = /usr/local/share/lmm
 }
 
 CROSS_COMPILE=$$(OE_QMAKE_CC)
@@ -125,9 +138,6 @@ arm {
 
 headers.files = $$HEADERS lmm-arm.pri
 headers.path = /usr/local/include/lmm
-
-xdc.files = ../xdc_linker.cmd
-xdc.path = /usr/local/share/lmm
 
 target.path = /usr/local/lib
 
