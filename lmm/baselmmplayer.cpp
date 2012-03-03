@@ -58,11 +58,13 @@ int BaseLmmPlayer::play(QString url)
 
 	mInfo("starting playback");
 
-	connect(demux, SIGNAL(streamInfoFound()), SLOT(streamInfoFound()));
-	if (!url.isEmpty()) {
-		int err = demux->setSource(url);
-		if (err)
-			return err;
+	if (demux) {
+		connect(demux, SIGNAL(streamInfoFound()), SLOT(streamInfoFound()));
+		if (!url.isEmpty()) {
+			int err = demux->setSource(url);
+			if (err)
+				return err;
+		}
 	}
 
 	streamTime->start();
@@ -85,7 +87,8 @@ int BaseLmmPlayer::stop()
 	if (state != RUNNING)
 		return -EBUSY;
 
-	disconnect(demux, SIGNAL(streamInfoFound()));
+	if (demux)
+		disconnect(demux, SIGNAL(streamInfoFound()));
 	foreach (BaseLmmElement *el, elements) {
 		el->setStreamTime(NULL);
 		el->stop();
@@ -129,6 +132,8 @@ qint64 BaseLmmPlayer::getPosition()
 
 int BaseLmmPlayer::seekTo(qint64 pos)
 {
+	if (!demux)
+		return -ENOENT;
 	if (pos > demux->getTotalDuration()) {
 		stop();
 		emit finished();
@@ -149,6 +154,8 @@ int BaseLmmPlayer::seekTo(qint64 pos)
 
 int BaseLmmPlayer::seek(qint64 value)
 {
+	if (!demux)
+		return -ENOENT;
 	return seekTo(demux->getCurrentPosition() + value);
 }
 
