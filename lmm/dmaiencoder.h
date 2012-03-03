@@ -25,7 +25,11 @@ public:
 	void setImageSize(QSize s);
 	int start();
 	int stop();
+	int encodeNext();
 	int encode(Buffer_Handle buffer);
+	void aboutDeleteBuffer(RawBuffer *buf);
+
+	static void initCodecEngine();
 signals:
 	
 public slots:
@@ -33,6 +37,7 @@ private:
 	Engine_Handle hEngine;
 	Venc1_Handle hCodec;
 	BufTab_Handle hBufTab;
+	BufTab_Handle outputBufTab;
 	int numOutputBufs;
 	int imageWidth;
 	int imageHeight;

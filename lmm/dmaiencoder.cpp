@@ -1,5 +1,8 @@
 #include "dmaiencoder.h"
+#include "rawbuffer.h"
 #include "emdesk/debug.h"
+
+#include <ti/sdo/ce/CERuntime.h>
 
 #include <errno.h>
 
@@ -9,8 +12,8 @@
 DmaiEncoder::DmaiEncoder(QObject *parent) :
 	BaseLmmElement(parent)
 {
-	imageWidth = 720;
-	imageHeight = 576;
+	imageWidth = 1280;
+	imageHeight = 720;
 }
 
 void DmaiEncoder::setImageSize(QSize s)
@@ -35,8 +38,33 @@ int DmaiEncoder::stop()
 	return BaseLmmElement::stop();
 }
 
+int DmaiEncoder::encodeNext()
+{
+	if (inputBuffers.size() == 0)
+		return -ENOENT;
+	RawBuffer *buf = inputBuffers.first();
+	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
+	int err = encode(dmai);
+	if (err)
+		return err;
+	inputBuffers.removeFirst();
+	delete buf;
+	return 0;
+}
+
 int DmaiEncoder::encode(Buffer_Handle buffer)
 {
+#if 1
+	Buffer_Handle hDstBuf = BufTab_getFreeBuf(hBufTab);
+	if (!hDstBuf) {
+		/*
+		 * This is not an error, probably buffers are not finished yet
+		 * and we don't need to encode any more
+		 */
+		mInfo("cannot get new buf from buftab");
+		return -ENOENT;
+	}
+
 	BufferGfx_Dimensions dim;
 	/* Make sure the whole buffer is used for input */
 	BufferGfx_resetDimensions(buffer);
@@ -51,10 +79,27 @@ int DmaiEncoder::encode(Buffer_Handle buffer)
 		mDebug("Failed to encode video buffer");
 		return -EIO;
 	}
-
+	RawBuffer *buf = new RawBuffer(this);
+	buf->setRefData(Buffer_getUserPtr(hDstBuf), Buffer_getSize(hDstBuf));
+	buf->addBufferParameter("dmaiBuffer", (int)hDstBuf);
+	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
+	outputBuffers << buf;
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
+#endif
 	return 0;
+}
+
+void DmaiEncoder::aboutDeleteBuffer(RawBuffer *buf)
+{
+	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
+	BufTab_freeBuf(dmai);
+}
+
+void DmaiEncoder::initCodecEngine()
+{
+	CERuntime_init();
+	Dmai_init();
 }
 
 int DmaiEncoder::startCodec()
@@ -64,13 +109,14 @@ int DmaiEncoder::startCodec()
 	BufferGfx_Attrs         gfxAttrs            = BufferGfx_Attrs_DEFAULT;
 	VIDENC1_Params         *params;
 	VIDENC1_DynamicParams  *dynParams;
+	/* DM365 only supports YUV420P semi planar chroma format */
 	ColorSpace_Type         colorSpace = ColorSpace_YUV420PSEMI;
 	Bool                    localBufferAlloc = TRUE;
 	Int32                   bufSize;
 	int videoBitRate = -1;
 	int outBufSize;
 
-	const char *engineName = "codecServer";
+	const char *engineName = "encode";
 	/* Open the codec engine */
 	hEngine = Engine_open((char *)engineName, NULL, NULL);
 
@@ -87,6 +133,8 @@ int DmaiEncoder::startCodec()
 			 (envp->imageHeight == VideoStd_1080I_HEIGHT))) {
 		localBufferAlloc = FALSE;
 	}
+#else
+	localBufferAlloc = false;
 #endif
 
 	/* Use supplied params if any, otherwise use defaults */
@@ -130,7 +178,7 @@ int DmaiEncoder::startCodec()
 	dynParams->targetFrameRate = params->maxFrameRate;
 	dynParams->interFrameInterval = 0;
 
-	QString codecName = "mpeg4enc";
+	QString codecName = "h264enc";
 	/* Create the video encoder */
 	hCodec = Venc1_create(hEngine, (Char *)qPrintable(codecName), params, dynParams);
 
@@ -139,8 +187,14 @@ int DmaiEncoder::startCodec()
 		return -EINVAL;
 	}
 
-	/* Store the output buffer size in the environment */
+	/* Allocate output buffers */
+	Buffer_Attrs bAttrs = Buffer_Attrs_DEFAULT;
 	outBufSize = Venc1_getOutBufSize(hCodec);
+	outputBufTab = BufTab_create(3, outBufSize, &bAttrs);
+	if (outputBufTab == NULL) {
+		mDebug("unable to allocate output buffer tab of size %d for %d buffers", outBufSize, 3);
+		return -ENOMEM;
+	}
 
 	if (localBufferAlloc == TRUE) {
 		gfxAttrs.colorSpace = colorSpace;
