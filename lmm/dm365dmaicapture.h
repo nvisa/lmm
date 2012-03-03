@@ -1,5 +1,5 @@
-#ifndef DM365CAPTURE_H
-#define DM365CAPTURE_H
+#ifndef DM365DMAICAPTURE_H
+#define DM365DMAICAPTURE_H
 
 #include "baselmmelement.h"
 
@@ -13,11 +13,11 @@
 
 class captureThread;
 
-class DM365Capture : public BaseLmmElement
+class DM365DmaiCapture : public BaseLmmElement
 {
 	Q_OBJECT
 public:
-	explicit DM365Capture(QObject *parent = 0);
+	explicit DM365DmaiCapture(QObject *parent = 0);
 	QSize captureSize();
 	int putFrame(Buffer_Handle handle);
 	Buffer_Handle getFrame();
@@ -43,4 +43,4 @@ private:
 	int captureCount;
 };
 
-#endif // DM365CAPTURE_H
+#endif // DM365DMAICAPTURE_H

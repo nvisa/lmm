@@ -1,4 +1,4 @@
-#include "dm365capture.h"
+#include "dm365dmaicapture.h"
 #include "rawbuffer.h"
 
 #include <emdesk/debug.h>
@@ -12,7 +12,7 @@
 class captureThread : public QThread
 {
 public:
-	captureThread(DM365Capture *parent)
+	captureThread(DM365DmaiCapture *parent)
 	{
 		v4l2 = parent;
 	}
@@ -39,12 +39,12 @@ public:
 		}*/
 	}
 private:
-	DM365Capture *v4l2;
+	DM365DmaiCapture *v4l2;
 	QList<v4l2_buffer *> buffers;
 	bool exit;
 };
 
-DM365Capture::DM365Capture(QObject *parent) :
+DM365DmaiCapture::DM365DmaiCapture(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	hCapture = NULL;
@@ -53,12 +53,12 @@ DM365Capture::DM365Capture(QObject *parent) :
 	captureCount = 0;
 }
 
-QSize DM365Capture::captureSize()
+QSize DM365DmaiCapture::captureSize()
 {
 	return QSize(imageWidth, imageHeight);
 }
 
-int DM365Capture::putFrame(Buffer_Handle handle)
+int DM365DmaiCapture::putFrame(Buffer_Handle handle)
 {
 	if (Capture_put(hCapture, handle) < 0) {
 		mDebug("Failed to put capture buffer");
@@ -67,7 +67,7 @@ int DM365Capture::putFrame(Buffer_Handle handle)
 	return 0;
 }
 
-Buffer_Handle DM365Capture::getFrame()
+Buffer_Handle DM365DmaiCapture::getFrame()
 {
 	Buffer_Handle handle;
 	if (Capture_get(hCapture, &handle) < 0) {
@@ -77,7 +77,7 @@ Buffer_Handle DM365Capture::getFrame()
 	return handle;
 }
 
-int DM365Capture::start()
+int DM365DmaiCapture::start()
 {
 	if (!cThread) {
 		captureCount = 0;
@@ -91,7 +91,7 @@ int DM365Capture::start()
 	return 0;
 }
 
-int DM365Capture::stop()
+int DM365DmaiCapture::stop()
 {
 	/*cThread->stop();
 	cThread->wait();*/
@@ -101,7 +101,7 @@ int DM365Capture::stop()
 	return BaseLmmElement::stop();
 }
 
-RawBuffer * DM365Capture::nextBuffer()
+RawBuffer * DM365DmaiCapture::nextBuffer()
 {
 	Buffer_Handle dmaibuf = getFrame();
 	if (!dmaibuf)
@@ -117,13 +117,13 @@ RawBuffer * DM365Capture::nextBuffer()
 	return newbuf;
 }
 
-int DM365Capture::finishedBuffer(RawBuffer *buf)
+int DM365DmaiCapture::finishedBuffer(RawBuffer *buf)
 {
 	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
 	return putFrame(dmai);
 }
 
-void DM365Capture::aboutDeleteBuffer(RawBuffer *buf)
+void DM365DmaiCapture::aboutDeleteBuffer(RawBuffer *buf)
 {
 	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
 	putFrame(dmai);
@@ -135,7 +135,7 @@ void DM365Capture::aboutDeleteBuffer(RawBuffer *buf)
  * then imp_chained is 1 and color space cannot
  * be NV12(YUV420PSEMI)
  */
-int DM365Capture::openCamera()
+int DM365DmaiCapture::openCamera()
 {
 	Capture_Attrs cAttrs   = Capture_Attrs_DM365_DEFAULT;
 	BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
@@ -220,7 +220,7 @@ int DM365Capture::openCamera()
 	return 0;
 }
 
-int DM365Capture::closeCamera()
+int DM365DmaiCapture::closeCamera()
 {
 	if (hCapture) {
 		mDebug("deleting capture handle");

@@ -77,11 +77,11 @@ dm365 {
     QMAKE_CXXFLAGS += -march=armv5t -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/dmai_2_20_00_15/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/codec-engine_2_26_02_11/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/framework-components_2_26_00_01/packages" -I"/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/xdais_6_26_01_03/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/linuxutils_2_26_01_02/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/codecs-dm365_4_02_00_00/packages" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/codec-engine_2_26_02_11/examples" -I"/home/caglar/myfs/work/tasks/aselsan/dm365/ti-dvsdk_dm365-evm_4_02_00_06/xdctools_3_16_03_36/packages" -I"/home/caglar/myfs/work/tasks/source-codes/bilkon/lmm-demo-build-desktop-Qt_4_7_1__arm__Release/dm365_config/.."  -Dxdc_target_types__="gnu/targets/arm/std.h" -Dxdc_target_name__=GCArmv5T -Dxdc_cfg__header__="/home/caglar/myfs/work/tasks/source-codes/bilkon/lmm-demo-build-desktop-Qt_4_7_1__arm__Release/dm365_config/package/cfg/dm365_xv5T.h"
     SOURCES += \
         dmaiencoder.cpp \
-        dm365capture.cpp \
+        dm365dmaicapture.cpp \
         h264encoder.cpp \
 
     HEADERS += dmaiencoder.h \
-        dm365capture.h \
+        dm365dmaicapture.h \
         h264encoder.h \
 
     xdc.files += ../dm365.pri
