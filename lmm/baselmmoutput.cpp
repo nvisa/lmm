@@ -15,6 +15,7 @@ BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 	fpsTiming = new QTime;
 	fps = fpsBufferCount = 0;
 	fpsTiming->start();
+	dontDeleteBuffers = false;
 }
 
 int BaseLmmOutput::start()
@@ -37,6 +38,8 @@ qint64 BaseLmmOutput::getLatency()
 
 int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 {
+	if (!streamTime)
+		return -ENOENT;
 	int err = 0;
 	if (streamTime->getStartTime() == 0) {
 		streamTime->setStartTime(streamTime->getCurrentTime());
@@ -62,8 +65,11 @@ int BaseLmmOutput::checkBufferTimeStamp(RawBuffer *buf, int jitter)
 	last_time = time;
 	if (!err) {
 		outputLatency = time - rpts;
-		mDebug("%s: outputLatency=%lld outputDelay=%d time=%lld rpts=%lld runningTime=%lld fps=%d", this->metaObject()->className(),
-			   outputLatency, outputDelay, time - streamTime->getStartPts(), rpts - streamTime->getStartPts(), streamTime->getFreeRunningTime(), fps);
+		mDebug("%s: outputLatency=%lld outputDelay=%d time=%lld rpts=%lld runningTime=%lld fps=%d",
+			   this->metaObject()->className(),
+			   outputLatency, outputDelay, time - streamTime->getStartPts(),
+			   rpts - streamTime->getStartPts(),
+			   streamTime->getFreeRunningTime(), fps);
 		fpsBufferCount++;
 		if (fpsTiming->elapsed() > 1000) {
 			int elapsed = fpsTiming->restart();
@@ -92,6 +98,7 @@ int BaseLmmOutput::output()
 	sentBufferCount++;
 	inputBuffers.removeFirst();
 	int err = outputBuffer(buf);
-	delete buf;
+	if (!dontDeleteBuffers)
+		delete buf;
 	return err;
 }

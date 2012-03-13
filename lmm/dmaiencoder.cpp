@@ -40,21 +40,28 @@ int DmaiEncoder::stop()
 
 int DmaiEncoder::encodeNext()
 {
+	int err = 0;
 	if (inputBuffers.size() == 0)
 		return -ENOENT;
-	RawBuffer *buf = inputBuffers.first();
-	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
-	int err = encode(dmai);
+	RawBuffer *buf = inputBuffers.takeFirst();
+	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
+			.toInt();
+	if (!dmai) {
+		mDebug("cannot get dmai buffer");
+		err = -ENOENT;
+		goto out;
+	}
+	err = encode(dmai);
 	if (err)
-		return err;
-	inputBuffers.removeFirst();
+		goto out;
+out:
 	delete buf;
-	return 0;
+	return err;
 }
 
 int DmaiEncoder::encode(Buffer_Handle buffer)
 {
-#if 1
+	mInfo("start");
 	Buffer_Handle hDstBuf = BufTab_getFreeBuf(hBufTab);
 	if (!hDstBuf) {
 		/*
@@ -74,25 +81,34 @@ int DmaiEncoder::encode(Buffer_Handle buffer)
 	dim.height = Dmai_roundUp(dim.height, CODECHEIGHTALIGN);
 	BufferGfx_setDimensions(buffer, &dim);
 
+	mInfo("invoking venc1_process: width=%d height=%d",
+		  (int)dim.width, (int)dim.height);
 	/* Encode the video buffer */
 	if (Venc1_process(hCodec, buffer, hDstBuf) < 0) {
 		mDebug("Failed to encode video buffer");
+		BufferGfx_getDimensions(buffer, &dim);
+		mInfo("colorspace=%d dims: x=%d y=%d width=%d height=%d linelen=%d",
+			  BufferGfx_getColorSpace(buffer),
+			  (int)dim.x, (int)dim.y, (int)dim.width,
+			  (int)dim.height, (int)dim.lineLength);
+		BufTab_freeBuf(hDstBuf);
 		return -EIO;
 	}
 	RawBuffer *buf = new RawBuffer(this);
-	buf->setRefData(Buffer_getUserPtr(hDstBuf), Buffer_getSize(hDstBuf));
+	buf->setRefData(Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
 	buf->addBufferParameter("dmaiBuffer", (int)hDstBuf);
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	outputBuffers << buf;
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
-#endif
+
 	return 0;
 }
 
 void DmaiEncoder::aboutDeleteBuffer(RawBuffer *buf)
 {
-	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
+	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
+			.toInt();
 	BufTab_freeBuf(dmai);
 }
 
@@ -124,18 +140,6 @@ int DmaiEncoder::startCodec()
 		mDebug("Failed to open codec engine %s", engineName);
 		return -ENOENT;
 	}
-#if 0
-	/* TODO: In case of HD resolutions the video buffer will be allocated
-		   by capture thread. */
-	if (((envp->imageWidth == VideoStd_720P_WIDTH) &&
-		 (envp->imageHeight == VideoStd_720P_HEIGHT)) ||
-			((envp->imageWidth == VideoStd_1080I_WIDTH) &&
-			 (envp->imageHeight == VideoStd_1080I_HEIGHT))) {
-		localBufferAlloc = FALSE;
-	}
-#else
-	localBufferAlloc = false;
-#endif
 
 	/* Use supplied params if any, otherwise use defaults */
 	params = &defaultParams;
@@ -224,41 +228,7 @@ int DmaiEncoder::startCodec()
 			mDebug("Failed to allocate contiguous buffers");
 			return -ENOMEM;
 		}
-#if 0
-		/* Send buffers to the capture thread to be ready for main loop */
-		for (bufIdx = 0; bufIdx < VIDEO_PIPE_SIZE; bufIdx++) {
-			if (Fifo_put(envp->hCaptureInFifo,
-						 BufTab_getBuf(hBufTab, bufIdx)) < 0) {
-				ERR("Failed to send buffer to display thread\n");
-				cleanup(THREAD_FAILURE);
-			}
-		}
-#else
-		/* TODO: This set by me */
-		Venc1_setBufTab(hCodec, hBufTab);
-#endif
-	} else {
-#if 0
-		/* Send buffers to the capture thread to be ready for main loop */
-		for (bufIdx = 0; bufIdx < VIDEO_PIPE_SIZE; bufIdx++) {
-			fifoRet = Fifo_get(envp->hCaptureOutFifo, &hCapBuf);
 
-			if (fifoRet < 0) {
-				ERR("Failed to get buffer from capture thread\n");
-				cleanup(THREAD_FAILURE);
-			}
-
-			/* Did the capture thread flush the fifo? */
-			if (fifoRet == Dmai_EFLUSH) {
-				cleanup(THREAD_SUCCESS);
-			}
-			/* Return buffer to capture thread */
-			if (Fifo_put(envp->hCaptureInFifo, hCapBuf) < 0) {
-				ERR("Failed to send buffer to display thread\n");
-				cleanup(THREAD_FAILURE);
-			}
-		}
-#endif
 	}
 
 	return 0;
@@ -272,6 +242,9 @@ int DmaiEncoder::stopCodec()
 		Venc1_delete(hCodec);
 		hCodec = NULL;
 	}
+
+	BufTab_delete(hBufTab);
+	BufTab_delete(outputBufTab);
 
 	if (hEngine) {
 		mDebug("closing codec engine");

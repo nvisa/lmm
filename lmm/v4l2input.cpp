@@ -105,10 +105,7 @@ int V4l2Input::closeCamera()
 	for (i = 0; i < 3; i++)
 		munmap(userptr[i], v4l2buf[i]->length);
 
-	/* Stop the video streaming */
-	if (ioctl(fd, VIDIOC_STREAMOFF, &type) == -1) {
-		mDebug("VIDIOC_STREAMOFF failed on device");
-	}
+	stopStreaming();
 
 	qDeleteAll(v4l2buf);
 	v4l2buf.clear();
@@ -125,47 +122,26 @@ int V4l2Input::openCamera()
 	struct v4l2_capability cap;
 	struct v4l2_format fmt;
 	struct v4l2_input input;
-	enum v4l2_buf_type type;
 	int width = captureWidth, height = captureHeight;
 	int err = 0;
-	/* Open video capture device */
-	fd = open(qPrintable(deviceName), O_RDWR, 0);
-	if (fd == -1) {
-		mDebug("Cannot open capture device %s", qPrintable(deviceName));
-		return -ENODEV;
-	}
-	err = inputIndex;
-	if (ioctl(fd, VIDIOC_S_INPUT, &err) == -1) {
-		mDebug("Failed to set video input to %d, err is %d", inputIndex, errno);
-		err = ENODEV;
-		goto cleanup_devnode;
-	}
-	input.index = inputIndex;
-	if (ioctl(fd, VIDIOC_ENUMINPUT, &input) == -1) {
-		mDebug("Unable to enumerate input");
-	} else
-		mDebug("Input supports: 0x%llx", input.std);
-	if (ioctl(fd, VIDIOC_S_STD, &std_id) == -1) {
-		mDebug("Unable to set video standard");
-		err = EINVAL;
-		goto cleanup_devnode;
-	}
-	/* Query for capture device capabilities */
-	if (ioctl(fd, VIDIOC_QUERYCAP, &cap) == -1) {
-		mDebug("Unable to query device for capture capabilities");
-		err = errno;
-		goto cleanup_devnode;
-	}
-	if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
-		mDebug("Device does not support capturing");
-		err = EINVAL;
-		goto cleanup_devnode;
-	}
-	if (!(cap.capabilities & V4L2_CAP_STREAMING)) {
-		mDebug("Device does not support streaming");
-		err = EINVAL;
-		goto cleanup_devnode;
-	}
+
+	err = openDeviceNode();
+	if (err)
+		return err;
+
+	enumInput(&input);
+	err = setInput(&input);
+	if (err)
+		return err;
+
+	err = setStandard(&std_id);
+	if (err)
+		return err;
+
+	err = queryCapabilities(&cap);
+	if (err)
+		return err;
+
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (ioctl(fd, VIDIOC_G_FMT, &fmt) == -1) {
 		mDebug("Unable to get VIDIOC_G_FMT");
@@ -193,13 +169,7 @@ int V4l2Input::openCamera()
 	}
 
 	/* Start the video streaming */
-	type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-	if (ioctl(fd, VIDIOC_STREAMON, &type) == -1) {
-		mDebug("VIDIOC_STREAMON failed on device");
-		err = EPERM;
-		goto cleanup_devnode;
-	}
+	startStreaming();
 
 	return 0;
 
@@ -346,6 +316,109 @@ bool V4l2Input::captureLoop()
 		outputBuffers << newbuf;
 	}
 	return false;
+}
+
+int V4l2Input::openDeviceNode()
+{
+	/* Open video capture device */
+	fd = open(qPrintable(deviceName), O_RDWR, 0);
+	if (fd == -1) {
+		mDebug("Cannot open capture device %s", qPrintable(deviceName));
+		return -ENODEV;
+	}
+	return 0;
+}
+
+int V4l2Input::enumInput(v4l2_input *input)
+{
+	if (ioctl(fd, VIDIOC_ENUMINPUT, input) == -1) {
+		mDebug("Unable to enumerate input");
+		return -EINVAL;
+	} else
+		mDebug("Input supports: 0x%llx", input->std);
+	return 0;
+}
+
+int V4l2Input::setInput(v4l2_input *input)
+{
+	if (ioctl(fd, VIDIOC_S_INPUT, input) == -1) {
+		mDebug("Failed to set video input to %d, err is %d", inputIndex, errno);
+		return -ENODEV;
+	}
+	return 0;
+}
+
+int V4l2Input::setStandard(v4l2_std_id *std_id)
+{
+	if (ioctl(fd, VIDIOC_S_STD, std_id) == -1) {
+		mDebug("Unable to set video standard");
+		return -EINVAL;
+	}
+	return 0;
+}
+
+int V4l2Input::queryCapabilities(v4l2_capability *cap)
+{
+	/* Query for capture device capabilities */
+	if (ioctl(fd, VIDIOC_QUERYCAP, cap) == -1) {
+		mDebug("Unable to query device for capture capabilities");
+		return errno;
+	}
+	if (!(cap->capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
+		mDebug("Device does not support capturing");
+		return -EINVAL;
+	}
+	if (!(cap->capabilities & V4L2_CAP_STREAMING)) {
+		mDebug("Device does not support streaming");
+		return -EINVAL;
+	}
+	return 0;
+}
+
+int V4l2Input::queryStandard()
+{
+	return 0;
+}
+
+int V4l2Input::setFormat(unsigned int chromaFormat, int width, int height)
+{
+	struct v4l2_format fmt;
+	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	if (ioctl(fd, VIDIOC_G_FMT, &fmt) == -1) {
+		mDebug("Unable to get VIDIOC_G_FMT");
+		return -EINVAL;
+	}
+	fmt.fmt.pix.width        = width;
+	fmt.fmt.pix.height       = height;
+	fmt.fmt.pix.bytesperline = width * 2;
+	fmt.fmt.pix.pixelformat  = chromaFormat;
+	fmt.fmt.pix.field        = V4L2_FIELD_NONE;
+	if (ioctl(fd, VIDIOC_S_FMT, &fmt) == -1) {
+		mDebug("Unable to set VIDIOC_S_FMT");
+		return -EINVAL;
+	}
+	return 0;
+}
+
+int V4l2Input::startStreaming()
+{
+	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	if (ioctl(fd, VIDIOC_STREAMON, &type) == -1) {
+		mDebug("VIDIOC_STREAMON failed on device");
+		return -EPERM;
+	}
+	return 0;
+}
+
+int V4l2Input::stopStreaming()
+{
+	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	/* Stop the video streaming */
+	if (ioctl(fd, VIDIOC_STREAMOFF, &type) == -1) {
+		mDebug("VIDIOC_STREAMOFF failed on device");
+		return -errno;
+	}
+	return 0;
 }
 
 /**

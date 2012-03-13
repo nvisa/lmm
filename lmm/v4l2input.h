@@ -43,6 +43,16 @@ protected:
 	virtual int putFrame(struct v4l2_buffer *);
 	virtual v4l2_buffer * getFrame();
 	virtual bool captureLoop();
+
+	int openDeviceNode();
+	int enumInput(v4l2_input *input);
+	int setInput(v4l2_input *input);
+	int setStandard(v4l2_std_id *std_id);
+	int queryCapabilities(v4l2_capability *cap);
+	int queryStandard();
+	int setFormat(unsigned int chromaFormat, int width, int height);
+	int startStreaming();
+	int stopStreaming();
 };
 
 #endif // V4L2INPUT_H

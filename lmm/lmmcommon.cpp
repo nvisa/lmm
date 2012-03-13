@@ -1,5 +1,6 @@
 #include "lmmcommon.h"
 #include "dmaidecoder.h"
+#include "dmaiencoder.h"
 #include "baselmmplayer.h"
 #include "baselmmdemux.h"
 #include "circularbuffer.h"
@@ -16,22 +17,31 @@
 #include <QBrush>
 #include <QMetaObject>
 #include <QThreadPool>
+#include <QCoreApplication>
 
 static void signalHandler(int signalNumber)
 {
 	qWarning("main: Received signal %d, thread id is %p", signalNumber, QThread::currentThreadId());
 	if (signalNumber == SIGSEGV) {
+#ifdef CONFIG_DM6446
 		DmaiDecoder::cleanUpDsp();
-		exit(0);
+#endif
+		QCoreApplication::exit(0);
 	} else if (signalNumber == SIGINT) {
+#ifdef CONFIG_DM6446
 		DmaiDecoder::cleanUpDsp();
-		exit(0);
+#endif
+		QCoreApplication::exit(0);
 	} else if (signalNumber == SIGTERM) {
+#ifdef CONFIG_DM6446
 		DmaiDecoder::cleanUpDsp();
-		exit(0);
+#endif
+		QCoreApplication::exit(0);
 	} else if (signalNumber == SIGABRT) {
+#ifdef CONFIG_DM6446
 		DmaiDecoder::cleanUpDsp();
-		exit(0);
+#endif
+		QCoreApplication::exit(0);
 	}
 }
 
@@ -44,8 +54,12 @@ int LmmCommon::init()
 {
 	QThreadPool::globalInstance()->setMaxThreadCount(5);
 	initDebug();
+#ifdef CONFIG_DM6446
 	HardwareOperations::writeRegister(0x1c7260c, 0x3004);
 	DmaiDecoder::initCodecEngine();
+#else
+	DmaiEncoder::initCodecEngine();
+#endif
 	return 0;
 }
 
@@ -66,6 +80,7 @@ int LmmCommon::installSignalHandlers()
 	return 0;
 }
 
+#ifdef CONFIG_DM6446
 static QGraphicsScene *scene = NULL;
 static QMap<BaseLmmElement *, QList<QGraphicsSimpleTextItem *> > visuals;
 #define DEMUX_X (10 + 10 + rectW)
@@ -183,3 +198,5 @@ int LmmCommon::showDecodeInfo(QGraphicsView *view, BaseLmmPlayer *dec)
 	}
 	return 0;
 }
+#else
+#endif
