@@ -17,6 +17,8 @@ SOURCES += \
     fileoutput.cpp \
     lmmcommon.cpp \
     cameraplayer.cpp \
+    v4l2input.cpp \
+    v4l2output.cpp
 
 HEADERS  += \
     filesource.h \
@@ -30,6 +32,8 @@ HEADERS  += \
     fileoutput.h \
     lmmcommon.h \
     cameraplayer.h \
+    v4l2input.h \
+    v4l2output.h
 
 alsa {
     HEADERS += \
@@ -78,11 +82,13 @@ dm365 {
     SOURCES += \
         dmaiencoder.cpp \
         dm365dmaicapture.cpp \
+        dm365camerainput.cpp \
         h264encoder.cpp \
 
     HEADERS += dmaiencoder.h \
         dm365dmaicapture.h \
         h264encoder.h \
+        dm365camerainput.h \
 
     xdc.files += ../dm365.pri
     xdc.files += ../config.bld
@@ -93,23 +99,22 @@ dm365 {
 
 dm6446 {
     include(../dm6446.pri)
-SOURCES += \
-    dmaidecoder.cpp \
-    fboutput.cpp \
-    v4l2input.cpp \
-    dvb/tsdemux.cpp \
-    dvb/dvbutils.cpp \
-    blec32tunerinput.cpp \
-    blec32fboutput.cpp \
+    DEFINES += CONFIG_DM6446
+    SOURCES += \
+        dmaidecoder.cpp \
+        fboutput.cpp \
+        dvb/tsdemux.cpp \
+        dvb/dvbutils.cpp \
+        blec32tunerinput.cpp \
+        blec32fboutput.cpp \
 
-HEADERS  += \
-    dmaidecoder.h \
-    fboutput.h \
-    v4l2input.h \
-    dvb/tsdemux.h \
-    dvb/dvbutils.h \
-    blec32tunerinput.h \
-    blec32fboutput.h \
+    HEADERS  += \
+        dmaidecoder.h \
+        fboutput.h \
+        dvb/tsdemux.h \
+        dvb/dvbutils.h \
+        blec32tunerinput.h \
+        blec32fboutput.h \
 
     xdc.files += ../xdc_linker.cmd
     xdc.path = /usr/local/share/lmm
