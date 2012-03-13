@@ -3,7 +3,8 @@ TEMPLATE = lib
 CONFIG += staticlib
 
 QT += sql
-CONFIG += ffmpeg mad alsa dm6446
+
+include (build_config.pri)
 
 SOURCES += \
     filesource.cpp \
@@ -141,11 +142,12 @@ arm {
     DEFINES += TARGET_ARM
 }
 
-headers.files = $$HEADERS lmm-arm.pri
+headers.files = $$HEADERS lmm-arm.pri build_config.pri
 headers.path = /usr/local/include/lmm
 
 target.path = /usr/local/lib
 
 INSTALLS += target headers xdc
 
-OTHER_FILES +=
+OTHER_FILES += \
+    build_config.pri
