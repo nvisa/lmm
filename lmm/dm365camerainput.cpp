@@ -71,8 +71,6 @@ int DM365CameraInput::openCamera()
 	/* When we use 720P_30 we get error */
 	videoStd = VideoStd_720P_60;
 
-	/* Note: we only support D1, 720P and 1080P input */
-
 	/* Calculate the dimensions of a video standard given a color space */
 	if (BufferGfx_calcDimensions(videoStd, colorSpaceBuffers, &capDim) < 0) {
 		mDebug("Failed to calculate Buffer dimensions");
@@ -83,7 +81,7 @@ int DM365CameraInput::openCamera()
 	 * Capture driver provides 32 byte aligned data. We 32 byte align the
 	 * capture and video buffers to perform zero copy encoding.
 	 */
-	capDim.width = Dmai_roundUp(capDim.width,32);
+	capDim.width = Dmai_roundUp(capDim.width, 32);
 	captureWidth = capDim.width;
 	captureHeight = capDim.height;
 
@@ -127,7 +125,7 @@ int DM365CameraInput::openCamera()
 		mDebug("Failed to create capture device. Is video input connected?");
 		return -ENOENT;
 	}
-
+	fd = *((int *)hCapture);
 	//fpsWorkaround();
 
 	for (int i = 0; i < BufTab_getNumBufs(bufTab); i++) {
@@ -251,25 +249,10 @@ int DM365CameraInput::closeCamera()
 	return 0;
 }
 
-extern "C" {
-	typedef struct Capture_Object {
-		Int                  fd;
-		Int16                userAlloc;
-		Int16                started;
-		Int32                topOffset;
-		BufTab_Handle        hBufTab;
-		VideoStd_Type        videoStd;
-		struct _VideoBufDesc *bufDescs;
-		Int                  resizerFd;
-		Int                  previewerFd;
-	} Capture_Object;
-}
 int DM365CameraInput::fpsWorkaround()
 {
-#ifdef USE_DMAI
-	fd = hCapture->fd;
-#endif
 	struct v4l2_streamparm streamparam;
+	Dmai_clear(streamparam);
 	streamparam.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	streamparam.parm.capture.timeperframe.numerator = 1;
 	streamparam.parm.capture.timeperframe.denominator = 30;
