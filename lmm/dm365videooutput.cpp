@@ -10,20 +10,30 @@
 #include <ti/sdo/dmai/VideoStd.h>
 #include <ti/sdo/dmai/BufferGfx.h>
 #include <ti/sdo/dmai/ColorSpace.h>
+#include <ti/sdo/dmai/Framecopy.h>
 
 static BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
 static Display_Attrs dAttrs = Display_Attrs_DM365_VID_DEFAULT;
 
-static void videoCopy(RawBuffer *buf, Buffer_Handle dispbuf, Buffer_Handle dmai)
+void DM365VideoOutput::
+	videoCopy(RawBuffer *buf, Buffer_Handle dispbuf, Buffer_Handle dmai)
 {
-	int linelen = buf->getBufferParameter("linelen").toInt();
-	char *dst = (char *)Buffer_getUserPtr(dispbuf);
-	char *src = (char *)Buffer_getUserPtr(dmai);
-	int dstTotal = gfxAttrs.dim.lineLength * gfxAttrs.dim.height;
-	int j = 0;
-	for (int i = 0; i < dstTotal; i += gfxAttrs.dim.lineLength) {
-		memcpy(dst + i, src + j, gfxAttrs.dim.lineLength);
-		j += linelen;
+	if (hFrameCopy == NULL) {
+		int linelen = buf->getBufferParameter("linelen").toInt();
+		char *dst = (char *)Buffer_getUserPtr(dispbuf);
+		char *src = (char *)Buffer_getUserPtr(dmai);
+		int dstTotal = gfxAttrs.dim.lineLength * gfxAttrs.dim.height;
+		int j = 0;
+		for (int i = 0; i < dstTotal; i += gfxAttrs.dim.lineLength) {
+			memcpy(dst + i, src + j, gfxAttrs.dim.lineLength);
+			j += linelen;
+		}
+	} else {
+		if (!frameCopyConfigured) {
+			Framecopy_config(hFrameCopy, dmai, dispbuf);
+			frameCopyConfigured = true;
+		}
+		Framecopy_execute(hFrameCopy, dmai, dispbuf);
 	}
 }
 
@@ -31,6 +41,14 @@ DM365VideoOutput::DM365VideoOutput(QObject *parent) :
 	V4l2Output(parent)
 {
 	output = COMPONENT;
+
+	Framecopy_Attrs fcAttrs;
+	fcAttrs.accel = true;
+	fcAttrs.rszRate = 0;
+	fcAttrs.sdma = false;
+	hFrameCopy = Framecopy_create(&fcAttrs);
+	if (hFrameCopy)
+		frameCopyConfigured = false;
 }
 
 int DM365VideoOutput::outputBuffer(RawBuffer *buf)

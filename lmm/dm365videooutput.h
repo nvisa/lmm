@@ -3,6 +3,8 @@
 
 #include "v4l2output.h"
 
+struct Framecopy_Object;
+
 class DM365VideoOutput : public V4l2Output
 {
 	Q_OBJECT
@@ -22,6 +24,10 @@ signals:
 public slots:
 private:
 	videoOutput output;
+	Framecopy_Object *hFrameCopy;
+	bool frameCopyConfigured;
+
+	void videoCopy(RawBuffer *buf, Buffer_Handle dispbuf, Buffer_Handle dmai);
 };
 
 #endif // DM365VIDEOOUTPUT_H
