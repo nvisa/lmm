@@ -18,13 +18,13 @@ class V4l2Output : public BaseLmmOutput
 	Q_OBJECT
 public:
 	explicit V4l2Output(QObject *parent = 0);
-	int outputBuffer(RawBuffer *buf);
-	int start();
-	int stop();
+	virtual int outputBuffer(RawBuffer *buf);
+	virtual int start();
+	virtual int stop();
 	void aboutDeleteBuffer(RawBuffer *buf);
 signals:
 public slots:
-private:
+protected:
 	Display_Handle hDisplay;
 	BufTab_Handle hDispBufTab;
 	QMap<Buffer_Handle, RawBuffer *> bufferPool;

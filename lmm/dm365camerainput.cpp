@@ -137,6 +137,7 @@ int DM365CameraInput::openCamera()
 		newbuf->setRefData(Buffer_getUserPtr(hBuf), Buffer_getSize(hBuf));
 		newbuf->addBufferParameter("width", captureWidth);
 		newbuf->addBufferParameter("height", captureHeight);
+		newbuf->addBufferParameter("linelen", (int)gfxAttrs.dim.lineLength);
 		newbuf->addBufferParameter("dmaiBuffer", (int)hBuf);
 		bufferPool.insert(hBuf, newbuf);
 	}

@@ -4,7 +4,7 @@
 #include "dmaiencoder.h"
 #include "rawbuffer.h"
 #include "fboutput.h"
-#include "v4l2output.h"
+#include "dm365videooutput.h"
 
 #include <emdesk/debug.h>
 
@@ -20,8 +20,11 @@ H264Encoder::H264Encoder(QObject *parent) :
 	encoder = new DmaiEncoder;
 	elements << encoder;
 	//output = new FileOutput;
-	output = new V4l2Output;
+	DM365VideoOutput *dm365Output = new DM365VideoOutput;
+	dm365Output->setVideoOutput(DM365VideoOutput::COMPOSITE);
+	output = dm365Output;
 	output->syncOnClock(false);
+
 	elements << output;
 
 	timer = new QTimer(this);

@@ -186,8 +186,8 @@ int V4l2Input::adjustCropping(int width, int height)
 	memset (&cropcap, 0, sizeof (cropcap));
 	cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-	if (-1 == ioctl (fd, VIDIOC_CROPCAP, &cropcap)) {
-		printf("Unable to get crop capabilities");
+	if (-1 == ioctl(fd, VIDIOC_CROPCAP, &cropcap)) {
+		mDebug("Unable to get crop capabilities: %s", strerror(errno));
 		return -1;
 	}
 
@@ -208,6 +208,7 @@ int V4l2Input::adjustCropping(int width, int height)
 		return -errno;
 	}
 
+	mDebug("image cropped to %dx%d", width, height);
 	return 0;
 }
 

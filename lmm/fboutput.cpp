@@ -45,7 +45,7 @@ int FbOutput::openFb(QString filename)
 	}
 	if (fbAddr == MAP_FAILED) {
 		::close(fd);
-		mDebug("unable to map fb memory");
+		mDebug("unable to map fb memory, error is %d", errno);
 		return -EPERM;
 	}
 	return 0;
@@ -94,8 +94,10 @@ int FbOutput::outputBuffer(RawBuffer *buf)
 int FbOutput::start()
 {
 	int err = openFb("/dev/fb3");
-	if (err)
+	if (err) {
 		mDebug("error opening framebuffer");
+		return err;
+	}
 
 	return BaseLmmOutput::start();
 }
