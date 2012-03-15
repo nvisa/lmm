@@ -1,6 +1,10 @@
 #include "lmmcommon.h"
+#ifdef CONFIG_DM6446
 #include "dmaidecoder.h"
+#endif
+#ifdef CONFIG_DM365
 #include "dmaiencoder.h"
+#endif
 #include "baselmmplayer.h"
 #include "baselmmdemux.h"
 #include "circularbuffer.h"
@@ -18,30 +22,45 @@
 #include <QMetaObject>
 #include <QThreadPool>
 #include <QCoreApplication>
+#include <QMap>
+
+static void platformCleanUp()
+{
+#ifdef CONFIG_DM6446
+	//DmaiDecoder::cleanUpDsp();
+#endif
+}
+
+static QMap<int, int> signalCount;
+
+static void platformInit()
+{
+#ifdef CONFIG_DM6446
+	HardwareOperations::writeRegister(0x1c7260c, 0x3004);
+	DmaiDecoder::initCodecEngine();
+#endif
+#ifdef CONFIG_DM365
+	DmaiEncoder::initCodecEngine();
+#endif
+}
 
 static void signalHandler(int signalNumber)
 {
-	qWarning("main: Received signal %d, thread id is %p", signalNumber, QThread::currentThreadId());
+	signalCount[signalNumber] += 1;
+	if (signalCount[signalNumber] == 1)
+		qWarning("main: Received signal %d, thread id is %p", signalNumber, QThread::currentThreadId());
 	if (signalNumber == SIGSEGV) {
-#ifdef CONFIG_DM6446
-		DmaiDecoder::cleanUpDsp();
-#endif
-		QCoreApplication::exit(0);
+		platformCleanUp();
+		exit(0);
 	} else if (signalNumber == SIGINT) {
-#ifdef CONFIG_DM6446
-		DmaiDecoder::cleanUpDsp();
-#endif
-		QCoreApplication::exit(0);
+		platformCleanUp();
+		exit(0);
 	} else if (signalNumber == SIGTERM) {
-#ifdef CONFIG_DM6446
-		DmaiDecoder::cleanUpDsp();
-#endif
-		QCoreApplication::exit(0);
+		platformCleanUp();
+		exit(0);
 	} else if (signalNumber == SIGABRT) {
-#ifdef CONFIG_DM6446
-		DmaiDecoder::cleanUpDsp();
-#endif
-		QCoreApplication::exit(0);
+		platformCleanUp();
+		exit(0);
 	}
 }
 
@@ -54,12 +73,7 @@ int LmmCommon::init()
 {
 	QThreadPool::globalInstance()->setMaxThreadCount(5);
 	initDebug();
-#ifdef CONFIG_DM6446
-	HardwareOperations::writeRegister(0x1c7260c, 0x3004);
-	DmaiDecoder::initCodecEngine();
-#else
-	DmaiEncoder::initCodecEngine();
-#endif
+	platformInit();
 	return 0;
 }
 

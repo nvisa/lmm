@@ -20,7 +20,7 @@ CircularBuffer::CircularBuffer(void *source, int size, QObject *parent) :
 	rawData = (char *)source;
 	rawDataLen = size;
 	mutex = new QMutex;
-	lockThread = NULL;
+	lockThread = 0;
 	reset();
 }
 
@@ -31,7 +31,7 @@ CircularBuffer::CircularBuffer(int size, QObject *parent) :
 	rawData = new char[size];
 	rawDataLen = size;
 	mutex = new QMutex;
-	lockThread = NULL;
+	lockThread = 0;
 	reset();
 }
 
@@ -118,16 +118,16 @@ int CircularBuffer::reset()
 
 void CircularBuffer::lock()
 {
-	if (lockThread == NULL)
+	if (!lockThread)
 		lockThread = QThread::currentThreadId();
 	else if (lockThread == QThread::currentThreadId())
-		mDebug("locking from thread %p twice, deadlock huh :)", QThread::currentThreadId());
+		mDebug("locking from thread 0x%lx twice, deadlock huh :)", QThread::currentThreadId());
 	mutex->lock();
 }
 
 void CircularBuffer::unlock()
 {
-	lockThread = NULL;
+	lockThread = 0;
 	mutex->unlock();
 }
 

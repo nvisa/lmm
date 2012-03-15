@@ -43,6 +43,7 @@ int Blec32FbOutput::outputBuffer(RawBuffer *buf)
 
 int Blec32FbOutput::start()
 {
+	int err = FbOutput::start();
 	Resize_Attrs rAttrs = Resize_Attrs_DEFAULT;
 	hResize = Resize_create(&rAttrs);
 	BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
@@ -56,7 +57,7 @@ int Blec32FbOutput::start()
 	Buffer_setUserPtr(fbOutBuf, (Int8 *)fbAddr);
 	Buffer_setNumBytesUsed(fbOutBuf, fbLineLen * fbHeight);
 	resizerConfigured = false;
-	return FbOutput::start();
+	return err;
 }
 
 int Blec32FbOutput::stop()

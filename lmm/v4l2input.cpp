@@ -293,7 +293,7 @@ v4l2_buffer *V4l2Input::getFrame()
 void V4l2Input::aboutDeleteBuffer(RawBuffer *buf)
 {
 	v4l2_buffer *buffer =
-			(v4l2_buffer *)buf->getBufferParameter("v4l2Buffer").toInt();
+			(v4l2_buffer *)buf->getBufferParameter("v4l2Buffer").value<void *>();
 	mDebug("buffer %p", buffer);
 	finishedBuffers << buffer;
 }
@@ -312,7 +312,8 @@ bool V4l2Input::captureLoop()
 		newbuf->setRefData(data, buffer->length);
 		newbuf->addBufferParameter("width", (int)captureWidth);
 		newbuf->addBufferParameter("height", (int)captureHeight);
-		newbuf->addBufferParameter("v4l2Buffer", (int)buffer);
+		newbuf->addBufferParameter("v4l2Buffer",
+								   qVariantFromValue((void *)buffer));
 		outputBuffers << newbuf;
 	}
 	return false;
