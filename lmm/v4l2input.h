@@ -4,6 +4,7 @@
 #include "baselmmelement.h"
 
 #include <QList>
+#include <QTime>
 #include <linux/videodev2.h>
 
 class captureThread;
@@ -35,6 +36,7 @@ protected:
 	QList<struct v4l2_buffer *> finishedBuffers;
 	QList<char *> userptr;
 	captureThread *cThread;
+	QTime timing;
 
 	virtual int openCamera();
 	virtual int closeCamera();

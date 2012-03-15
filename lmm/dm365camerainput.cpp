@@ -435,7 +435,7 @@ bool DM365CameraInput::captureLoop()
 		return NULL;
 	}
 	outputBuffers << bufferPool[dmaibuf];
-	mInfo("captured %p", dmaibuf);
+	mInfo("captured %p, time is %d", dmaibuf, timing.elapsed());
 #else
 	if (!bufsFree.tryAcquire(1, 1000)) {
 		mDebug("no kernel buffers available");

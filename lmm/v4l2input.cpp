@@ -75,6 +75,7 @@ int V4l2Input::start()
 			return err;
 		cThread = new captureThread(this);
 		cThread->start();
+		timing.start();
 		return BaseLmmElement::start();
 	}
 	return 0;
