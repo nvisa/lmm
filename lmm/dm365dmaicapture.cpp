@@ -4,70 +4,58 @@
 #include <emdesk/debug.h>
 
 #include <errno.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
 
 #include <QThread>
 
+#include <ti/sdo/dmai/Dmai.h>
+#include <ti/sdo/dmai/Buffer.h>
+#include <ti/sdo/dmai/BufferGfx.h>
+#include <ti/sdo/dmai/BufTab.h>
+#include <ti/sdo/dmai/Capture.h>
+
+#include <media/davinci/imp_previewer.h>
+#include <media/davinci/imp_resizer.h>
+#include <media/davinci/dm365_ipipe.h>
+
+#define RESIZER_DEVICE   "/dev/davinci_resizer"
+#define PREVIEWER_DEVICE "/dev/davinci_previewer"
+
+#define V4L2_STD_720P_30        ((v4l2_std_id)(0x0100000000000000ULL))
+#define V4L2_STD_720P_60        ((v4l2_std_id)(0x0004000000000000ULL))
+
 #define NUM_CAPTURE_BUFS 3
 
-class captureThread : public QThread
-{
-public:
-	captureThread(DM365DmaiCapture *parent)
-	{
-		v4l2 = parent;
-	}
-	struct v4l2_buffer * getNextBuffer()
-	{
-		if (buffers.size())
-			return buffers.takeFirst();
-		return NULL;
-	}
-	void releaseBuffer(struct v4l2_buffer *)
-	{
-	}
-	void stop()
-	{
-		exit = true;
-	}
-
-	void run()
-	{
-		/*exit = false;
-		while (!exit) {
-			if (v4l2->captureLoop())
-				break;
-		}*/
-	}
-private:
-	DM365DmaiCapture *v4l2;
-	QList<v4l2_buffer *> buffers;
-	bool exit;
-};
-
 DM365DmaiCapture::DM365DmaiCapture(QObject *parent) :
-	BaseLmmElement(parent)
+	V4l2Input(parent)
 {
+	inputType = COMPONENT;
+	captureWidth = 1280;
+	captureHeight = 720;
+	pixFormat = V4L2_PIX_FMT_UYVY;
+	outPixFormat = V4L2_PIX_FMT_NV12;
 	hCapture = NULL;
-	hBufTab = NULL;
-	cThread = NULL;
-	captureCount = 0;
+	bufTab = NULL;
 }
 
 QSize DM365DmaiCapture::captureSize()
 {
-	return QSize(imageWidth, imageHeight);
+	return QSize(captureWidth, captureHeight);
 }
 
-int DM365DmaiCapture::putFrame(Buffer_Handle handle)
+int DM365DmaiCapture::putFrameDmai(Buffer_Handle handle)
 {
+	mInfo("putting back %p", handle);
 	if (Capture_put(hCapture, handle) < 0) {
 		mDebug("Failed to put capture buffer");
 		return -EINVAL;
 	}
+
 	return 0;
 }
 
-Buffer_Handle DM365DmaiCapture::getFrame()
+Buffer_Handle DM365DmaiCapture::getFrameDmai()
 {
 	Buffer_Handle handle;
 	if (Capture_get(hCapture, &handle) < 0) {
@@ -77,56 +65,38 @@ Buffer_Handle DM365DmaiCapture::getFrame()
 	return handle;
 }
 
-int DM365DmaiCapture::start()
+bool DM365DmaiCapture::captureLoop()
 {
-	if (!cThread) {
-		captureCount = 0;
-		int err = openCamera();
-		if (err)
-			return err;
-		cThread = new captureThread(this);
-		//cThread->start();
-		return BaseLmmElement::start();
+	while (inputBuffers.size()) {
+		RawBuffer *buffer = inputBuffers.takeFirst();
+		Buffer_Handle dmai = (Buffer_Handle)buffer->
+							 getBufferParameter("dmaiBuffer").toInt();
+		putFrameDmai(dmai);
+		bufsFree.release(1);
+		if (!bufferPool.contains(dmai))
+			bufferPool.insert(dmai, buffer);
 	}
-	return 0;
-}
-
-int DM365DmaiCapture::stop()
-{
-	/*cThread->stop();
-	cThread->wait();*/
-	cThread->deleteLater();
-	cThread = NULL;
-	closeCamera();
-	return BaseLmmElement::stop();
-}
-
-RawBuffer * DM365DmaiCapture::nextBuffer()
-{
-	Buffer_Handle dmaibuf = getFrame();
-	if (!dmaibuf)
+	if (!bufsFree.tryAcquire(1, 1000)) {
+		mDebug("no kernel buffers available");
+		return false;
+	}
+	Buffer_Handle dmaibuf = getFrameDmai();
+	if (!dmaibuf) {
+		mDebug("empty buffer");
 		return NULL;
-	BufferGfx_Dimensions dim;
-	BufferGfx_getDimensions(dmaibuf, &dim);
-	RawBuffer *newbuf = new RawBuffer;
-	newbuf->setRefData(Buffer_getUserPtr(dmaibuf), Buffer_getSize(dmaibuf));
-	newbuf->addBufferParameter("width", (int)dim.width);
-	newbuf->addBufferParameter("height", (int)dim.height);
-	newbuf->addBufferParameter("dmaiBuffer", (int)dmaibuf);
-	newbuf->setStreamBufferNo(captureCount++);
-	return newbuf;
-}
+	}
+	outputBuffers << bufferPool[dmaibuf];
+	mInfo("captured %p, time is %d", dmaibuf, timing.elapsed());
 
-int DM365DmaiCapture::finishedBuffer(RawBuffer *buf)
-{
-	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
-	return putFrame(dmai);
+	return false;
 }
 
 void DM365DmaiCapture::aboutDeleteBuffer(RawBuffer *buf)
 {
-	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
-	putFrame(dmai);
+	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
+			.toInt();
+	finishedDmaiBuffers << dmai;
+	mDebug("buffer finished");
 }
 
 /**
@@ -142,16 +112,20 @@ int DM365DmaiCapture::openCamera()
 	BufferGfx_Dimensions  capDim;
 	VideoStd_Type         videoStd;
 	Int32                 bufSize;
-	ColorSpace_Type       colorSpace = ColorSpace_UYVY;
+	ColorSpace_Type       colorSpaceBuffers = ColorSpace_YUV420PSEMI;
+	ColorSpace_Type       colorSpaceCap = ColorSpace_YUV420PSEMI;
 	Int                   numCapBufs;
+
+	if (outPixFormat != pixFormat) {
+		configureResizer();
+		configurePreviewer();
+	}
 
 	/* When we use 720P_30 we get error */
 	videoStd = VideoStd_720P_60;
 
-	/* Note: we only support D1, 720P and 1080P input */
-
 	/* Calculate the dimensions of a video standard given a color space */
-	if (BufferGfx_calcDimensions(videoStd, colorSpace, &capDim) < 0) {
+	if (BufferGfx_calcDimensions(videoStd, colorSpaceBuffers, &capDim) < 0) {
 		mDebug("Failed to calculate Buffer dimensions");
 		return -EINVAL;
 	}
@@ -160,9 +134,9 @@ int DM365DmaiCapture::openCamera()
 	 * Capture driver provides 32 byte aligned data. We 32 byte align the
 	 * capture and video buffers to perform zero copy encoding.
 	 */
-	capDim.width = Dmai_roundUp(capDim.width,32);
-	imageWidth = capDim.width;
-	imageHeight = capDim.height;
+	capDim.width = Dmai_roundUp(capDim.width, 32);
+	captureWidth = capDim.width;
+	captureHeight = capDim.height;
 
 	numCapBufs = NUM_CAPTURE_BUFS;
 
@@ -170,10 +144,10 @@ int DM365DmaiCapture::openCamera()
 	gfxAttrs.dim.width = capDim.width;
 	gfxAttrs.dim.lineLength =
 			Dmai_roundUp(BufferGfx_calcLineLength(gfxAttrs.dim.width,
-												  colorSpace), 32);
+												  colorSpaceBuffers), 32);
 	gfxAttrs.dim.x = 0;
 	gfxAttrs.dim.y = 0;
-	if (colorSpace ==  ColorSpace_YUV420PSEMI) {
+	if (colorSpaceBuffers ==  ColorSpace_YUV420PSEMI) {
 		bufSize = gfxAttrs.dim.lineLength * gfxAttrs.dim.height * 3 / 2;
 	}
 	else {
@@ -181,42 +155,47 @@ int DM365DmaiCapture::openCamera()
 	}
 
 	/* Create a table of buffers to use with the capture driver */
-	gfxAttrs.colorSpace = colorSpace;
-	hBufTab = BufTab_create(numCapBufs, bufSize,
+	gfxAttrs.colorSpace = colorSpaceBuffers;
+	bufTab = BufTab_create(numCapBufs, bufSize,
 							BufferGfx_getBufferAttrs(&gfxAttrs));
-	if (hBufTab == NULL) {
+	if (bufTab == NULL) {
 		mDebug("Failed to create buftab");
 		return -ENOMEM;
 	}
 
-#if 0
-	/* Create a table of buffers to use to prime Fifo to video thread */
-	hFifoBufTab = BufTab_create(VIDEO_PIPE_SIZE, bufSize,
-								BufferGfx_getBufferAttrs(&gfxAttrs));
-	if (hFifoBufTab == NULL) {
-		mDebug("Failed to create buftab\n");
-		return -ENOMEM;
-	}
-#endif
-
 	/* Create capture device driver instance */
 	cAttrs.numBufs = NUM_CAPTURE_BUFS;
 	cAttrs.videoInput = Capture_Input_COMPONENT;
+	if (inputType == SENSOR)
+		cAttrs.videoInput = Capture_Input_CAMERA;
 	cAttrs.videoStd = videoStd;
-	cAttrs.colorSpace = colorSpace;
-	cAttrs.numBufs    = NUM_CAPTURE_BUFS;
-	cAttrs.colorSpace = colorSpace;
+	cAttrs.colorSpace = colorSpaceCap;
 	cAttrs.captureDimension = &gfxAttrs.dim;
-	//cAttrs.onTheFly = true;
+	cAttrs.onTheFly = false;
 
 	/* Create the capture device driver instance */
-	hCapture = Capture_create(hBufTab, &cAttrs);
+	hCapture = Capture_create(bufTab, &cAttrs);
 
 	if (hCapture == NULL) {
 		mDebug("Failed to create capture device. Is video input connected?");
 		return -ENOENT;
 	}
+	fd = *((int *)hCapture);
+	//fpsWorkaround();
 
+	for (int i = 0; i < BufTab_getNumBufs(bufTab); i++) {
+		Buffer_Handle hBuf = BufTab_getBuf(bufTab, i);
+		RawBuffer *newbuf = new RawBuffer;
+		newbuf->setParentElement(this);
+		newbuf->setRefData(Buffer_getUserPtr(hBuf), Buffer_getSize(hBuf));
+		newbuf->addBufferParameter("width", captureWidth);
+		newbuf->addBufferParameter("height", captureHeight);
+		newbuf->addBufferParameter("linelen", (int)gfxAttrs.dim.lineLength);
+		newbuf->addBufferParameter("dmaiBuffer", (int)hBuf);
+		bufferPool.insert(hBuf, newbuf);
+	}
+	bufsFree.release(1);
+	bufsFree.release(1);
 	return 0;
 }
 
@@ -229,10 +208,132 @@ int DM365DmaiCapture::closeCamera()
 	}
 
 	/* Clean up the thread before exiting */
-	if (hBufTab) {
+	if (bufTab) {
 		mDebug("deleting capture buffer tab");
-		BufTab_delete(hBufTab);
-		hBufTab = NULL;
+		BufTab_delete(bufTab);
+		bufTab = NULL;
 	}
 	return 0;
 }
+
+int DM365DmaiCapture::configureResizer(void)
+{
+	unsigned int oper_mode, user_mode;
+	struct rsz_channel_config rsz_chan_config;
+	struct rsz_continuous_config rsz_cont_config;
+
+	user_mode = IMP_MODE_CONTINUOUS;
+	rszFd = open((const char *)RESIZER_DEVICE, O_RDWR);
+	if(rszFd <= 0) {
+		mDebug("Cannot open resizer device");
+		return NULL;
+	}
+
+	if (ioctl(rszFd, RSZ_S_OPER_MODE, &user_mode) < 0) {
+		mDebug("Can't set operation mode (%s)", strerror(errno));
+		close(rszFd);
+		return -errno;
+	}
+
+	if (ioctl(rszFd, RSZ_G_OPER_MODE, &oper_mode) < 0) {
+		mDebug("Can't get operation mode (%s)", strerror(errno));
+		close(rszFd);
+		return -errno;
+	}
+
+	if (oper_mode == user_mode) {
+		mInfo("Successfully set mode to continuous in resizer");
+	} else {
+		mDebug("Failed to set mode to continuous in resizer\n");
+		close(rszFd);
+		return -EINVAL;
+	}
+
+	/* set configuration to chain resizer with preview */
+	rsz_chan_config.oper_mode = user_mode;
+	rsz_chan_config.chain  = 1;
+	rsz_chan_config.len = 0;
+	rsz_chan_config.config = NULL; /* to set defaults in driver */
+	if (ioctl(rszFd, RSZ_S_CONFIG, &rsz_chan_config) < 0) {
+		mDebug("Error in setting default configuration in resizer (%s)",
+				  strerror(errno));
+		close(rszFd);
+		return -errno;
+	}
+
+	bzero(&rsz_cont_config, sizeof(struct rsz_continuous_config));
+	rsz_chan_config.oper_mode = user_mode;
+	rsz_chan_config.chain = 1;
+	rsz_chan_config.len = sizeof(struct rsz_continuous_config);
+	rsz_chan_config.config = &rsz_cont_config;
+
+	if (ioctl(rszFd, RSZ_G_CONFIG, &rsz_chan_config) < 0) {
+		mDebug("Error in getting channel configuration from resizer (%s)\n",
+				  strerror(errno));
+		close(rszFd);
+		return -errno;
+	}
+
+	/* we can ignore the input spec since we are chaining. So only
+	   set output specs */
+	rsz_cont_config.output1.enable = 1;
+	rsz_cont_config.output2.enable = 0;
+	rsz_chan_config.len = sizeof(struct rsz_continuous_config);
+	rsz_chan_config.config = &rsz_cont_config;
+	if (ioctl(rszFd, RSZ_S_CONFIG, &rsz_chan_config) < 0) {
+		mDebug("Error in setting resizer configuration (%s)",
+				  strerror(errno));
+		close(rszFd);
+		return -errno;
+	}
+	mInfo("Resizer initialized");
+	return 0;
+}
+
+int DM365DmaiCapture::configurePreviewer()
+{
+	unsigned int oper_mode, user_mode;
+	struct prev_channel_config prev_chan_config;
+	user_mode = IMP_MODE_CONTINUOUS;
+
+	preFd = open((const char *)PREVIEWER_DEVICE, O_RDWR);
+	if(preFd <= 0) {
+		mDebug("Cannot open previewer device \n");
+		return -errno;
+	}
+
+	if (ioctl(preFd, PREV_S_OPER_MODE, &user_mode) < 0) {
+		mDebug("Can't set operation mode in previewer (%s)", strerror(errno));
+		close(preFd);
+		return -errno;
+	}
+
+	if (ioctl(preFd, PREV_G_OPER_MODE, &oper_mode) < 0) {
+		mDebug("Can't get operation mode from previewer (%s)", strerror(errno));
+		close(preFd);
+		return -errno;
+	}
+
+	if (oper_mode == user_mode) {
+		mInfo("Operating mode changed successfully to continuous in previewer");
+	} else {
+		mDebug("failed to set mode to continuous in previewer");
+		close(preFd);
+		return -errno;
+	}
+
+	prev_chan_config.oper_mode = oper_mode;
+	prev_chan_config.len = 0;
+	prev_chan_config.config = NULL; /* to set defaults in driver */
+
+	if (ioctl(preFd, PREV_S_CONFIG, &prev_chan_config) < 0) {
+		mDebug("Error in setting default previewer configuration (%s)",
+				  strerror(errno));
+		close(preFd);
+		return -errno;
+	}
+
+	mInfo("Previewer initialized");
+	return preFd;
+}
+

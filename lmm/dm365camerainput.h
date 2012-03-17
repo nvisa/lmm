@@ -45,8 +45,6 @@ private:
 	int configureResizer();
 	virtual int putFrame(struct v4l2_buffer * buffer);
 	virtual v4l2_buffer * getFrame();
-	Buffer_Handle getFrameDmai();
-	int putFrameDmai(Buffer_Handle handle);
 	bool captureLoop();
 
 	cameraInput inputType;

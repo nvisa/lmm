@@ -23,7 +23,6 @@
 #define V4L2_STD_720P_30        ((v4l2_std_id)(0x0100000000000000ULL))
 #define V4L2_STD_720P_60        ((v4l2_std_id)(0x0004000000000000ULL))
 
-#define USE_DMAI
 #define NUM_CAPTURE_BUFS 3
 
 DM365CameraInput::DM365CameraInput(QObject *parent) :
@@ -40,109 +39,12 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 
 void DM365CameraInput::aboutDeleteBuffer(RawBuffer *buf)
 {
-#ifdef USE_DMAI
-	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
-			.toInt();
-	finishedDmaiBuffers << dmai;
-	mDebug("buffer finished");
-#else
 	V4l2Input::aboutDeleteBuffer(buf);
-#endif
 	bufsFree.release(1);
 }
 
 int DM365CameraInput::openCamera()
 {
-#ifdef USE_DMAI
-	Capture_Attrs cAttrs   = Capture_Attrs_DM365_DEFAULT;
-	BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
-	BufferGfx_Dimensions  capDim;
-	VideoStd_Type         videoStd;
-	Int32                 bufSize;
-	ColorSpace_Type       colorSpaceBuffers = ColorSpace_YUV420PSEMI;
-	ColorSpace_Type       colorSpaceCap = ColorSpace_YUV420PSEMI;
-	Int                   numCapBufs;
-
-	if (outPixFormat != pixFormat) {
-		configureResizer();
-		configurePreviewer();
-	}
-
-	/* When we use 720P_30 we get error */
-	videoStd = VideoStd_720P_60;
-
-	/* Calculate the dimensions of a video standard given a color space */
-	if (BufferGfx_calcDimensions(videoStd, colorSpaceBuffers, &capDim) < 0) {
-		mDebug("Failed to calculate Buffer dimensions");
-		return -EINVAL;
-	}
-
-	/*
-	 * Capture driver provides 32 byte aligned data. We 32 byte align the
-	 * capture and video buffers to perform zero copy encoding.
-	 */
-	capDim.width = Dmai_roundUp(capDim.width, 32);
-	captureWidth = capDim.width;
-	captureHeight = capDim.height;
-
-	numCapBufs = NUM_CAPTURE_BUFS;
-
-	gfxAttrs.dim.height = capDim.height;
-	gfxAttrs.dim.width = capDim.width;
-	gfxAttrs.dim.lineLength =
-			Dmai_roundUp(BufferGfx_calcLineLength(gfxAttrs.dim.width,
-												  colorSpaceBuffers), 32);
-	gfxAttrs.dim.x = 0;
-	gfxAttrs.dim.y = 0;
-	if (colorSpaceBuffers ==  ColorSpace_YUV420PSEMI) {
-		bufSize = gfxAttrs.dim.lineLength * gfxAttrs.dim.height * 3 / 2;
-	}
-	else {
-		bufSize = gfxAttrs.dim.lineLength * gfxAttrs.dim.height * 2;
-	}
-
-	/* Create a table of buffers to use with the capture driver */
-	gfxAttrs.colorSpace = colorSpaceBuffers;
-	bufTab = BufTab_create(numCapBufs, bufSize,
-							BufferGfx_getBufferAttrs(&gfxAttrs));
-	if (bufTab == NULL) {
-		mDebug("Failed to create buftab");
-		return -ENOMEM;
-	}
-
-	/* Create capture device driver instance */
-	cAttrs.numBufs = NUM_CAPTURE_BUFS;
-	cAttrs.videoInput = Capture_Input_COMPONENT;
-	cAttrs.videoStd = videoStd;
-	cAttrs.colorSpace = colorSpaceCap;
-	cAttrs.captureDimension = &gfxAttrs.dim;
-	cAttrs.onTheFly = false;
-
-	/* Create the capture device driver instance */
-	hCapture = Capture_create(bufTab, &cAttrs);
-
-	if (hCapture == NULL) {
-		mDebug("Failed to create capture device. Is video input connected?");
-		return -ENOENT;
-	}
-	fd = *((int *)hCapture);
-	//fpsWorkaround();
-
-	for (int i = 0; i < BufTab_getNumBufs(bufTab); i++) {
-		Buffer_Handle hBuf = BufTab_getBuf(bufTab, i);
-		RawBuffer *newbuf = new RawBuffer;
-		newbuf->setParentElement(this);
-		newbuf->setRefData(Buffer_getUserPtr(hBuf), Buffer_getSize(hBuf));
-		newbuf->addBufferParameter("width", captureWidth);
-		newbuf->addBufferParameter("height", captureHeight);
-		newbuf->addBufferParameter("linelen", (int)gfxAttrs.dim.lineLength);
-		newbuf->addBufferParameter("dmaiBuffer", (int)hBuf);
-		bufferPool.insert(hBuf, newbuf);
-	}
-	bufsFree.release(1);
-	bufsFree.release(1);
-	return 0;
-#else
 	struct v4l2_capability cap;
 	struct v4l2_input input;
 	int width = captureWidth, height = captureHeight;
@@ -217,25 +119,10 @@ int DM365CameraInput::openCamera()
 	}
 
 	return startStreaming();
-#endif
 }
 
 int DM365CameraInput::closeCamera()
 {
-#ifdef USE_DMAI
-	if (hCapture) {
-		mDebug("deleting capture handle");
-		Capture_delete(hCapture);
-		hCapture = NULL;
-	}
-
-	/* Clean up the thread before exiting */
-	if (bufTab) {
-		mDebug("deleting capture buffer tab");
-		BufTab_delete(bufTab);
-		bufTab = NULL;
-	}
-#else
 	stopStreaming();
 	close(fd);
 	close(rszFd);
@@ -245,7 +132,7 @@ int DM365CameraInput::closeCamera()
 	userptr.clear();
 	fd = rszFd = preFd = -1;
 	BufTab_delete(bufTab);	
-#endif
+
 	return 0;
 }
 
@@ -346,17 +233,6 @@ Int DM365CameraInput::allocBuffers()
 	return 0;
 }
 
-int DM365CameraInput::putFrameDmai(Buffer_Handle handle)
-{
-	mInfo("putting back %p", handle);
-	if (Capture_put(hCapture, handle) < 0) {
-		mDebug("Failed to put capture buffer");
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
 int DM365CameraInput::putFrame(v4l2_buffer *buffer)
 {
 	mInfo("giving back frame %p to driver", buffer);
@@ -368,16 +244,6 @@ int DM365CameraInput::putFrame(v4l2_buffer *buffer)
 	}
 
 	return 0;
-}
-
-Buffer_Handle DM365CameraInput::getFrameDmai()
-{
-	Buffer_Handle handle;
-	if (Capture_get(hCapture, &handle) < 0) {
-		mDebug("Failed to get capture buffer");
-		return NULL;
-	}
-	return handle;
 }
 
 v4l2_buffer * DM365CameraInput::getFrame()
@@ -398,37 +264,19 @@ v4l2_buffer * DM365CameraInput::getFrame()
 
 bool DM365CameraInput::captureLoop()
 {
-#ifdef USE_DMAI
-	while (inputBuffers.size()) {
-		RawBuffer *buffer = inputBuffers.takeFirst();
-		Buffer_Handle dmai = (Buffer_Handle)buffer->
-							 getBufferParameter("dmaiBuffer").toInt();
-		putFrameDmai(dmai);
+	while (finishedBuffers.size()) {
+		putFrame(finishedBuffers.takeFirst());
 		bufsFree.release(1);
-		if (!bufferPool.contains(dmai))
-			bufferPool.insert(dmai, buffer);
 	}
 	if (!bufsFree.tryAcquire(1, 1000)) {
 		mDebug("no kernel buffers available");
 		return false;
 	}
-	Buffer_Handle dmaibuf = getFrameDmai();
-	if (!dmaibuf) {
-		mDebug("empty buffer");
-		return NULL;
-	}
-	outputBuffers << bufferPool[dmaibuf];
-	mInfo("captured %p, time is %d", dmaibuf, timing.elapsed());
-#else
-	if (!bufsFree.tryAcquire(1, 1000)) {
-		mDebug("no kernel buffers available");
-		return false;
-	}
-	while (finishedBuffers.size())
-		putFrame(finishedBuffers.takeFirst());
 	struct v4l2_buffer *buffer = getFrame();
-	while (finishedBuffers.size())
+	while (finishedBuffers.size()) {
 		putFrame(finishedBuffers.takeFirst());
+		bufsFree.release(1);
+	}
 	if (buffer) {
 		//bufsTaken.release(1);
 		mInfo("new frame %p: used=%d", buffer, buffer->bytesused);
@@ -445,7 +293,7 @@ bool DM365CameraInput::captureLoop()
 		newbuf->addBufferParameter("dataPtr", (int)data);
 		outputBuffers << newbuf;
 	}
-#endif
+
 	return false;
 }
 
