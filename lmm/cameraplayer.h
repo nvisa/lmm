@@ -15,7 +15,7 @@ signals:
 	
 protected slots:
 	virtual int decodeLoop();
-private:
+protected:
 	V4l2Input *input;
 };
 

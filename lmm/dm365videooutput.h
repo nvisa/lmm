@@ -15,6 +15,7 @@ public:
 	};
 	explicit DM365VideoOutput(QObject *parent = 0);
 	void setVideoOutput(videoOutput out) { output = out; }
+	void setPixelFormat(int f) { pixelFormat = f; }
 
 	int outputBuffer(RawBuffer *buf);
 	int start();
@@ -26,6 +27,7 @@ private:
 	videoOutput output;
 	Framecopy_Object *hFrameCopy;
 	bool frameCopyConfigured;
+	int pixelFormat;
 
 	void videoCopy(RawBuffer *buf, Buffer_Handle dispbuf, Buffer_Handle dmai);
 };

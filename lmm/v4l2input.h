@@ -19,7 +19,7 @@ public:
 
 	virtual int start();
 	virtual int stop();
-	void aboutDeleteBuffer(RawBuffer *buf);
+	virtual void aboutDeleteBuffer(RawBuffer *buf);
 
 	friend class captureThread;
 signals:

@@ -5,6 +5,8 @@
 
 #include <errno.h>
 
+#include <linux/videodev2.h>
+
 #include <ti/sdo/dmai/BufTab.h>
 #include <ti/sdo/dmai/Display.h>
 #include <ti/sdo/dmai/VideoStd.h>
@@ -41,6 +43,7 @@ DM365VideoOutput::DM365VideoOutput(QObject *parent) :
 	V4l2Output(parent)
 {
 	output = COMPONENT;
+	pixelFormat = V4L2_PIX_FMT_NV12;
 
 	Framecopy_Attrs fcAttrs;
 	fcAttrs.accel = true;
@@ -55,7 +58,6 @@ int DM365VideoOutput::outputBuffer(RawBuffer *buf)
 {
 	if (output == COMPONENT)
 		return V4l2Output::outputBuffer(buf);
-
 	/* input size does not match output size, do manual copy */
 	Buffer_Handle dispbuf;
 	Display_get(hDisplay, &dispbuf);
@@ -66,6 +68,7 @@ int DM365VideoOutput::outputBuffer(RawBuffer *buf)
 		bufferPool.insert(dmai, buf);
 	outputBuffers << bufferPool[dmai];
 	Display_put(hDisplay, dispbuf);
+
 	return 0;
 }
 
@@ -73,6 +76,8 @@ int DM365VideoOutput::start()
 {
 	int bufSize;
 	ColorSpace_Type colorSpace = ColorSpace_YUV420PSEMI;
+	if (pixelFormat == V4L2_PIX_FMT_UYVY)
+		colorSpace = ColorSpace_UYVY;
 	if (output == COMPONENT) {
 		gfxAttrs.dim.width = 1280;
 		gfxAttrs.dim.height = 720;
@@ -113,7 +118,7 @@ int DM365VideoOutput::start()
 	} else
 		return -EINVAL;
 	dAttrs.numBufs = 3;
-	dAttrs.colorSpace = ColorSpace_YUV420PSEMI;
+	dAttrs.colorSpace = colorSpace;
 	hDisplay = Display_create(hDispBufTab, &dAttrs);
 	if (hDisplay == NULL) {
 		mDebug("Failed to create display device");

@@ -19,6 +19,8 @@ public:
 	virtual int start();
 	virtual int stop();
 	virtual int flush();
+
+	void * getFbAddr() { return fbAddr; }
 signals:
 	
 public slots:

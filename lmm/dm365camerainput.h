@@ -31,7 +31,6 @@ public:
 
 	explicit DM365CameraInput(QObject *parent = 0);
 	void setInputType(cameraInput inp) { inputType = inp; }
-	void setOutputPixelFormat(int format) { outPixFormat = format; }
 	void aboutDeleteBuffer(RawBuffer *buf);
 signals:
 	
@@ -51,7 +50,6 @@ private:
 	BufTab_Handle bufTab;
 	struct _VideoBufDesc *bufDescs;
 	int pixFormat;
-	int outPixFormat;
 	int rszFd;
 	int preFd;
 

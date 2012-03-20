@@ -11,7 +11,6 @@
 #include <ti/sdo/dmai/Buffer.h>
 #include <ti/sdo/dmai/BufferGfx.h>
 #include <ti/sdo/dmai/BufTab.h>
-#include <ti/sdo/dmai/Capture.h>
 
 #include <media/davinci/imp_previewer.h>
 #include <media/davinci/imp_resizer.h>
@@ -31,8 +30,7 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	inputType = COMPONENT;
 	captureWidth = 1280;
 	captureHeight = 720;
-	pixFormat = V4L2_PIX_FMT_UYVY;
-	outPixFormat = V4L2_PIX_FMT_NV12;
+	pixFormat = V4L2_PIX_FMT_NV12;
 	hCapture = NULL;
 	bufTab = NULL;
 }
@@ -40,7 +38,6 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 void DM365CameraInput::aboutDeleteBuffer(RawBuffer *buf)
 {
 	V4l2Input::aboutDeleteBuffer(buf);
-	bufsFree.release(1);
 }
 
 int DM365CameraInput::openCamera()
@@ -50,7 +47,7 @@ int DM365CameraInput::openCamera()
 	int width = captureWidth, height = captureHeight;
 	int err = 0;
 
-	if (outPixFormat != pixFormat) {
+	if (V4L2_PIX_FMT_NV12 == pixFormat) {
 		configureResizer();
 		configurePreviewer();
 	}
@@ -85,12 +82,13 @@ int DM365CameraInput::openCamera()
 	if (err)
 		return err;
 
+	fpsWorkaround();
+
 	err = queryCapabilities(&cap);
 	if (err)
 		return err;
 
 	setFormat(pixFormat, width, height);
-	fpsWorkaround();
 
 	/* buffer allocation */
 	BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
@@ -218,7 +216,6 @@ Int DM365CameraInput::allocBuffers()
 
 		Buffer_setNumBytesUsed(hBuf, Buffer_getSize(hBuf));
 
-
 		/* Queue buffer in device driver */
 		if (ioctl(fd, VIDIOC_QBUF, v4l2buf[i]) == -1) {
 			mDebug("VIODIC_QBUF failed (%s)", strerror(errno));
@@ -279,7 +276,8 @@ bool DM365CameraInput::captureLoop()
 	}
 	if (buffer) {
 		//bufsTaken.release(1);
-		mInfo("new frame %p: used=%d", buffer, buffer->bytesused);
+		//mInfo("new frame %p: used=%d", buffer, buffer->bytesused);
+		mInfo("captured %p, time is %d", buffer, timing.elapsed());
 		Buffer_Handle dmaibuf = BufTab_getBuf(bufTab, buffer->index);
 		char *data = userptr[buffer->index];
 		RawBuffer *newbuf = new RawBuffer;
@@ -288,7 +286,8 @@ bool DM365CameraInput::captureLoop()
 		newbuf->setRefData(data, buffer->bytesused);
 		newbuf->addBufferParameter("width", (int)captureWidth);
 		newbuf->addBufferParameter("height", (int)captureHeight);
-		newbuf->addBufferParameter("v4l2Buffer", (int)buffer);
+		newbuf->addBufferParameter("v4l2Buffer",
+								   qVariantFromValue((void *)buffer));
 		newbuf->addBufferParameter("dmaiBuffer", (int)dmaibuf);
 		newbuf->addBufferParameter("dataPtr", (int)data);
 		outputBuffers << newbuf;
