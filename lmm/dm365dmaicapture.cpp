@@ -95,7 +95,9 @@ void DM365DmaiCapture::aboutDeleteBuffer(RawBuffer *buf)
 {
 	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
 			.toInt();
-	finishedDmaiBuffers << dmai;
+	RawBuffer *buffer = createNewRawBuffer(dmai);
+	buffer->addBufferParameter("linelen", buf->getBufferParameter("linelen"));
+	inputBuffers << buffer;
 	mDebug("buffer finished");
 }
 
@@ -185,14 +187,8 @@ int DM365DmaiCapture::openCamera()
 
 	for (int i = 0; i < BufTab_getNumBufs(bufTab); i++) {
 		Buffer_Handle hBuf = BufTab_getBuf(bufTab, i);
-		RawBuffer *newbuf = new RawBuffer;
-		newbuf->setParentElement(this);
-		newbuf->setRefData(Buffer_getUserPtr(hBuf), Buffer_getSize(hBuf));
-		newbuf->addBufferParameter("width", captureWidth);
-		newbuf->addBufferParameter("height", captureHeight);
-		newbuf->addBufferParameter("linelen", (int)gfxAttrs.dim.lineLength);
-		newbuf->addBufferParameter("dmaiBuffer", (int)hBuf);
-		bufferPool.insert(hBuf, newbuf);
+		RawBuffer *buffer = createNewRawBuffer(hBuf);
+		buffer->addBufferParameter("linelen", (int)gfxAttrs.dim.lineLength);
 	}
 	bufsFree.release(1);
 	bufsFree.release(1);
@@ -288,6 +284,18 @@ int DM365DmaiCapture::configureResizer(void)
 	}
 	mInfo("Resizer initialized");
 	return 0;
+}
+
+RawBuffer *DM365DmaiCapture::createNewRawBuffer(Buffer_Handle hBuf)
+{
+	RawBuffer *newbuf = new RawBuffer;
+	newbuf->setParentElement(this);
+	newbuf->setRefData(Buffer_getUserPtr(hBuf), Buffer_getSize(hBuf));
+	newbuf->addBufferParameter("width", captureWidth);
+	newbuf->addBufferParameter("height", captureHeight);
+	newbuf->addBufferParameter("dmaiBuffer", (int)hBuf);
+	bufferPool.insert(hBuf, newbuf);
+	return newbuf;
 }
 
 int DM365DmaiCapture::configurePreviewer()

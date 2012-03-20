@@ -45,6 +45,7 @@ private:
 	bool captureLoop();
 	int configurePreviewer();
 	int configureResizer();
+	RawBuffer * createNewRawBuffer(Buffer_Handle dmai);
 
 	cameraInput inputType;
 	BufTab_Handle bufTab;
@@ -55,7 +56,6 @@ private:
 	int preFd;
 
 	QSemaphore bufsFree;
-	QList<Buffer_Handle> finishedDmaiBuffers;
 	QMap<Buffer_Handle, RawBuffer *> bufferPool;
 
 	Capture_Handle hCapture;
