@@ -110,6 +110,7 @@ void DmaiEncoder::aboutDeleteBuffer(RawBuffer *buf)
 	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
 			.toInt();
 	BufTab_freeBuf(dmai);
+	mInfo("freeing buffer");
 }
 
 void DmaiEncoder::initCodecEngine()

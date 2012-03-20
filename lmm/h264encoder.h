@@ -5,7 +5,7 @@
 
 class DmaiEncoder;
 class FileOutput;
-class DM365CameraInput;
+class V4l2Input;
 class BaseLmmOutput;
 class QTimer;
 
@@ -23,7 +23,7 @@ private:
 	QList<BaseLmmElement *> elements;
 	DmaiEncoder *encoder;
 	BaseLmmOutput *output;
-	DM365CameraInput *input;
+	V4l2Input *input;
 	QTimer *timer;
 };
 
