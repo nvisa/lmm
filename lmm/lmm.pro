@@ -20,6 +20,7 @@ SOURCES += \
     cameraplayer.cpp \
     v4l2input.cpp \
     fboutput.cpp \
+    textoverlay.cpp
 
 HEADERS  += \
     filesource.h \
@@ -35,6 +36,7 @@ HEADERS  += \
     cameraplayer.h \
     v4l2input.h \
     fboutput.h \
+    textoverlay.h
 
 alsa {
     HEADERS += \
