@@ -293,6 +293,7 @@ RawBuffer *DM365DmaiCapture::createNewRawBuffer(Buffer_Handle hBuf)
 	newbuf->setRefData(Buffer_getUserPtr(hBuf), Buffer_getSize(hBuf));
 	newbuf->addBufferParameter("width", captureWidth);
 	newbuf->addBufferParameter("height", captureHeight);
+	newbuf->addBufferParameter("v4l2PixelFormat", (int)outPixFormat);
 	newbuf->addBufferParameter("dmaiBuffer", (int)hBuf);
 	bufferPool.insert(hBuf, newbuf);
 	return newbuf;
