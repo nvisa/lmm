@@ -41,9 +41,10 @@ struct dm365mmap_params {
 	int           syncmode;
 };
 
-TextOverlay::TextOverlay(QObject *parent) :
+TextOverlay::TextOverlay(overlayType t, QObject *parent) :
 	BaseLmmElement(parent)
 {
+	type = t;
 	mmapfd = -1;
 	imageBuf = NULL;
 	fontSize = 26;
@@ -57,7 +58,8 @@ int TextOverlay::start()
 		mDebug("Unable to allocate memory for text image buffer");
 		return -ENOMEM;
 	}
-	createCharMap();
+	if (type == CHAR_MAP || type == PIXEL_MAP)
+		createYuvMap();
 	mmapfd = open("/dev/dm365mmap", O_RDWR | O_SYNC);
 	if (mmapfd == -1)
 		return -ENOENT;
@@ -79,50 +81,41 @@ int TextOverlay::addBuffer(RawBuffer *buffer)
 {
 	if (buffer) {
 		QTime t; t.start();
-		//if (charMap.isEmpty())
-			//createCharMap(buffer);
-		/*QImage image((uchar *)Buffer_getUserPtr(imageBuf),
-					 1280, 120, QImage::Format_RGB888);
-		memset(Buffer_getUserPtr(imageBuf), 0, Buffer_getSize(imageBuf));
-		QPainter painter(&image);
-		painter.setPen(Qt::red);
-		QFont f = painter.font();
-		f.setPointSize(26);
-		painter.setFont(f);
-		painter.drawText(QRect(0, 0, image.width(), image.height()),
-						 QDateTime::currentDateTime().toString());*/
+		if (type == CHAR_MAP)
+			yuvSwMapOverlay(buffer);
+		else if (type == PIXEL_MAP)
+			yuvSwPixmapOverlay(buffer);
 
-#if 0
-		char *data = (char *)buffer->data() + 1280 * 150;
-		for (int j = 0; j < image.height(); j++) {
-			int start = j * 1280;
-			for (int i = 0; i < image.width(); i++) {
-				int val = qRed(image.pixel(i, j));
-				if (val)
-					data[start + i] = val;
-			}
-		}
-#else
-		char *dst = (char *)buffer->data() + 1280 * 150;
-		QString text = "testaksldjjasdfhlkjasdfh";
-		QByteArray ba = text.toLatin1();
-		for (int i = 0; i < ba.size(); i++) {
-			const QByteArray map = charMap[(int)ba.at(i) - 32];
-			int w = map.size() / fontHeight;
-			const char *src = map.constData();
-			for (int j = 0; j < fontHeight; j++) {
-				memcpy(dst + 1280 * j, src + w * j, w);
-			}
-			dst += w;
-		}
-
-#endif
 		qDebug() << "overlay took" << t.elapsed();
 	}
 	return 0;//BaseLmmElement::addBuffer(buffer);
 }
 
-void TextOverlay::createCharMap()
+QByteArray TextOverlay::createCharMap(int fontWidth, const QImage &image)
+{
+	int w = fontWidth;
+	QByteArray ba(fontHeight * w, 0);
+	for (int i = 0; i < w; i++)
+		for (int j = 0; j < fontHeight; j++)
+			ba[j * w + i] = qRed(image.pixel(i, j));
+	return ba;
+}
+
+QList<int> TextOverlay::createPixelMap(int fontWidth, const QImage &image)
+{
+	QList<int> pixmap;
+	int w = fontWidth;
+	for (int i = 0; i < w; i++) {
+		for (int j = 0; j < fontHeight; j++) {
+			int val = qRed(image.pixel(i, j));
+			if (val > 0)
+				pixmap << (val | (i << 8) | (j << 19));
+		}
+	}
+	return pixmap;
+}
+
+void TextOverlay::createYuvMap()
 {
 	QImage image((uchar *)Buffer_getUserPtr(imageBuf),
 				 240, 120, QImage::Format_RGB888);
@@ -135,15 +128,16 @@ void TextOverlay::createCharMap()
 	painter.setFont(f);
 	fontHeight = fm.height();
 	for (int i = 32; i < 127; i++) {
-		int w = fm.width(QChar(i));
-		QByteArray ba(fontHeight * w, 0);
+		QChar ch = QChar(i);
 		image.fill(0);
-		painter.drawText(QRect(0, 0, image.width(), image.height()), QString(QChar(i)));
-		for (int i = 0; i < w; i++)
-			for (int j = 0; j < fontHeight; j++)
-				ba[j * w + i] = qRed(image.pixel(i, j));
-		charMap << ba;
-
+		painter.drawText(QRect(0, 0, image.width(), image.height()),
+						 QString(ch));
+		int w = fm.width(ch);
+		if (type == CHAR_MAP)
+			charMap << createCharMap(w, image);
+		else if (type == PIXEL_MAP)
+			charPixelMap << createPixelMap(w, image);
+		charFontWidth << w;
 	}
 }
 
@@ -173,4 +167,63 @@ int TextOverlay::dmaCopy(void *src, void *dst, QImage *im)
 	dmalock.unlock();
 	mInfo("dma copy succeeded with %d", err);
 	return err;
+}
+
+void TextOverlay::yuvSwOverlay(RawBuffer *buffer)
+{
+	QImage image((uchar *)Buffer_getUserPtr(imageBuf),
+				 1280, 120, QImage::Format_RGB888);
+	memset(Buffer_getUserPtr(imageBuf), 0, Buffer_getSize(imageBuf));
+	QPainter painter(&image);
+	painter.setPen(Qt::red);
+	QFont f = painter.font();
+	f.setPointSize(fontSize);
+	painter.setFont(f);
+	painter.drawText(QRect(0, 0, image.width(), image.height()),
+					 QDateTime::currentDateTime().toString());
+	char *data = (char *)buffer->data() + 1280 * 150;
+	for (int j = 0; j < image.height(); j++) {
+		int start = j * 1280;
+		for (int i = 0; i < image.width(); i++) {
+			int val = qRed(image.pixel(i, j));
+			if (val)
+				data[start + i] = val;
+		}
+	}
+}
+
+void TextOverlay::yuvSwMapOverlay(RawBuffer *buffer)
+{
+	char *dst = (char *)buffer->data() + 1280 * 150;
+	QString text = "testaksldjjasdfhlkjasdfh";
+	QByteArray ba = text.toLatin1();
+	for (int i = 0; i < ba.size(); i++) {
+		const QByteArray map = charMap[(int)ba.at(i) - 32];
+		int w = map.size() / fontHeight;
+		const char *src = map.constData();
+		for (int j = 0; j < fontHeight; j++) {
+			memcpy(dst + 1280 * j, src + w * j, w);
+		}
+		dst += w;
+	}
+}
+
+void TextOverlay::yuvSwPixmapOverlay(RawBuffer *buffer)
+{
+	char *dst = (char *)buffer->data() + 1280 * 150;
+	QString text = "testaksldjjasdfhlkjasdfh";
+	QByteArray ba = text.toLatin1();
+	int x, y, val;
+	for (int i = 0; i < ba.size(); i++) {
+		int ch = (int)ba.at(i);
+		const QList<int> map = charPixelMap[ch - 32];
+		int w = charFontWidth[ch - 32];
+		foreach (int i, map) {
+			val = i & 0xff;
+			x = (i >> 8) & 0x7ff;
+			y = (i >> 19) & 0x7ff;
+			dst[1280 * y + x] = val;
+		}
+		dst += w;
+	}
 }

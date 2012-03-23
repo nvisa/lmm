@@ -17,7 +17,12 @@ class TextOverlay : public BaseLmmElement
 {
 	Q_OBJECT
 public:
-	explicit TextOverlay(QObject *parent = 0);
+	enum overlayType {
+		SIMPLE,
+		CHAR_MAP,
+		PIXEL_MAP
+	};
+	explicit TextOverlay(overlayType t = CHAR_MAP, QObject *parent = 0);
 	int start();
 	int stop();
 	int addBuffer(RawBuffer *buffer);
@@ -29,12 +34,20 @@ private:
 	QMutex dmalock;
 	Buffer_Handle imageBuf;
 	QList<QByteArray> charMap;
+	QList<QList<int> > charPixelMap;
+	QList<int> charFontWidth;
 	int fontSize;
 	int fontHeight;
+	overlayType type;
 
-	void createCharMap();
+	QByteArray createCharMap(int fontWidth, const QImage &image);
+	QList<int> createPixelMap(int fontWidth, const QImage &image);
+	void createYuvMap();
 	int dmaCopy(void *src, void *dst, QImage *im);
 	void createAsciiTable();
+	void yuvSwOverlay(RawBuffer *buffer);
+	void yuvSwMapOverlay(RawBuffer *buffer);
+	void yuvSwPixmapOverlay(RawBuffer *buffer);
 };
 
 #endif // TEXTOVERLAY_H
