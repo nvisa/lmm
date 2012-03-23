@@ -19,7 +19,12 @@ void StreamTime::setCurrentTime(qint64 val)
 
 qint64 StreamTime::getCurrentTime()
 {
-	return currentTime + drifter->elapsed() * 1000;
+	return getCurrentTimeMili() * 1000;
+}
+
+qint64 StreamTime::getCurrentTimeMili()
+{
+	return currentTime + drifter->elapsed();
 }
 
 void StreamTime::start()

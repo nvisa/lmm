@@ -13,6 +13,7 @@ public:
 	void setCurrentTime(qint64 val);
 	void incrementCurrentTime(qint64 val) { currentTime += val; }
 	qint64 getCurrentTime();
+	qint64 getCurrentTimeMili();
 	void setStartTime(qint64 val) { startTime = val; }
 	qint64 getStartPts() { return startPts; }
 	void setStartPts(qint64 val) { startPts = val; }
