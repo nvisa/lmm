@@ -34,6 +34,7 @@ public:
 	int getOutputBufferCount() { return outputBuffers.size(); }
 	int getReceivedBufferCount() { return receivedBufferCount; }
 	int getSentBufferCount() { return sentBufferCount; }
+	int getFps() { return elementFps; }
 signals:
 	
 public slots:
@@ -46,6 +47,10 @@ protected:
 	int sentBufferCount;
 private:
 	QMap<QString, QVariant> parameters;
+
+	int elementFps;
+	int fpsBufferCount;
+	QTime *fpsTiming;
 };
 
 #endif // BASELMMELEMENT_H

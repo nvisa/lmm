@@ -32,9 +32,6 @@ private:
 
 	qint64 last_rpts;
 	qint64 last_time;
-	int fps;
-	int fpsBufferCount;
-	QTime *fpsTiming;
 };
 
 #endif // BASELMMOUTPUT_H

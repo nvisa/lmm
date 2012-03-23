@@ -11,6 +11,9 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 {
 	receivedBufferCount = sentBufferCount = 0;
 	streamTime = NULL;
+	fpsTiming = new QTime;
+	elementFps = fpsBufferCount = 0;
+	fpsTiming->start();
 }
 
 int BaseLmmElement::addBuffer(RawBuffer *buffer)
@@ -27,12 +30,20 @@ RawBuffer * BaseLmmElement::nextBuffer()
 	if (outputBuffers.size() == 0)
 		return NULL;
 	sentBufferCount++;
+	fpsBufferCount++;
+	if (fpsTiming->elapsed() > 1000) {
+		int elapsed = fpsTiming->restart();
+		elementFps = fpsBufferCount * 1000 / elapsed;
+		fpsBufferCount = 0;
+	}
 	return outputBuffers.takeFirst();
 }
 
 int BaseLmmElement::start()
 {
 	receivedBufferCount = sentBufferCount = 0;
+	elementFps = fpsBufferCount = 0;
+	fpsTiming->start();
 	return 0;
 }
 
