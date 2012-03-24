@@ -171,24 +171,24 @@ int BaseLmmDemux::getAudioSampleRate()
 	return 0;
 }
 
-RawBuffer * BaseLmmDemux::nextAudioBuffer()
+RawBuffer BaseLmmDemux::nextAudioBuffer()
 {
 	if (audioBuffers.size()) {
 		sentBufferCount++;
 		return audioBuffers.takeFirst();
 	}
 
-	return NULL;
+	return RawBuffer;
 }
 
-RawBuffer * BaseLmmDemux::nextVideoBuffer()
+RawBuffer BaseLmmDemux::nextVideoBuffer()
 {
 	if (videoBuffers.size()) {
 		sentBufferCount++;
 		return videoBuffers.takeFirst();
 	}
 
-	return NULL;
+	return RawBuffer;
 }
 
 int BaseLmmDemux::audioBufferCount()

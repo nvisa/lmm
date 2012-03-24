@@ -35,9 +35,9 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	bufTab = NULL;
 }
 
-void DM365CameraInput::aboutDeleteBuffer(RawBuffer *buf)
+void DM365CameraInput::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
-	V4l2Input::aboutDeleteBuffer(buf);
+	V4l2Input::aboutDeleteBuffer(params);
 }
 
 int DM365CameraInput::openCamera()
@@ -280,16 +280,16 @@ bool DM365CameraInput::captureLoop()
 		mInfo("captured %p, time is %d", buffer, timing.elapsed());
 		Buffer_Handle dmaibuf = BufTab_getBuf(bufTab, buffer->index);
 		char *data = userptr[buffer->index];
-		RawBuffer *newbuf = new RawBuffer;
-		newbuf->setParentElement(this);
+		RawBuffer newbuf = RawBuffer();
+		newbuf.setParentElement(this);
 
-		newbuf->setRefData(data, buffer->bytesused);
-		newbuf->addBufferParameter("width", (int)captureWidth);
-		newbuf->addBufferParameter("height", (int)captureHeight);
-		newbuf->addBufferParameter("v4l2Buffer",
+		newbuf.setRefData(data, buffer->bytesused);
+		newbuf.addBufferParameter("width", (int)captureWidth);
+		newbuf.addBufferParameter("height", (int)captureHeight);
+		newbuf.addBufferParameter("v4l2Buffer",
 								   qVariantFromValue((void *)buffer));
-		newbuf->addBufferParameter("dmaiBuffer", (int)dmaibuf);
-		newbuf->addBufferParameter("dataPtr", (int)data);
+		newbuf.addBufferParameter("dmaiBuffer", (int)dmaibuf);
+		newbuf.addBufferParameter("dataPtr", (int)data);
 		outputBuffers << newbuf;
 	}
 

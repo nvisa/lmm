@@ -33,7 +33,7 @@ public:
 	QSize captureSize();
 	void setInputType(cameraInput inp) { inputType = inp; }
 
-	void aboutDeleteBuffer(RawBuffer *buf);
+	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 signals:
 	
 public slots:
@@ -45,7 +45,7 @@ private:
 	bool captureLoop();
 	int configurePreviewer();
 	int configureResizer();
-	RawBuffer * createNewRawBuffer(Buffer_Handle dmai);
+	RawBuffer createNewRawBuffer(Buffer_Handle dmai);
 
 	cameraInput inputType;
 	BufTab_Handle bufTab;
@@ -56,7 +56,7 @@ private:
 	int preFd;
 
 	QSemaphore bufsFree;
-	QMap<Buffer_Handle, RawBuffer *> bufferPool;
+	QMap<Buffer_Handle, RawBuffer> bufferPool;
 
 	Capture_Handle hCapture;
 };

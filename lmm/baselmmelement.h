@@ -6,7 +6,8 @@
 #include <QMap>
 #include <QVariant>
 
-class RawBuffer;
+#include "rawbuffer.h"
+
 class StreamTime;
 class CircularBuffer;
 
@@ -15,8 +16,8 @@ class BaseLmmElement : public QObject
 	Q_OBJECT
 public:
 	explicit BaseLmmElement(QObject *parent = 0);
-	int addBuffer(RawBuffer *buffer);
-	virtual RawBuffer * nextBuffer();
+	int addBuffer(RawBuffer buffer);
+	virtual RawBuffer nextBuffer();
 	void setStreamTime(StreamTime *t) { streamTime = t; }
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
 	virtual CircularBuffer * getCircularBuffer() { return NULL; }
@@ -26,7 +27,7 @@ public:
 	virtual int flush();
 	virtual int setParameter(QString param, QVariant value);
 	virtual QVariant getParameter(QString param);
-	virtual void aboutDeleteBuffer(RawBuffer *) {}
+	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &) {}
 
 	/* stat information */
 	void printStats();
@@ -39,8 +40,8 @@ signals:
 	
 public slots:
 protected:
-	QList<RawBuffer *> inputBuffers;
-	QList<RawBuffer *> outputBuffers;
+	QList<RawBuffer> inputBuffers;
+	QList<RawBuffer> outputBuffers;
 	StreamTime *streamTime;
 	qint64 streamDuration;
 	int receivedBufferCount;

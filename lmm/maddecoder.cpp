@@ -41,7 +41,6 @@ int MadDecoder::decodeAll()
 				size_t left = stream->bufend - stream->next_frame;
 				madBuffer.prepend((const char *)stream->next_frame, left);
 			}
-			delete buf;
 		}
 		buf = inputBuffers.takeFirst();
 		if (!buf)
@@ -122,8 +121,7 @@ int MadDecoder::decodeAll()
 		if (cons > 0)
 			madBuffer.remove(0, cons);
 	}
-	if (buf)
-		delete buf;
+
 	return 0;
 }
 

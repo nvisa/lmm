@@ -20,8 +20,8 @@ CameraPlayer::CameraPlayer(QObject *parent) :
 
 int CameraPlayer::decodeLoop()
 {
-	RawBuffer *buf = input->nextBuffer();
-	if (buf) {
+	RawBuffer buf = input->nextBuffer();
+	if (buf.size()) {
 		videoOutput->addBuffer(buf);
 		videoOutput->output();
 	}

@@ -18,10 +18,10 @@ static BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
 static Display_Attrs dAttrs = Display_Attrs_DM365_VID_DEFAULT;
 
 void DM365VideoOutput::
-	videoCopy(RawBuffer *buf, Buffer_Handle dispbuf, Buffer_Handle dmai)
+	videoCopy(RawBuffer buf, Buffer_Handle dispbuf, Buffer_Handle dmai)
 {
 	if (hFrameCopy == NULL) {
-		int linelen = buf->getBufferParameter("linelen").toInt();
+		int linelen = buf.getBufferParameter("linelen").toInt();
 		char *dst = (char *)Buffer_getUserPtr(dispbuf);
 		char *src = (char *)Buffer_getUserPtr(dmai);
 		int dstTotal = gfxAttrs.dim.lineLength * gfxAttrs.dim.height;
@@ -54,14 +54,14 @@ DM365VideoOutput::DM365VideoOutput(QObject *parent) :
 		frameCopyConfigured = false;
 }
 
-int DM365VideoOutput::outputBuffer(RawBuffer *buf)
+int DM365VideoOutput::outputBuffer(RawBuffer buf)
 {
 	if (output == COMPONENT)
 		return V4l2Output::outputBuffer(buf);
 	/* input size does not match output size, do manual copy */
 	Buffer_Handle dispbuf;
 	Display_get(hDisplay, &dispbuf);
-	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
+	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer")
 			.toInt();
 	videoCopy(buf, dispbuf, dmai);
 	if (!bufferPool.contains(dmai))
@@ -126,10 +126,10 @@ int DM365VideoOutput::start()
 	}
 	for (int i = 0; i < BufTab_getNumBufs(hDispBufTab); i++) {
 		Buffer_Handle dmaibuf = BufTab_getBuf(hDispBufTab, i);
-		RawBuffer *newbuf = new RawBuffer;
-		newbuf->setParentElement(this);
-		newbuf->setRefData(Buffer_getUserPtr(dmaibuf), Buffer_getSize(dmaibuf));
-		newbuf->addBufferParameter("dmaiBuffer", (int)dmaibuf);
+		RawBuffer newbuf = RawBuffer();
+		newbuf.setParentElement(this);
+		newbuf.setRefData(Buffer_getUserPtr(dmaibuf), Buffer_getSize(dmaibuf));
+		newbuf.addBufferParameter("dmaiBuffer", (int)dmaibuf);
 		bufferPool.insert(dmaibuf, newbuf);
 	}
 

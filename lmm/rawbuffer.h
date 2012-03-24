@@ -3,41 +3,44 @@
 
 #include <QObject>
 #include <QMap>
+#include <QSharedData>
+#include <QExplicitlySharedDataPointer>
 
 class BaseLmmElement;
+class RawBufferData;
 
-class RawBuffer : public QObject
+class RawBufferData : public QSharedData
 {
-	Q_OBJECT
 public:
-	explicit RawBuffer(BaseLmmElement *parent = 0);
-	explicit RawBuffer(void *data, int size, BaseLmmElement *parent = 0);
-	explicit RawBuffer(int size, BaseLmmElement *parent = 0);
-	~RawBuffer();
+	RawBufferData()
+	{
+		rawData = NULL;
+		refData = false;
+		usedLen = 0;
+		bufferNo = 0;
+		myParent = NULL;
+	}
 
-	void setParentElement(BaseLmmElement *el) { myParent = el; }
-	void setRefData(void *data, int size);
-	void addBufferParameter(QString, QVariant);
-	QVariant getBufferParameter(QString);
-	void setSize(int size);
-	int prepend(const void *data, int size);
-	const void * constData();
-	void * data();
-	int size() { return usedLen; }
-	int setUsedSize(int size);
-	void setDuration(unsigned int val) { duration = val; }
-	unsigned int getDuration() { return duration; }
-	void setPts(qint64 val) { pts = val; }
-	qint64 getPts() { return pts; }
-	void setDts(qint64 val) { dts = val; }
-	qint64 getDts() { return dts; }
+	RawBufferData(const RawBufferData &other)
+		: QSharedData(other)
+	{
+		refData = other.refData;
+		rawData = other.rawData;
+		usedLen = other.usedLen;
+		rawDataLen = other.rawDataLen;
+		prependPos = other.prependPos;
+		prependLen = other.prependLen;
+		appendLen = other.appendLen;
+		duration = other.duration;
+		pts = other.pts;
+		dts = other.dts;
+		parameters = other.parameters;
+		bufferNo = other.bufferNo;
+		myParent = other.myParent;
+	}
 
-	void setStreamBufferNo(int val) { bufferNo = val; }
-	int streamBufferNo() { return bufferNo; }
-signals:
-	
-public slots:
-private:
+	~RawBufferData();
+
 	bool refData;
 	char *rawData;
 	int usedLen;
@@ -51,6 +54,41 @@ private:
 	QMap<QString, QVariant> parameters;
 	int bufferNo;
 	BaseLmmElement* myParent;
+};
+
+class RawBuffer
+{
+public:
+	explicit RawBuffer(BaseLmmElement *parent = 0);
+	explicit RawBuffer(void *data, int size, BaseLmmElement *parent = 0);
+	explicit RawBuffer(int size, BaseLmmElement *parent = 0);
+	RawBuffer(const RawBuffer &other);
+	~RawBuffer();
+
+	void setParentElement(BaseLmmElement *el);
+	void setRefData(void *data, int size);
+	void addBufferParameter(QString, QVariant);
+	QVariant getBufferParameter(QString);
+	void setSize(int size);
+	int prepend(const void *data, int size);
+	const void * constData();
+	void * data();
+	int size();
+	int setUsedSize(int size);
+	void setDuration(unsigned int val);
+	unsigned int getDuration();
+	void setPts(qint64 val);
+	qint64 getPts();
+	void setDts(qint64 val);
+	qint64 getDts();
+
+	void setStreamBufferNo(int val);
+	int streamBufferNo();
+signals:
+	
+public slots:
+private:
+	QExplicitlySharedDataPointer<RawBufferData> d;
 };
 
 #endif // RAWBUFFER_H

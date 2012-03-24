@@ -19,7 +19,7 @@ public:
 
 	virtual int start();
 	virtual int stop();
-	virtual void aboutDeleteBuffer(RawBuffer *buf);
+	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 
 	friend class captureThread;
 signals:

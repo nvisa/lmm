@@ -31,7 +31,7 @@ public:
 
 	explicit DM365CameraInput(QObject *parent = 0);
 	void setInputType(cameraInput inp) { inputType = inp; }
-	void aboutDeleteBuffer(RawBuffer *buf);
+	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 signals:
 	
 public slots:
@@ -56,7 +56,7 @@ private:
 	QSemaphore bufsFree;
 	//QSemaphore bufsTaken;
 	QList<Buffer_Handle> finishedDmaiBuffers;
-	QMap<Buffer_Handle, RawBuffer *> bufferPool;
+	QMap<Buffer_Handle, RawBuffer> bufferPool;
 
 	Capture_Handle hCapture;
 };

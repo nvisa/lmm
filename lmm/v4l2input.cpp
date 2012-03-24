@@ -292,10 +292,9 @@ v4l2_buffer *V4l2Input::getFrame()
 	return v4l2buf[buffer.index];
 }
 
-void V4l2Input::aboutDeleteBuffer(RawBuffer *buf)
+void V4l2Input::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
-	v4l2_buffer *buffer =
-			(v4l2_buffer *)buf->getBufferParameter("v4l2Buffer").value<void *>();
+	v4l2_buffer *buffer = (v4l2_buffer *)params["v4l2Buffer"].value<void *>();
 	mDebug("buffer %p", buffer);
 	finishedBuffers << buffer;
 }
@@ -308,13 +307,13 @@ bool V4l2Input::captureLoop()
 	if (buffer) {
 		mInfo("new frame %p", buffer);
 		unsigned char *data = (unsigned char *)userptr[buffer->index];
-		RawBuffer *newbuf = new RawBuffer;
-		newbuf->setParentElement(this);
+		RawBuffer newbuf = RawBuffer();
+		newbuf.setParentElement(this);
 
-		newbuf->setRefData(data, buffer->length);
-		newbuf->addBufferParameter("width", (int)captureWidth);
-		newbuf->addBufferParameter("height", (int)captureHeight);
-		newbuf->addBufferParameter("v4l2Buffer",
+		newbuf.setRefData(data, buffer->length);
+		newbuf.addBufferParameter("width", (int)captureWidth);
+		newbuf.addBufferParameter("height", (int)captureHeight);
+		newbuf.addBufferParameter("v4l2Buffer",
 								   qVariantFromValue((void *)buffer));
 		outputBuffers << newbuf;
 	}

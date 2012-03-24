@@ -17,7 +17,7 @@ public:
 	void setVideoOutput(videoOutput out) { output = out; }
 	void setPixelFormat(int f) { pixelFormat = f; }
 
-	int outputBuffer(RawBuffer *buf);
+	int outputBuffer(RawBuffer buf);
 	int start();
 	int stop();
 signals:
@@ -29,7 +29,7 @@ private:
 	bool frameCopyConfigured;
 	int pixelFormat;
 
-	void videoCopy(RawBuffer *buf, Buffer_Handle dispbuf, Buffer_Handle dmai);
+	void videoCopy(RawBuffer buf, Buffer_Handle dispbuf, Buffer_Handle dmai);
 };
 
 #endif // DM365VIDEOOUTPUT_H

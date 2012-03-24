@@ -68,8 +68,8 @@ Buffer_Handle DM365DmaiCapture::getFrameDmai()
 bool DM365DmaiCapture::captureLoop()
 {
 	while (inputBuffers.size()) {
-		RawBuffer *buffer = inputBuffers.takeFirst();
-		Buffer_Handle dmai = (Buffer_Handle)buffer->
+		RawBuffer buffer = inputBuffers.takeFirst();
+		Buffer_Handle dmai = (Buffer_Handle)buffer.
 							 getBufferParameter("dmaiBuffer").toInt();
 		putFrameDmai(dmai);
 		bufsFree.release(1);
@@ -91,12 +91,11 @@ bool DM365DmaiCapture::captureLoop()
 	return false;
 }
 
-void DM365DmaiCapture::aboutDeleteBuffer(RawBuffer *buf)
+void DM365DmaiCapture::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
-	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
-			.toInt();
-	RawBuffer *buffer = createNewRawBuffer(dmai);
-	buffer->addBufferParameter("linelen", buf->getBufferParameter("linelen"));
+	Buffer_Handle dmai = (Buffer_Handle)params["dmaiBuffer"].toInt();
+	RawBuffer buffer = createNewRawBuffer(dmai);
+	buffer.addBufferParameter("linelen", params["linelen"]);
 	inputBuffers << buffer;
 	mDebug("buffer finished");
 }
@@ -187,8 +186,8 @@ int DM365DmaiCapture::openCamera()
 
 	for (int i = 0; i < BufTab_getNumBufs(bufTab); i++) {
 		Buffer_Handle hBuf = BufTab_getBuf(bufTab, i);
-		RawBuffer *buffer = createNewRawBuffer(hBuf);
-		buffer->addBufferParameter("linelen", (int)gfxAttrs.dim.lineLength);
+		RawBuffer buffer = createNewRawBuffer(hBuf);
+		buffer.addBufferParameter("linelen", (int)gfxAttrs.dim.lineLength);
 	}
 	bufsFree.release(1);
 	bufsFree.release(1);
@@ -286,15 +285,15 @@ int DM365DmaiCapture::configureResizer(void)
 	return 0;
 }
 
-RawBuffer *DM365DmaiCapture::createNewRawBuffer(Buffer_Handle hBuf)
+RawBuffer DM365DmaiCapture::createNewRawBuffer(Buffer_Handle hBuf)
 {
-	RawBuffer *newbuf = new RawBuffer;
-	newbuf->setParentElement(this);
-	newbuf->setRefData(Buffer_getUserPtr(hBuf), Buffer_getSize(hBuf));
-	newbuf->addBufferParameter("width", captureWidth);
-	newbuf->addBufferParameter("height", captureHeight);
-	newbuf->addBufferParameter("v4l2PixelFormat", (int)outPixFormat);
-	newbuf->addBufferParameter("dmaiBuffer", (int)hBuf);
+	RawBuffer newbuf = RawBuffer();
+	newbuf.setParentElement(this);
+	newbuf.setRefData(Buffer_getUserPtr(hBuf), Buffer_getSize(hBuf));
+	newbuf.addBufferParameter("width", captureWidth);
+	newbuf.addBufferParameter("height", captureHeight);
+	newbuf.addBufferParameter("v4l2PixelFormat", (int)outPixFormat);
+	newbuf.addBufferParameter("dmaiBuffer", (int)hBuf);
 	bufferPool.insert(hBuf, newbuf);
 	return newbuf;
 }

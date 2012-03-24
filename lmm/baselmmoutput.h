@@ -22,8 +22,8 @@ signals:
 	
 public slots:
 protected:
-	int checkBufferTimeStamp(RawBuffer *, int jitter = 1);
-	virtual int outputBuffer(RawBuffer *buf);
+	int checkBufferTimeStamp(RawBuffer, int jitter = 1);
+	virtual int outputBuffer(RawBuffer buf);
 	qint64 outputLatency;
 	bool dontDeleteBuffers;
 private:

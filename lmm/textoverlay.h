@@ -38,7 +38,7 @@ public:
 	void addOverlayField(overlayTextFields f, QString val = "");
 	int start();
 	int stop();
-	int addBuffer(RawBuffer *buffer);
+	int addBuffer(RawBuffer buffer);
 signals:
 	
 public slots:
@@ -64,9 +64,9 @@ private:
 	QList<int> createPixelMap(int fontWidth, const QImage &image);
 	void createYuvMap();
 	int dmaCopy(void *src, void *dst, QImage *im);
-	void yuvSwOverlay(RawBuffer *buffer);
-	void yuvSwMapOverlay(RawBuffer *buffer);
-	void yuvSwPixmapOverlay(RawBuffer *buffer);
+	void yuvSwOverlay(RawBuffer buffer);
+	void yuvSwMapOverlay(RawBuffer buffer);
+	void yuvSwPixmapOverlay(RawBuffer buffer);
 	QString compileOverlayText();
 };
 

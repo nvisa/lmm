@@ -43,8 +43,8 @@ int DmaiEncoder::encodeNext()
 	int err = 0;
 	if (inputBuffers.size() == 0)
 		return -ENOENT;
-	RawBuffer *buf = inputBuffers.takeFirst();
-	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
+	RawBuffer buf = inputBuffers.takeFirst();
+	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer")
 			.toInt();
 	if (!dmai) {
 		mDebug("cannot get dmai buffer");
@@ -55,7 +55,6 @@ int DmaiEncoder::encodeNext()
 	if (err)
 		goto out;
 out:
-	delete buf;
 	return err;
 }
 
@@ -94,9 +93,9 @@ int DmaiEncoder::encode(Buffer_Handle buffer)
 		BufTab_freeBuf(hDstBuf);
 		return -EIO;
 	}
-	RawBuffer *buf = new RawBuffer(this);
-	buf->setRefData(Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
-	buf->addBufferParameter("dmaiBuffer", (int)hDstBuf);
+	RawBuffer buf = RawBuffer(this);
+	buf.setRefData(Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
+	buf.addBufferParameter("dmaiBuffer", (int)hDstBuf);
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	outputBuffers << buf;
 	/* Reset the dimensions to what they were originally */
@@ -105,10 +104,9 @@ int DmaiEncoder::encode(Buffer_Handle buffer)
 	return 0;
 }
 
-void DmaiEncoder::aboutDeleteBuffer(RawBuffer *buf)
+void DmaiEncoder::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
-	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
-			.toInt();
+	Buffer_Handle dmai = (Buffer_Handle)params["dmaiBuffer"].toInt();
 	BufTab_freeBuf(dmai);
 	mInfo("freeing buffer");
 }

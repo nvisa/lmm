@@ -37,25 +37,22 @@ int FileOutput::output()
 	mInfo("buffer count: %d", inputBuffers.count());
 	if (!inputBuffers.size())
 		return -ENOENT;
-	RawBuffer *buf = inputBuffers.takeFirst();
+	RawBuffer buf = inputBuffers.takeFirst();
 	/* We don't do any syncing */
-	const char *data = (const char *)buf->constData();
-	int written = file->write(data, buf->size());
+	const char *data = (const char *)buf.constData();
+	int written = file->write(data, buf.size());
 	if (written < 0) {
 		mDebug("error writing to output file %s", qPrintable(file->fileName()));
-		delete buf;
 		return -EIO;
 	}
-	while (written < buf->size()) {
-		int err = file->write(data + written, buf->size() - written);
+	while (written < buf.size()) {
+		int err = file->write(data + written, buf.size() - written);
 		if (err < 0) {
 			mDebug("error writing to output file %s, %d bytes written", qPrintable(file->fileName()), written);
-			delete buf;
 			return -EIO;
 		}
 		written += err;
 	}
-	mInfo("%d bytes written", buf->size());
-	delete buf;
+	mInfo("%d bytes written", buf.size());
 	return 0;
 }

@@ -18,8 +18,8 @@ public:
 	virtual int setSource(QString filename);
 	virtual qint64 getTotalDuration();
 	virtual qint64 getCurrentPosition();
-	virtual RawBuffer * nextAudioBuffer();
-	virtual RawBuffer * nextVideoBuffer();
+	virtual RawBuffer nextAudioBuffer();
+	virtual RawBuffer nextVideoBuffer();
 	virtual int audioBufferCount();
 	virtual int videoBufferCount();
 	virtual int start();
@@ -45,8 +45,8 @@ protected:
 	AVFormatContext *context;
 	AVStream *audioStream;
 	AVStream *videoStream;
-	QList<RawBuffer *> audioBuffers;
-	QList<RawBuffer *> videoBuffers;
+	QList<RawBuffer> audioBuffers;
+	QList<RawBuffer> videoBuffers;
 	bool demuxAudio;
 	bool demuxVideo;
 	bool foundStreamInfo;

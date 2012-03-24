@@ -52,7 +52,7 @@ private:
 	Buffer_Handle circBufData;
 	int decodeCount;
 	codecType codec;
-	QHash<int, RawBuffer *> bufferMapping;
+	QHash<int, RawBuffer> bufferMapping;
 
 	int startCodec();
 	int stopCodec();

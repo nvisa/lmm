@@ -27,7 +27,7 @@ public:
 	int stop();
 	int encodeNext();
 	int encode(Buffer_Handle buffer);
-	void aboutDeleteBuffer(RawBuffer *buf);
+	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 
 	static void initCodecEngine();
 signals:

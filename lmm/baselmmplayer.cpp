@@ -296,18 +296,16 @@ void BaseLmmPlayer::streamInfoFound()
 
 void BaseLmmPlayer::audioLoop()
 {
-	RawBuffer *buf = demux->nextAudioBuffer();
+	RawBuffer buf = demux->nextAudioBuffer();
 	if (noAudio) {
-		if (buf)
-			delete buf;
 		return;
 	}
-	if (buf)
+	if (buf.size())
 		audioDecoder->addBuffer(buf);
 	if (audioDecoder->decode())
 		mDebug("audio decoder reported error");
 	buf = audioDecoder->nextBuffer();
-	if (buf) {
+	if (buf.size()) {
 		audioOutput->addBuffer(buf);
 		/*
 		 * If we are not a live pipeline, sync current time
@@ -316,7 +314,7 @@ void BaseLmmPlayer::audioLoop()
 		 * syncs stream time with their internal clock
 		 */
 		if (!live)
-			streamTime->setCurrentTime(buf->getPts());
+			streamTime->setCurrentTime(buf.getPts());
 	}
 	if (!audioOutput->output()) {
 		if (waitConsumer->tryAcquire(1))
@@ -330,26 +328,22 @@ void BaseLmmPlayer::videoLoop()
 		mDebug("previous decode operation is not finished");
 		return;
 	}
-	RawBuffer *buf = demux->nextVideoBuffer();
+	RawBuffer buf = demux->nextVideoBuffer();
 	if (noVideo) {
-		if (buf)
-			delete buf;
 		return;
 	}
-	if (buf)
+	if (buf.size())
 		videoDecoder->addBuffer(buf);
 	videoThreadWatcher->setFuture(QtConcurrent::run(videoDecoder, &BaseLmmDecoder::decode));
 	buf = videoDecoder->nextBuffer();
 	if (videoOutput) {
-		if (buf)
+		if (buf.size())
 			videoOutput->addBuffer(buf);
 		if (!videoOutput->output()) {
 			if (waitConsumer->tryAcquire())
 				waitProducer->release(1);
 		}
 	} else {
-		if (buf)
-			delete buf;
 		if (waitConsumer->tryAcquire())
 			waitProducer->release(1);
 	}

@@ -110,7 +110,7 @@ int TextOverlay::stop()
 	return BaseLmmElement::stop();
 }
 
-int TextOverlay::addBuffer(RawBuffer *buffer)
+int TextOverlay::addBuffer(RawBuffer buffer)
 {
 	int err = BaseLmmElement::addBuffer(buffer);
 	if (err)
@@ -137,7 +137,7 @@ bool TextOverlay::readMapsFromCache()
 	QDataStream in(&f);
 	qint32 cnt;
 	in >> cnt;
-	qDebug() << cnt << "character maps present";
+	mDebug("%d character maps present", cnt);
 	int index = fontSize - 8;
 	for (int i = 0; i < index; i++) {
 		in >> charFontWidth;
@@ -237,11 +237,11 @@ int TextOverlay::dmaCopy(void *src, void *dst, QImage *im)
 	return err;
 }
 
-void TextOverlay::yuvSwOverlay(RawBuffer *buffer)
+void TextOverlay::yuvSwOverlay(RawBuffer buffer)
 {
-	int pixfmt = buffer->getBufferParameter("v4l2PixelFormat").toInt();
-	int width = buffer->getBufferParameter("width").toInt();
-	int height = buffer->getBufferParameter("height").toInt();
+	int pixfmt = buffer.getBufferParameter("v4l2PixelFormat").toInt();
+	int width = buffer.getBufferParameter("width").toInt();
+	int height = buffer.getBufferParameter("height").toInt();
 	int linelen = width;
 	if (pixfmt == V4L2_PIX_FMT_UYVY)
 		linelen *= 2;
@@ -255,7 +255,7 @@ void TextOverlay::yuvSwOverlay(RawBuffer *buffer)
 	painter.setFont(f);
 	painter.drawText(QRect(0, 0, image.width(), image.height()),
 					 compileOverlayText());
-	char *data = (char *)buffer->data() + linelen * height;
+	char *data = (char *)buffer.data() + linelen * height;
 	for (int j = 0; j < image.height(); j++) {
 		int start = j * linelen + overlayPos.x();
 		for (int i = 0; i < image.width(); i++) {
@@ -268,17 +268,17 @@ void TextOverlay::yuvSwOverlay(RawBuffer *buffer)
 	}
 }
 
-void TextOverlay::yuvSwMapOverlay(RawBuffer *buffer)
+void TextOverlay::yuvSwMapOverlay(RawBuffer buffer)
 {
-	int pixfmt = buffer->getBufferParameter("v4l2PixelFormat").toInt();
-	int width = buffer->getBufferParameter("width").toInt();
-	int height = buffer->getBufferParameter("height").toInt();
+	int pixfmt = buffer.getBufferParameter("v4l2PixelFormat").toInt();
+	int width = buffer.getBufferParameter("width").toInt();
+	int height = buffer.getBufferParameter("height").toInt();
 	int linelen = width;
 	if (pixfmt == V4L2_PIX_FMT_UYVY)
 		linelen *= 2;
 	if (overlayPos.y() > height - fontHeight)
 		overlayPos.setY(height - fontHeight);
-	char *dst = (char *)buffer->data() + linelen * overlayPos.y();
+	char *dst = (char *)buffer.data() + linelen * overlayPos.y();
 	QString text = compileOverlayText();
 	QByteArray ba = text.toLatin1();
 	for (int i = 0; i < ba.size(); i++) {
@@ -293,17 +293,17 @@ void TextOverlay::yuvSwMapOverlay(RawBuffer *buffer)
 	}
 }
 
-void TextOverlay::yuvSwPixmapOverlay(RawBuffer *buffer)
+void TextOverlay::yuvSwPixmapOverlay(RawBuffer buffer)
 {
-	int pixfmt = buffer->getBufferParameter("v4l2PixelFormat").toInt();
-	int width = buffer->getBufferParameter("width").toInt();
-	int height = buffer->getBufferParameter("height").toInt();
+	int pixfmt = buffer.getBufferParameter("v4l2PixelFormat").toInt();
+	int width = buffer.getBufferParameter("width").toInt();
+	int height = buffer.getBufferParameter("height").toInt();
 	int linelen = width;
 	if (pixfmt == V4L2_PIX_FMT_UYVY)
 		linelen *= 2;
 	if (overlayPos.y() > height - fontHeight)
 		overlayPos.setY(height - fontHeight);
-	char *dst = (char *)buffer->data() + linelen * overlayPos.y()
+	char *dst = (char *)buffer.data() + linelen * overlayPos.y()
 			+ overlayPos.x();
 	QString text = compileOverlayText();
 	QByteArray ba = text.toLatin1();

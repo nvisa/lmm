@@ -16,19 +16,19 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	fpsTiming->start();
 }
 
-int BaseLmmElement::addBuffer(RawBuffer *buffer)
+int BaseLmmElement::addBuffer(RawBuffer buffer)
 {
-	if (!buffer)
+	if (buffer.size() == 0)
 		return -EINVAL;
 	inputBuffers << buffer;
 	receivedBufferCount++;
 	return 0;
 }
 
-RawBuffer * BaseLmmElement::nextBuffer()
+RawBuffer BaseLmmElement::nextBuffer()
 {
 	if (outputBuffers.size() == 0)
-		return NULL;
+		return RawBuffer();
 	sentBufferCount++;
 	fpsBufferCount++;
 	if (fpsTiming->elapsed() > 1000) {
@@ -60,8 +60,6 @@ void BaseLmmElement::printStats()
 
 int BaseLmmElement::flush()
 {
-	qDeleteAll(inputBuffers.begin(), inputBuffers.end());
-	qDeleteAll(outputBuffers.begin(), outputBuffers.end());
 	inputBuffers.clear();
 	outputBuffers.clear();
 	return 0;

@@ -16,13 +16,13 @@ V4l2Output::V4l2Output(QObject *parent) :
 	dontDeleteBuffers = true;
 }
 
-int V4l2Output::outputBuffer(RawBuffer *buf)
+int V4l2Output::outputBuffer(RawBuffer buf)
 {
 	Buffer_Handle dispbuf;
 	Display_get(hDisplay, &dispbuf);
 	outputBuffers << bufferPool[dispbuf];
 
-	Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
+	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer")
 			.toInt();
 	Display_put(hDisplay, dmai);
 	if (!bufferPool.contains(dmai))
@@ -73,10 +73,10 @@ int V4l2Output::start()
 	}
 	for (int i = 0; i < BufTab_getNumBufs(hDispBufTab); i++) {
 		Buffer_Handle dmaibuf = BufTab_getBuf(hDispBufTab, i);
-		RawBuffer *newbuf = new RawBuffer;
-		newbuf->setParentElement(this);
-		newbuf->setRefData(Buffer_getUserPtr(dmaibuf), Buffer_getSize(dmaibuf));
-		newbuf->addBufferParameter("dmaiBuffer", (int)dmaibuf);
+		RawBuffer newbuf = RawBuffer();
+		newbuf.setParentElement(this);
+		newbuf.setRefData(Buffer_getUserPtr(dmaibuf), Buffer_getSize(dmaibuf));
+		newbuf.addBufferParameter("dmaiBuffer", (int)dmaibuf);
 		bufferPool.insert(dmaibuf, newbuf);
 	}
 
@@ -91,7 +91,7 @@ int V4l2Output::stop()
 	return BaseLmmOutput::stop();
 }
 
-void V4l2Output::aboutDeleteBuffer(RawBuffer *buf)
+void V4l2Output::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
 	//Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
 		//	.toInt();
