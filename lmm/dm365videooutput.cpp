@@ -64,9 +64,6 @@ int DM365VideoOutput::outputBuffer(RawBuffer buf)
 	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer")
 			.toInt();
 	videoCopy(buf, dispbuf, dmai);
-	if (!bufferPool.contains(dmai))
-		bufferPool.insert(dmai, buf);
-	outputBuffers << bufferPool[dmai];
 	Display_put(hDisplay, dispbuf);
 
 	return 0;
