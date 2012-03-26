@@ -25,7 +25,7 @@
 #define V4L2_STD_720P_30        ((v4l2_std_id)(0x0100000000000000ULL))
 #define V4L2_STD_720P_60        ((v4l2_std_id)(0x0004000000000000ULL))
 
-#define NUM_CAPTURE_BUFS 3
+#define NUM_CAPTURE_BUFS 5
 
 DM365DmaiCapture::DM365DmaiCapture(QObject *parent) :
 	V4l2Input(parent)
@@ -189,8 +189,7 @@ int DM365DmaiCapture::openCamera()
 		RawBuffer buffer = createNewRawBuffer(hBuf);
 		buffer.addBufferParameter("linelen", (int)gfxAttrs.dim.lineLength);
 	}
-	bufsFree.release(1);
-	bufsFree.release(1);
+	bufsFree.release(NUM_CAPTURE_BUFS - 1);
 	return 0;
 }
 
