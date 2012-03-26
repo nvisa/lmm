@@ -8,6 +8,7 @@ class FileOutput;
 class V4l2Input;
 class BaseLmmOutput;
 class QTimer;
+class TextOverlay;
 
 class H264Encoder : public BaseLmmElement
 {
@@ -23,7 +24,9 @@ private:
 	QList<BaseLmmElement *> elements;
 	DmaiEncoder *encoder;
 	BaseLmmOutput *output;
+	BaseLmmOutput *output2;
 	V4l2Input *input;
+	TextOverlay *overlay;
 	QTimer *timer;
 };
 

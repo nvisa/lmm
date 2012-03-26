@@ -7,6 +7,8 @@
 #include "rawbuffer.h"
 #include "fboutput.h"
 #include "dm365videooutput.h"
+#include "textoverlay.h"
+#include "streamtime.h"
 
 #include <emdesk/debug.h>
 
@@ -27,19 +29,29 @@ H264Encoder::H264Encoder(QObject *parent) :
 
 	encoder = new DmaiEncoder;
 	elements << encoder;
-#if 0
-	DM365VideoOutput *dm365Output = new DM365VideoOutput;
-	dm365Output->setVideoOutput(DM365VideoOutput::COMPOSITE);
-	output = dm365Output;
-#else
+
 	output =  new FileOutput;
-#endif
 	output->syncOnClock(false);
 	elements << output;
+
+	DM365VideoOutput *dm365Output = new DM365VideoOutput;
+	dm365Output->setVideoOutput(DM365VideoOutput::COMPOSITE);
+	output2 = dm365Output;
+	output2->syncOnClock(false);
+	elements << output2;
+
+	overlay = new TextOverlay(TextOverlay::PIXEL_MAP);
+	overlay->setOverlayPosition(QPoint(50, 150));
+	overlay->setOverlayText("deneme: no=%1 fps=%2");
+	overlay->addOverlayField(TextOverlay::FIELD_FRAME_NO);
+	overlay->addOverlayField(TextOverlay::FIELD_STREAM_FPS);
+	elements << overlay;
 
 	timer = new QTimer(this);
 	timer->setSingleShot(true);
 	connect(timer, SIGNAL(timeout()), this, SLOT(encodeLoop()));
+
+	streamTime = new StreamTime;
 }
 
 int H264Encoder::start()
@@ -50,8 +62,10 @@ int H264Encoder::start()
 		int err = el->start();
 		if (err)
 			return err;
+		el->setStreamTime(streamTime);
 	}
 	timer->start(10);
+	streamTime->start();
 	return BaseLmmElement::start();
 }
 
@@ -61,34 +75,26 @@ int H264Encoder::stop()
 		el->setStreamTime(NULL);
 		el->stop();
 	}
+	streamTime->stop();
 	return BaseLmmElement::stop();
 }
 
 void H264Encoder::encodeLoop()
 {
-	RawBuffer *buf = input->nextBuffer();
-	if (buf) {
-#if 1
+	RawBuffer buf = input->nextBuffer();
+	if (buf.size()) {
+		overlay->addBuffer(buf);
+		buf = overlay->nextBuffer();
 		encoder->addBuffer(buf);
-		if (!encoder->encodeNext()) {
-			buf = encoder->nextBuffer();
-			if (buf)
-				output->addBuffer(buf);
+		encoder->encodeNext();
+		RawBuffer buf2 = encoder->nextBuffer();
+		if (buf2.size()) {
+			output->addBuffer(buf2);
 			output->output();
-			//buf = output->nextBuffer();
-			//if (buf)
-			//input->addBuffer(buf);
 		}
-#else
-		output->addBuffer(buf);
-		output->output();
-	if (dmaiCapture()) {
-		buf = output->nextBuffer();
-		if (buf)
-			input->addBuffer(buf);
-	} else
-		delete buf;
-#endif
+		output2->addBuffer(buf);
+		output2->output();
+		input->addBuffer(buf);
 	}
 	timer->start(1);
 }
