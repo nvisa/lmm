@@ -5,6 +5,7 @@
 #include <QMap>
 #include <QSharedData>
 #include <QExplicitlySharedDataPointer>
+#include <QVariant>
 
 class BaseLmmElement;
 class RawBufferData;

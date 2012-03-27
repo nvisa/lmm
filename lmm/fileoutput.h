@@ -3,6 +3,9 @@
 
 #include "baselmmoutput.h"
 
+#include <QFuture>
+#include <QFutureWatcher>
+
 class QFile;
 
 class FileOutput : public BaseLmmOutput
@@ -13,11 +16,20 @@ public:
 	int start();
 	int stop();
 	virtual int output();
+	void setFileName(QString name, bool pipe = false);
+	virtual void signalReceived(int);
 signals:
 	
 public slots:
 private:
 	QFile *file;
+	QString fileName;
+	bool isPipe;
+	QFutureWatcher<int> *watcher;
+	bool pipeClosed;
+
+	int writeBuffer(RawBuffer buf);
+	int fifoOutput();
 };
 
 #endif // FILEOUTPUT_H

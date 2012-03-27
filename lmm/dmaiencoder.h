@@ -41,6 +41,7 @@ private:
 	int numOutputBufs;
 	int imageWidth;
 	int imageHeight;
+	int encodeCount;
 
 	int startCodec();
 	int stopCodec();

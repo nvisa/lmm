@@ -24,6 +24,8 @@
 #include <QCoreApplication>
 #include <QMap>
 
+static QList<BaseLmmElement *> registeredElementsForPipe;
+
 static void platformCleanUp()
 {
 #ifdef CONFIG_DM6446
@@ -61,6 +63,9 @@ static void signalHandler(int signalNumber)
 	} else if (signalNumber == SIGABRT) {
 		platformCleanUp();
 		exit(0);
+	} else if (signalNumber == SIGPIPE) {
+		foreach (BaseLmmElement *el, registeredElementsForPipe)
+			el->signalReceived(signalNumber);
 	}
 }
 
@@ -91,6 +96,13 @@ int LmmCommon::installSignalHandlers()
 	sigaction(SIGINT, &sigInstaller, NULL);
 	sigaction(SIGTERM, &sigInstaller, NULL);
 	sigaction(SIGABRT, &sigInstaller, NULL);
+	sigaction(SIGPIPE, &sigInstaller, NULL);
+	return 0;
+}
+
+int LmmCommon::registerForPipeSignal(BaseLmmElement *el)
+{
+	registeredElementsForPipe << el;
 	return 0;
 }
 

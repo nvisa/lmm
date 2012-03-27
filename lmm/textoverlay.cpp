@@ -116,14 +116,12 @@ int TextOverlay::addBuffer(RawBuffer buffer)
 	if (err)
 		return err;
 	/* we modify buffers in-place */
-	QTime t; t.start();
 	if (type == CHAR_MAP)
 		yuvSwMapOverlay(buffer);
 	else if (type == PIXEL_MAP)
 		yuvSwPixmapOverlay(buffer);
 	inputBuffers.removeFirst();
 	outputBuffers << buffer;
-	qDebug() << "overlay took" << t.elapsed();
 	return 0;
 }
 

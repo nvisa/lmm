@@ -28,6 +28,7 @@ public:
 	virtual int setParameter(QString param, QVariant value);
 	virtual QVariant getParameter(QString param);
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &) {}
+	virtual void signalReceived(int) {}
 
 	/* stat information */
 	void printStats();

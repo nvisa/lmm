@@ -24,6 +24,7 @@ void DmaiEncoder::setImageSize(QSize s)
 
 int DmaiEncoder::start()
 {
+	encodeCount = 0;
 	int err = startCodec();
 	if (err)
 		return err;
@@ -97,6 +98,7 @@ int DmaiEncoder::encode(Buffer_Handle buffer)
 	buf.setRefData(Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
 	buf.addBufferParameter("dmaiBuffer", (int)hDstBuf);
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
+	buf.setStreamBufferNo(encodeCount++);
 	outputBuffers << buf;
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
