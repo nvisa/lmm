@@ -295,7 +295,7 @@ v4l2_buffer *V4l2Input::getFrame()
 void V4l2Input::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
 	v4l2_buffer *buffer = (v4l2_buffer *)params["v4l2Buffer"].value<void *>();
-	mDebug("buffer %p", buffer);
+	mInfo("buffer %p", buffer);
 	finishedBuffers << buffer;
 }
 

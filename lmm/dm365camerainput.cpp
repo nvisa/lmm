@@ -22,7 +22,7 @@
 #define V4L2_STD_720P_30        ((v4l2_std_id)(0x0100000000000000ULL))
 #define V4L2_STD_720P_60        ((v4l2_std_id)(0x0004000000000000ULL))
 
-#define NUM_CAPTURE_BUFS 3
+#define NUM_CAPTURE_BUFS 5
 
 DM365CameraInput::DM365CameraInput(QObject *parent) :
 	V4l2Input(parent)
@@ -106,7 +106,7 @@ int DM365CameraInput::openCamera()
 		gfxAttrs.dim.lineLength = Dmai_roundUp(width, 32);
 		bufSize = width * height * 3 / 2;
 	}
-	bufTab = BufTab_create(3, bufSize, BufferGfx_getBufferAttrs(&gfxAttrs));
+	bufTab = BufTab_create(NUM_CAPTURE_BUFS, bufSize, BufferGfx_getBufferAttrs(&gfxAttrs));
 	if (!bufTab) {
 		mDebug("unable to create capture buffers");
 		return -ENOMEM;
@@ -163,7 +163,7 @@ Int DM365CameraInput::allocBuffers()
 	Dmai_clear(req);
 	memset(&req, 0, sizeof(v4l2_requestbuffers));
 	req.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	req.count  = 3;
+	req.count  = NUM_CAPTURE_BUFS;
 	req.memory = V4L2_MEMORY_USERPTR;
 	if (ioctl(fd, VIDIOC_REQBUFS, &req) == -1) {
 		mDebug("Could not allocate video display buffers");
@@ -171,7 +171,7 @@ Int DM365CameraInput::allocBuffers()
 	}
 
 	/* The driver may return less buffers than requested */
-	if (req.count < 3 || !req.count) {
+	if (req.count < NUM_CAPTURE_BUFS || !req.count) {
 		mDebug("Insufficient device driver buffer memory");
 		return -ENOMEM;
 	}
@@ -222,10 +222,7 @@ Int DM365CameraInput::allocBuffers()
 			return -errno;
 		}
 	}
-	if (bufsFree.available() < 2)
-		bufsFree.release(1);
-	if (bufsFree.available() < 2)
-		bufsFree.release(1);
+	bufsFree.release(NUM_CAPTURE_BUFS - 1);
 
 	return 0;
 }
@@ -283,7 +280,7 @@ bool DM365CameraInput::captureLoop()
 		RawBuffer newbuf = RawBuffer();
 		newbuf.setParentElement(this);
 
-		newbuf.setRefData(data, buffer->bytesused);
+		newbuf.setRefData(data, buffer->length);
 		newbuf.addBufferParameter("width", (int)captureWidth);
 		newbuf.addBufferParameter("height", (int)captureHeight);
 		newbuf.addBufferParameter("v4l2Buffer",
