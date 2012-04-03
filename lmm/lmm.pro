@@ -20,7 +20,9 @@ SOURCES += \
     cameraplayer.cpp \
     v4l2input.cpp \
     fboutput.cpp \
-    textoverlay.cpp
+    rtspoutput.cpp \
+    debugserver.cpp \
+    debugclient.cpp
 
 HEADERS  += \
     filesource.h \
@@ -36,7 +38,10 @@ HEADERS  += \
     cameraplayer.h \
     v4l2input.h \
     fboutput.h \
-    textoverlay.h
+    textoverlay.h \
+    rtspoutput.h \
+    debugserver.h \
+    debugclient.h
 
 alsa {
     HEADERS += \
@@ -90,13 +95,15 @@ dm365 {
         h264encoder.cpp \
         v4l2output.cpp \
         dm365videooutput.cpp \
+        textoverlay.cpp \
 
     HEADERS += dmaiencoder.h \
         dm365dmaicapture.h \
         h264encoder.h \
         dm365camerainput.h \
         v4l2output.h \
-        dm365videooutput.h
+        dm365videooutput.h \
+        textoverlay.h
 
     xdc.files += ../dm365.pri
     xdc.files += ../config.bld
@@ -139,6 +146,8 @@ arm {
     include($$INSTALL_PREFIX/usr/local/include/emdesk/emdeskCommon.pri)
     DEFINES += TARGET_ARM
 }
+
+INCLUDEPATH += ..
 
 headers.files = $$HEADERS lmm.pri
 headers.path = /usr/local/include/lmm
