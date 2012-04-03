@@ -29,6 +29,7 @@ public:
 	virtual QVariant getParameter(QString param);
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &) {}
 	virtual void signalReceived(int) {}
+	virtual int setThreaded(bool);
 
 	/* stat information */
 	void printStats();

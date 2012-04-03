@@ -26,10 +26,9 @@ int FileOutput::start()
 			mDebug("error opening output file %s", qPrintable(file->fileName()));
 			return -EINVAL;
 		}
-	}  else {
 	}
 
-	return BaseLmmElement::start();
+	return BaseLmmOutput::start();
 }
 
 int FileOutput::stop()
@@ -42,7 +41,7 @@ int FileOutput::stop()
 	return BaseLmmElement::stop();
 }
 
-int FileOutput::output()
+int FileOutput::outputFunc()
 {
 	if (isPipe)
 		return fifoOutput();
@@ -99,6 +98,8 @@ int FileOutput::writeBuffer(RawBuffer buf)
 
 int FileOutput::fifoOutput()
 {
+	if (inputBuffers.size() > 1)
+		mDebug("%d buffers", inputBuffers.size());
 	while (inputBuffers.size()) {
 		if (!watcher->future().isFinished())
 			break;

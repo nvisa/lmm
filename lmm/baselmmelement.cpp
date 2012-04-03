@@ -82,3 +82,8 @@ QVariant BaseLmmElement::getParameter(QString param)
 		return parameters[param];
 	return QVariant();
 }
+
+int BaseLmmElement::setThreaded(bool)
+{
+	return -EINVAL;
+}

@@ -15,7 +15,6 @@ public:
 	explicit FileOutput(QObject *parent = 0);
 	int start();
 	int stop();
-	virtual int output();
 	void setFileName(QString name, bool pipe = false);
 	virtual void signalReceived(int);
 signals:
@@ -30,6 +29,7 @@ private:
 
 	int writeBuffer(RawBuffer buf);
 	int fifoOutput();
+	int outputFunc();
 };
 
 #endif // FILEOUTPUT_H

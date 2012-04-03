@@ -4,8 +4,33 @@
 #include "emdesk/debug.h"
 
 #include <QTime>
+#include <QThread>
 
 #include <errno.h>
+
+class OutputThread : public QThread
+{
+public:
+	OutputThread(BaseLmmOutput *parent)
+	{
+		out = parent;
+	}
+	void stop()
+	{
+		exit = true;
+	}
+
+	void run()
+	{
+		exit = false;
+		while (!exit) {
+			out->outputFunc();
+		}
+	}
+private:
+	BaseLmmOutput *out;
+	bool exit;
+};
 
 BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 	BaseLmmElement(parent)
@@ -13,22 +38,38 @@ BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 	outputDelay = 0;
 	doSync = true;
 	dontDeleteBuffers = false;
+	threadedOutput = false;
 }
 
 int BaseLmmOutput::start()
 {
 	outputDelay = 0;
+	if (threadedOutput) {
+		thread = new OutputThread(this);
+		thread->start(QThread::LowestPriority);
+	}
 	return BaseLmmElement::start();
 }
 
 int BaseLmmOutput::stop()
 {
+	if (threadedOutput) {
+		thread->stop();
+		thread->wait();
+		thread->deleteLater();
+	}
 	return BaseLmmElement::stop();
 }
 
 qint64 BaseLmmOutput::getLatency()
 {
 	return getAvailableBufferTime() + outputLatency;
+}
+
+int BaseLmmOutput::setThreaded(bool v)
+{
+	threadedOutput = v;
+	return 0;
 }
 
 int BaseLmmOutput::checkBufferTimeStamp(RawBuffer buf, int jitter)
@@ -75,7 +116,7 @@ int BaseLmmOutput::outputBuffer(RawBuffer)
 	return 0;
 }
 
-int BaseLmmOutput::output()
+int BaseLmmOutput::outputFunc()
 {
 	if (!inputBuffers.size())
 		return -ENOENT;
@@ -90,4 +131,11 @@ int BaseLmmOutput::output()
 	int err = outputBuffer(buf);
 	calculateFps();
 	return err;
+}
+
+int BaseLmmOutput::output()
+{
+	if (threadedOutput)
+		return 0;
+	return outputFunc();
 }

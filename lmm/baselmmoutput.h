@@ -4,6 +4,7 @@
 #include "baselmmelement.h"
 
 class QTime;
+class OutputThread;
 
 class BaseLmmOutput : public BaseLmmElement
 {
@@ -18,6 +19,7 @@ public:
 	virtual int stop();
 	virtual int output();
 	virtual qint64 getLatency();
+	virtual int setThreaded(bool v);
 signals:
 	
 public slots:
@@ -26,12 +28,17 @@ protected:
 	virtual int outputBuffer(RawBuffer buf);
 	qint64 outputLatency;
 	bool dontDeleteBuffers;
+	bool threadedOutput;
 private:
 	int outputDelay;
 	bool doSync;
 
 	qint64 last_rpts;
 	qint64 last_time;
+
+	virtual int outputFunc();
+	friend class OutputThread;
+	OutputThread *thread;
 };
 
 #endif // BASELMMOUTPUT_H
