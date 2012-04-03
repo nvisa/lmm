@@ -47,6 +47,8 @@ protected:
 	qint64 streamDuration;
 	int receivedBufferCount;
 	int sentBufferCount;
+
+	virtual void calculateFps();
 private:
 	QMap<QString, QVariant> parameters;
 

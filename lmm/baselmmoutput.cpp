@@ -87,5 +87,7 @@ int BaseLmmOutput::output()
 	}
 	sentBufferCount++;
 	inputBuffers.removeFirst();
-	return outputBuffer(buf);
+	int err = outputBuffer(buf);
+	calculateFps();
+	return err;
 }

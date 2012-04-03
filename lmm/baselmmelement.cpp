@@ -30,12 +30,7 @@ RawBuffer BaseLmmElement::nextBuffer()
 	if (outputBuffers.size() == 0)
 		return RawBuffer();
 	sentBufferCount++;
-	fpsBufferCount++;
-	if (fpsTiming->elapsed() > 1000) {
-		int elapsed = fpsTiming->restart();
-		elementFps = fpsBufferCount * 1000 / elapsed;
-		fpsBufferCount = 0;
-	}
+	calculateFps();
 	return outputBuffers.takeFirst();
 }
 
@@ -56,6 +51,16 @@ int BaseLmmElement::stop()
 void BaseLmmElement::printStats()
 {
 	qDebug() << this << receivedBufferCount << sentBufferCount;
+}
+
+void BaseLmmElement::calculateFps()
+{
+	fpsBufferCount++;
+	if (fpsTiming->elapsed() > 1000) {
+		int elapsed = fpsTiming->restart();
+		elementFps = fpsBufferCount * 1000 / elapsed;
+		fpsBufferCount = 0;
+	}
 }
 
 int BaseLmmElement::flush()
