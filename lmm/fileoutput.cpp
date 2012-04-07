@@ -50,7 +50,10 @@ int FileOutput::outputFunc()
 		return -ENOENT;
 	RawBuffer buf = inputBuffers.takeFirst();
 	/* We don't do any syncing */
-	return writeBuffer(buf);
+	int err = writeBuffer(buf);
+	sentBufferCount++;
+	calculateFps();
+	return err;
 }
 
 void FileOutput::setFileName(QString name, bool pipe)
@@ -105,6 +108,8 @@ int FileOutput::fifoOutput()
 			break;
 		RawBuffer buf = inputBuffers.takeFirst();
 		watcher->setFuture(QtConcurrent::run(this, &FileOutput::writeBuffer, buf));
+		sentBufferCount++;
+		calculateFps();
 	}
 	return 0;
 }
