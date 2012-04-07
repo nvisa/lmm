@@ -5,6 +5,8 @@
 
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QDateTime>
+#include <QProcess>
 
 static DebugServer *debugServer = NULL;
 
@@ -43,7 +45,7 @@ DebugServer::DebugServer(QObject *parent) :
 }
 
 void DebugServer::handleMessage(QTcpSocket *client, const QString &cmd,
-								const QByteArray &)
+								const QByteArray &data)
 {
 	mInfo("received command: %s", qPrintable(cmd));
 	QByteArray d;
@@ -66,6 +68,9 @@ void DebugServer::handleMessage(QTcpSocket *client, const QString &cmd,
 		for (int i = 0; i < elements->size(); i++)
 			out << QString(elements->at(i)->metaObject()->className());
 		sendMessage(client, "names", d);
+	} else if (cmd == "syncTime") {
+		QDateTime dt = QDateTime::fromString(QString(data));
+		QProcess::execute(QString("date %1").arg(dt.toString("MMddhhmmyyyy.ss")));
 	}
 }
 

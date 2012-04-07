@@ -6,6 +6,7 @@
 #include <QTcpSocket>
 #include <QHostAddress>
 #include <QTimer>
+#include <QDateTime>
 
 DebugClient::DebugClient(QObject *parent) :
 	QObject(parent)
@@ -166,6 +167,14 @@ QStringList DebugClient::getWarningMessages()
 	QStringList list = warningMessages;
 	warningMessages.clear();
 	return list;
+}
+
+int DebugClient::sendCommand(DebugClient::Command cmd, QVariant par)
+{
+	if (cmd == CMD_SYNC_TIME)
+		DebugServer::sendMessage(client, "syncTime",
+								 par.toDateTime().toString().toAscii());
+	return 0;
 }
 
 int DebugClient::getElementCount()

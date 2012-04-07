@@ -14,6 +14,10 @@ class DebugClient : public QObject
 {
 	Q_OBJECT
 public:
+	enum Command {
+		CMD_SYNC_TIME,
+	};
+
 	explicit DebugClient(QObject *parent = 0);
 	void connectToServer(QString ipAddr);
 
@@ -31,6 +35,8 @@ public:
 
 	QStringList getDebugMessages();
 	QStringList getWarningMessages();
+
+	int sendCommand(Command cmd, QVariant par);
 signals:
 	void connectedToDebugServer();
 	void disconnectedFromDebugServer();
