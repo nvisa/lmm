@@ -9,6 +9,8 @@
 #include "dm365videooutput.h"
 #include "textoverlay.h"
 #include "streamtime.h"
+#include "rtspserver.h"
+#include "debugserver.h"
 
 #include <emdesk/debug.h>
 
@@ -16,7 +18,7 @@
 
 #include <errno.h>
 
-#define dmaiCapture() 1
+#define dmaiCapture() 0
 
 H264Encoder::H264Encoder(QObject *parent) :
 	BaseLmmElement(parent)
@@ -32,13 +34,21 @@ H264Encoder::H264Encoder(QObject *parent) :
 
 	output =  new FileOutput;
 	output->syncOnClock(false);
+	output->setFileName("camera.264", true);
+	//output->setFileName("camera.m4e", true);
+	//output->setFileName("test.m4e");
+	//output->setThreaded(true);
 	elements << output;
 
 	DM365VideoOutput *dm365Output = new DM365VideoOutput;
 	dm365Output->setVideoOutput(DM365VideoOutput::COMPOSITE);
 	output2 = dm365Output;
 	output2->syncOnClock(false);
+	output2->setThreaded(true);
 	elements << output2;
+
+	//rtsp = new RtspServer;
+	//elements << rtsp;
 
 	overlay = new TextOverlay(TextOverlay::PIXEL_MAP);
 	overlay->setOverlayPosition(QPoint(50, 150));
@@ -52,6 +62,8 @@ H264Encoder::H264Encoder(QObject *parent) :
 	connect(timer, SIGNAL(timeout()), this, SLOT(encodeLoop()));
 
 	streamTime = new StreamTime;
+	debugServer = new DebugServer;
+	debugServer->setElements(&elements);
 }
 
 int H264Encoder::start()
@@ -81,20 +93,39 @@ int H264Encoder::stop()
 
 void H264Encoder::encodeLoop()
 {
+	QTime t; t.start();
+	timing.start();
 	RawBuffer buf = input->nextBuffer();
 	if (buf.size()) {
+		debugServer->addCustomStat(DebugServer::STAT_CAPTURE_TIME, timing.restart());
+#if 1
 		overlay->addBuffer(buf);
 		buf = overlay->nextBuffer();
+		debugServer->addCustomStat(DebugServer::STAT_OVERLAY_TIME, timing.restart());
+
 		encoder->addBuffer(buf);
 		encoder->encodeNext();
 		RawBuffer buf2 = encoder->nextBuffer();
+		debugServer->addCustomStat(DebugServer::STAT_ENCODE_TIME, timing.restart());
+
 		if (buf2.size()) {
 			output->addBuffer(buf2);
 			output->output();
+			debugServer->addCustomStat(DebugServer::STAT_RTSP_OUT_TIME, timing.restart());
+			//rtsp->addBuffer(buf2);
 		}
+
 		output2->addBuffer(buf);
 		output2->output();
-		input->addBuffer(buf);
+		debugServer->addCustomStat(DebugServer::STAT_DISP_OUT_TIME, timing.restart());
+		if (dmaiCapture())
+			input->addBuffer(buf);
+
+		int elapsed = t.elapsed();
+		debugServer->addCustomStat(DebugServer::STAT_LOOP_TIME, elapsed);
+		mInfo("loop time: %d msecs", elapsed);
+#endif
 	}
+
 	timer->start(1);
 }

@@ -3,12 +3,16 @@
 
 #include "baselmmelement.h"
 
+#include <QTime>
+
 class DmaiEncoder;
 class FileOutput;
 class V4l2Input;
 class BaseLmmOutput;
 class QTimer;
 class TextOverlay;
+class RtspServer;
+class DebugServer;
 
 class H264Encoder : public BaseLmmElement
 {
@@ -23,11 +27,14 @@ public slots:
 private:
 	QList<BaseLmmElement *> elements;
 	DmaiEncoder *encoder;
-	BaseLmmOutput *output;
+	FileOutput *output;
 	BaseLmmOutput *output2;
 	V4l2Input *input;
 	TextOverlay *overlay;
 	QTimer *timer;
+	RtspServer *rtsp;
+	QTime timing;
+	DebugServer *debugServer;
 };
 
 #endif // H264ENCODER_H
