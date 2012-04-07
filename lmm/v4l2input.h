@@ -37,6 +37,7 @@ protected:
 	QList<char *> userptr;
 	captureThread *cThread;
 	QTime timing;
+	QMutex finishedLock;
 
 	virtual int openCamera();
 	virtual int closeCamera();

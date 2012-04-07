@@ -296,7 +296,9 @@ void V4l2Input::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
 	v4l2_buffer *buffer = (v4l2_buffer *)params["v4l2Buffer"].value<void *>();
 	mInfo("buffer %p", buffer);
+	finishedLock.lock();
 	finishedBuffers << buffer;
+	finishedLock.unlock();
 }
 
 bool V4l2Input::captureLoop()
@@ -315,7 +317,9 @@ bool V4l2Input::captureLoop()
 		newbuf.addBufferParameter("height", (int)captureHeight);
 		newbuf.addBufferParameter("v4l2Buffer",
 								   qVariantFromValue((void *)buffer));
+		outputLock.lock();
 		outputBuffers << newbuf;
+		outputLock.unlock();
 	}
 	return false;
 }

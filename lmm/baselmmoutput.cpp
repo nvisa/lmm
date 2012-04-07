@@ -24,7 +24,10 @@ public:
 	{
 		exit = false;
 		while (!exit) {
+			out->inputLock.lock();
 			out->outputFunc();
+			out->inputLock.unlock();
+			QThread::usleep(1000);
 		}
 	}
 private:

@@ -258,19 +258,23 @@ v4l2_buffer * DM365CameraInput::getFrame()
 
 bool DM365CameraInput::captureLoop()
 {
+	finishedLock.lock();
 	while (finishedBuffers.size()) {
 		putFrame(finishedBuffers.takeFirst());
 		bufsFree.release(1);
 	}
+	finishedLock.unlock();
 	if (!bufsFree.tryAcquire(1, 1000)) {
 		mDebug("no kernel buffers available");
 		return false;
 	}
 	struct v4l2_buffer *buffer = getFrame();
+	finishedLock.lock();
 	while (finishedBuffers.size()) {
 		putFrame(finishedBuffers.takeFirst());
 		bufsFree.release(1);
 	}
+	finishedLock.unlock();
 	if (buffer) {
 		//bufsTaken.release(1);
 		//mInfo("new frame %p: used=%d", buffer, buffer->bytesused);
@@ -287,7 +291,9 @@ bool DM365CameraInput::captureLoop()
 								   qVariantFromValue((void *)buffer));
 		newbuf.addBufferParameter("dmaiBuffer", (int)dmaibuf);
 		newbuf.addBufferParameter("dataPtr", (int)data);
+		outputLock.lock();
 		outputBuffers << newbuf;
+		outputLock.unlock();
 	}
 
 	return false;

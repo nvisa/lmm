@@ -5,6 +5,7 @@
 #include <QList>
 #include <QMap>
 #include <QVariant>
+#include <QMutex>
 
 #include "rawbuffer.h"
 
@@ -48,6 +49,9 @@ protected:
 	qint64 streamDuration;
 	int receivedBufferCount;
 	int sentBufferCount;
+
+	QMutex inputLock;
+	QMutex outputLock;
 
 	virtual void calculateFps();
 private:

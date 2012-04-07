@@ -20,18 +20,28 @@ int BaseLmmElement::addBuffer(RawBuffer buffer)
 {
 	if (buffer.size() == 0)
 		return -EINVAL;
+	inputLock.lock();
 	inputBuffers << buffer;
+	inputLock.unlock();
 	receivedBufferCount++;
 	return 0;
 }
 
 RawBuffer BaseLmmElement::nextBuffer()
 {
-	if (outputBuffers.size() == 0)
-		return RawBuffer();
-	sentBufferCount++;
-	calculateFps();
-	return outputBuffers.takeFirst();
+	outputLock.lock();
+	RawBuffer buf;
+	if (outputBuffers.size() == 0) {
+		buf = RawBuffer();
+	} else
+		buf = outputBuffers.takeFirst();
+	outputLock.unlock();
+	if (buf.size()) {
+		sentBufferCount++;
+		calculateFps();
+	}
+
+	return buf;
 }
 
 int BaseLmmElement::start()
