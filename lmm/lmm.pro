@@ -22,7 +22,10 @@ SOURCES += \
     fboutput.cpp \
     rtspoutput.cpp \
     debugserver.cpp \
-    debugclient.cpp
+    debugclient.cpp \
+    udpoutput.cpp \
+    udpinput.cpp \
+    lmmthread.cpp
 
 HEADERS  += \
     filesource.h \
@@ -41,7 +44,10 @@ HEADERS  += \
     textoverlay.h \
     rtspoutput.h \
     debugserver.h \
-    debugclient.h
+    debugclient.h \
+    udpoutput.h \
+    udpinput.h \
+    lmmthread.h
 
 alsa {
     HEADERS += \
