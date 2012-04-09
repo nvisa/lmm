@@ -40,7 +40,7 @@ public:
 	int getSentBufferCount() { return sentBufferCount; }
 	int getFps() { return elementFps; }
 signals:
-	
+	void needFlushing();
 public slots:
 protected:
 	QList<RawBuffer> inputBuffers;
