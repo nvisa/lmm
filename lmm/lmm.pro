@@ -90,6 +90,22 @@ ffmpeg {
     DEFINES += CONFIG_FFMPEG
 }
 
+gstreamer {
+    SOURCES += gstreamer/abstractgstreamerinterface.cpp \
+        gstreamer/haviplayer.cpp \
+        gstreamer/hmp3player.cpp \
+
+    HEADERS += gstreamer/abstractgstreamerinterface.h \
+        gstreamer/haviplayer.h \
+        gstreamer/hmp3player.h \
+
+    DEFINES += USE_GSTREAMER
+    GST_CFLAGS = $$system(pkg-config gstreamer-0.10 --cflags-only-I | sed 's/-I//g')
+    GST_LIBS = -lgstreamer-0.10 -lgobject-2.0 -lgmodule-2.0 -lxml2 -lgthread-2.0 -lrt -lglib-2.0 -lgstinterfaces-0.10
+    INCLUDEPATH += $$GST_CFLAGS
+    LIBS += $$GST_LIBS -lgstapp-0.10
+}
+
 dm365 {
     #include(../dm365.pri)
     DEFINES += CONFIG_DM365

@@ -24,6 +24,10 @@
 #include <QCoreApplication>
 #include <QMap>
 
+#ifdef USE_GSTREAMER
+#include <gst/gst.h>
+#endif
+
 static QList<BaseLmmElement *> registeredElementsForPipe;
 
 static void platformCleanUp()
@@ -79,6 +83,9 @@ int LmmCommon::init()
 	QThreadPool::globalInstance()->setMaxThreadCount(5);
 	initDebug();
 	platformInit();
+#ifdef USE_GSTREAMER
+	gst_init(NULL, NULL);
+#endif
 	return 0;
 }
 
