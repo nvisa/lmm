@@ -21,8 +21,14 @@ class DmaiEncoder : public BaseLmmElement
 {
 	Q_OBJECT
 public:
+	enum CodecType {
+		CODEC_MPEG2,
+		CODEC_MPEG4,
+		CODEC_H264,
+	};
 	explicit DmaiEncoder(QObject *parent = 0);
 	void setImageSize(QSize s);
+	int setCodecType(CodecType type);
 	int start();
 	int stop();
 	int flush();
@@ -45,6 +51,7 @@ private:
 	int encodeCount;
 	bool generateIdrFrame;
 	QMutex bufferLock;
+	CodecType codec;
 
 	VIDENC1_DynamicParams   defaultDynParams;
 

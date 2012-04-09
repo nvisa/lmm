@@ -429,12 +429,21 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 {
 	imageWidth = 1280;
 	imageHeight = 720;
+	codec = CODEC_H264;
 }
 
 void DmaiEncoder::setImageSize(QSize s)
 {
 	imageWidth = s.width();
 	imageHeight = s.height();
+}
+
+int DmaiEncoder::setCodecType(DmaiEncoder::CodecType type)
+{
+	if (type == CODEC_MPEG2)
+		return -EINVAL;
+	codec = type;
+	return 0;
 }
 
 int DmaiEncoder::start()
@@ -458,7 +467,7 @@ int DmaiEncoder::stop()
 
 int DmaiEncoder::flush()
 {
-	if (encodeCount) {
+	if (codec == CODEC_H264 && encodeCount) {
 		mDebug("flusing encoder, generating IDR frame");
 		generateIdrFrame = true;
 	}
@@ -644,7 +653,13 @@ int DmaiEncoder::startCodec()
 	dynParams->targetFrameRate = params->maxFrameRate;
 	dynParams->interFrameInterval = 0;
 
-	QString codecName = "h264enc";
+	QString codecName;
+	if (codec == CODEC_H264)
+		codecName = "h264enc";
+	else if (codec == CODEC_MPEG4)
+		codecName = "mpeg4enc";
+	else
+		return -EINVAL;
 	/* Create the video encoder */
 	hCodec = Venc1_create(hEngine, (Char *)qPrintable(codecName), params, dynParams);
 
