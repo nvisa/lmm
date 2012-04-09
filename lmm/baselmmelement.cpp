@@ -9,6 +9,7 @@
 BaseLmmElement::BaseLmmElement(QObject *parent) :
 	QObject(parent)
 {
+	threaded = false;
 	receivedBufferCount = sentBufferCount = 0;
 	streamTime = NULL;
 	fpsTiming = new QTime;
@@ -20,22 +21,24 @@ int BaseLmmElement::addBuffer(RawBuffer buffer)
 {
 	if (buffer.size() == 0)
 		return -EINVAL;
-	inputLock.lock();
+	if (threaded)
+		inputLock.lock();
 	inputBuffers << buffer;
-	inputLock.unlock();
+	if (threaded)
+		inputLock.unlock();
 	receivedBufferCount++;
 	return 0;
 }
 
 RawBuffer BaseLmmElement::nextBuffer()
 {
-	outputLock.lock();
 	RawBuffer buf;
-	if (outputBuffers.size() == 0) {
-		buf = RawBuffer();
-	} else
+	if (threaded)
+		outputLock.lock();
+	if (outputBuffers.size() != 0)
 		buf = outputBuffers.takeFirst();
-	outputLock.unlock();
+	if (threaded)
+		outputLock.unlock();
 	if (buf.size()) {
 		sentBufferCount++;
 		calculateFps();
@@ -75,8 +78,12 @@ void BaseLmmElement::calculateFps()
 
 int BaseLmmElement::flush()
 {
+	inputLock.lock();
 	inputBuffers.clear();
+	inputLock.unlock();
+	outputLock.lock();
 	outputBuffers.clear();
+	outputLock.unlock();
 	return 0;
 }
 
@@ -95,5 +102,6 @@ QVariant BaseLmmElement::getParameter(QString param)
 
 int BaseLmmElement::setThreaded(bool)
 {
-	return -EINVAL;
+	threaded = true;
+	return 0;
 }

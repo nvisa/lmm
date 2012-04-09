@@ -49,6 +49,7 @@ protected:
 	qint64 streamDuration;
 	int receivedBufferCount;
 	int sentBufferCount;
+	bool threaded;
 
 	QMutex inputLock;
 	QMutex outputLock;

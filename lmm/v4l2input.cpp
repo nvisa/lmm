@@ -1,5 +1,6 @@
 #include "v4l2input.h"
 #include "rawbuffer.h"
+#include "lmmthread.h"
 #include "emdesk/debug.h"
 
 #include <errno.h>
@@ -13,7 +14,6 @@
 #include <sys/ioctl.h>
 #include <asm/types.h>
 
-#include <QThread>
 #include <QSemaphore>
 #include <QTimer>
 #include <QTime>
@@ -22,10 +22,11 @@ extern "C" {
 	#include <linux/videodev2.h>
 }
 
-class captureThread : public QThread
+class captureThread : public LmmThread
 {
 public:
 	captureThread(V4l2Input *parent)
+		: LmmThread("CaptureThread")
 	{
 		v4l2 = parent;
 	}
@@ -38,23 +39,16 @@ public:
 	void releaseBuffer(struct v4l2_buffer *)
 	{
 	}
-	void stop()
+	int operation()
 	{
-		exit = true;
+		if (v4l2->captureLoop())
+			return -1;
+		return 0;
 	}
 
-	void run()
-	{
-		exit = false;
-		while (!exit) {
-			if (v4l2->captureLoop())
-				break;
-		}
-	}
 private:
 	V4l2Input *v4l2;
 	QList<v4l2_buffer *> buffers;
-	bool exit;
 };
 
 V4l2Input::V4l2Input(QObject *parent) :

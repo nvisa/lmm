@@ -28,7 +28,6 @@ protected:
 	virtual int outputBuffer(RawBuffer buf);
 	qint64 outputLatency;
 	bool dontDeleteBuffers;
-	bool threadedOutput;
 private:
 	int outputDelay;
 	bool doSync;

@@ -2,37 +2,31 @@
 #include "rawbuffer.h"
 #include "streamtime.h"
 #include "emdesk/debug.h"
+#include "lmmthread.h"
 
 #include <QTime>
 #include <QThread>
 
 #include <errno.h>
 
-class OutputThread : public QThread
+class OutputThread : public LmmThread
 {
 public:
 	OutputThread(BaseLmmOutput *parent)
+		: LmmThread(parent->metaObject()->className())
 	{
 		out = parent;
 	}
-	void stop()
+	int operation()
 	{
-		exit = true;
-	}
-
-	void run()
-	{
-		exit = false;
-		while (!exit) {
-			out->inputLock.lock();
-			out->outputFunc();
-			out->inputLock.unlock();
-			QThread::usleep(1000);
-		}
+		out->inputLock.lock();
+		out->outputFunc();
+		out->inputLock.unlock();
+		QThread::usleep(1000);
+		return 0;
 	}
 private:
 	BaseLmmOutput *out;
-	bool exit;
 };
 
 BaseLmmOutput::BaseLmmOutput(QObject *parent) :
@@ -41,13 +35,12 @@ BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 	outputDelay = 0;
 	doSync = true;
 	dontDeleteBuffers = false;
-	threadedOutput = false;
 }
 
 int BaseLmmOutput::start()
 {
 	outputDelay = 0;
-	if (threadedOutput) {
+	if (threaded) {
 		thread = new OutputThread(this);
 		thread->start(QThread::LowestPriority);
 	}
@@ -56,7 +49,7 @@ int BaseLmmOutput::start()
 
 int BaseLmmOutput::stop()
 {
-	if (threadedOutput) {
+	if (threaded) {
 		thread->stop();
 		thread->wait();
 		thread->deleteLater();
@@ -71,7 +64,7 @@ qint64 BaseLmmOutput::getLatency()
 
 int BaseLmmOutput::setThreaded(bool v)
 {
-	threadedOutput = v;
+	threaded = v;
 	return 0;
 }
 
@@ -138,7 +131,7 @@ int BaseLmmOutput::outputFunc()
 
 int BaseLmmOutput::output()
 {
-	if (threadedOutput)
+	if (threaded)
 		return 0;
 	return outputFunc();
 }
