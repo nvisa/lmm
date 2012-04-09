@@ -85,6 +85,23 @@ void DebugServer::sendMessage(QTcpSocket *client, const QString &cmd,
 	client->write(block);
 }
 
+QString DebugServer::getStatisticsString(DebugServer::CustomStat stat)
+{
+	if (stat == STAT_LOOP_TIME)
+		return "Loop Time";
+	if (stat == STAT_OVERLAY_TIME)
+		return "Overlay Time";
+	if (stat == STAT_CAPTURE_TIME)
+		return "Capture Time";
+	if (stat == STAT_ENCODE_TIME)
+		return "Encode Time";
+	if (stat == STAT_RTSP_OUT_TIME)
+		return "RTSP Send Time";
+	if (stat == STAT_DISP_OUT_TIME)
+		return "Display Output Time";
+	return "N/A";
+}
+
 void DebugServer::sendMessage(const QString &cmd, const char *msg)
 {
 	QByteArray block;
@@ -96,9 +113,12 @@ void DebugServer::sendMessage(const QString &cmd, const char *msg)
 	client->write(block);
 }
 
-void DebugServer::addCustomStat(DebugServer::CustomStat stat, int val)
+int DebugServer::addCustomStat(DebugServer::CustomStat stat, int val)
 {
+	if (val > 2)
+		mInfo("%s: %d msecs", qPrintable(getStatisticsString(stat)), val);
 	custom.insert(stat, val);
+	return val > 2 ? 1 : 0;
 }
 
 void DebugServer::clientArrived()

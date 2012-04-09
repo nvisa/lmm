@@ -24,9 +24,10 @@ public:
 	static int serverPortNo() { return 15748; }
 	static void sendMessage(QTcpSocket *client, const QString &cmd,
 							const QByteArray &data = QByteArray());
+	static QString getStatisticsString(CustomStat stat);
 	void sendMessage(const QString &cmd, const char *msg);
 	void setElements(QList<BaseLmmElement *> *list) { elements = list; }
-	void addCustomStat(CustomStat stat, int val);
+	int addCustomStat(CustomStat stat, int val);
 signals:
 	
 private slots:
