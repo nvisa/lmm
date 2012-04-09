@@ -30,6 +30,7 @@ public:
 		FIELD_STATIC_TEXT,
 		FIELD_STREAM_TIME,
 		FIELD_STREAM_FPS,
+		FIELD_AVG_CPU_LOAD,
 	};
 	explicit TextOverlay(overlayType t = CHAR_MAP, QObject *parent = 0);
 	void setFontSize(int size);

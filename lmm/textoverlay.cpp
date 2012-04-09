@@ -1,6 +1,7 @@
 #include "textoverlay.h"
 #include "rawbuffer.h"
 #include "streamtime.h"
+#include "cpuload.h"
 
 #include <emdesk/debug.h>
 
@@ -354,6 +355,8 @@ QString TextOverlay::compileOverlayText()
 				args << QString::number(getFps());
 			else
 				args << "-1";
+		case FIELD_AVG_CPU_LOAD:
+			args << QString::number(CpuLoad::getAverageCpuLoad());
 		default:
 			break;
 		}
