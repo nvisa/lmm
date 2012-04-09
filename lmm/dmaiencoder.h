@@ -25,6 +25,7 @@ public:
 	void setImageSize(QSize s);
 	int start();
 	int stop();
+	int flush();
 	int encodeNext();
 	int encode(Buffer_Handle buffer);
 	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
@@ -42,6 +43,10 @@ private:
 	int imageWidth;
 	int imageHeight;
 	int encodeCount;
+	bool generateIdrFrame;
+	QMutex bufferLock;
+
+	VIDENC1_DynamicParams   defaultDynParams;
 
 	int startCodec();
 	int stopCodec();
