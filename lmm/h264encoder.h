@@ -13,6 +13,7 @@ class QTimer;
 class TextOverlay;
 class RtspServer;
 class DebugServer;
+class EncodeThread;
 
 class H264Encoder : public BaseLmmElement
 {
@@ -24,17 +25,33 @@ public:
 signals:
 public slots:
 	void encodeLoop();
+	void flushElements();
 private:
 	QList<BaseLmmElement *> elements;
 	DmaiEncoder *encoder;
 	FileOutput *output;
 	BaseLmmOutput *output2;
+	BaseLmmOutput *output3;
 	V4l2Input *input;
 	TextOverlay *overlay;
 	QTimer *timer;
 	RtspServer *rtsp;
 	QTime timing;
 	DebugServer *debugServer;
+	EncodeThread *encodeThread;
+
+	bool useOverlay;
+	bool useDisplay;
+	bool useFile;
+	bool useUdpOutput;
+	bool threadedEncode;
+
+	enum Operation {
+		CAPTURE,
+		OVERLAY,
+	};
+
+	int operation(RawBuffer buf, Operation oper);
 };
 
 #endif // H264ENCODER_H
