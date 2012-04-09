@@ -22,7 +22,7 @@
 #define V4L2_STD_720P_30        ((v4l2_std_id)(0x0100000000000000ULL))
 #define V4L2_STD_720P_60        ((v4l2_std_id)(0x0004000000000000ULL))
 
-#define NUM_CAPTURE_BUFS 5
+#define NUM_CAPTURE_BUFS 8
 
 DM365CameraInput::DM365CameraInput(QObject *parent) :
 	V4l2Input(parent)
@@ -82,7 +82,7 @@ int DM365CameraInput::openCamera()
 	if (err)
 		return err;
 
-	fpsWorkaround();
+	//fpsWorkaround();
 
 	err = queryCapabilities(&cap);
 	if (err)
@@ -264,7 +264,7 @@ bool DM365CameraInput::captureLoop()
 		bufsFree.release(1);
 	}
 	finishedLock.unlock();
-	if (!bufsFree.tryAcquire(1, 1000)) {
+	if (!bufsFree.tryAcquire(1, 20)) {
 		mDebug("no kernel buffers available");
 		return false;
 	}
@@ -277,7 +277,6 @@ bool DM365CameraInput::captureLoop()
 	finishedLock.unlock();
 	if (buffer) {
 		//bufsTaken.release(1);
-		//mInfo("new frame %p: used=%d", buffer, buffer->bytesused);
 		mInfo("captured %p, time is %d", buffer, timing.elapsed());
 		Buffer_Handle dmaibuf = BufTab_getBuf(bufTab, buffer->index);
 		char *data = userptr[buffer->index];
