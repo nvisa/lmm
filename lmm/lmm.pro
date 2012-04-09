@@ -118,6 +118,7 @@ dm365 {
         v4l2output.cpp \
         dm365videooutput.cpp \
         textoverlay.cpp \
+        cpuload.cpp \
 
     HEADERS += dmaiencoder.h \
         dm365dmaicapture.h \
@@ -125,7 +126,8 @@ dm365 {
         dm365camerainput.h \
         v4l2output.h \
         dm365videooutput.h \
-        textoverlay.h
+        textoverlay.h \
+        cpuload.h \
 
     xdc.files += ../dm365.pri
     xdc.files += ../config.bld
