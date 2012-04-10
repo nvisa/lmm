@@ -8,6 +8,9 @@
 #include <QtConcurrentRun>
 
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 FileOutput::FileOutput(QObject *parent) :
 	BaseLmmOutput(parent)
@@ -56,11 +59,18 @@ int FileOutput::outputFunc()
 	return err;
 }
 
-void FileOutput::setFileName(QString name, bool pipe)
+void FileOutput::setFileName(QString name)
 {
+	struct stat stats;
+	stat(qPrintable(name), &stats);
 	fileName = name;
-	isPipe = pipe;
+	isPipe = S_ISFIFO(stats.st_mode);
 	pipeClosed = false;
+	if (getState() == STARTED) {
+		inputLock.lock();
+		file->close();
+		inputLock.unlock();
+	}
 }
 
 void FileOutput::signalReceived(int)

@@ -25,7 +25,7 @@ SOURCES += \
     debugclient.cpp \
     udpoutput.cpp \
     udpinput.cpp \
-    lmmthread.cpp
+    lmmthread.cpp \
 
 HEADERS  += \
     filesource.h \

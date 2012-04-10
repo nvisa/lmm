@@ -9,6 +9,7 @@
 BaseLmmElement::BaseLmmElement(QObject *parent) :
 	QObject(parent)
 {
+	state = INIT;
 	threaded = false;
 	receivedBufferCount = sentBufferCount = 0;
 	streamTime = NULL;
@@ -52,11 +53,13 @@ int BaseLmmElement::start()
 	receivedBufferCount = sentBufferCount = 0;
 	elementFps = fpsBufferCount = 0;
 	fpsTiming->start();
+	state = STARTED;
 	return 0;
 }
 
 int BaseLmmElement::stop()
 {
+	state = STOPPED;
 	flush();
 	return 0;
 }
@@ -74,6 +77,11 @@ void BaseLmmElement::calculateFps()
 		elementFps = fpsBufferCount * 1000 / elapsed;
 		fpsBufferCount = 0;
 	}
+}
+
+BaseLmmElement::RunningState BaseLmmElement::getState()
+{
+	return state;
 }
 
 int BaseLmmElement::flush()

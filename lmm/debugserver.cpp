@@ -71,7 +71,8 @@ void DebugServer::handleMessage(QTcpSocket *client, const QString &cmd,
 	} else if (cmd == "syncTime") {
 		QDateTime dt = QDateTime::fromString(QString(data));
 		QProcess::execute(QString("date %1").arg(dt.toString("MMddhhmmyyyy.ss")));
-	}
+	} else
+		emit newApplicationMessage(client, cmd, data);
 }
 
 void DebugServer::sendMessage(QTcpSocket *client, const QString &cmd,
@@ -79,7 +80,8 @@ void DebugServer::sendMessage(QTcpSocket *client, const QString &cmd,
 {
 	QByteArray block;
 	QDataStream out(&block, QIODevice::WriteOnly);
-	out << (quint32)(cmd.length() + data.length());
+	quint32 size = 2 * sizeof(quint32) + cmd.length() * 2 + data.length() + 4;
+	out << size;
 	out << cmd;
 	out << data;
 	client->write(block);
@@ -126,13 +128,14 @@ void DebugServer::clientArrived()
 	client = server->nextPendingConnection();
 	connect(client, SIGNAL(disconnected()), SLOT(clientDisconnected()));
 	connect(client, SIGNAL(readyRead()), SLOT(clientDataReady()));
-	qInstallMsgHandler(serverMessageOutput);
+	//qInstallMsgHandler(serverMessageOutput);
 	mDebug("Client %s connected", qPrintable(client->peerAddress().toString()));
 }
 
 void DebugServer::clientDisconnected()
 {
-	qInstallMsgHandler(0);
+	//qInstallMsgHandler(0);
+	client->deleteLater();
 	mInfo("client disconnected");
 }
 

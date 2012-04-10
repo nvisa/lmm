@@ -1,7 +1,6 @@
 #include "h264encoder.h"
 #include "dm365camerainput.h"
 #include "dm365dmaicapture.h"
-
 #include "fileoutput.h"
 #include "dmaiencoder.h"
 #include "rawbuffer.h"
@@ -9,15 +8,18 @@
 #include "dm365videooutput.h"
 #include "textoverlay.h"
 #include "streamtime.h"
-#include "rtspserver.h"
 #include "debugserver.h"
 #include "lmmthread.h"
 #include "udpoutput.h"
+#include "cpuload.h"
+#include "rtspoutput.h"
 
 #include <emdesk/debug.h>
 
 #include <QTimer>
 #include <QThread>
+#include <QXmlStreamWriter>
+#include <QXmlStreamReader>
 
 #include <errno.h>
 
@@ -56,18 +58,18 @@ H264Encoder::H264Encoder(QObject *parent) :
 
 	output =  new FileOutput;
 	output->syncOnClock(false);
-	//output->setFileName("camera.264", true);
+	output->setFileName("camera.264");
 	//output->setFileName("camera.m4e", true);
-	output->setFileName("test.264");
+	//output->setFileName("test.264");
 	//output->setThreaded(true);
 	elements << output;
 
-	DM365VideoOutput *dm365Output = new DM365VideoOutput;
-	dm365Output->setVideoOutput(DM365VideoOutput::COMPOSITE);
-	output2 = dm365Output;
-	output2->syncOnClock(false);
-	output2->setThreaded(true);
-	elements << output2;
+	videoOutputType = Lmm::COMPOSITE;
+	dm365Output = new DM365VideoOutput;
+	dm365Output->setVideoOutput(videoOutputType);
+	dm365Output->syncOnClock(false);
+	dm365Output->setThreaded(true);
+	elements << dm365Output;
 
 	//rtsp = new RtspServer;
 	//elements << rtsp;
@@ -79,10 +81,15 @@ H264Encoder::H264Encoder(QObject *parent) :
 	overlay->addOverlayField(TextOverlay::FIELD_STREAM_FPS);
 	elements << overlay;
 
+	streamingType = RTSP;
 	output3 = new UdpOutput;
 	output3->syncOnClock(false);
 	output3->setThreaded(false);
 	elements << output3;
+	rtspOutput = new RtspOutput;
+	rtspOutput->syncOnClock(false);
+	rtspOutput->setThreaded(false);
+	elements << rtspOutput;
 
 	timer = new QTimer(this);
 	timer->setSingleShot(true);
@@ -95,8 +102,9 @@ H264Encoder::H264Encoder(QObject *parent) :
 	useOverlay = false;
 	useDisplay = false;
 	useFile = false;
-	useUdpOutput = true;
+	useStreamOutput = true;
 	threadedEncode = true;
+	useFileIOForRtsp = true;
 }
 
 int H264Encoder::start()
@@ -135,6 +143,57 @@ int H264Encoder::stop()
 	return BaseLmmElement::stop();
 }
 
+void H264Encoder::addTextOverlay(QString text)
+{
+	if (text.isEmpty())
+		useOverlay = false;
+	else
+		useOverlay = true;
+	overlay->setOverlayText(text);
+}
+
+void H264Encoder::addTextOverlayParameter(TextOverlay::overlayTextFields field
+										  , QString val)
+{
+	overlay->addOverlayField(field, val);
+}
+
+void H264Encoder::setTextOverlayPosition(QPoint pos)
+{
+	overlay->setOverlayPosition(pos);
+}
+
+void H264Encoder::useDisplayOutput(bool v, Lmm::VideoOutput type)
+{
+	if (v) {
+		if (type != videoOutputType) {
+			videoOutputType = type;
+			dm365Output->setVideoOutput(type);
+		}
+	}
+	useDisplay = v;
+}
+
+void H264Encoder::useFileOutput(QString fileName)
+{
+	if (fileName.isEmpty())
+		useFile = false;
+	else
+		useFile = true;
+	output->setFileName(fileName);
+}
+
+void H264Encoder::useStreamingOutput(bool v,
+									 H264Encoder::StreamingProtocol proto)
+{
+	if (v == true) {
+		streamingType = proto;
+		useStreamOutput = true;
+	} else {
+		useStreamOutput = false;
+	}
+}
+
 void H264Encoder::encodeLoop()
 {
 	QTime t; t.start();
@@ -157,9 +216,19 @@ void H264Encoder::encodeLoop()
 	RawBuffer buf2 = encoder->nextBuffer();
 	if (buf2.size()) {
 		debugServer->addCustomStat(DebugServer::STAT_ENCODE_TIME, timing.restart());
-		if (useUdpOutput) {
-			output3->addBuffer(buf2);
-			output3->output();
+		if (useStreamOutput) {
+			if (streamingType == RTSP) {
+				if (!useFileIOForRtsp) { //due to live555 rtsp bug
+					rtspOutput->addBuffer(buf2);
+					rtspOutput->output();
+				} else {
+					output->addBuffer(buf2);
+					output->output();
+				}
+			} else {
+				output3->addBuffer(buf2);
+				output3->output();
+			}
 			debugServer->addCustomStat(DebugServer::STAT_RTSP_OUT_TIME, timing.restart());
 		}
 		if (useFile) {
@@ -172,8 +241,8 @@ void H264Encoder::encodeLoop()
 
 	if (buf.size()) {
 		if (useDisplay) {
-			output2->addBuffer(buf);
-			output2->output();
+			dm365Output->addBuffer(buf);
+			dm365Output->output();
 			debugServer->addCustomStat(DebugServer::STAT_DISP_OUT_TIME, timing.restart());
 		}
 		if (dmaiCapture())
@@ -181,8 +250,6 @@ void H264Encoder::encodeLoop()
 	}
 
 	if (debugServer->addCustomStat(DebugServer::STAT_LOOP_TIME, t.restart())) {
-		//foreach (BaseLmmElement *el, elements)
-			//el->printStats();
 		mInfo("encoder fps is %d", encoder->getFps());
 	}
 	timer->start(10);
@@ -194,4 +261,73 @@ void H264Encoder::flushElements()
 	foreach (BaseLmmElement *el, elements) {
 		el->flush();
 	}
+}
+
+void H264Encoder::useThreadedEncode(bool v)
+{
+	if (v == threadedEncode)
+		return;
+	if (v == true) {
+		encoder->setThreaded(true);
+		encodeThread = new EncodeThread(encoder);
+		encodeThread->start();
+	} else {
+		encodeThread->stop();
+		encodeThread->wait();
+		encodeThread->deleteLater();
+	}
+	threadedEncode = v;
+}
+
+void H264Encoder::readImplementationSettings(QXmlStreamReader *xml,
+											QString sectionName)
+{
+	bool thEnc, thDisp, thProp, thRtsp, thFile, ioRtsp;
+	int bufferCount;
+	QString name, str;
+	while (!xml->atEnd()) {
+		xml->readNext();
+		if (xml->isEndElement()) {
+			name = xml->name().toString();
+			if (name == sectionName)
+				break;
+		}
+		if (xml->isCharacters()) {
+			str = xml->text().toString().trimmed();
+			if (!str.isEmpty()) {
+				if (name == "threaded_encode")
+					thEnc = str.toInt();
+				else if (name == "threaded_display")
+					thDisp = str.toInt();
+				else if (name == "threaded_prop_streaming")
+					thProp = str.toInt();
+				else if (name == "threaded_rtsp_streaming")
+					thRtsp = str.toInt();
+				else if (name == "threaded_file_output")
+					thFile = str.toInt();
+				else if (name == "use_file_for_rtsp")
+					ioRtsp = str.toInt();
+				else if (name == "capture_buffer_count")
+					bufferCount = str.toInt();
+
+			}
+		}
+		if (xml->isStartElement()) {
+			name = xml->name().toString();
+		}
+	}
+	/* TODO: Implementations */
+}
+
+void H264Encoder::writeImplementationSettings(QXmlStreamWriter *wr)
+{
+	wr->writeStartElement("implementation_details");
+	wr->writeTextElement("threaded_encode", QString::number(threadedEncode));
+	wr->writeTextElement("threaded_display",  QString::number(dm365Output->isThreaded()));
+	wr->writeTextElement("threaded_prop_streaming",  QString::number(output3->isThreaded()));
+	wr->writeTextElement("threaded_rtsp_streaming",  QString::number(rtspOutput->isThreaded()));
+	wr->writeTextElement("threaded_file_output",  QString::number(output->isThreaded()));
+	wr->writeTextElement("use_file_for_rtsp",  QString::number(useFileIOForRtsp));
+	wr->writeTextElement("capture_buffer_count", QString::number(input->getBufferCount()));
+	wr->writeEndElement();
 }

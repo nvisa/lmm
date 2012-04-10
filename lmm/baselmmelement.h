@@ -16,6 +16,11 @@ class BaseLmmElement : public QObject
 {
 	Q_OBJECT
 public:
+	enum RunningState {
+		INIT,
+		STARTED,
+		STOPPED,
+	};
 	explicit BaseLmmElement(QObject *parent = 0);
 	int addBuffer(RawBuffer buffer);
 	virtual RawBuffer nextBuffer();
@@ -31,6 +36,7 @@ public:
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &) {}
 	virtual void signalReceived(int) {}
 	virtual int setThreaded(bool);
+	bool isThreaded() { return threaded; }
 
 	/* stat information */
 	void printStats();
@@ -55,12 +61,14 @@ protected:
 	QMutex outputLock;
 
 	virtual void calculateFps();
+	RunningState getState();
 private:
 	QMap<QString, QVariant> parameters;
 
 	int elementFps;
 	int fpsBufferCount;
 	QTime *fpsTiming;
+	RunningState state;
 };
 
 #endif // BASELMMELEMENT_H

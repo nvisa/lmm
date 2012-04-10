@@ -78,7 +78,8 @@ void UdpInput::processTheDatagram(const QByteArray &ba)
 		}
 	} else if (data[0] == UdpOutput::PT_HES) {
 		int frameNo = (data[1] << 8) + data[2];
-		frameReceived(frameNo, ba.mid(HEADER_SIZE));
+		if (frames.contains(frameNo))
+			frameReceived(frameNo, ba.mid(HEADER_SIZE));
 	}
 }
 

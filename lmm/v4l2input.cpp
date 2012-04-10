@@ -59,6 +59,7 @@ V4l2Input::V4l2Input(QObject *parent) :
 	deviceName = "/dev/video0";
 	fd = -1;
 	inputIndex = 0;
+	threaded = true;
 }
 
 int V4l2Input::start()

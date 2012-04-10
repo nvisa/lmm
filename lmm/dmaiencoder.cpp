@@ -430,6 +430,10 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 	imageWidth = 1280;
 	imageHeight = 720;
 	codec = CODEC_H264;
+	maxFrameRate = 25000;
+	rateControl = RATE_NONE;
+	videoBitRate = -1;
+	intraFrameInterval = 30;
 }
 
 void DmaiEncoder::setImageSize(QSize s)
@@ -600,7 +604,6 @@ int DmaiEncoder::startCodec()
 	ColorSpace_Type         colorSpace = ColorSpace_YUV420PSEMI;
 	Bool                    localBufferAlloc = TRUE;
 	Int32                   bufSize;
-	int videoBitRate = -1;
 	int outBufSize;
 
 	const char *engineName = "encode";
@@ -622,6 +625,10 @@ int DmaiEncoder::startCodec()
 	 */
 	params->maxWidth = imageWidth;
 	params->maxHeight = Dmai_roundUp(imageHeight, CODECHEIGHTALIGN);
+	/*
+	 * According to codec user guide, high speed or high quality
+	 * setting does not make any difference on bitstream/performance
+	 */
 	params->encodingPreset  = XDM_HIGH_SPEED;
 	if (colorSpace ==  ColorSpace_YUV420PSEMI) {
 		params->inputChromaFormat = XDM_YUV_420SP;
@@ -629,21 +636,17 @@ int DmaiEncoder::startCodec()
 		params->inputChromaFormat = XDM_YUV_422ILE;
 	}
 	params->reconChromaFormat = XDM_YUV_420SP;
-	params->maxFrameRate      = 25000;
+	params->maxFrameRate      = maxFrameRate;
 
-	/* Set up codec parameters depending on bit rate */
-	if (videoBitRate < 0) {
-		/* Variable bit rate */
-		params->rateControlPreset = IVIDEO_NONE;
-		/*
-		 * If variable bit rate use a bogus bit rate value (> 0)
-		 * since it will be ignored.
-		 */
-		params->maxBitRate        = 2000000;
-	} else {
-		/* Constant bit rate */
+	if (rateControl == RATE_CBR) {
+		params->rateControlPreset = IVIDEO_LOW_DELAY;
+		params->maxBitRate = videoBitRate;
+	} else if (rateControl == RATE_VBR) {
 		params->rateControlPreset = IVIDEO_STORAGE;
-		params->maxBitRate        = videoBitRate;
+		params->maxBitRate = 50000000;
+	} else {
+		params->rateControlPreset = IVIDEO_NONE;
+		params->maxBitRate = 50000000;
 	}
 
 	dynParams->targetBitRate   = params->maxBitRate;
@@ -652,6 +655,7 @@ int DmaiEncoder::startCodec()
 	dynParams->refFrameRate    = params->maxFrameRate;
 	dynParams->targetFrameRate = params->maxFrameRate;
 	dynParams->interFrameInterval = 0;
+	dynParams->intraFrameInterval = intraFrameInterval;
 
 	QString codecName;
 	if (codec == CODEC_H264)

@@ -3,6 +3,13 @@
 
 #include <QObject>
 
+namespace Lmm {
+	enum VideoOutput {
+		COMPOSITE,
+		COMPONENT
+	};
+}
+
 class QGraphicsView;
 class BaseLmmPlayer;
 class BaseLmmElement;

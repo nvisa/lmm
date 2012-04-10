@@ -37,6 +37,12 @@ public:
 	void setOverlayPosition(QPoint topLeft) { overlayPos = topLeft; }
 	void setOverlayText(QString text);
 	void addOverlayField(overlayTextFields f, QString val = "");
+	int getFontSize() { return fontSize; }
+	QPoint getOverlayPosition() { return overlayPos; }
+	QString getOverlayText() { return overlayText; }
+	int getFieldCount() { return overlayFields.size(); }
+	overlayTextFields getOverlayField(int pos) { return overlayFields[pos]; }
+	QString getOverlayFieldText(int pos) { return overlayFieldTexts[pos]; }
 	int start();
 	int stop();
 	int addBuffer(RawBuffer buffer);
@@ -57,7 +63,7 @@ private:
 	void *imageBuf;
 	QPoint overlayPos;
 	QString overlayText;
-	QList<int> overlayFields;
+	QList<overlayTextFields> overlayFields;
 	QStringList overlayFieldTexts;
 
 	bool readMapsFromCache();

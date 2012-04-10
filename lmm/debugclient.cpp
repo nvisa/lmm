@@ -32,9 +32,9 @@ bool DebugClient::isConnected()
 }
 
 void DebugClient::handleMessage(QTcpSocket *client, const QString &cmd,
-								QByteArray *data)
+								const QByteArray &data)
 {
-	QDataStream in(data, QIODevice::ReadOnly);
+	QDataStream in(data);
 	if (cmd == "stats") {
 		qint32 cnt, props;
 		in >> cnt;
@@ -60,10 +60,11 @@ void DebugClient::handleMessage(QTcpSocket *client, const QString &cmd,
 			names << name;
 		}
 	} else if (cmd == "debugMsg") {
-		debugMessages << QString(*data);
+		debugMessages << QString(data);
 	} else if (cmd == "warningMsg") {
-		warningMessages << QString(*data);
-	}
+		warningMessages << QString(data);
+	} else
+		emit newApplicationMessage(client, cmd, data);
 }
 
 void DebugClient::connectedToServer()
@@ -97,7 +98,7 @@ again:
 
 	in >> cmd;
 	in >> data;
-	handleMessage(client, cmd, &data);
+	handleMessage(client, cmd, data);
 	blocksize = 0;
 
 	if (client->bytesAvailable())
@@ -174,6 +175,8 @@ int DebugClient::sendCommand(DebugClient::Command cmd, QVariant par)
 	if (cmd == CMD_SYNC_TIME)
 		DebugServer::sendMessage(client, "syncTime",
 								 par.toDateTime().toString().toAscii());
+	if (cmd == CMD_APP_SPECIFIC)
+		DebugServer::sendMessage(client, "application", par.toByteArray());
 	return 0;
 }
 

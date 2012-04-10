@@ -1,6 +1,7 @@
 #include "lmmthread.h"
 
 #include <emdesk/platform_info.h>
+#include <emdesk/debug.h>
 
 LmmThread::LmmThread(QString threadName)
 {
@@ -15,10 +16,10 @@ void LmmThread::stop()
 void LmmThread::run()
 {
 #ifdef Q_WS_QWS
-	qDebug("starting thread %s(%p)", qPrintable(name)
+	mDebug("starting thread %s(%p)", qPrintable(name)
 		   , QThread::currentThreadId());
 #else
-	qDebug("starting thread %s(%lld)", qPrintable(name)
+	mDebug("starting thread %s(%lld)", qPrintable(name)
 		   , QThread::currentThreadId());
 #endif
 	exit = false;

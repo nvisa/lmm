@@ -42,7 +42,7 @@ void DM365VideoOutput::
 DM365VideoOutput::DM365VideoOutput(QObject *parent) :
 	V4l2Output(parent)
 {
-	output = COMPONENT;
+	outputType = Lmm::COMPONENT;
 	pixelFormat = V4L2_PIX_FMT_NV12;
 
 	Framecopy_Attrs fcAttrs;
@@ -54,9 +54,27 @@ DM365VideoOutput::DM365VideoOutput(QObject *parent) :
 		frameCopyConfigured = false;
 }
 
+void DM365VideoOutput::setVideoOutput(Lmm::VideoOutput out)
+{
+	if (outputType == out)
+		return;
+	 outputType = out;
+	 if (getState() == STARTED) {
+		 /* we already adjusted output, need to re-adjust */
+		 inputLock.lock();
+		 outputLock.lock();
+		 inputBuffers.clear();
+		 outputBuffers.clear();
+		 stop();
+		 start();
+		 outputLock.unlock();
+		 inputLock.unlock();
+	 }
+}
+
 int DM365VideoOutput::outputBuffer(RawBuffer buf)
 {
-	if (output == COMPONENT)
+	if (outputType == Lmm::COMPONENT)
 		return V4l2Output::outputBuffer(buf);
 	/* input size does not match output size, do manual copy */
 	Buffer_Handle dispbuf;
@@ -75,10 +93,10 @@ int DM365VideoOutput::start()
 	ColorSpace_Type colorSpace = ColorSpace_YUV420PSEMI;
 	if (pixelFormat == V4L2_PIX_FMT_UYVY)
 		colorSpace = ColorSpace_UYVY;
-	if (output == COMPONENT) {
+	if (outputType == Lmm::COMPONENT) {
 		gfxAttrs.dim.width = 1280;
 		gfxAttrs.dim.height = 720;
-	} else if (output == COMPOSITE) {
+	} else if (outputType == Lmm::COMPOSITE) {
 		gfxAttrs.dim.width = 720;
 		gfxAttrs.dim.height = 576;
 	} else
@@ -102,12 +120,12 @@ int DM365VideoOutput::start()
 		mDebug("Failed to create buftab");
 		return -ENOMEM;
 	}
-	if (output == COMPONENT) {
+	if (outputType == Lmm::COMPONENT) {
 		dAttrs.videoStd = VideoStd_720P_60;
 		dAttrs.videoOutput = Display_Output_COMPONENT;
 		dAttrs.width = gfxAttrs.dim.width;
 		dAttrs.height = gfxAttrs.dim.height;
-	} else if (output == COMPOSITE) {
+	} else if (outputType == Lmm::COMPOSITE) {
 		dAttrs.videoStd = VideoStd_D1_PAL;
 		dAttrs.videoOutput = Display_Output_COMPOSITE;
 		dAttrs.width = gfxAttrs.dim.width;

@@ -15,7 +15,7 @@ public:
 	explicit FileOutput(QObject *parent = 0);
 	int start();
 	int stop();
-	void setFileName(QString name, bool pipe = false);
+	void setFileName(QString name);
 	virtual void signalReceived(int);
 signals:
 	

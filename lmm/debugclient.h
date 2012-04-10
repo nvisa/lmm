@@ -16,6 +16,7 @@ class DebugClient : public QObject
 public:
 	enum Command {
 		CMD_SYNC_TIME,
+		CMD_APP_SPECIFIC,
 	};
 
 	explicit DebugClient(QObject *parent = 0);
@@ -40,10 +41,12 @@ public:
 signals:
 	void connectedToDebugServer();
 	void disconnectedFromDebugServer();
+	void newApplicationMessage(QTcpSocket *client, const QString &cmd,
+							   const QByteArray &data);
 private slots:
 	void timeout();
 	void handleMessage(QTcpSocket *client,
-					   const QString &cmd, QByteArray *data);
+					   const QString &cmd, const QByteArray &data);
 	void connectedToServer();
 	void disconnectedFromServer();
 	void readServerMessage();

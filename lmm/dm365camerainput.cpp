@@ -22,7 +22,7 @@
 #define V4L2_STD_720P_30        ((v4l2_std_id)(0x0100000000000000ULL))
 #define V4L2_STD_720P_60        ((v4l2_std_id)(0x0004000000000000ULL))
 
-#define NUM_CAPTURE_BUFS 8
+#define NUM_CAPTURE_BUFS captureBufferCount
 
 DM365CameraInput::DM365CameraInput(QObject *parent) :
 	V4l2Input(parent)
@@ -33,6 +33,7 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	pixFormat = V4L2_PIX_FMT_NV12;
 	hCapture = NULL;
 	bufTab = NULL;
+	captureBufferCount = 8;
 }
 
 void DM365CameraInput::aboutDeleteBuffer(const QMap<QString, QVariant> &params)

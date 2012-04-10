@@ -12,7 +12,7 @@ UdpOutput::UdpOutput(QObject *parent) :
 
 int UdpOutput::start()
 {
-	clientStatus = CS_STARTED;
+	clientStatus = CS_UNKNOWN;
 	target = QHostAddress("192.168.1.1");
 	sock = new QUdpSocket(this);
 	sock->bind(47156);

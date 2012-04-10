@@ -71,6 +71,8 @@ void TextOverlay::setFontSize(int size)
 void TextOverlay::setOverlayText(QString text)
 {
 	overlayText = text;
+	overlayFields.clear();
+	overlayFieldTexts.clear();
 }
 
 void TextOverlay::addOverlayField(TextOverlay::overlayTextFields f, QString val)
@@ -355,8 +357,10 @@ QString TextOverlay::compileOverlayText()
 				args << QString::number(getFps());
 			else
 				args << "-1";
+			break;
 		case FIELD_AVG_CPU_LOAD:
 			args << QString::number(CpuLoad::getAverageCpuLoad());
+			break;
 		default:
 			break;
 		}

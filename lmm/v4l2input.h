@@ -21,12 +21,15 @@ public:
 	virtual int stop();
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 
+	void setBufferCount(int v) { captureBufferCount = v; }
+	int getBufferCount() { return captureBufferCount; }
 	friend class captureThread;
 signals:
 	
 private slots:
 
 protected:
+	unsigned int captureBufferCount;
 	int captureWidth;
 	int captureHeight;
 	QString deviceName;
