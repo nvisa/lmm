@@ -131,6 +131,8 @@ int DM365CameraInput::closeCamera()
 	userptr.clear();
 	fd = rszFd = preFd = -1;
 	BufTab_delete(bufTab);	
+	bufsFree.acquire(bufsFree.available());
+	mInfo("capture closed");
 
 	return 0;
 }
