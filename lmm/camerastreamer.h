@@ -1,5 +1,5 @@
-#ifndef H264ENCODER_H
-#define H264ENCODER_H
+#ifndef CAMERASTREAMER_H
+#define CAMERASTREAMER_H
 
 #include "baselmmelement.h"
 #include "textoverlay.h"
@@ -93,4 +93,4 @@ private:
 	StreamingProtocol streamingType;
 };
 
-#endif // H264ENCODER_H
+#endif // CAMERASTREAMER_H

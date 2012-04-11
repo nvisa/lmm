@@ -1,4 +1,4 @@
-#include "h264encoder.h"
+#include "camerastreamer.h"
 #include "dm365camerainput.h"
 #include "dm365dmaicapture.h"
 #include "fileoutput.h"
