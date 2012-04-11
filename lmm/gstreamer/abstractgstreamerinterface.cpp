@@ -22,9 +22,14 @@ void demux_pad_added(GstElement *el, GstPad *pad, gpointer data)
 	GstPipeElement *pipeEl = (GstPipeElement *)data;
 	int pos = pipeEl->getSourceElementNames().indexOf(el->object.name);
 	if (pos < 0) {
-		fDebug("pad %s:%s does not exist in link list of element %s, I'm skipping", el->object.name,
+		 if (pipeEl->getSourceElementNames().size()) {
+			fDebug("pad %s:%s does not exist in link list of element %s, I'm skipping", el->object.name,
 			   pad->object.name, GST_OBJECT_NAME(pipeEl->getGstElement()));
-		return;
+			return;
+		 }
+		 AbstractGstreamerInterface::link_to_static_sink_pad(pipeEl->getGstElement(),
+															 pad);
+		 return;
 	}
 	if (pipeEl->getSourceElementPads()[pos] != pad->object.name) {
 		fDebug("this is not a desired link");
