@@ -12,17 +12,20 @@ UdpOutput::UdpOutput(QObject *parent) :
 
 int UdpOutput::start()
 {
-	clientStatus = CS_UNKNOWN;
+	clientStatus = CS_STARTED;
 	target = QHostAddress("192.168.1.1");
 	sock = new QUdpSocket(this);
-	sock->bind(47156);
+	if (!sock->bind(47156))
+		qDebug() << "error binding to udp port 47156";
 	connect(sock, SIGNAL(readyRead()), SLOT(dataReady()));
 	return BaseLmmOutput::start();
 }
 
 int UdpOutput::stop()
 {
-	sock->deleteLater();
+	disconnect(sock, SIGNAL(readyRead()));
+	sock->abort();
+	delete sock;
 	clientStatus = CS_UNKNOWN;
 	return BaseLmmOutput::stop();
 }
