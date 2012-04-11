@@ -27,4 +27,6 @@ void LmmThread::run()
 		if (operation())
 			break;
 	}
+	mDebug("exiting thread %s(%p)", qPrintable(name)
+		   , QThread::currentThreadId());
 }
