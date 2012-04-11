@@ -44,7 +44,7 @@ private:
 	DmaiEncoder *enc;
 };
 
-H264Encoder::H264Encoder(QObject *parent) :
+CameraStreamer::CameraStreamer(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	if (dmaiCapture() == 0)
@@ -100,7 +100,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	useFileIOForRtsp = true;
 }
 
-int H264Encoder::start()
+int CameraStreamer::start()
 {
 	foreach (BaseLmmElement *el, elements) {
 		mInfo("starting element %s", el->metaObject()->className());
@@ -123,7 +123,7 @@ int H264Encoder::start()
 	return BaseLmmElement::start();
 }
 
-int H264Encoder::stop()
+int CameraStreamer::stop()
 {
 	if (threadedEncode) {
 		encodeThread->stop();
@@ -139,7 +139,7 @@ int H264Encoder::stop()
 	return BaseLmmElement::stop();
 }
 
-void H264Encoder::addTextOverlay(QString text)
+void CameraStreamer::addTextOverlay(QString text)
 {
 	if (text.isEmpty())
 		useOverlay = false;
@@ -148,18 +148,18 @@ void H264Encoder::addTextOverlay(QString text)
 	overlay->setOverlayText(text);
 }
 
-void H264Encoder::addTextOverlayParameter(TextOverlay::overlayTextFields field
+void CameraStreamer::addTextOverlayParameter(TextOverlay::overlayTextFields field
 										  , QString val)
 {
 	overlay->addOverlayField(field, val);
 }
 
-void H264Encoder::setTextOverlayPosition(QPoint pos)
+void CameraStreamer::setTextOverlayPosition(QPoint pos)
 {
 	overlay->setOverlayPosition(pos);
 }
 
-void H264Encoder::useDisplayOutput(bool v, Lmm::VideoOutput type)
+void CameraStreamer::useDisplayOutput(bool v, Lmm::VideoOutput type)
 {
 	if (v) {
 		if (type != videoOutputType) {
@@ -170,7 +170,7 @@ void H264Encoder::useDisplayOutput(bool v, Lmm::VideoOutput type)
 	useDisplay = v;
 }
 
-void H264Encoder::useFileOutput(QString fileName)
+void CameraStreamer::useFileOutput(QString fileName)
 {
 	if (fileName.isEmpty())
 		useFile = false;
@@ -179,8 +179,8 @@ void H264Encoder::useFileOutput(QString fileName)
 	output->setFileName(fileName);
 }
 
-void H264Encoder::useStreamingOutput(bool v,
-									 H264Encoder::StreamingProtocol proto)
+void CameraStreamer::useStreamingOutput(bool v,
+									 CameraStreamer::StreamingProtocol proto)
 {
 	if (v == true) {
 		streamingType = proto;
@@ -190,7 +190,7 @@ void H264Encoder::useStreamingOutput(bool v,
 	}
 }
 
-void H264Encoder::encodeLoop()
+void CameraStreamer::encodeLoop()
 {
 	QTime t; t.start();
 	timing.start();
@@ -251,7 +251,7 @@ void H264Encoder::encodeLoop()
 	timer->start(10);
 }
 
-void H264Encoder::flushElements()
+void CameraStreamer::flushElements()
 {
 	mDebug("flushing elements");
 	foreach (BaseLmmElement *el, elements) {
@@ -259,7 +259,7 @@ void H264Encoder::flushElements()
 	}
 }
 
-void H264Encoder::useThreadedEncode(bool v)
+void CameraStreamer::useThreadedEncode(bool v)
 {
 	if (v == threadedEncode)
 		return;
@@ -275,7 +275,7 @@ void H264Encoder::useThreadedEncode(bool v)
 	threadedEncode = v;
 }
 
-void H264Encoder::readImplementationSettings(QXmlStreamReader *xml,
+void CameraStreamer::readImplementationSettings(QXmlStreamReader *xml,
 											QString sectionName)
 {
 	QString name, str;
@@ -311,7 +311,7 @@ void H264Encoder::readImplementationSettings(QXmlStreamReader *xml,
 	}
 }
 
-void H264Encoder::writeImplementationSettings(QXmlStreamWriter *wr)
+void CameraStreamer::writeImplementationSettings(QXmlStreamWriter *wr)
 {
 	wr->writeStartElement("implementation_details");
 	wr->writeTextElement("threaded_encode", QString::number(threadedEncode));

@@ -20,7 +20,7 @@ class DM365VideoOutput;
 class QXmlStreamWriter;
 class QXmlStreamReader;
 
-class H264Encoder : public BaseLmmElement
+class CameraStreamer : public BaseLmmElement
 {
 	Q_OBJECT
 public:
@@ -29,7 +29,7 @@ public:
 		PROPRIETY
 	};
 
-	explicit H264Encoder(QObject *parent = 0);
+	explicit CameraStreamer(QObject *parent = 0);
 	virtual int start();
 	virtual int stop();
 
