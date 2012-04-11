@@ -11,6 +11,7 @@ UdpInput::UdpInput(QObject *parent) :
 
 int UdpInput::start()
 {
+	idrWaited = 0;
 	target = QHostAddress("192.168.1.199");
 	lastIDRFrameReceived = 0;
 	sock = new QUdpSocket(this);
@@ -26,6 +27,15 @@ int UdpInput::stop()
 {
 	sock->deleteLater();
 	return BaseLmmElement::stop();
+}
+
+int UdpInput::flush()
+{
+	idrWaited = 0;
+	lastIDRFrameReceived = 0;
+	sock->writeDatagram(UdpOutput::createControlCommand(UdpOutput::CT_FLUSH)
+						, target, 47156);
+	return 0;//BaseLmmElement::flush();
 }
 
 void UdpInput::dataReady()
@@ -72,9 +82,10 @@ void UdpInput::processTheDatagram(const QByteArray &ba)
 		if (frames.contains(frameNo)) {
 			int size = frames[frameNo].size();
 			frames[frameNo][size - 1] = ba;
-			//qDebug() << data[3];
-			if (data[3] == 3)
+			if (data[3] == 3) {
+				qDebug() << "new idr frame";
 				lastIDRFrameReceived = frameNo;
+			}
 		}
 	} else if (data[0] == UdpOutput::PT_HES) {
 		int frameNo = (data[1] << 8) + data[2];
@@ -104,9 +115,15 @@ void UdpInput::frameReceived(int frameNo, const QByteArray &hash)
 	QByteArray hashBa = hashChk.result();
 	if (hashBa != hash)
 		qDebug() << "hash mismatch";
-	if (lastIDRFrameReceived && frameNo >= lastIDRFrameReceived)
+	if (lastIDRFrameReceived && frameNo >= lastIDRFrameReceived) {
+		idrWaited = 0;
 		emit newFrameReceived(frame);
-	else
+	} else {
+		idrWaited++;
+		if (idrWaited >= 5)
+			flush();
 		qDebug() << "waiting idr frame";
+	}
+
 	frames.remove(frameNo);
 }

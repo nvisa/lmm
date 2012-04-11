@@ -16,6 +16,7 @@ public:
 	explicit UdpInput(QObject *parent = 0);
 	virtual int start();
 	virtual int stop();
+	virtual int flush();
 signals:
 	void newFrameReceived(const QByteArray &);
 private slots:
@@ -31,6 +32,7 @@ private:
 
 	QMap<int, QList<QByteArray> > frames;
 	int lastIDRFrameReceived;
+	int idrWaited;
 };
 
 #endif // UDPINPUT_H
