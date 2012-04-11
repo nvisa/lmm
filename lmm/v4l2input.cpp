@@ -85,6 +85,14 @@ int V4l2Input::stop()
 	return BaseLmmElement::stop();
 }
 
+int V4l2Input::flush()
+{
+	finishedLock.lock();
+	finishedBuffers.clear();
+	finishedLock.unlock();
+	return BaseLmmElement::flush();
+}
+
 int V4l2Input::closeCamera()
 {
 	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;

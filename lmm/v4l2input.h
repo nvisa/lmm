@@ -19,6 +19,7 @@ public:
 
 	virtual int start();
 	virtual int stop();
+	virtual int flush();
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 
 	void setBufferCount(int v) { captureBufferCount = v; }
