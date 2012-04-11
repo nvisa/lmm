@@ -23,14 +23,6 @@ class QXmlStreamReader;
 class H264Encoder : public BaseLmmElement
 {
 	Q_OBJECT
-	/*Q_PROPERTY(bool useOverlay READ getUseOverlay WRITE setUseOverlay)
-	Q_PROPERTY(bool useDisplay READ getUseDisplay WRITE setUseDisplay)
-	Q_PROPERTY(bool useFile READ getUseFile WRITE setUseFile)
-	Q_PROPERTY(bool useStreamOutput READ getUseStreamOutput WRITE setUseSteamOutput)
-	Q_PROPERTY(bool threadedEncode READ getThreadedEncode WRITE setThreadedEncode)
-	Q_PROPERTY(bool useFileIOForRtsp READ getRtspMethod WRITE setRtspMethod)
-	Q_PROPERTY(Lmm::VideoOutput videoOutputType READ getVideoOutput WRITE setVideoOutput)
-	Q_PROPERTY(StreamingProtocol streamingType READ getStreamingType WRITE setStreamingType)*/
 public:
 	enum StreamingProtocol {
 		RTSP,
@@ -99,20 +91,6 @@ private:
 	bool threadedEncode;
 	Lmm::VideoOutput videoOutputType;
 	StreamingProtocol streamingType;
-
-	/*void writeOverlaySettings(QXmlStreamWriter *wr);
-	void writeCameraSettings(QXmlStreamWriter *wr);
-	void writeStreamSettings(QXmlStreamWriter *wr);
-	void writeEncodingSettings(QXmlStreamWriter *wr);
-	void writeDisplaySettings(QXmlStreamWriter *wr);
-	void writeNetworkSettings(QXmlStreamWriter *wr);
-	void writeTimeSettings(QXmlStreamWriter *wr);
-	void readOverlaySettings(QXmlStreamReader *xml, QString sectionName);
-	void readCameraSettings(QXmlStreamReader *xml, QString sectionName);
-	void readStreamSettings(QXmlStreamReader *xml, QString sectionName);
-	void readDisplaySettings(QXmlStreamReader *xml, QString sectionName);
-	void readNetworkSettings(QXmlStreamReader *xml, QString sectionName);
-	void readTimeSettings(QXmlStreamReader *xml, QString sectionName);*/
 };
 
 #endif // H264ENCODER_H

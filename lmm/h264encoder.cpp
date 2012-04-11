@@ -58,10 +58,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 
 	output =  new FileOutput;
 	output->syncOnClock(false);
-	output->setFileName("camera.264");
-	//output->setFileName("camera.m4e", true);
-	//output->setFileName("test.264");
-	//output->setThreaded(true);
+	output->setFileName("/usr/local/bin/camera.264");
 	elements << output;
 
 	videoOutputType = Lmm::COMPOSITE;
@@ -75,10 +72,6 @@ H264Encoder::H264Encoder(QObject *parent) :
 	//elements << rtsp;
 
 	overlay = new TextOverlay(TextOverlay::PIXEL_MAP);
-	overlay->setOverlayPosition(QPoint(50, 150));
-	overlay->setOverlayText("deneme: no=%1 fps=%2");
-	overlay->addOverlayField(TextOverlay::FIELD_FRAME_NO);
-	overlay->addOverlayField(TextOverlay::FIELD_STREAM_FPS);
 	elements << overlay;
 
 	streamingType = RTSP;
@@ -113,8 +106,10 @@ int H264Encoder::start()
 		mInfo("starting element %s", el->metaObject()->className());
 		el->flush();
 		int err = el->start();
-		if (err)
+		if (err) {
+			mDebug("error starting element %s", el->metaObject()->className());
 			return err;
+		}
 		el->setStreamTime(streamTime);
 		connect(el, SIGNAL(needFlushing()), SLOT(flushElements()));
 	}
@@ -136,6 +131,7 @@ int H264Encoder::stop()
 		encodeThread->deleteLater();
 	}
 	foreach (BaseLmmElement *el, elements) {
+		mInfo("stopping element %s", el->metaObject()->className());
 		el->setStreamTime(NULL);
 		el->stop();
 	}
@@ -282,8 +278,6 @@ void H264Encoder::useThreadedEncode(bool v)
 void H264Encoder::readImplementationSettings(QXmlStreamReader *xml,
 											QString sectionName)
 {
-	bool thEnc, thDisp, thProp, thRtsp, thFile, ioRtsp;
-	int bufferCount;
 	QString name, str;
 	while (!xml->atEnd()) {
 		xml->readNext();
@@ -296,27 +290,25 @@ void H264Encoder::readImplementationSettings(QXmlStreamReader *xml,
 			str = xml->text().toString().trimmed();
 			if (!str.isEmpty()) {
 				if (name == "threaded_encode")
-					thEnc = str.toInt();
+					threadedEncode = str.toInt();
 				else if (name == "threaded_display")
-					thDisp = str.toInt();
+					dm365Output->setThreaded(str.toInt());
 				else if (name == "threaded_prop_streaming")
-					thProp = str.toInt();
+					output3->setThreaded(str.toInt());
 				else if (name == "threaded_rtsp_streaming")
-					thRtsp = str.toInt();
+					rtspOutput->setThreaded(str.toInt());
 				else if (name == "threaded_file_output")
-					thFile = str.toInt();
+					output->setThreaded(str.toInt());
 				else if (name == "use_file_for_rtsp")
-					ioRtsp = str.toInt();
+					useFileIOForRtsp = str.toInt();
 				else if (name == "capture_buffer_count")
-					bufferCount = str.toInt();
-
+					input->setBufferCount(str.toInt());
 			}
 		}
 		if (xml->isStartElement()) {
 			name = xml->name().toString();
 		}
 	}
-	/* TODO: Implementations */
 }
 
 void H264Encoder::writeImplementationSettings(QXmlStreamWriter *wr)
