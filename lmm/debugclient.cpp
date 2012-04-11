@@ -109,8 +109,8 @@ void DebugClient::socketError(QAbstractSocket::SocketError err)
 {
 	if (err == QAbstractSocket::ConnectionRefusedError) {
 		mDebug("socket connection refused to server, retrying after 5 seconds...");
-		client->abort();
 	}
+	client->abort();
 }
 
 int DebugClient::getInputBufferCount(int el)
@@ -172,11 +172,17 @@ QStringList DebugClient::getWarningMessages()
 
 int DebugClient::sendCommand(DebugClient::Command cmd, QVariant par)
 {
+	int err = 0;
 	if (cmd == CMD_SYNC_TIME)
-		DebugServer::sendMessage(client, "syncTime",
+		err = DebugServer::sendMessage(client, "syncTime",
 								 par.toDateTime().toString().toAscii());
 	if (cmd == CMD_APP_SPECIFIC)
-		DebugServer::sendMessage(client, "application", par.toByteArray());
+		err = DebugServer::sendMessage(client, "application", par.toByteArray());
+	if (err < 0) {
+		client->abort();
+		emit disconnectedFromDebugServer();
+	}
+
 	return 0;
 }
 
@@ -197,9 +203,15 @@ QString DebugClient::peerIp()
 
 void DebugClient::timeout()
 {
+	int err = 0;
 	if (names.size() == 0)
-		DebugServer::sendMessage(client, "names");
+		err = DebugServer::sendMessage(client, "names");
 	else
-		DebugServer::sendMessage(client, "stats");
+		err = DebugServer::sendMessage(client, "stats");
+	if (err < 0) {
+		client->abort();
+		emit disconnectedFromDebugServer();
+		return;
+	}
 	QTimer::singleShot(100, this, SLOT(timeout()));
 }

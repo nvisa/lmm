@@ -75,7 +75,7 @@ void DebugServer::handleMessage(QTcpSocket *client, const QString &cmd,
 		emit newApplicationMessage(client, cmd, data);
 }
 
-void DebugServer::sendMessage(QTcpSocket *client, const QString &cmd,
+int DebugServer::sendMessage(QTcpSocket *client, const QString &cmd,
 							  const QByteArray &data)
 {
 	QByteArray block;
@@ -84,7 +84,7 @@ void DebugServer::sendMessage(QTcpSocket *client, const QString &cmd,
 	out << size;
 	out << cmd;
 	out << data;
-	client->write(block);
+	return client->write(block);
 }
 
 QString DebugServer::getStatisticsString(DebugServer::CustomStat stat)

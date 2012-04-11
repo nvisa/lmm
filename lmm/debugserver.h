@@ -23,7 +23,7 @@ public:
 	};
 	explicit DebugServer(QObject *parent = 0);
 	static int serverPortNo() { return 15748; }
-	static void sendMessage(QTcpSocket *client, const QString &cmd,
+	static int sendMessage(QTcpSocket *client, const QString &cmd,
 							const QByteArray &data = QByteArray());
 	static QString getStatisticsString(CustomStat stat);
 	void sendMessage(const QString &cmd, const char *msg);
