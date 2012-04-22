@@ -47,7 +47,7 @@ HEADERS  += \
     debugclient.h \
     udpoutput.h \
     udpinput.h \
-    lmmthread.h
+    lmmthread.h \
 
 alsa {
     HEADERS += \
@@ -114,20 +114,24 @@ dm365 {
         dmaiencoder.cpp \
         dm365dmaicapture.cpp \
         dm365camerainput.cpp \
-        h264encoder.cpp \
+        camerastreamer.cpp \
         v4l2output.cpp \
         dm365videooutput.cpp \
         textoverlay.cpp \
         cpuload.cpp \
+        jpegencoder.cpp \
+        h264encoder.cpp \
 
     HEADERS += dmaiencoder.h \
         dm365dmaicapture.h \
-        h264encoder.h \
+        camerastreamer.h \
         dm365camerainput.h \
         v4l2output.h \
         dm365videooutput.h \
         textoverlay.h \
         cpuload.h \
+        jpegencoder.h \
+        h264encoder.h \
 
     xdc.files += ../dm365.pri
     xdc.files += ../config.bld
