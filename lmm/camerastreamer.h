@@ -4,10 +4,11 @@
 #include "baselmmelement.h"
 #include "textoverlay.h"
 #include "lmmcommon.h"
+#include "dmaiencoder.h"
+#include "h264encoder.h"
 
 #include <QTime>
 
-class DmaiEncoder;
 class FileOutput;
 class V4l2Input;
 class BaseLmmOutput;
@@ -71,7 +72,7 @@ public slots:
 	void flushElements();
 private:
 	QList<BaseLmmElement *> elements;
-	DmaiEncoder *encoder;
+    H264Encoder *encoder;
 	FileOutput *output;
 	DM365VideoOutput *dm365Output;
 	BaseLmmOutput *output3;

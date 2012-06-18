@@ -2,7 +2,7 @@
 #include "dm365camerainput.h"
 #include "dm365dmaicapture.h"
 #include "fileoutput.h"
-#include "dmaiencoder.h"
+#include "h264encoder.h"
 #include "rawbuffer.h"
 #include "fboutput.h"
 #include "dm365videooutput.h"
@@ -41,7 +41,7 @@ public:
 	}
 
 private:
-	DmaiEncoder *enc;
+    DmaiEncoder *enc;
 };
 
 CameraStreamer::CameraStreamer(QObject *parent) :
@@ -53,7 +53,7 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 		input = new DM365DmaiCapture;
 	elements << input;
 
-	encoder = new DmaiEncoder;
+    encoder = new H264Encoder;
 	elements << encoder;
 
 	output =  new FileOutput;
