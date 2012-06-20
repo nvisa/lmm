@@ -14,8 +14,4 @@ RESOURCES += \
     art.qrc
 
 OTHER_FILES += \
-    xdc_linker.cmd \
     dm6446.pri \
-    dm365.pri \
-    dm365.cfg \
-    config.bld
