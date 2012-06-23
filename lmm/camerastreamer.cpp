@@ -13,6 +13,7 @@
 #include "udpoutput.h"
 #include "cpuload.h"
 #include "rtspoutput.h"
+#include "videotestsource.h"
 
 #include <emdesk/debug.h>
 
@@ -41,7 +42,7 @@ public:
 	}
 
 private:
-    DmaiEncoder *enc;
+	DmaiEncoder *enc;
 };
 
 CameraStreamer::CameraStreamer(QObject *parent) :
@@ -53,7 +54,11 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 		input = new DM365DmaiCapture;
 	elements << input;
 
-    encoder = new H264Encoder;
+	testInput = new VideoTestSource;
+	((VideoTestSource *)testInput)->setTestPattern(VideoTestSource::COLORCHART);
+	elements << testInput;
+
+	encoder = new H264Encoder;
 	elements << encoder;
 
 	output =  new FileOutput;
@@ -92,6 +97,7 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 	debugServer = new DebugServer;
 	debugServer->setElements(&elements);
 
+	useTestInput = false;
 	useOverlay = false;
 	useDisplay = false;
 	useFile = false;
@@ -149,7 +155,7 @@ void CameraStreamer::addTextOverlay(QString text)
 }
 
 void CameraStreamer::addTextOverlayParameter(TextOverlay::overlayTextFields field
-										  , QString val)
+											 , QString val)
 {
 	overlay->addOverlayField(field, val);
 }
@@ -180,7 +186,7 @@ void CameraStreamer::useFileOutput(QString fileName)
 }
 
 void CameraStreamer::useStreamingOutput(bool v,
-									 CameraStreamer::StreamingProtocol proto)
+										CameraStreamer::StreamingProtocol proto)
 {
 	if (v == true) {
 		streamingType = proto;
@@ -194,7 +200,11 @@ void CameraStreamer::encodeLoop()
 {
 	QTime t; t.start();
 	timing.start();
-	RawBuffer buf = input->nextBuffer();
+	RawBuffer buf;
+	if (useTestInput)
+		buf = testInput->nextBuffer();
+	else
+		buf = input->nextBuffer();
 	if (buf.size()) {
 		debugServer->addCustomStat(DebugServer::STAT_CAPTURE_TIME, timing.restart());
 		/* Add overlay if selected */
@@ -211,6 +221,7 @@ void CameraStreamer::encodeLoop()
 		encoder->encodeNext();
 	RawBuffer buf2 = encoder->nextBuffer();
 	if (buf2.size()) {
+		mInfo("sending encoded buffer");
 		debugServer->addCustomStat(DebugServer::STAT_ENCODE_TIME, timing.restart());
 		if (useStreamOutput) {
 			if (streamingType == RTSP) {
@@ -276,7 +287,7 @@ void CameraStreamer::useThreadedEncode(bool v)
 }
 
 void CameraStreamer::readImplementationSettings(QXmlStreamReader *xml,
-											QString sectionName)
+												QString sectionName)
 {
 	QString name, str;
 	while (!xml->atEnd()) {

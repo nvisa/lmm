@@ -72,11 +72,12 @@ public slots:
 	void flushElements();
 private:
 	QList<BaseLmmElement *> elements;
-    H264Encoder *encoder;
+	H264Encoder *encoder;
 	FileOutput *output;
 	DM365VideoOutput *dm365Output;
 	BaseLmmOutput *output3;
 	V4l2Input *input;
+	BaseLmmElement *testInput;
 	TextOverlay *overlay;
 	QTimer *timer;
 	BaseLmmOutput *rtspOutput;
@@ -90,6 +91,7 @@ private:
 	bool useFile;
 	bool useStreamOutput;
 	bool threadedEncode;
+	bool useTestInput;
 	Lmm::VideoOutput videoOutputType;
 	StreamingProtocol streamingType;
 };
