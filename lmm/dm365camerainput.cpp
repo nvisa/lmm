@@ -167,7 +167,7 @@ int DM365CameraInput::closeCamera()
 	v4l2buf.clear();
 	userptr.clear();
 	fd = rszFd = preFd = -1;
-	BufTab_delete(bufTab);	
+	BufTab_delete(bufTab);
 	bufsFree.acquire(bufsFree.available());
 	mInfo("capture closed");
 
@@ -327,7 +327,7 @@ bool DM365CameraInput::captureLoop()
 		newbuf.addBufferParameter("width", (int)captureWidth);
 		newbuf.addBufferParameter("height", (int)captureHeight);
 		newbuf.addBufferParameter("v4l2Buffer",
-								   qVariantFromValue((void *)buffer));
+								  qVariantFromValue((void *)buffer));
 		newbuf.addBufferParameter("dmaiBuffer", (int)dmaibuf);
 		newbuf.addBufferParameter("dataPtr", (int)data);
 		outputLock.lock();
@@ -378,7 +378,7 @@ int DM365CameraInput::configureResizer(void)
 	rsz_chan_config.config = NULL; /* to set defaults in driver */
 	if (ioctl(rszFd, RSZ_S_CONFIG, &rsz_chan_config) < 0) {
 		mDebug("Error in setting default configuration in resizer (%s)",
-				  strerror(errno));
+			   strerror(errno));
 		close(rszFd);
 		return -errno;
 	}
@@ -391,7 +391,7 @@ int DM365CameraInput::configureResizer(void)
 
 	if (ioctl(rszFd, RSZ_G_CONFIG, &rsz_chan_config) < 0) {
 		mDebug("Error in getting channel configuration from resizer (%s)\n",
-				  strerror(errno));
+			   strerror(errno));
 		close(rszFd);
 		return -errno;
 	}
@@ -404,7 +404,7 @@ int DM365CameraInput::configureResizer(void)
 	rsz_chan_config.config = &rsz_cont_config;
 	if (ioctl(rszFd, RSZ_S_CONFIG, &rsz_chan_config) < 0) {
 		mDebug("Error in setting resizer configuration (%s)",
-				  strerror(errno));
+			   strerror(errno));
 		close(rszFd);
 		return -errno;
 	}
@@ -450,7 +450,7 @@ int DM365CameraInput::configurePreviewer()
 
 	if (ioctl(preFd, PREV_S_CONFIG, &prev_chan_config) < 0) {
 		mDebug("Error in setting default previewer configuration (%s)",
-				  strerror(errno));
+			   strerror(errno));
 		close(preFd);
 		return -errno;
 	}
