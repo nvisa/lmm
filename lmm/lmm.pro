@@ -26,6 +26,7 @@ SOURCES += \
     udpoutput.cpp \
     udpinput.cpp \
     lmmthread.cpp \
+    dmai/dmaibuffer.cpp
 
 HEADERS  += \
     filesource.h \
@@ -48,6 +49,7 @@ HEADERS  += \
     udpoutput.h \
     udpinput.h \
     lmmthread.h \
+    dmai/dmaibuffer.h
 
 alsa {
     HEADERS += \
