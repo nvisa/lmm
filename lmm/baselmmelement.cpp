@@ -6,6 +6,123 @@
 
 #include <QTime>
 
+/**
+	\class BaseLmmElement
+
+	\brief Bu sinif LMM icindeki siniflarin turetilecegi baz sinifdir.
+	Butun siniflarda olmasi gereken minimum arayuzleri sunar. Durum
+	bilgisi(state machine), thread yonetimi, tampon(buffer) yonetimi,
+	akis istatistikleri(fps v.s.), durdurma, baslatma gibi islemleri
+	yonetir.
+
+	BaseLmmElement sinifinin pek cok fonksiyonu virtual olarak
+	isaretlenmistir, yani gerek gormeniz durumunda kendi siniflarinizda
+	bu fonksiyonlari yeniden tanimlayabilirsiniz. Yeniden tanimlarken
+	ilgili fonksiyonun dokumantasyonuna bakmanizda fayda vardir, zira
+	pek cok fonksiyon icin baz sinifin fonksiyonu cagirmaniz gerekebilir.
+
+	\section1 BaseLmmElement Sinifindan Kalitma
+
+	BaseLmmElement sinifindan yeni bir sinif kalitirken cok fazla yapilmasi
+	gereken birsey yoktur, zira baz sinif komple bir elemanda olmasi gereken
+	herseyi yapabilir. Sizin tek yapmaniz gereken yeni veri uretimini ya da
+	var olan tamponlarin islenmesini saglamaktir. Bunun icin en kolay yol
+	nextBuffer() fonksiyonunu 'override' etmektir. Bu fonksiyon icinde
+	yeni bir RawBuffer yaratip bunu outputBuffers listesine ekledikten
+	sonra baz sinifin nextBuffer() fonksiyonu ile fonksiyonunuzdan donmeniz
+	yeterli olacaktir.
+
+	Buna ek olarak start() ve stop() fonksiyonlarini da 'override'
+	edebilirsiniz. Bu sayede akis baslarken ve dururken yapmaniz gereken islemleri
+	gerceklestirebilirsiniz. Yine baz sinif implementasyonlarini kendi
+	implementasyonunuz icinden cagirmaniz gereklidir.
+
+	Eger elemaninizin kendi yarattigi tamponlar silinirken yapmasi gereken
+	islemler varsa(ornegin donanim kaynaklarinin birakilmasi gibi)
+	aboutDeleteBuffer() fonksiyonunu override edebilirsiniz. Baz implementasyon
+	hic bir islem yapmamaktadir.
+
+	\section1 Durum Yonetimi
+
+	Herhangi bir LMM elemani 3 durumdan birinda olabilir:
+		INIT
+		STARTED
+		STOPPED
+
+	INIT durumundaki elemanlar henuz her hangi bir akis icin ayarlanmamis
+	elemanlardir. Genelde bu durum akis baslamadan once gorulur.Bir eleman
+	start() fonksiyonu ile baslatildiktan sonra STARTED durumuna gecer,
+	stop() ile durdurulursa STOPPED durumuna gecer.
+
+	\section1 Tampon Giris Cikislari
+
+	Her hangi bir eleman addBuffer() fonksiyonu ile yeni bir tampon alabilir.
+	Bu fonksiyon 'virtual' degildir. Bu fonksyion gelen tampon gecerli
+	bir tampon ise bunu inputBuffers listesine ekler. Ayrica gelen tampon
+	istatistiklerini de uygun bir sekilde gunceller. Bu fonksiyonu yeniden
+	yazmaniza gerek yoktur, eger gelen tamponlara erismek istiyorsaniz
+	inputBuffers listesini kullaniniz.
+
+	Her hangi bir eleman isledigi tamponlari nextBuffer() fonksiyonu ile
+	baska elemanlara gonderir, bu fonksiyon 'virtual' olarak isaretlenmistir
+	ve kendi elemanlarinizda degistirmeniz gereken 'minimum' fonksiyondur.
+	Baz sinif elemani outputBuffers listesine bakar ve sirada bekleyen
+	tampon varsa bunu dondurur. Akis istatiskilerini de gunceller, ozellikle
+	FPS hesaplamasi burada yapilir. O yuzden kendi override edilmis
+	fonksiyonlarinizda baz sinifin fonksiyonunu cagirmaniz kiritiktir.
+
+	\section1 Istatistik Yonetimi
+
+	BaseLmmElement sinifinin en faydali ozelliklerinden birisi de ilgili
+	elemana ait akis istatistiklerini sunabilmesidir. Su an icin hesaplanan
+	istatistikler:
+
+		* Giren tampon sayisi
+			Bu ozellik ile elemanin calisma suresince aldigi toplam
+			tampon sayisi gorulebilir.
+		* Cikan tampons sayisi
+			Bu ozellik ile elemanin calisma suresince gonderdigi toplam
+			tampon sayisi gorulebilir. Giren ve cikis tampon sayilari
+			birlikte kullanildigi zaman elemanin kullandigi tamponlar ile
+			ne yaptigini gosterir. Ornegin, bir encoder elemani icin bu 2
+			sayi bir birine esit olabilir, bir demux elemani genellikle
+			birbirine esit degildir, ve TextOverlay elemani icin her zaman
+			birbirine esit olmalidir.
+		* Giriste(islenmeyi) bekleyen tampon sayisi
+			Bu sayi elemana diger elemanlardan gelmis fakat henuz islenmemis
+			eleman sayisini gosterir. Normal olarak bu sayinin 0-1 gibi birsey
+			olmasi idealdir; eger bu sayi cok buyurse ve artarsa bir birikim
+			oldugu anlamina gelir. Birikim elemanin ya cok yavas olduguna
+			ya da bir hata durumu olduguna isaret eder.
+		* Cikista(gonderilmeyi) bekleyen tampon sayisi
+			Bu sayi elemanin isleyip baska elemanlara gonderilmek uzere
+			bekleyen tampon sayisini gosterir. Buradaki bir birikim bu elemandan
+			sonraki elemanlarin calismasinda bir sikinti oldugunun isaretidir.
+		* Kare sayisi(fps)
+			Belki de en faydali istatistik olarak kare sayisi(fps) bu elemanin
+			saniye de kac kare isleyebildigini gosterir. Bu sayi video karesi
+			uzerinde calismayan elemanlar icin cok anlamli olmayabilir, fakat
+			o elemanlar icin zaten diger istatistikler gerekli performans bilgisini
+			verecektir. Fakat yine de bu elemanlar icin de anlamli bir FPS bilgisine
+			ihtiyac duyulursa bu elemanlar calculateFps() fonksiyonunu 'override'
+			edebilir.
+
+			Video karesi uzerinde calisan elemanlar icin ise bu sayi en az akis icin
+			istenen sayi kadar olmalidir. Akis icinde kullanilan tum elemanlar icinde
+			fps'i en dusuk olan eleman akis fps'ni de belirler.
+		* Tampon cikis gecikmesi(latency)
+			Bu sayi biraz kafa karistirici olabilir. Bu sayi elemana giren bir tamponun
+			cikisa ulasana kadar maruz kaldigi gecikme suresi DEGILDIR. Bu sayi elemanlarin
+			ozellikle de LCD, ses karti gibi donanim kaynaklarina cikis veren elemanlarin
+			tamponu cikisa gonderdikten sonra, tamponun kullaniciya ulasmasi esnasindaki
+			(sesin duyulmasi, ekranda goruntunun gorunmesi v.b.) gecikme suresidir.
+			Bu gecikme genelde isletim sistemi suruculerindeki beklemelerden ya da
+			tamponlardan kaynaklanir. Bu deger ses video senkronizasyonunu olumsuz
+			etkiliyebilecegi icin onemlidir ve senkronizasyonun onemli oldugu calma elemanlari
+			tarafindan kullanilir.
+	\ingroup lmm
+*/
+
 BaseLmmElement::BaseLmmElement(QObject *parent) :
 	QObject(parent)
 {

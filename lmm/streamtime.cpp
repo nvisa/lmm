@@ -2,6 +2,36 @@
 
 #include <QTime>
 
+/**
+	\class StreamTime
+
+	\brief Bu sinif LMM icindeki zaman olcmeye ait yapilari
+	sunar.
+
+	Not: bu sinif QTime alternatifi degildir, kod bloklari
+	uzerinde zaman olcumleri icin QTime kullanimi daha uygundur.
+
+	StreamTime bir akisda gecen sureyi tutar. Ses ve goruntu
+	senkronizasyonun saglanmasinda onemli bir rol tutar. Buna
+	ek olarak akis baslangicindan itibaren gecen toplam sure, su
+	anki akis zamani gibi farkli sure ayarlarina erisebilirsiniz.
+
+	Bu siniftan butun bir oynatici da 1 adet vardir, ve oynatici(ya
+	da kodlayi, kaydedici) altinda calisan butun elemanlara bu sinifi
+	bildirir. StreamTime yaratilmasi elemanlarin kontrolunde degildir,
+	olmamalidir.
+
+	setCurrentTime() fonksiyonu akis zamanini degistir, bu fonksiyon genelde
+	de-mux yapan elemanlar tarafindan kullanilir. getCurrentTime() fonksiyonu
+	o anki akis zamanini micro-saniye cinsinden dondurur. getCurrentTimeMili()
+	fonksiyonu ayni sureyi mili-saniye olarak dondurur. getFreeRunningTime()
+	fonksiyonu ise akisin basladigi zamandan itibaren gecen sureyi
+	dondurur. getCurrentTime() monotonik olmayabilir, ama getFreeRunningTime()
+	akis devam ettigi surece monotoniktir.
+
+	\ingroup lmm
+*/
+
 StreamTime::StreamTime(QObject *parent) :
 	QObject(parent)
 {

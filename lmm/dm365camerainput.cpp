@@ -24,6 +24,43 @@
 
 #define NUM_CAPTURE_BUFS captureBufferCount
 
+/**
+	\class DM365CameraInput
+
+	\brief DM365CameraInput sinifi, adindan da anlasilacagi gibi
+	TI DM365 islemcisi uzerinde VPFE kullanarak kamera goruntusu
+	yakalanmasina izin verir.
+
+	Bu sinif V4l2Input sinifindan turetilmistir ve bunun uzerinde
+	DM365'e ozel yakalama parametrelerini sunar. 2 farkli renk-uzayi
+	(colorspace)destekler: V4L2_PIX_FMT_NV12 ve V4L2_PIX_FMT_UYVY.
+	Cozunurluk olarak 720p desteklenmektedir.
+
+	setInputType() fonksiyonu ile kamera ayarlarini yapabilirsiniz.
+	Burada tip olarak cozunurluk veya renk-uzayindan ziyade onemli
+	olan hangi giris tipinin kullanilacagidir. Ornegin giris tipi
+	olarak COMPOSITE secerseniz, cozunurluk 480p, renk-uzayi da
+	UYVY olarak ayarlanir. Su an icin en cok test edilmis giris
+	COMPONENT giristir. (720p ve NV12). Onemli not elimizdeki ham
+	cikis veren kameralar(mesela Hitachi) COMPONENT girisi olarak
+	kullanilmaktadir.
+
+	Eger renk-uzayi olarak NV12 secilirse, ki kodlayici
+	kisitlamalarindan dolayi su an sadece bunu kullanabilirsiniz,
+	DM365 preview ve resizer donanim kaynaklari otomatik olarak
+	ayarlanarak renk cevrimi yapilir. Unutmayin ki kameralar her zaman
+	YUV veri verir. NV12'ye cevrim yazilimsal yada donanimsal olarak
+	DM365 tarafindan yapilmak zorundadir.
+
+	DM365CameraInput sinifi programlanabilir sayida (varsayilan 8)
+	yakalama tamponu kullanir. Bu tamponlar DMAI kullanarak yaratilir,
+	dolayisiyla rahatliklar DMAI tabanli elemanlar tarafindan kullanilabilir.
+
+	\ingroup lmm
+
+	\sa V4l2Input, DM365DmaiCapture
+*/
+
 DM365CameraInput::DM365CameraInput(QObject *parent) :
 	V4l2Input(parent)
 {

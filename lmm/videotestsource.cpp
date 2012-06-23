@@ -22,6 +22,13 @@
 	cikacaktir. Su an icin sadece 720p imajlar desteklenmedir, ileride 480p, 1080p
 	imajlarda desteklenebilir.
 
+	Bu sinif okudugu PNG icindeki RGB resmi uygun bir YUV formatina cevirir. Su an
+	icin sadece NV12(ayrik luma ve kroma duzlemleri, girisik(interleaved) kroma
+	duzlemi, 4:2:0 kroma altorneklemesi) desteklenmektedir. Cevirme islemi yavas
+	oldugu icin cevrilen buffer /tmp/lmmtestpattern.yuv altinda saklanir ve
+	bir sonraki calma islemlerinde desen degismedigi surece kullanilir. Dolayisi ile
+	cihaz acildiginda ilk calma islemi cok yavas olabilir, diger seferlerde hizlanacaktir.
+
 	Bu siniftan bir ornek yarattiktan sonra setTestPattern() fonksiyonu ile
 	olusturmak istediginiz deseni secmeniz yeterli olacaktir.
 

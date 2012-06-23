@@ -5,6 +5,37 @@
 
 #include <QVariant>
 
+/**
+	\class RawBuffer
+
+	\brief RawBuffer sinifi, tum LMM elementleri icinde kullanilan
+	tampon(buffer) yapisidir. Cok esnek bir siniftir ve pek cok farkli
+	bicimde kullanilabilir. Ozellikle donanim hafizalarinin
+	etrafinda bir kaplayici olarak kullanilirsa sifir kopyalama
+	ile gerekli islemlerin yapilmasini saglayabilir.
+
+	RawBuffer sinifi 'Implicitly Shared' bir siniftir, yani kendi
+	otomatik olarak referanslarini sayar ve hicbir kullanici kalmadigi
+	zaman hafizadan silinir. Eger tampon bir donanim hafizasina bagli
+	ise tampona sahip olan BaseLmmElement sinif ornegi aboutDeleteBuffer()
+	fonksiyonu ile durumdan bilgilendirilir ve donanim kaynaklari
+	serbest birakilabilir. Bu ozellikleri sayesinde RawBuffer orneklerini
+	stack'te yaratabilir ve bir elemandan oburune cok hizli bir sekilde
+	pointer kullanmadan gecebilirsiniz.
+
+	RawBuffer sinifini bir ornek olustururken 2 metod kullanilabilir. Ya
+	'size' parametresi alan uygun bir yapilandirici kullanirsiniz; bu
+	durumda RawBuffer hafizadan gerekli yeri ayirir ve yok olurken
+	serbest birakir. 2. methodda ise yapilandirici fonksiyona boyut
+	bilgisi gecmez, daha sonra setRefData() fonksiyonu ile kullanacagi
+	hafizayi gosterirsiniz. Bu durumda ornek yok olurken hafizayi serbsest
+	birakmaz.
+
+	\ingroup lmm
+
+	\sa DmaiBuffer
+*/
+
 RawBuffer::RawBuffer(void *data, int size, BaseLmmElement *parent)
 {
 	d = new RawBufferData;

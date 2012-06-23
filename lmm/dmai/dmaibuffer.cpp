@@ -13,13 +13,21 @@
 
 	\brief DmaiBuffer sinifi, RawBuffer sinifindan turetilmis ama DMAI
 	yapilarini icinde tasiyan bir siniftir. Tipki RawBuffer gibi
-	referans sayar.
+	referans sayar. Bu sinif TI islemcilerine ozgu bir siniftir.
 
 	DmaiBuffer sinifi RawBuffer sinifi uzerinde ince bir katmandir.
 	Veriyi DMAI yapilari kullanarak yaratir, yani Buffer_create
 	kullanarak. RawBuffer da her zaman referans alacak sekilde yaratilir.
 	Sinif silinecegi zaman otomatik olarak Buffer_delete ile dmai
 	donanim memorisini de serbest birakir.
+
+	Bu sinif gerekli tampon parametrelerini de ekler. Bu sinifi
+	kullaniyorsaniz getBufferParameter() fonksiyonu ile su parametrelere
+	erisebilirsiniz:
+
+		* width -> Videonun genisligi (int)
+		* height -> Videonun yuksekligi (int)
+		* dmaiBuffer -> Alt tarafta kullanilan dmai tamponu (int) (Buffer_Handle)
 
 	\ingroup lmm
 

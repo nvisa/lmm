@@ -45,6 +45,32 @@ private:
 	DmaiEncoder *enc;
 };
 
+/**
+	\class CameraStreamer
+
+	\brief Bu sinif DM365 uzerinde kamera goruntusunu alip ag uzerinden
+	farkli bicimlerde akis olarak gonderebilen bir siniftir.
+
+	Not: Bu sinif VK'ya ozel bir hal aldi. Yeri yeniden konumlandirilmali.
+
+	\ingroup camera
+
+	This class implements a multimedia interface for the application.
+	Bu sinif VK'nin dis dunya ile arayuzunu saglar. Kamera modullerinden
+	alinan goruntunun farkli ag akislari uzerinden gonderilmesini saglar.
+
+	Varsayilan calisma modu:
+
+		- RTSP akis
+			* RTSP akisi liveMedia555 uzerinden fifo kullanilarak
+
+		- Text overlay kapali
+		- Yerel video output yok (LCD)
+		- Dosyaya kayit yok
+
+	\sa VideoFile, AudioFile
+*/
+
 CameraStreamer::CameraStreamer(QObject *parent) :
 	BaseLmmElement(parent)
 {
