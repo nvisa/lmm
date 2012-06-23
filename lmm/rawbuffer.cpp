@@ -31,7 +31,7 @@ RawBuffer::RawBuffer(const RawBuffer &other)
 
 void RawBuffer::setParentElement(BaseLmmElement *el)
 {
-	 d->myParent = el;
+	d->myParent = el;
 }
 
 RawBuffer::RawBuffer(BaseLmmElement *parent)
@@ -90,7 +90,7 @@ int RawBuffer::prepend(const void *data, int size)
 	return 0;
 }
 
-const void *RawBuffer::constData()
+const void *RawBuffer::constData() const
 {
 	return d->rawData + d->prependPos;
 }

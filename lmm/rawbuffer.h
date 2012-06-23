@@ -72,7 +72,7 @@ public:
 	QVariant getBufferParameter(QString);
 	void setSize(int size);
 	int prepend(const void *data, int size);
-	const void * constData();
+	const void * constData() const;
 	void * data();
 	int size();
 	int setUsedSize(int size);
