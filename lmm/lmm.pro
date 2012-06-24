@@ -27,7 +27,7 @@ SOURCES += \
     udpinput.cpp \
     lmmthread.cpp \
     videotestsource.cpp \
-    dmai/dmaibuffer.cpp
+    dmai/dmaibuffer.cpp \
 
 HEADERS  += \
     filesource.h \
@@ -51,7 +51,7 @@ HEADERS  += \
     udpinput.h \
     lmmthread.h \
     videotestsource.h \
-    dmai/dmaibuffer.h
+    dmai/dmaibuffer.h \
 
 alsa {
     HEADERS += \
@@ -65,8 +65,13 @@ alsa {
 }
 
 mad {
-    SOURCES += maddecoder.cpp
-    HEADERS += maddecoder.h
+	SOURCES += maddecoder.cpp \
+		mp3player.cpp \
+		mp3demux.cpp \
+
+	HEADERS += maddecoder.h \
+		mp3player.h \
+		mp3demux.h \
     LIBS += -lmad -ltag
     DEFINES += CONFIG_MAD
 }
@@ -81,8 +86,6 @@ ffmpeg {
 		mp4mux.h \
 		avimux.h \
         dvbplayer.h \
-        mp3player.h \
-        mp3demux.h \
 
     SOURCES += \
         avidecoder.cpp \
@@ -93,10 +96,7 @@ ffmpeg {
 		mp4mux.cpp \
 		avimux.cpp \
         dvbplayer.cpp \
-        mp3player.cpp \
-        mp3demux.cpp \
 
-    LIBS += -lavformat
     DEFINES += CONFIG_FFMPEG
 }
 

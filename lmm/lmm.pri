@@ -14,3 +14,8 @@ gstreamer {
     INCLUDEPATH += $$GST_CFLAGS
     LIBS += $$GST_LIBS -lgstapp-0.10
 }
+
+ffmpeg {
+	LIBS += -lavformat
+	DEFINES += CONFIG_FFMPEG
+}

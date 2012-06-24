@@ -1,3 +1,5 @@
+#define __STDC_CONSTANT_MACROS
+
 #include "baselmmdemux.h"
 #include "rawbuffer.h"
 #include "streamtime.h"
@@ -118,17 +120,17 @@ int BaseLmmDemux::demuxOne()
 	if (packet->stream_index == audioStreamIndex) {
 		mInfo("new audio stream: size=%d", packet->size);
 		if (demuxAudio) {
-			RawBuffer *buf = new RawBuffer(packet->data, packet->size);
-			buf->setDuration(packet->duration * audioTimeBaseN / 1000);
+			RawBuffer buf(packet->data, packet->size);
+			buf.setDuration(packet->duration * audioTimeBaseN / 1000);
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
-				buf->setPts(packet->pts * audioTimeBaseN / 1000);
+				buf.setPts(packet->pts * audioTimeBaseN / 1000);
 			} else {
-				buf->setPts(-1);
+				buf.setPts(-1);
 			}
 			if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
-				buf->setDts(packet->dts * audioTimeBaseN / 1000);
+				buf.setDts(packet->dts * audioTimeBaseN / 1000);
 			} else {
-				buf->setDts(-1);
+				buf.setDts(-1);
 			}
 			audioBuffers << buf;
 		}
@@ -137,17 +139,17 @@ int BaseLmmDemux::demuxOne()
 			   packet->pts == (int64_t)AV_NOPTS_VALUE ? -1 : packet->pts ,
 			   packet->duration, packet->flags);
 		if (demuxVideo) {
-			RawBuffer *buf = new RawBuffer(packet->data, packet->size);
-			buf->setDuration(packet->duration * videoTimeBaseN / 1000);
+			RawBuffer buf(packet->data, packet->size);
+			buf.setDuration(packet->duration * videoTimeBaseN / 1000);
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
-				buf->setPts(packet->pts * videoTimeBaseN / 1000);
+				buf.setPts(packet->pts * videoTimeBaseN / 1000);
 			} else {
-				buf->setPts(-1);
+				buf.setPts(-1);
 			}
 			if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
-				buf->setDts(packet->dts * videoTimeBaseN / 1000);
+				buf.setDts(packet->dts * videoTimeBaseN / 1000);
 			} else {
-				buf->setDts(-1);
+				buf.setDts(-1);
 			}
 			videoBuffers << buf;
 		}
@@ -157,8 +159,6 @@ int BaseLmmDemux::demuxOne()
 
 int BaseLmmDemux::flush()
 {
-	qDeleteAll(videoBuffers);
-	qDeleteAll(audioBuffers);
 	videoBuffers.clear();
 	audioBuffers.clear();
 	return BaseLmmElement::flush();
@@ -178,7 +178,7 @@ RawBuffer BaseLmmDemux::nextAudioBuffer()
 		return audioBuffers.takeFirst();
 	}
 
-	return RawBuffer;
+	return RawBuffer();
 }
 
 RawBuffer BaseLmmDemux::nextVideoBuffer()
@@ -188,7 +188,7 @@ RawBuffer BaseLmmDemux::nextVideoBuffer()
 		return videoBuffers.takeFirst();
 	}
 
-	return RawBuffer;
+	return RawBuffer();
 }
 
 int BaseLmmDemux::audioBufferCount()

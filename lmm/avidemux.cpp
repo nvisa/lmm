@@ -1,9 +1,13 @@
+#define __STDC_CONSTANT_MACROS
+
 #include "avidemux.h"
 #include "rawbuffer.h"
 #define DEBUG
 #include "emdesk/debug.h"
 
 extern "C" {
+	#define __STDC_CONSTANT_MACROS
+	#include <stdint.h>
 	#include "libavformat/avformat.h"
 }
 
