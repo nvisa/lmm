@@ -14,6 +14,8 @@
 #include "cpuload.h"
 #include "rtspoutput.h"
 #include "videotestsource.h"
+#include "mp4mux.h"
+#include "avimux.h"
 
 #include <emdesk/debug.h>
 
@@ -105,6 +107,9 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 	overlay = new TextOverlay(TextOverlay::PIXEL_MAP);
 	elements << overlay;
 
+	mux = new Mp4Mux;
+	elements << mux;
+
 	streamingType = RTSP;
 	output3 = new UdpOutput;
 	output3->syncOnClock(false);
@@ -123,6 +128,7 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 	debugServer = new DebugServer;
 	debugServer->setElements(&elements);
 
+	muxType = 0;
 	useTestInput = false;
 	useOverlay = false;
 	useDisplay = false;
@@ -246,6 +252,12 @@ void CameraStreamer::encodeLoop()
 	if (!threadedEncode)
 		encoder->encodeNext();
 	RawBuffer buf2 = encoder->nextBuffer();
+	if (muxType) {
+		/* mux first */
+		if (buf2.size())
+			mux->addBuffer(buf2);
+		buf2 = mux->nextBuffer();
+	}
 	if (buf2.size()) {
 		mInfo("sending encoded buffer");
 		debugServer->addCustomStat(DebugServer::STAT_ENCODE_TIME, timing.restart());

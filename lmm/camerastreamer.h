@@ -20,6 +20,7 @@ class EncodeThread;
 class DM365VideoOutput;
 class QXmlStreamWriter;
 class QXmlStreamReader;
+class BaseLmmMux;
 
 class CameraStreamer : public BaseLmmElement
 {
@@ -84,6 +85,8 @@ private:
 	QTime timing;
 	DebugServer *debugServer;
 	EncodeThread *encodeThread;
+	BaseLmmMux *mux;
+	int muxType;
 
 	bool useFileIOForRtsp;
 	bool useOverlay;
