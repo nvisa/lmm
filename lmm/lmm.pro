@@ -77,6 +77,9 @@ ffmpeg {
         avidemux.h \
         mpegtsdemux.h \
         baselmmdemux.h \
+		baselmmmux.h \
+		mp4mux.h \
+		avimux.h \
         dvbplayer.h \
         mp3player.h \
         mp3demux.h \
@@ -86,6 +89,9 @@ ffmpeg {
         baselmmdemux.cpp \
         mpegtsdemux.cpp \
         avidemux.cpp \
+		baselmmmux.cpp \
+		mp4mux.cpp \
+		avimux.cpp \
         dvbplayer.cpp \
         mp3player.cpp \
         mp3demux.cpp \
