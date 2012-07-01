@@ -26,7 +26,9 @@ AviPlayer::AviPlayer(QObject *parent) :
 	audioOutput = new AlsaOutput;
 	elements << audioDecoder;
 	elements << audioOutput;
+#ifdef CONFIG_ALSA
 	alsaControl = ((AlsaOutput *)audioOutput)->alsaControl();
+#endif
 
 	videoDecoder = new DmaiDecoder(DmaiDecoder::MPEG4);
 	videoOutput = new Blec32FbOutput;
