@@ -4,6 +4,15 @@
 #include "emdesk/debug.h"
 #include "dm365/ih264venc.h"
 
+#include <xdc/std.h>
+#include <ti/sdo/ce/Engine.h>
+#include <ti/sdo/ce/video1/videnc1.h>
+
+#include <ti/sdo/dmai/Dmai.h>
+#include <ti/sdo/dmai/ColorSpace.h>
+#include <ti/sdo/dmai/ce/Venc1.h>
+#include <ti/sdo/dmai/BufferGfx.h>
+
 #include <errno.h>
 
 #define VIDEO_PIPE_SIZE 4
@@ -441,6 +450,124 @@ int H264Encoder::flush()
 	return DmaiEncoder::flush();
 }
 
+typedef struct Venc1_Object {
+	VIDENC1_Handle          hEncode;
+	IVIDEO1_BufDesc         reconBufs;
+	Int32                   minNumInBufs;
+	Int32                   minInBufSize[XDM_MAX_IO_BUFFERS];
+	Int32                   minNumOutBufs;
+	Int32                   minOutBufSize[XDM_MAX_IO_BUFFERS];
+	BufTab_Handle           hInBufTab;
+	Buffer_Handle           hFreeBuf;
+	VIDENC1_DynamicParams   dynParams;
+} Venc1_Object;
+/* As 0 is not a valid buffer id in XDM 1.0, we need macros for easy access */
+#define GETID(x)  ((x) + 1)
+#define GETIDX(x) ((x) - 1)
+
+static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle hOutBuf)
+{
+	IVIDEO1_BufDescIn       inBufDesc;
+	XDM_BufDesc             outBufDesc;
+	XDAS_Int32              outBufSizeArray[1];
+	XDAS_Int32              status;
+	VIDENC1_InArgs          inArgs;
+	VIDENC1_OutArgs         outArgs;
+	XDAS_Int8              *inPtr;
+	XDAS_Int8              *outPtr;
+	BufferGfx_Dimensions    dim;
+	Int32                  offset = 0;
+	Uint32                  bpp;
+
+	bpp = ColorSpace_getBpp(BufferGfx_getColorSpace(hInBuf));
+
+	BufferGfx_getDimensions(hInBuf, &dim);
+
+	offset = (dim.y * dim.lineLength) + (dim.x * (bpp >> 3));
+	assert(offset < Buffer_getSize(hInBuf));
+
+	inPtr  = Buffer_getUserPtr(hInBuf)  + offset;
+	outPtr = Buffer_getUserPtr(hOutBuf);
+
+	/* Set up the codec buffer dimensions */
+	inBufDesc.frameWidth                = dim.width;
+	inBufDesc.frameHeight               = dim.height;
+	inBufDesc.framePitch                = dim.lineLength;
+
+	/* Point to the color planes depending on color space format */
+	if (BufferGfx_getColorSpace(hInBuf) == ColorSpace_YUV420PSEMI) {
+		inBufDesc.bufDesc[0].bufSize    = hVe->minInBufSize[0];
+		inBufDesc.bufDesc[1].bufSize    = hVe->minInBufSize[1];
+
+		inBufDesc.bufDesc[0].buf        = inPtr;
+		inBufDesc.bufDesc[1].buf        = inPtr + Buffer_getSize(hInBuf) * 2/3;
+		inBufDesc.numBufs               = 2;
+	}
+	else if (BufferGfx_getColorSpace(hInBuf) == ColorSpace_UYVY) {
+		inBufDesc.bufDesc[0].bufSize    = Buffer_getSize(hInBuf);
+		inBufDesc.bufDesc[0].buf        = inPtr;
+		inBufDesc.numBufs               = 1;
+	}
+	else {
+		fDebug("Unsupported color format of input buffer");
+		return Dmai_EINVAL;
+	}
+
+	outBufSizeArray[0]                  = Buffer_getSize(hOutBuf);
+
+	outBufDesc.numBufs                  = 1;
+	outBufDesc.bufs                     = &outPtr;
+	outBufDesc.bufSizes                 = outBufSizeArray;
+
+	inArgs.size                         = sizeof(VIDENC1_InArgs);
+	inArgs.inputID                      = GETID(Buffer_getId(hInBuf));
+
+	/* topFieldFirstFlag is hardcoded. Used only for interlaced content */
+	inArgs.topFieldFirstFlag            = 1;
+
+	outArgs.size                        = sizeof(VIDENC1_OutArgs);
+
+	/* Encode video buffer */
+	status = VIDENC1_process(hVe->hEncode, &inBufDesc, &outBufDesc, &inArgs,
+							 &outArgs);
+
+	//fDebug("VIDENC1_process() ret %d inId %d outID %d generated %d bytes",
+		//   (int)status, Buffer_getId(hInBuf), (int)outArgs.outputID, (int)outArgs.bytesGenerated);
+
+	if (status != VIDENC1_EOK) {
+		fDebug("VIDENC1_process() failed with error (%d ext: 0x%x)",
+			   (Int)status, (Uns) outArgs.extendedError);
+		return Dmai_EFAIL;
+	}
+
+	/* if memTab was used for input buffers */
+	if(hVe->hInBufTab != NULL) {
+		/* One buffer is freed when output content is generated */
+		if(outArgs.bytesGenerated>0) {
+			/* Buffer released by the encoder */
+			hVe->hFreeBuf = BufTab_getBuf(hVe->hInBufTab, GETIDX(outArgs.outputID));
+		}
+		else {
+			hVe->hFreeBuf = NULL;
+		}
+	}
+
+	/* Copy recon buffer information so we can retrieve it later */
+	hVe->reconBufs = outArgs.reconBufs;
+
+	/*
+	 * Setting the frame type in the input buffer even through it's a property
+	 * of the output buffer. This works for encoders without B-frames, but
+	 * when byte and display order are not the same the frame type will get
+	 * out of sync.
+	 */
+	BufferGfx_setFrameType(hInBuf, outArgs.encodedFrameType);
+
+	Buffer_setNumBytesUsed(hOutBuf, outArgs.bytesGenerated);
+
+	return Dmai_EOK;
+}
+
 int H264Encoder::encode(Buffer_Handle buffer)
 {
 	bool idrGenerated = false;
@@ -482,7 +609,7 @@ int H264Encoder::encode(Buffer_Handle buffer)
 	mInfo("invoking venc1_process: width=%d height=%d",
 		  (int)dim.width, (int)dim.height);
 	/* Encode the video buffer */
-	if (Venc1_process(hCodec, buffer, hDstBuf) < 0) {
+	if (Venc1_processL(hCodec, buffer, hDstBuf) < 0) {
 		mDebug("Failed to encode video buffer");
 		BufferGfx_getDimensions(buffer, &dim);
 		mInfo("colorspace=%d dims: x=%d y=%d width=%d height=%d linelen=%d",
