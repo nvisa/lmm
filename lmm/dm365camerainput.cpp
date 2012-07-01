@@ -54,7 +54,11 @@
 
 	DM365CameraInput sinifi programlanabilir sayida (varsayilan 8)
 	yakalama tamponu kullanir. Bu tamponlar DMAI kullanarak yaratilir,
-	dolayisiyla rahatliklar DMAI tabanli elemanlar tarafindan kullanilabilir.
+	dolayisiyla rahatlikla DMAI tabanli elemanlar tarafindan kullanilabilir.
+	Sinirli sayida donanim tamponu oldugundan dolayi, eger ki bufferlar
+	kullanilmaz ise hafiza kaybi olusmaz, yani iceride tutulan tampon
+	sayisi artmaz, boylece modul kullanilana kadar beklemeye gecmis
+	olur.
 
 	\ingroup lmm
 
