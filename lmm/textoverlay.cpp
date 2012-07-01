@@ -368,5 +368,6 @@ QString TextOverlay::compileOverlayText()
 	QString text = overlayText;
 	foreach (const QString &arg, args)
 		text = text.arg(arg);
+	mInfo("compiling text: %s -> %s", qPrintable(overlayText), qPrintable(text));
 	return text;
 }
