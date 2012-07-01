@@ -47,6 +47,7 @@ VideoTestSource::VideoTestSource(QObject *parent) :
 	height = 720;
 	lastBufferTime = 0;
 	setFps(25);
+	pattern = PATTERN_COUNT;
 }
 
 #define bound(_x) \
@@ -55,20 +56,28 @@ VideoTestSource::VideoTestSource(QObject *parent) :
 
 void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 {
+	if (p == pattern)
+		return;
 	/* we will use cache data if exists */
 	QFile f("/tmp/lmmtestpattern.yuv");
 	pattern = p;
 	pImage = getPatternImage(p);
+	bool cvalid = false;
 
 	/* color space is assumed to be NV12 */
 	if (f.exists()) {
 		f.open(QIODevice::ReadOnly);
-		imageBuf = DmaiBuffer((void *)f.readAll().constData(), width * height * 3 / 2);
+		QByteArray ba = f.readAll();
+		if (ba.at(0) == p) {
+			imageBuf = DmaiBuffer((void *)(ba.constData() + 1), width * height * 3 / 2);
+			cvalid = true;
+		}
 		f.close();
-	} else {
+	}
+	if (!cvalid) {
 		imageBuf = DmaiBuffer(width * height * 3 / 2);
 
-		uchar *ydata = (uchar *)imageBuf.data();
+		uchar *ydata = (uchar *)imageBuf.constData();
 		uchar *cdata = ydata + imageBuf.size() / 3 * 2;
 
 		int cindex = 0;
@@ -97,6 +106,7 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 
 		/* write cache data so that next time we will be faster */
 		if (f.open(QIODevice::WriteOnly)) {
+			f.write((char *)&pattern, 1);
 			f.write((const char *)imageBuf.constData(), imageBuf.size());
 		}
 	}
@@ -114,7 +124,10 @@ RawBuffer VideoTestSource::nextBuffer()
 
 	if (time > lastBufferTime + bufferTime) {
 		lastBufferTime = time;
-		//RawBuffer buf(imageBuf);
+		/*
+		 * creating a new buffer with software copy is so slow,
+		 * don't event think about it. But dma may work
+		 */
 		outputBuffers.append(imageBuf);
 		mInfo("time: %lld - %d", time / 1000, bufferTime);
 	}

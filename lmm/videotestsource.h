@@ -28,6 +28,7 @@ public:
 
 	explicit VideoTestSource(QObject *parent = 0);
 	void setTestPattern(TestPattern p);
+	TestPattern getPattern() { return pattern; }
 	void setFps(int fps);
 
 	RawBuffer nextBuffer();
