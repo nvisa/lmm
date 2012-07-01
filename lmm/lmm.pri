@@ -19,3 +19,8 @@ ffmpeg {
 	LIBS += -lavformat
 	DEFINES += CONFIG_FFMPEG
 }
+
+vlc {
+	LIBS += -lvlc
+	DEFINES += CONFIG_VLC
+}

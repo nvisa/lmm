@@ -28,6 +28,7 @@ SOURCES += \
     lmmthread.cpp \
     videotestsource.cpp \
     dmai/dmaibuffer.cpp \
+    vlc/vlcrtspstreamer.cpp
 
 HEADERS  += \
     filesource.h \
@@ -52,6 +53,7 @@ HEADERS  += \
     lmmthread.h \
     videotestsource.h \
     dmai/dmaibuffer.h \
+    vlc/vlcrtspstreamer.h
 
 alsa {
     HEADERS += \
