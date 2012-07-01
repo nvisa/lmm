@@ -9,6 +9,7 @@
 
 class BaseLmmElement;
 class RawBufferData;
+class RawBuffer;
 
 class RawBufferData : public QSharedData
 {
@@ -85,6 +86,7 @@ public:
 
 	void setStreamBufferNo(int val);
 	int streamBufferNo();
+	friend class RawBufferData;
 signals:
 	
 public slots:

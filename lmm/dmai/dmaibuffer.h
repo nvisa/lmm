@@ -11,6 +11,7 @@ class DmaiBuffer : public RawBuffer
 public:
 	explicit DmaiBuffer(void *data, int size, BaseLmmElement *parent = 0);
 	explicit DmaiBuffer(int size, BaseLmmElement *parent = 0);
+	DmaiBuffer(const RawBuffer &other);
 	~DmaiBuffer();
 signals:
 	

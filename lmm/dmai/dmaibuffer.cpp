@@ -49,9 +49,13 @@ DmaiBuffer::DmaiBuffer(int size, BaseLmmElement *parent) :
 	init(size);
 }
 
+DmaiBuffer::DmaiBuffer(const RawBuffer &other) :
+	RawBuffer(other)
+{
+}
+
 DmaiBuffer::~DmaiBuffer()
 {
-	Buffer_delete(dmaibuf);
 }
 
 void DmaiBuffer::init(int size)
@@ -81,4 +85,5 @@ void DmaiBuffer::init(int size)
 	addBufferParameter("width", (int)gfxAttrs.dim.width);
 	addBufferParameter("height", (int)gfxAttrs.dim.height);
 	addBufferParameter("dmaiBuffer", (int)dmaibuf);
+	addBufferParameter("dmaiBufferFree", (int)dmaibuf);
 }

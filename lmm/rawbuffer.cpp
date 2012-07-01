@@ -69,6 +69,8 @@ RawBuffer::RawBuffer(BaseLmmElement *parent)
 {
 	d = new RawBufferData;
 	d->myParent = parent;
+	d->rawData = NULL;
+	d->refData = false;
 }
 
 RawBuffer::~RawBuffer()
@@ -184,10 +186,23 @@ int RawBuffer::streamBufferNo()
 	return d->bufferNo;
 }
 
+#include <ti/sdo/dmai/Dmai.h>
+#include <ti/sdo/dmai/Buffer.h>
+#include <QDebug>
 RawBufferData::~RawBufferData()
 {
 	if (rawData && !refData)
 		delete [] rawData;
 	if (myParent)
 		myParent->aboutDeleteBuffer(parameters);
+	/*
+	 * At this point all instances of RawBuffer
+	 * would be deleted, so we cannot notify
+	 * last instance with a member function,
+	 * all clean-up should be done here
+	 */
+	if (parameters.contains("dmaiBufferFree")) {
+		Buffer_Handle dmaibuf = (Buffer_Handle)parameters["dmaiBufferFree"].toInt();
+		Buffer_delete(dmaibuf);
+	}
 }
