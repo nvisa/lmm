@@ -27,7 +27,6 @@ SOURCES += \
     udpinput.cpp \
     lmmthread.cpp \
     videotestsource.cpp \
-    dmai/dmaibuffer.cpp \
     vlc/vlcrtspstreamer.cpp
 
 HEADERS  += \
@@ -52,8 +51,12 @@ HEADERS  += \
     udpinput.h \
     lmmthread.h \
     videotestsource.h \
-    dmai/dmaibuffer.h \
-    vlc/vlcrtspstreamer.h
+
+vlc {
+	SOURCES += vlc/vlcrtspstreamer.cpp
+	HEADERS += vlc/vlcrtspstreamer.h
+	DEFINES += CONFIG_VLC
+}
 
 alsa {
     HEADERS += \
@@ -132,6 +135,7 @@ dm365 {
         cpuload.cpp \
         jpegencoder.cpp \
         h264encoder.cpp \
+		dmai/dmaibuffer.cpp \
 
     HEADERS += dmaiencoder.h \
         dm365dmaicapture.h \
@@ -143,6 +147,7 @@ dm365 {
         cpuload.h \
         jpegencoder.h \
         h264encoder.h \
+		dmai/dmaibuffer.h \
 
     xdc.files += dm365/tipaths.pri
     xdc.files += dm365/dm365.pri

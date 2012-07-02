@@ -4,8 +4,6 @@
 
 #include <emdesk/debug.h>
 
-#include <ti/sdo/dmai/BufferGfx.h>
-
 #include <QFile>
 
 /**

@@ -186,15 +186,17 @@ int RawBuffer::streamBufferNo()
 	return d->bufferNo;
 }
 
+#if defined(CONFIG_DM365) | defined(CONFIG_DM6446)
 #include <ti/sdo/dmai/Dmai.h>
 #include <ti/sdo/dmai/Buffer.h>
-#include <QDebug>
+#endif
 RawBufferData::~RawBufferData()
 {
 	if (rawData && !refData)
 		delete [] rawData;
 	if (myParent)
 		myParent->aboutDeleteBuffer(parameters);
+#if defined(CONFIG_DM365) | defined(CONFIG_DM6446)
 	/*
 	 * At this point all instances of RawBuffer
 	 * would be deleted, so we cannot notify
@@ -205,4 +207,5 @@ RawBufferData::~RawBufferData()
 		Buffer_Handle dmaibuf = (Buffer_Handle)parameters["dmaiBufferFree"].toInt();
 		Buffer_delete(dmaibuf);
 	}
+#endif
 }

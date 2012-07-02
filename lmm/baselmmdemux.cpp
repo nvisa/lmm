@@ -55,9 +55,9 @@ int BaseLmmDemux::findStreamInfo()
 	mDebug("%d streams, %d programs present in the file", context->nb_streams, context->nb_programs);
 	for (unsigned int i = 0; i < context->nb_streams; ++i) {
 		mDebug("stream: type %d", context->streams[i]->codec->codec_type);
-		if (context->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
+		if (context->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
 			videoStreamIndex = i;
-		if (context->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO) {
+		if (context->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
 			if (context->streams[i]->codec->channels != 0
 					|| context->streams[i]->codec->sample_rate != 0)
 				audioStreamIndex = i;

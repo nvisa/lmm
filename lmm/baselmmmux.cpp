@@ -9,6 +9,7 @@
 
 extern "C" {
 	#include "libavformat/avformat.h"
+	#include "libavformat/avio.h" /* for URLContext on x86 */
 }
 
 /* TODO: Fix single instance BaseLmmMux */
