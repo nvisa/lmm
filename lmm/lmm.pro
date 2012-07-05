@@ -188,6 +188,17 @@ dm6446 {
     CONFIG += arm
 }
 
+live555 {
+	SOURCES += live555/cameradevicesource.cpp \
+		live555/h264camerasubsession.cpp \
+		rtspserver.cpp
+
+	HEADERS += live555/cameradevicesource.h \
+		live555/h264camerasubsession.h \
+		rtspserver.h
+	QMAKE_CXXFLAGS += -DSOCKLEN_T=socklen_t -DNO_SSTREAM=1 -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64 -DBSD=1
+}
+
 x86 {
     include($$INSTALL_PREFIX/usr/local/include/qtCommon.pri)
     include($$INSTALL_PREFIX/usr/local/include/emdesk/emdeskCommon.pri)

@@ -24,3 +24,7 @@ vlc {
 	LIBS += -lvlc
 	DEFINES += CONFIG_VLC
 }
+
+live555 {
+	LIBS += -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment
+}
