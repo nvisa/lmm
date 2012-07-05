@@ -93,7 +93,7 @@ void RawBuffer::addBufferParameter(QString par, QVariant val)
 	d->parameters.insert(par, val);
 }
 
-QVariant RawBuffer::getBufferParameter(QString par)
+QVariant RawBuffer::getBufferParameter(QString par) const
 {
 	if (d->parameters.contains(par))
 		return d->parameters[par];
@@ -151,7 +151,7 @@ void RawBuffer::setDuration(unsigned int val)
 	d->duration = val;
 }
 
-unsigned int RawBuffer::getDuration()
+unsigned int RawBuffer::getDuration() const
 {
 	return d->duration;
 }
@@ -161,7 +161,7 @@ void RawBuffer::setPts(qint64 val)
 	d->pts = val;
 }
 
-qint64 RawBuffer::getPts()
+qint64 RawBuffer::getPts() const
 {
 	return d->pts;
 }
@@ -171,7 +171,7 @@ void RawBuffer::setDts(qint64 val)
 	d->dts = val;
 }
 
-qint64 RawBuffer::getDts()
+qint64 RawBuffer::getDts() const
 {
 	return d->dts;
 }
@@ -181,7 +181,7 @@ void RawBuffer::setStreamBufferNo(int val)
 	d->bufferNo = val;
 }
 
-int RawBuffer::streamBufferNo()
+int RawBuffer::streamBufferNo() const
 {
 	return d->bufferNo;
 }

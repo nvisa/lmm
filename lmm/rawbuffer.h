@@ -70,7 +70,7 @@ public:
 	void setParentElement(BaseLmmElement *el);
 	void setRefData(void *data, int size);
 	void addBufferParameter(QString, QVariant);
-	QVariant getBufferParameter(QString);
+	QVariant getBufferParameter(QString) const;
 	void setSize(int size);
 	int prepend(const void *data, int size);
 	const void * constData() const;
@@ -78,14 +78,14 @@ public:
 	int size();
 	int setUsedSize(int size);
 	void setDuration(unsigned int val);
-	unsigned int getDuration();
+	unsigned int getDuration() const;
 	void setPts(qint64 val);
-	qint64 getPts();
+	qint64 getPts() const;
 	void setDts(qint64 val);
-	qint64 getDts();
+	qint64 getDts() const;
 
 	void setStreamBufferNo(int val);
-	int streamBufferNo();
+	int streamBufferNo() const;
 	friend class RawBufferData;
 signals:
 	
