@@ -439,7 +439,7 @@ static void printErrorMsg(XDAS_Int32 errorCode)
 H264Encoder::H264Encoder(QObject *parent) :
 	DmaiEncoder(parent)
 {
-	maxFrameRate = 25000;
+	maxFrameRate = 30000;
 	rateControl = RATE_NONE;
 	videoBitRate = -1;
 	intraFrameInterval = 30;
@@ -681,6 +681,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	buf.setRefData(Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
 	buf.addBufferParameter("dmaiBuffer", (int)hDstBuf);
 	buf.addBufferParameter("frameType", (int)BufferGfx_getFrameType(buffer));
+	buf.addBufferParameter("fps", 30); //TODO: generalize fps
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	buf.setStreamBufferNo(encodeCount++);
 	/* Reset the dimensions to what they were originally */
