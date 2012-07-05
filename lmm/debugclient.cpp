@@ -156,6 +156,27 @@ int DebugClient::getCustomStat(DebugServer::CustomStat stat)
 	return -1;
 }
 
+int DebugClient::getMinOutputTime(int el)
+{
+	if (stats.size() <= el)
+		return 0;
+	return stats[el][5];
+}
+
+int DebugClient::getMaxOutputTime(int el)
+{
+	if (stats.size() <= el)
+		return 0;
+	return stats[el][6];
+}
+
+int DebugClient::getAverageOutputTime(int el)
+{
+	if (stats.size() <= el)
+		return 0;
+	return stats[el][7];
+}
+
 QStringList DebugClient::getDebugMessages()
 {
 	QStringList list = debugMessages;

@@ -1,5 +1,6 @@
 #include "debugserver.h"
 #include "baselmmelement.h"
+#include "tools/unittimestat.h"
 
 #include <emdesk/debug.h>
 
@@ -52,7 +53,7 @@ void DebugServer::handleMessage(QTcpSocket *client, const QString &cmd,
 	QDataStream out(&d, QIODevice::WriteOnly);
 	if (cmd == "stats") {
 		out << elements->size();
-		out << 5; //number of properties
+		out << 8; //number of properties
 		for (int i = 0; i < elements->size(); i++){
 			BaseLmmElement *el = elements->at(i);
 			out << el->getInputBufferCount();
@@ -60,6 +61,9 @@ void DebugServer::handleMessage(QTcpSocket *client, const QString &cmd,
 			out << el->getReceivedBufferCount();
 			out << el->getSentBufferCount();
 			out << el->getFps();
+			out << el->getOutputTimeStat()->min;
+			out << el->getOutputTimeStat()->max;
+			out << el->getOutputTimeStat()->avg;
 		}
 		out << custom;
 		sendMessage(client, "stats", d);

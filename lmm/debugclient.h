@@ -33,6 +33,9 @@ public:
 	int getSentBufferCount(int el);
 	int getFps(int el);
 	int getCustomStat(DebugServer::CustomStat stat);
+	int getMinOutputTime(int el);
+	int getMaxOutputTime(int el);
+	int getAverageOutputTime(int el);
 
 	QStringList getDebugMessages();
 	QStringList getWarningMessages();
