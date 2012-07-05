@@ -11,6 +11,7 @@
 
 class StreamTime;
 class CircularBuffer;
+class UnitTimeStat;
 
 class BaseLmmElement : public QObject
 {
@@ -41,10 +42,11 @@ public:
 	/* stat information */
 	void printStats();
 	int getInputBufferCount() { return inputBuffers.size(); }
-	int getOutputBufferCount() { return outputBuffers.size(); }
+	virtual int getOutputBufferCount() { return outputBuffers.size(); }
 	int getReceivedBufferCount() { return receivedBufferCount; }
 	int getSentBufferCount() { return sentBufferCount; }
 	int getFps() { return elementFps; }
+	UnitTimeStat * getOutputTimeStat() { return outputTimeStat; }
 signals:
 	void needFlushing();
 public slots:
@@ -60,6 +62,7 @@ protected:
 	QMutex inputLock;
 	QMutex outputLock;
 
+	virtual void updateOutputTimeStats();
 	virtual void calculateFps();
 	RunningState getState();
 private:
@@ -68,6 +71,8 @@ private:
 	int elementFps;
 	int fpsBufferCount;
 	QTime *fpsTiming;
+	UnitTimeStat *outputTimeStat;
+	qint64 lastOutputTimeStat;
 	RunningState state;
 };
 

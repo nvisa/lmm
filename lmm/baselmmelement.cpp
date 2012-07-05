@@ -1,6 +1,8 @@
 #include "baselmmelement.h"
 #include "emdesk/debug.h"
 #include "rawbuffer.h"
+#include "streamtime.h"
+#include "tools/unittimestat.h"
 
 #include <errno.h>
 
@@ -44,7 +46,7 @@
 
 	\section1 Durum Yonetimi
 
-	Herhangi bir LMM elemani 3 durumdan birinda olabilir:
+	Herhangi bir LMM elemani 3 durumdan birinde olabilir:
 		INIT
 		STARTED
 		STOPPED
@@ -133,6 +135,7 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	fpsTiming = new QTime;
 	elementFps = fpsBufferCount = 0;
 	fpsTiming->start();
+	outputTimeStat = new UnitTimeStat;
 }
 
 int BaseLmmElement::addBuffer(RawBuffer buffer)
@@ -160,6 +163,7 @@ RawBuffer BaseLmmElement::nextBuffer()
 	if (buf.size()) {
 		sentBufferCount++;
 		calculateFps();
+		updateOutputTimeStats();
 	}
 
 	return buf;
@@ -171,6 +175,8 @@ int BaseLmmElement::start()
 	elementFps = fpsBufferCount = 0;
 	fpsTiming->start();
 	state = STARTED;
+	lastOutputTimeStat = 0;
+	outputTimeStat->reset();
 	return 0;
 }
 
@@ -229,4 +235,15 @@ int BaseLmmElement::setThreaded(bool)
 {
 	threaded = true;
 	return 0;
+}
+
+
+void BaseLmmElement::updateOutputTimeStats()
+{
+	if (lastOutputTimeStat) {
+		int diff = streamTime->getFreeRunningTime() - lastOutputTimeStat;
+		mInfo("time diff in %s: curr=%d ave=%d", metaObject()->className(), diff, outputTimeStat->avg);
+		outputTimeStat->addStat(diff);
+	}
+	lastOutputTimeStat = streamTime->getFreeRunningTime();
 }
