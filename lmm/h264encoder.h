@@ -33,11 +33,13 @@ private:
 	RateControl rateControl;
 	int videoBitRate;
 	int intraFrameInterval;
+	int seiBufferSize;
 	VIDENC1_DynamicParams   defaultDynParams;
 
-	int encode(Buffer_Handle buffer);
+	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec();
 	int stopCodec();
+	void addSeiData(QByteArray *ba, const RawBuffer source);
 };
 
 #endif // H264ENCODER_H

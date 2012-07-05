@@ -3,6 +3,8 @@
 #include "rawbuffer.h"
 #include "emdesk/debug.h"
 #include "dm365/ih264venc.h"
+#include "streamtime.h"
+#include "cpuload.h"
 
 #include <xdc/std.h>
 #include <ti/sdo/ce/Engine.h>
@@ -14,6 +16,8 @@
 #include <ti/sdo/dmai/BufferGfx.h>
 
 #include <errno.h>
+
+#include <QDateTime>
 
 #define VIDEO_PIPE_SIZE 4
 #define CODECHEIGHTALIGN 16
@@ -439,6 +443,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	rateControl = RATE_NONE;
 	videoBitRate = -1;
 	intraFrameInterval = 30;
+	seiBufferSize = 0;
 }
 
 int H264Encoder::flush()
@@ -465,14 +470,14 @@ typedef struct Venc1_Object {
 #define GETID(x)  ((x) + 1)
 #define GETIDX(x) ((x) - 1)
 
-static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle hOutBuf)
+static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle hOutBuf, int seiDataSize, int *seiDataOffset)
 {
 	IVIDEO1_BufDescIn       inBufDesc;
 	XDM_BufDesc             outBufDesc;
 	XDAS_Int32              outBufSizeArray[1];
 	XDAS_Int32              status;
-	VIDENC1_InArgs          inArgs;
-	VIDENC1_OutArgs         outArgs;
+	IH264VENC_InArgs		inArgs;
+	IH264VENC_OutArgs       outArgs;
 	XDAS_Int8              *inPtr;
 	XDAS_Int8              *outPtr;
 	BufferGfx_Dimensions    dim;
@@ -519,33 +524,42 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 	outBufDesc.bufs                     = &outPtr;
 	outBufDesc.bufSizes                 = outBufSizeArray;
 
-	inArgs.size                         = sizeof(VIDENC1_InArgs);
-	inArgs.inputID                      = GETID(Buffer_getId(hInBuf));
+	inArgs.videncInArgs.size                         = sizeof(IH264VENC_InArgs);
+	inArgs.videncInArgs.inputID                      = GETID(Buffer_getId(hInBuf));
 
 	/* topFieldFirstFlag is hardcoded. Used only for interlaced content */
-	inArgs.topFieldFirstFlag            = 1;
+	inArgs.videncInArgs.topFieldFirstFlag            = 1;
 
-	outArgs.size                        = sizeof(VIDENC1_OutArgs);
+	/* h264 specific parameters */
+	inArgs.lengthUserData = seiDataSize;
+	if (inArgs.lengthUserData)
+		inArgs.insertUserData = 1;
+	else
+		inArgs.insertUserData = 0;
+	inArgs.timeStamp = 0;
+	inArgs.roiParameters.numOfROI = 0;
+
+	outArgs.videncOutArgs.size                        = sizeof(IH264VENC_OutArgs);
 
 	/* Encode video buffer */
-	status = VIDENC1_process(hVe->hEncode, &inBufDesc, &outBufDesc, &inArgs,
-							 &outArgs);
+	status = VIDENC1_process(hVe->hEncode, &inBufDesc, &outBufDesc, (VIDENC1_InArgs *)&inArgs,
+							 (VIDENC1_OutArgs *)&outArgs);
 
 	//fDebug("VIDENC1_process() ret %d inId %d outID %d generated %d bytes",
 		//   (int)status, Buffer_getId(hInBuf), (int)outArgs.outputID, (int)outArgs.bytesGenerated);
 
 	if (status != VIDENC1_EOK) {
 		fDebug("VIDENC1_process() failed with error (%d ext: 0x%x)",
-			   (Int)status, (Uns) outArgs.extendedError);
+			   (Int)status, (Uns) outArgs.videncOutArgs.extendedError);
 		return Dmai_EFAIL;
 	}
 
 	/* if memTab was used for input buffers */
 	if(hVe->hInBufTab != NULL) {
 		/* One buffer is freed when output content is generated */
-		if(outArgs.bytesGenerated>0) {
+		if(outArgs.videncOutArgs.bytesGenerated>0) {
 			/* Buffer released by the encoder */
-			hVe->hFreeBuf = BufTab_getBuf(hVe->hInBufTab, GETIDX(outArgs.outputID));
+			hVe->hFreeBuf = BufTab_getBuf(hVe->hInBufTab, GETIDX(outArgs.videncOutArgs.outputID));
 		}
 		else {
 			hVe->hFreeBuf = NULL;
@@ -553,7 +567,7 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 	}
 
 	/* Copy recon buffer information so we can retrieve it later */
-	hVe->reconBufs = outArgs.reconBufs;
+	hVe->reconBufs = outArgs.videncOutArgs.reconBufs;
 
 	/*
 	 * Setting the frame type in the input buffer even through it's a property
@@ -561,14 +575,29 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 	 * when byte and display order are not the same the frame type will get
 	 * out of sync.
 	 */
-	BufferGfx_setFrameType(hInBuf, outArgs.encodedFrameType);
+	BufferGfx_setFrameType(hInBuf, outArgs.videncOutArgs.encodedFrameType);
 
-	Buffer_setNumBytesUsed(hOutBuf, outArgs.bytesGenerated);
+	/* mark used buffer size */
+	Buffer_setNumBytesUsed(hOutBuf, outArgs.videncOutArgs.bytesGenerated);
+
+	if (seiDataSize)
+		*seiDataOffset = outArgs.offsetUserData;
+	else
+		*seiDataOffset = 0;
 
 	return Dmai_EOK;
 }
 
-int H264Encoder::encode(Buffer_Handle buffer)
+static void dump_buffer(char *buffer, int len)
+{
+	for (int i = 0; i < len; i += 16) {
+		for (int j = 0; j < 16; j++)
+			printf("0x%x,", buffer[i + j]);
+		printf("\n");
+	}
+}
+
+int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 {
 	bool idrGenerated = false;
 	mInfo("start");
@@ -609,7 +638,8 @@ int H264Encoder::encode(Buffer_Handle buffer)
 	mInfo("invoking venc1_process: width=%d height=%d",
 		  (int)dim.width, (int)dim.height);
 	/* Encode the video buffer */
-	if (Venc1_processL(hCodec, buffer, hDstBuf) < 0) {
+	int seiDataOffset;
+	if (Venc1_processL(hCodec, buffer, hDstBuf, seiBufferSize, &seiDataOffset) < 0) {
 		mDebug("Failed to encode video buffer");
 		BufferGfx_getDimensions(buffer, &dim);
 		mInfo("colorspace=%d dims: x=%d y=%d width=%d height=%d linelen=%d",
@@ -628,6 +658,24 @@ int H264Encoder::encode(Buffer_Handle buffer)
 							dynParams, &status) != VIDENC1_EOK)
 			qDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
 		generateIdrFrame = false;
+	}
+	mInfo("inserting %d bytes sei user data at offset %d, total size is %d",
+		   seiBufferSize, seiDataOffset, (int)Buffer_getNumBytesUsed(hDstBuf));
+	/* insert SEI data */
+	if (seiDataOffset) {
+		char *seidata = (char *)Buffer_getUserPtr(hDstBuf) + seiDataOffset;
+		/* add IEC 11578 uuid */
+		for (int i = 0; i < 16; i++)
+			seidata[i] = 0xAA;
+		seidata[16] = seiBufferSize & 0xff;
+		seidata[17] = seiBufferSize >> 16;
+		/* NOTE: vlc doesn't like '0' at byte 18 */
+		seidata[18] = 0x1; //version
+		QByteArray ba(seidata + 19, seiBufferSize - 19);
+		addSeiData(&ba, source);
+		memcpy(seidata + 19, ba.constData(), ba.size());
+		//for (int i = 19; i < seiBufferSize; i++)
+			//seidata[i] = i - 19;
 	}
 	RawBuffer buf = RawBuffer(this);
 	buf.setRefData(Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
@@ -781,4 +829,17 @@ int H264Encoder::stopCodec()
 	BufTab_delete(outputBufTab);
 
 	return 0;
+}
+
+void H264Encoder::addSeiData(QByteArray *ba, const RawBuffer source)
+{
+	QDataStream out(ba, QIODevice::WriteOnly);
+	out.setByteOrder(QDataStream::LittleEndian);
+	out << (qint32)0x11223344; //version
+	out << (qint64)streamTime->getCurrentTime();
+	out << (qint64)source.getBufferParameter("captureTime").toLongLong();
+	out << (qint32)QDateTime::currentDateTime().toTime_t();
+	out << (qint32)CpuLoad::getCpuLoad();
+	out << (qint32)CpuLoad::getAverageCpuLoad();
+	out << (qint32)sentBufferCount;
 }
