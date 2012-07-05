@@ -27,7 +27,9 @@ SOURCES += \
     udpinput.cpp \
     lmmthread.cpp \
     videotestsource.cpp \
-    vlc/vlcrtspstreamer.cpp
+    vlc/vlcrtspstreamer.cpp \
+    tools/unittimestat.cpp \
+    gstreamer/rtpstreamer.cpp
 
 HEADERS  += \
     filesource.h \
@@ -51,6 +53,8 @@ HEADERS  += \
     udpinput.h \
     lmmthread.h \
     videotestsource.h \
+	tools/unittimestat.h \
+    gstreamer/rtpstreamer.h
 
 vlc {
 	SOURCES += vlc/vlcrtspstreamer.cpp
