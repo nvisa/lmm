@@ -1,10 +1,13 @@
 #include "dmaiencoder.h"
 #include "rawbuffer.h"
 #include "emdesk/debug.h"
+#include "tools/unittimestat.h"
 
 #include <ti/sdo/ce/CERuntime.h>
 
 #include <errno.h>
+
+#include <QTime>
 
 DmaiEncoder::DmaiEncoder(QObject *parent) :
 	BaseLmmElement(parent)
@@ -12,6 +15,8 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 	imageWidth = 1280;
 	imageHeight = 720;
 	codec = CODEC_H264;
+	encodeTimeStat = new UnitTimeStat;
+	encodeTiming = new QTime;
 }
 
 void DmaiEncoder::setImageSize(QSize s)
@@ -30,6 +35,8 @@ int DmaiEncoder::setCodecType(DmaiEncoder::CodecType type)
 
 int DmaiEncoder::start()
 {
+	encodeTimeStat->reset();
+	encodeTiming->start();
 	encodeCount = 0;
 	int err = startCodec();
 	if (err)
@@ -57,13 +64,14 @@ int DmaiEncoder::flush()
 
 int DmaiEncoder::encodeNext()
 {
+	QTime t;
 	int err = 0;
 	inputLock.lock();
 	if (inputBuffers.size() == 0) {
 		inputLock.unlock();
 		return -ENOENT;
 	}
-	RawBuffer buf = inputBuffers.takeFirst();
+	RawBuffer buf = inputBuffers.first();
 	inputLock.unlock();
 	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer")
 			.toInt();
@@ -72,9 +80,16 @@ int DmaiEncoder::encodeNext()
 		err = -ENOENT;
 		goto out;
 	}
-	err = encode(dmai);
+	t.start();
+	err = encode(dmai, buf);
+	mInfo("encode took %d msecs", t.elapsed());
+	encodeTimeStat->addStat(encodeTiming->restart());
+	if (encodeTimeStat->last > 75)
+		mInfo("late encode: %d", encodeTimeStat->last);
 	if (err)
 		goto out;
+	inputBuffers.removeFirst();
+	return 0;
 out:
 	return err;
 }

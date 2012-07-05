@@ -17,6 +17,9 @@
 #include <ti/sdo/dmai/Rendezvous.h>
 #include <ti/sdo/dmai/ce/Venc1.h>
 
+class UnitTimeStat;
+class QTime;
+
 class DmaiEncoder : public BaseLmmElement
 {
 	Q_OBJECT
@@ -53,10 +56,12 @@ protected:
 	int encodeCount;
 	QMutex bufferLock;
 	CodecType codec;
+	UnitTimeStat *encodeTimeStat;
+	QTime *encodeTiming;
 
 	virtual int startCodec() = 0;
 	virtual int stopCodec() = 0;
-	virtual int encode(Buffer_Handle buffer) = 0;
+	virtual int encode(Buffer_Handle buffer, const RawBuffer source) = 0;
 };
 
 #endif // DMAIENCODER_H
