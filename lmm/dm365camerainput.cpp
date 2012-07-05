@@ -1,5 +1,6 @@
 #include "dm365camerainput.h"
 #include "rawbuffer.h"
+#include "streamtime.h"
 
 #include <emdesk/debug.h>
 
@@ -312,6 +313,7 @@ bool DM365CameraInput::captureLoop()
 		mDebug("no kernel buffers available");
 		return false;
 	}
+
 	struct v4l2_buffer *buffer = getFrame();
 	finishedLock.lock();
 	while (finishedBuffers.size()) {
@@ -321,7 +323,8 @@ bool DM365CameraInput::captureLoop()
 	finishedLock.unlock();
 	if (buffer) {
 		//bufsTaken.release(1);
-		mInfo("captured %p, time is %d", buffer, timing.elapsed());
+		int passed = timing.restart();
+		mInfo("captured %p, time is %lld, passed %d", buffer, streamTime->getFreeRunningTime(), passed);
 		Buffer_Handle dmaibuf = BufTab_getBuf(bufTab, buffer->index);
 		char *data = userptr[buffer->index];
 		RawBuffer newbuf = RawBuffer();
@@ -334,9 +337,14 @@ bool DM365CameraInput::captureLoop()
 								  qVariantFromValue((void *)buffer));
 		newbuf.addBufferParameter("dmaiBuffer", (int)dmaibuf);
 		newbuf.addBufferParameter("dataPtr", (int)data);
+		newbuf.addBufferParameter("creationTime", streamTime->getCurrentTime());
+		newbuf.addBufferParameter("captureTime", streamTime->getCurrentTime());
 		outputLock.lock();
 		outputBuffers << newbuf;
 		outputLock.unlock();
+
+		if (passed > 35)
+			mInfo("late capture: %d", passed);
 	}
 
 	return false;
