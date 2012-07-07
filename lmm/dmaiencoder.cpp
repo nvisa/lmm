@@ -88,7 +88,9 @@ int DmaiEncoder::encodeNext()
 		mInfo("late encode: %d", encodeTimeStat->last);
 	if (err)
 		goto out;
+	inputLock.lock();
 	inputBuffers.removeFirst();
+	inputLock.unlock();
 	return 0;
 out:
 	return err;

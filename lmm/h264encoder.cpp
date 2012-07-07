@@ -646,7 +646,9 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			  BufferGfx_getColorSpace(buffer),
 			  (int)dim.x, (int)dim.y, (int)dim.width,
 			  (int)dim.height, (int)dim.lineLength);
+		bufferLock.lock();
 		BufTab_freeBuf(hDstBuf);
+		bufferLock.unlock();
 		return -EIO;
 	}
 	if (idrGenerated) {
