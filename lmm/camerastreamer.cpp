@@ -16,6 +16,8 @@
 #include "videotestsource.h"
 #include "mp4mux.h"
 #include "avimux.h"
+#include "rtspserver.h"
+#include "vlc/vlcrtspstreamer.h"
 
 #include <emdesk/debug.h>
 
@@ -85,7 +87,6 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 	elements << input;
 
 	testInput = new VideoTestSource;
-	((VideoTestSource *)testInput)->setTestPattern(VideoTestSource::COLORCHART);
 	elements << testInput;
 
 	encoder = new H264Encoder;
@@ -93,30 +94,35 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 
 	output =  new FileOutput;
 	output->syncOnClock(false);
-	output->setFileName("/usr/local/bin/camera.264");
-	elements << output;
+	output->setFileName("camera.264");
+	//elements << output;
 
 	videoOutputType = Lmm::COMPOSITE;
 	dm365Output = new DM365VideoOutput;
 	dm365Output->setVideoOutput(videoOutputType);
 	dm365Output->syncOnClock(false);
 	dm365Output->setThreaded(true);
-	elements << dm365Output;
+	//elements << dm365Output;
 
-	//rtsp = new RtspServer;
-	//elements << rtsp;
+	/*rtspServer = new RtspServer;
+	elements << rtspServer;*/
 
 	overlay = new TextOverlay(TextOverlay::PIXEL_MAP);
-	elements << overlay;
+	//elements << overlay;
 
-	mux = new Mp4Mux;
-	elements << mux;
+	/*mux = new Mp4Mux;
+	elements << mux;*/
+
+	/*rtspVlc = new VlcRtspStreamer;
+	elements << rtspVlc;*/
 
 	streamingType = RTSP;
+
 	output3 = new UdpOutput;
 	output3->syncOnClock(false);
 	output3->setThreaded(false);
-	elements << output3;
+	//elements << output3;
+
 	rtspOutput = new RtspOutput;
 	rtspOutput->syncOnClock(false);
 	rtspOutput->setThreaded(false);
@@ -137,11 +143,14 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 	useFile = false;
 	useStreamOutput = true;
 	threadedEncode = true;
-	useFileIOForRtsp = true;
+	useFileIOForRtsp = false;
+	flushForSpsPps = false;
 }
 
 int CameraStreamer::start()
 {
+	if (useTestInput)
+		((VideoTestSource *)testInput)->setTestPattern(VideoTestSource::COLORCHART);
 	foreach (BaseLmmElement *el, elements) {
 		mInfo("starting element %s", el->metaObject()->className());
 		el->flush();
@@ -267,7 +276,24 @@ void CameraStreamer::encodeLoop()
 			if (streamingType == RTSP) {
 				if (!useFileIOForRtsp) { //due to live555 rtsp bug
 					rtspOutput->addBuffer(buf2);
-					rtspOutput->output();
+					int res = rtspOutput->output();
+					/*
+					 * When we have a new RTSP connection
+					 * H.264 encoder is needed to be flushes
+					 * so that client receives SPS/PPS
+					 */
+					if (res == 0) {
+						if (flushForSpsPps) {
+							encoder->flush();
+							flushForSpsPps = 0;
+						}
+					} else
+						flushForSpsPps = 1;
+
+					//rtspServer->addBuffer(buf2);
+
+					//rtspVlc->addBuffer(buf2);
+					/* no need to call output, vlc pulls buffers on his own */
 				} else {
 					output->addBuffer(buf2);
 					output->output();
@@ -299,6 +325,7 @@ void CameraStreamer::encodeLoop()
 	if (debugServer->addCustomStat(DebugServer::STAT_LOOP_TIME, t.restart())) {
 		mInfo("encoder fps is %d", encoder->getFps());
 	}
+
 	timer->start(10);
 }
 

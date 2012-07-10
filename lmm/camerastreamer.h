@@ -21,6 +21,8 @@ class DM365VideoOutput;
 class QXmlStreamWriter;
 class QXmlStreamReader;
 class BaseLmmMux;
+class VlcRtspStreamer;
+class RtspServer;
 
 class CameraStreamer : public BaseLmmElement
 {
@@ -57,7 +59,10 @@ public:
 	bool getUseFile () { return useFile; }
 	void setUseStreamOutput (bool v) { useStreamOutput = v; }
 	bool getUseStreamOutput () { return useStreamOutput; }
+	bool getUseTestInput() { return useTestInput; }
+	void setUseTestInput(bool v) { useTestInput = v; }
 	TextOverlay * getTextOverlay() { return overlay; }
+	BaseLmmElement *getTestInput() { return testInput; }
 	void setStreamingType (StreamingProtocol v) { streamingType = v; }
 	StreamingProtocol getStreamingType () { return streamingType; }
 	Lmm::VideoOutput getVideoOutputType() { return videoOutputType; }
@@ -82,11 +87,14 @@ private:
 	TextOverlay *overlay;
 	QTimer *timer;
 	BaseLmmOutput *rtspOutput;
+	RtspServer *rtspServer;
 	QTime timing;
 	DebugServer *debugServer;
 	EncodeThread *encodeThread;
 	BaseLmmMux *mux;
+	VlcRtspStreamer *rtspVlc;
 	int muxType;
+	bool flushForSpsPps;
 
 	bool useFileIOForRtsp;
 	bool useOverlay;
