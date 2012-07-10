@@ -76,6 +76,8 @@ private:
 CameraStreamer::CameraStreamer(QObject *parent) :
 	BaseLmmElement(parent)
 {
+	/* ensure CpuLoad is started in correct thread context */
+	CpuLoad::getCpuLoad();
 	if (dmaiCapture() == 0)
 		input = new DM365CameraInput;
 	else
