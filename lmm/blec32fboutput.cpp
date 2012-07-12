@@ -72,8 +72,8 @@ int Blec32FbOutput::stop()
 
 int Blec32FbOutput::flush()
 {
-	foreach (RawBuffer *buf, inputBuffers) {
-		Buffer_Handle dmaiBuf = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
+	foreach (const RawBuffer &buf, inputBuffers) {
+		Buffer_Handle dmaiBuf = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer").toInt();
 		Buffer_freeUseMask(dmaiBuf, DmaiDecoder::OUTPUT_USE);
 	}
 	return FbOutput::flush();

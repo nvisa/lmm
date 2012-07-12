@@ -27,7 +27,6 @@ SOURCES += \
     udpinput.cpp \
     lmmthread.cpp \
     videotestsource.cpp \
-    vlc/vlcrtspstreamer.cpp \
     tools/unittimestat.cpp \
     gstreamer/rtpstreamer.cpp
 
@@ -111,12 +110,13 @@ ffmpeg {
 
 gstreamer {
     SOURCES += gstreamer/abstractgstreamerinterface.cpp \
-        gstreamer/haviplayer.cpp \
-        gstreamer/hmp3player.cpp \
 
     HEADERS += gstreamer/abstractgstreamerinterface.h \
-        gstreamer/haviplayer.h \
-        gstreamer/hmp3player.h \
+
+	x86 {
+		SOURCES += gstreamer/haviplayer.cpp gstreamer/hmp3player.cpp
+		HEADERS += gstreamer/haviplayer.h gstreamer/hmp3player.h
+	}
 
     DEFINES += USE_GSTREAMER
     GST_CFLAGS = $$system(pkg-config gstreamer-0.10 --cflags-only-I | sed 's/-I//g')
@@ -157,19 +157,17 @@ dm365 {
     xdc.files += dm365/dm365.pri
     xdc.files += dm365/config.bld
     xdc.files += dm365/dm365.cfg
-    #xdc.files += davinci-common/xdc_linker.cmd
     xdc.path = /usr/local/include/lmm/dm365
     CONFIG += arm
 
     OTHER_FILES += \
-        davinci-common/xdc_linker.cmd \
         dm365/dm365.pri \
         dm365/dm365.cfg \
         dm365/config.bld
 }
 
 dm6446 {
-    include(../dm6446.pri)
+	include(dm6446/dm6446.pri)
     DEFINES += CONFIG_DM6446
     SOURCES += \
         dmaidecoder.cpp \
@@ -187,7 +185,7 @@ dm6446 {
         blec32fboutput.h \
         v4l2output.h
 
-    xdc.files += davinci-common/xdc_linker.cmd
+	xdc.files += dm6446/xdc_linker.cmd
     xdc.path = /usr/local/share/lmm
     CONFIG += arm
 }

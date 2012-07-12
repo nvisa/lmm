@@ -6,7 +6,7 @@
 #include "circularbuffer.h"
 #define DEBUG
 #include "emdesk/debug.h"
-#include "../xdc_config.h"
+#include "dm6446/xdc_config.h"
 
 #include <ti/sdo/dmai/Dmai.h>
 #include <ti/sdo/dmai/VideoStd.h>
@@ -76,7 +76,7 @@ int DmaiDecoder::stopDecoding()
 int DmaiDecoder::decodeOne()
 {
 	mInfo("starting decode operation");
-	RawBuffer *buf = NULL;
+	RawBuffer buf;
 	while (inputBuffers.size()) {
 		bool decodeOk = true;
 		/*
@@ -94,13 +94,13 @@ int DmaiDecoder::decodeOne()
 		}
 		if (circBuf->usedSize() < circBuf->totalSize() / 4) {
 			buf = inputBuffers.takeFirst();
-			if (!buf && circBuf->usedSize() == 0) {
+			if (!buf.size() && circBuf->usedSize() == 0) {
 				BufTab_freeBuf(hBuf);
 				return -ENOENT;
 			}
-			if (buf) {
-				mDebug("adding %d bytes to circular buffer", buf->size());
-				if (circBuf->addData(buf->data(), buf->size()))
+			if (buf.size()) {
+				mDebug("adding %d bytes to circular buffer", buf.size());
+				if (circBuf->addData(buf.constData(), buf.size()))
 					mDebug("error adding data to circular buffer");
 			}
 		}
@@ -146,21 +146,20 @@ int DmaiDecoder::decodeOne()
 			BufferGfx_Dimensions dim;
 			BufferGfx_getDimensions(outbuf, &dim);
 			mInfo("decoded frame width=%d height=%d", int(dim.width), (int)dim.height);
-			RawBuffer *newbuf = new RawBuffer;
-			newbuf->setRefData(Buffer_getUserPtr(outbuf), Buffer_getSize(outbuf));
-			newbuf->addBufferParameter("width", (int)dim.width);
-			newbuf->addBufferParameter("height", (int)dim.height);
-			newbuf->addBufferParameter("dmaiBuffer", (int)outbuf);
-			newbuf->setStreamBufferNo(decodeCount++);
+			RawBuffer newbuf;
+			newbuf.setRefData(Buffer_getUserPtr(outbuf), Buffer_getSize(outbuf));
+			newbuf.addBufferParameter("width", (int)dim.width);
+			newbuf.addBufferParameter("height", (int)dim.height);
+			newbuf.addBufferParameter("dmaiBuffer", (int)outbuf);
+			newbuf.setStreamBufferNo(decodeCount++);
 
 			mInfo("handling timestamps");
 			/* handle timestamps */
 			int id = Buffer_getId(outbuf);
 			if (bufferMapping.contains(id)) {
-				RawBuffer *refbuf = bufferMapping[id];
+				RawBuffer refbuf = bufferMapping[id];
 				bufferMapping.remove(id);
-				newbuf->setPts(refbuf->getPts());
-				delete refbuf;
+				newbuf.setPts(refbuf.getPts());
 			} else
 				mDebug("oooppppsss no buffer mapping");
 
@@ -194,8 +193,6 @@ int DmaiDecoder::flush()
 	 */
 	if (hBufTab)
 		BufTab_freeAll(hBufTab);
-	for (int i = 0; i < bufferMapping.size(); ++i)
-		delete bufferMapping.values().at(i);
 	bufferMapping.clear();
 	return BaseLmmDecoder::flush();
 }
