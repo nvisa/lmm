@@ -1,4 +1,5 @@
 #include "lmmcommon.h"
+#include "version.h"
 #ifdef CONFIG_DM6446
 #include "dmaidecoder.h"
 #endif
@@ -112,6 +113,34 @@ int LmmCommon::registerForPipeSignal(BaseLmmElement *el)
 	registeredElementsForPipe << el;
 	return 0;
 }
+
+QString LmmCommon::getLibraryVersion()
+{
+	return VERSION_INFO;
+}
+
+#ifdef USE_LIVEMEDIA
+	#include <liveMedia_version.hh>
+#else
+#define LIVEMEDIA_LIBRARY_VERSION_STRING "N/A"
+#endif
+QString LmmCommon::getLiveMediaVersion()
+{
+	return LIVEMEDIA_LIBRARY_VERSION_STRING;
+}
+
+
+#ifdef CONFIG_VLC
+	#include <vlc/libvlc.h>
+#else
+	#define libvlc_get_version() "N/A"
+#endif
+QString LmmCommon::getLibVlcVersion()
+{
+	return libvlc_get_version();
+}
+
+
 
 #ifdef CONFIG_DM6446
 static QGraphicsScene *scene = NULL;

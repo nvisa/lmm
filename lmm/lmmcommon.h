@@ -21,6 +21,9 @@ public:
 	static int init();
 	static int installSignalHandlers();
 	static int registerForPipeSignal(BaseLmmElement *el);
+	static QString getLibraryVersion();
+	static QString getLiveMediaVersion();
+	static QString getLibVlcVersion();
 #ifdef CONFIG_DM6446
 	static int showDecodeInfo(QGraphicsView *view, BaseLmmPlayer *dec);
 #endif

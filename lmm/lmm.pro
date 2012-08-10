@@ -199,6 +199,7 @@ live555 {
 		live555/h264camerasubsession.h \
 		rtspserver.h
 	QMAKE_CXXFLAGS += -DSOCKLEN_T=socklen_t -DNO_SSTREAM=1 -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64 -DBSD=1
+	DEFINES += USE_LIVEMEDIA
 }
 
 x86 {
@@ -224,3 +225,8 @@ OTHER_FILES += \
     build_config.pri \
     lmm.pri \
     dm365/tipaths.pri
+
+#Add make targets for checking version info
+VersionCheck.commands = @$$PWD/checkversion.sh $$PWD
+QMAKE_EXTRA_TARGETS += VersionCheck
+PRE_TARGETDEPS += VersionCheck
