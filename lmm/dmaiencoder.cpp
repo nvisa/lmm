@@ -89,7 +89,8 @@ int DmaiEncoder::encodeNext()
 	if (err)
 		goto out;
 	inputLock.lock();
-	inputBuffers.removeFirst();
+	if (!inputBuffers.isEmpty())
+		inputBuffers.removeFirst();
 	inputLock.unlock();
 	return 0;
 out:
