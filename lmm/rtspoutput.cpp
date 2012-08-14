@@ -178,15 +178,18 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep)
 		mDebug("handling setup directive");
 		//QString cbase = lines[0].split(" ")[1];
 		int cseq = lines[1].remove("CSeq: ").toInt();
-		int dataPort, controlPort;
+		int dataPort = 0, controlPort = 0;
 		foreach(QString line, lines) {
 			if (line.contains("Transport:")) {
 				QStringList fields = line.remove("Transport:").split(";");
 				foreach(QString field, fields) {
 					if (field.contains("client_port")) {
 						/* TODO: check field sizes */
-						dataPort = field.split("=")[1].split("-")[0].toInt();
-						controlPort = field.split("=")[1].split("-")[1].toInt();
+						QStringList ports = field.split("=");
+						if (ports.size() >= 2) {
+							dataPort = ports[1].split("-")[0].toInt();
+							controlPort = ports[1].split("-")[1].toInt();
+						}
 					}
 				}
 			}
