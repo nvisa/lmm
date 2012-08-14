@@ -155,10 +155,10 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep)
 	} else if (lines.first().startsWith("DESCRIBE")) {
 		mDebug("handling describe directive");
 		QString cbase = lines[0].split(" ")[1];
-		int sdpSize = lsep.length(); //includes last seperator
+		int sdpSize = 0;
 		QStringList sdp = createSdp();
 		foreach (const QString &sdpline, sdp)
-			sdpSize += sdpline.length();
+			sdpSize += sdpline.length() + lsep.length();
 		int cseq = lines[1].remove("CSeq: ").toInt();
 		resp << "RTSP/1.0 200 OK";
 		resp << "Content-type: application/sdp";
