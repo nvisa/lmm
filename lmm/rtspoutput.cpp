@@ -92,14 +92,19 @@ void RtspOutput::clientDataReady(QObject *obj)
 	QString str = QString::fromUtf8(sock->readAll());
 	QString mes = msgbuffer[sock].append(str);
 	QString lsep;
-	if (mes.contains("\r\n"))
+	if (mes.contains("\r\n")) {
 		lsep = "\r\n";
-	else if (mes.contains("\n\r"))
+		mDebug("detected lsep as \\r\\n");
+	} else if (mes.contains("\n\r")) {
 		lsep = "\n\r";
-	else if (mes.contains("\n"))
+		mDebug("detected lsep as \\n\\r");
+	} else if (mes.contains("\n")) {
 		lsep = "\n";
-	else if (mes.contains("\r"))
+		mDebug("detected lsep as \\n");
+	} else if (mes.contains("\r")) {
 		lsep = "\r";
+		mDebug("detected lsep as \\r");
+	}
 	QString end = lsep + lsep;
 	if (mes.contains(end)) {
 		qDebug() << "new message from rtsp client: " << mes;
@@ -198,10 +203,6 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep)
 		resp << "Cache-Control: no-cache";
 		resp << QString("CSeq: %1").arg(cseq);
 		resp << lsep;
-
-
-		//gstRtp->setSourceDataPort(31478);
-		//gstRtp->setSourceControlPort(31479);
 	} else if (lines.first().startsWith("PLAY")) {
 		mDebug("handling play directive");
 		int cseq = lines[1].remove("CSeq: ").toInt();
