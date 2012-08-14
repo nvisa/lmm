@@ -1,0 +1,15 @@
+x86 {
+	INSTALL_PREFIX=/home/caglar/myfs/work/source-codes/bilkon/build_x86
+	CONFIG += vlc
+	CONFIG += gstreamer
+}
+
+dm365 {
+	INSTALL_PREFIX=/home/caglar/myfs/work/source-codes/bilkon/build_dm365
+	CONFIG += ffmpeg vlc live555 gstreamer
+}
+
+dm6446 {
+	INSTALL_PREFIX=/home/caglar/myfs/work/source-codes/bilkon/build_dm6446
+	CONFIG += gstreamer
+}
