@@ -109,7 +109,7 @@ void RtspOutput::clientDataReady(QObject *obj)
 	if (mes.contains(end)) {
 		qDebug() << "new message from rtsp client: " << mes;
 #if 1
-		QStringList resp = handleRtspMessage(mes, lsep);
+		QStringList resp = handleRtspMessage(mes, lsep, sock->peerAddress().toString());
 		msgbuffer[sock] = "";
 		if (resp.size())
 			sendRtspMessage(sock, resp, lsep);
@@ -142,7 +142,7 @@ void RtspOutput::vlcDataReady()
 	vlcWait->quit();
 }
 
-QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep)
+QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString peerIp)
 {
 	QStringList resp;
 	QStringList lines = mes.split(lsep);
@@ -195,6 +195,7 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep)
 			}
 		}
 
+		gstRtp->setDestinationIpAddress(peerIp);
 		gstRtp->setDestinationDataPort(dataPort);
 		gstRtp->setDestinationControlPort(controlPort);
 

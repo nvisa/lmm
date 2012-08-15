@@ -46,7 +46,7 @@ private:
 	QEventLoop *vlcWait;
 	QString lastVlcData;
 
-	QStringList handleRtspMessage(QString mes, QString lsep);
+	QStringList handleRtspMessage(QString mes, QString lsep, QString peerIp);
 	void sendRtspMessage(QTcpSocket *sock, const QByteArray &mes);
 	void sendRtspMessage(QTcpSocket *sock, const QStringList &lines, const QString &lsep);
 	QStringList createSdp();
