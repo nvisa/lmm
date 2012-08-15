@@ -142,6 +142,25 @@ void RtspOutput::vlcDataReady()
 	vlcWait->quit();
 }
 
+QStringList RtspOutput::createDescribeResponse(int cseq, QString url, QString lsep)
+{
+	QStringList resp;
+	int sdpSize = 0;
+	QStringList sdp = createSdp(url);
+	foreach (const QString &sdpline, sdp)
+		sdpSize += sdpline.length() + lsep.length();
+	resp << "RTSP/1.0 200 OK";
+	resp << "Content-type: application/sdp";
+	resp << "Cache-Control: no-cache";
+	resp << QString("Content-Length: %1").arg(sdpSize);
+	resp << QString("Content-Base: %1").arg(url);
+	resp << QString("CSeq: %1").arg(cseq);
+	resp << lsep;
+	resp << sdp;
+	resp << lsep;
+	return resp;
+}
+
 QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString peerIp)
 {
 	QStringList resp;
@@ -160,53 +179,55 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString pee
 	} else if (lines.first().startsWith("DESCRIBE")) {
 		mDebug("handling describe directive");
 		QString cbase = lines[0].split(" ")[1];
-		int sdpSize = 0;
-		QStringList sdp = createSdp();
-		foreach (const QString &sdpline, sdp)
-			sdpSize += sdpline.length() + lsep.length();
 		int cseq = lines[1].remove("CSeq: ").toInt();
-		resp << "RTSP/1.0 200 OK";
-		resp << "Content-type: application/sdp";
-		resp << "Cache-Control: no-cache";
-		resp << QString("Content-Length: %1").arg(sdpSize);
-		resp << QString("Content-Base: %1").arg(cbase);
-		resp << QString("CSeq: %1").arg(cseq);
-		resp << lsep;
-		resp << sdp;
-		resp << lsep;
+		resp << createDescribeResponse(cseq, cbase, lsep);
 	} else if (lines.first().startsWith("SETUP")) {
 		mDebug("handling setup directive");
-		//QString cbase = lines[0].split(" ")[1];
-		int cseq = lines[1].remove("CSeq: ").toInt();
-		int dataPort = 0, controlPort = 0;
-		foreach(QString line, lines) {
-			if (line.contains("Transport:")) {
-				QStringList fields = line.remove("Transport:").split(";");
-				foreach(QString field, fields) {
-					if (field.contains("client_port")) {
-						/* TODO: check field sizes */
-						QStringList ports = field.split("=");
-						if (ports.size() >= 2) {
-							dataPort = ports[1].split("-")[0].toInt();
-							controlPort = ports[1].split("-")[1].toInt();
+		QString cbase = lines[0].split(" ")[1];
+		QStringList fields = cbase.split("/", QString::SkipEmptyParts);
+		if (fields.size() >= 4) {
+			bool multicast = false;
+			if (fields[2] == "cam264m.sdp")
+				multicast = true;
+			int cseq = lines[1].remove("CSeq: ").toInt();
+			int dataPort = 0, controlPort = 0;
+			foreach(QString line, lines) {
+				if (line.contains("Transport:")) {
+					QStringList fields = line.remove("Transport:").split(";");
+					foreach(QString field, fields) {
+						if (field.contains("client_port")) {
+							/* TODO: check field sizes */
+							QStringList ports = field.split("=");
+							if (ports.size() >= 2) {
+								dataPort = ports[1].split("-")[0].toInt();
+								controlPort = ports[1].split("-")[1].toInt();
+							}
 						}
 					}
 				}
 			}
+
+			QString transportString;
+			if (multicast) {
+				gstRtp->setDestinationIpAddress("224.1.1.1");
+				transportString = QString("Transport: RTP/AVP;multicast;destination=224.1.1.1;port=%1-%2;ssrc=6335D514;mode=play")
+									.arg(dataPort).arg(controlPort);
+			} else {
+				gstRtp->setDestinationIpAddress(peerIp);
+				transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=6335D514;mode=play")
+										  .arg(dataPort).arg(controlPort).arg(gstRtp->getSourceDataPort()).arg(gstRtp->getSourceControlPort());
+			}
+			gstRtp->setDestinationDataPort(dataPort);
+			gstRtp->setDestinationControlPort(controlPort);
+
+			resp << "RTSP/1.0 200 OK";
+			resp << transportString;
+			resp << "Session: cbbb605922959838";
+			resp << "Content-Length: 0";
+			resp << "Cache-Control: no-cache";
+			resp << QString("CSeq: %1").arg(cseq);
+			resp << lsep;
 		}
-
-		gstRtp->setDestinationIpAddress(peerIp);
-		gstRtp->setDestinationDataPort(dataPort);
-		gstRtp->setDestinationControlPort(controlPort);
-
-		resp << "RTSP/1.0 200 OK";
-		resp << QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=6335D514;mode=play")
-				.arg(dataPort).arg(controlPort).arg(gstRtp->getSourceDataPort()).arg(gstRtp->getSourceControlPort());
-		resp << "Session: cbbb605922959838";
-		resp << "Content-Length: 0";
-		resp << "Cache-Control: no-cache";
-		resp << QString("CSeq: %1").arg(cseq);
-		resp << lsep;
 	} else if (lines.first().startsWith("PLAY")) {
 		mDebug("handling play directive");
 		int cseq = lines[1].remove("CSeq: ").toInt();
@@ -249,14 +270,21 @@ void RtspOutput::sendRtspMessage(QTcpSocket *sock, const QStringList &lines, con
 	sendRtspMessage(sock, lines.join(lsep).toUtf8());
 }
 
-QStringList RtspOutput::createSdp()
+QStringList RtspOutput::createSdp(QString url)
 {
+	//Url format: rtsp://192.168.1.196:554/cam264.sdp
+	QStringList fields = url.split("/", QString::SkipEmptyParts);
+	if (fields.size() < 3)
+		return QStringList();
 	QStringList sdp;
 	sdp << "m=video 0 RTP/AVP 96";
 	sdp << "a=rtpmap:96 H264/90000";
 	sdp << "a=fmtp:96 packetization-mode=1";
 	sdp << "a=mimetype:string;\"video/h264\"";
-	sdp << "a=control:rtsp://192.168.1.196:554/cam264.sdp/trackID=0";
+	sdp << QString("a=control:%1/trackID=0").arg(url);
+	if (fields[2] == "cam264m.sdp") {
+		sdp << "c=IN IP4 224.1.1.1/4"; //TODO: Parametrize multicast address
+	}
 	return sdp;
 }
 
