@@ -20,9 +20,10 @@ public:
 
 	void pushNextBuffer();
 
+	void setDestinationIpAddress(QString ip) { dstIp = ip; }
 	void setRtpSequenceOffset(int value) { rtpSequenceOffset = value; }
 	void setRtpTimestampOffset(int value) { rtpTimestampOffset = value; }
-	void setDestinationDataPort(int port);
+	void setDestinationDataPort(int port); //TODO: Should be called after IP setting
 	void setDestinationControlPort(int port) { dstControlPort = port; }
 	//void setSourceDataPort(int port) { srcDataPort = port; }
 	//void setSourceControlPort(int port) { srcControlPort = port; }
@@ -39,6 +40,7 @@ private:
 	QList<GstBuffer *> gstBuffers;
 	GstElement *appsrc;
 	QString vFileName;
+	QString dstIp;
 
 	int dstDataPort;
 	int dstControlPort;

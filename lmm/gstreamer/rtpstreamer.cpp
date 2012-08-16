@@ -59,7 +59,7 @@ int RtpStreamer::createElementsList()
 	el->addParameter("seqnum-offset", rtpSequenceOffset);
 
 	el = addElement("udpsink", "netsink");
-	el->addParameter("host", "192.168.1.1");
+	el->addParameter("host", dstIp);
 	el->addParameter("port", dstDataPort);
 	el->addParameter("sync", false);
 	el->addParameter("async", false);
@@ -125,7 +125,7 @@ void RtpStreamer::setDestinationDataPort(int port)
 	dstDataPort = port;
 	srcDataSock->abort();
 	srcDataSock->bind();//QHostAddress("192.168.1.196"), srcDataPort);
-	srcDataSock->connectToHost(QHostAddress("192.168.1.1"), dstDataPort);
+	srcDataSock->connectToHost(QHostAddress(dstIp), dstDataPort);
 	srcDataPort = srcDataSock->localPort();
 	srcControlPort = srcDataPort + 1;
 }
