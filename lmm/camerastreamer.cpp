@@ -279,7 +279,7 @@ void CameraStreamer::encodeLoop()
 					int res = rtspOutput->output();
 					/*
 					 * When we have a new RTSP connection
-					 * H.264 encoder is needed to be flushes
+					 * H.264 encoder is needed to be flushed
 					 * so that client receives SPS/PPS
 					 */
 					if (res == 0) {
