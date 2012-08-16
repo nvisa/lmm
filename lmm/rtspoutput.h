@@ -6,6 +6,7 @@
 
 #include <QList>
 #include <QMap>
+#include <QSemaphore>
 
 class RtpStreamer;
 class QTcpServer;
@@ -30,6 +31,7 @@ private slots:
 	void clientDisconnected(QObject*obj);
 	void clientError(QObject*);
 	void clientDataReady(QObject*obj);
+	void initStreams();
 
 	/* vlc slots */
 	void connectedToVlc();
@@ -41,11 +43,19 @@ private:
 	QSignalMapper *mapperDis, *mapperErr, *mapperRead;
 	QMap<QTcpSocket *, QString> msgbuffer;
 
+	/* resource counters */
+	QSemaphore freeStreams;
+	QSemaphore usedStreams;
+
+	QSemaphore freeMStreams;
+	QSemaphore usedMStreams;
+
 	/* vlc variables */
 	QTcpSocket *fwdSock;
 	QEventLoop *vlcWait;
 	QString lastVlcData;
 
+	QStringList createRtspErrorResponse(int errcode);
 	QStringList createDescribeResponse(int cseq, QString url, QString lsep);
 	QStringList handleRtspMessage(QString mes, QString lsep, QString peerIp);
 	void sendRtspMessage(QTcpSocket *sock, const QByteArray &mes);

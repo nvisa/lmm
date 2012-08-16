@@ -32,11 +32,15 @@ RtspOutput::RtspOutput(QObject *parent) :
 
 int RtspOutput::start()
 {
+	initStreams();
+	freeStreams.release(1);
+	freeMStreams.release(1);
 	return BaseLmmOutput::start();
 }
 
 int RtspOutput::stop()
 {
+	initStreams();
 	gstRtp->stopPlayback();
 	return BaseLmmOutput::stop();
 }
@@ -129,6 +133,18 @@ void RtspOutput::clientDataReady(QObject *obj)
 		msgbuffer[sock] = mes;
 }
 
+void RtspOutput::initStreams()
+{
+	while (freeStreams.available())
+		freeStreams.acquire();
+	while (usedStreams.available())
+		usedStreams.acquire();
+	while (freeMStreams.available())
+		freeMStreams.acquire();
+	while (usedMStreams.available())
+		usedMStreams.acquire();
+}
+
 void RtspOutput::connectedToVlc()
 {
 	qDebug() << "connected to vlc";
@@ -140,6 +156,26 @@ void RtspOutput::vlcDataReady()
 	lastVlcData = QString::fromUtf8(fwdSock->readAll());
 	qDebug() << "*** vlc message : ***" << lastVlcData;
 	vlcWait->quit();
+}
+
+QStringList RtspOutput::createRtspErrorResponse(int errcode)
+{
+	QStringList resp;
+	QString errString;
+	if (errcode == 400)
+		errString = "Bad Request";
+	else if (errcode == 403)
+		errString = "Forbidden";
+	else if (errcode == 404)
+		errString = "Not Found";
+	else if (errcode == 406)
+		errString = "Not Acceptable";
+	else if (errcode == 451)
+		errString = "Invalid parameter";
+	else if (errcode == 453)
+		errString = "Not Enough Bandwidth";
+	resp << QString("RTSP/1.0 %1 %2").arg(errcode).arg(errString);
+	return resp;
 }
 
 QStringList RtspOutput::createDescribeResponse(int cseq, QString url, QString lsep)
@@ -161,6 +197,13 @@ QStringList RtspOutput::createDescribeResponse(int cseq, QString url, QString ls
 	return resp;
 }
 
+/*
+ * TODO: Change stream names to:
+ *		stream1 -> full resolution, unicast
+ *		stream1m -> full resolution, multicast
+ *		stream2 -> quad resolution, 15 fps, unicast
+ *		stream2m -> quad resolution, 15 fps, multicast
+ */
 QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString peerIp)
 {
 	QStringList resp;
@@ -211,11 +254,17 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString pee
 			if (multicast) {
 				gstRtp->setDestinationIpAddress("224.1.1.1");
 				transportString = QString("Transport: RTP/AVP;multicast;destination=224.1.1.1;port=%1-%2;ssrc=6335D514;mode=play")
-									.arg(dataPort).arg(controlPort);
+						.arg(dataPort).arg(controlPort);
 			} else {
-				gstRtp->setDestinationIpAddress(peerIp);
-				transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=6335D514;mode=play")
-										  .arg(dataPort).arg(controlPort).arg(gstRtp->getSourceDataPort()).arg(gstRtp->getSourceControlPort());
+				if (freeStreams.available()) {
+					gstRtp->setDestinationIpAddress(peerIp);
+					transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=6335D514;mode=play")
+							.arg(dataPort).arg(controlPort).arg(gstRtp->getSourceDataPort()).arg(gstRtp->getSourceControlPort());
+					freeStreams.acquire(1);
+					usedStreams.release(1);
+				} else {
+					return createRtspErrorResponse(400);
+				}
 			}
 			gstRtp->setDestinationDataPort(dataPort);
 			gstRtp->setDestinationControlPort(controlPort);
@@ -229,6 +278,7 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString pee
 			resp << lsep;
 		}
 	} else if (lines.first().startsWith("PLAY")) {
+
 		mDebug("handling play directive");
 		int cseq = lines[1].remove("CSeq: ").toInt();
 		resp << "RTSP/1.0 200 OK";
@@ -251,7 +301,8 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString pee
 		resp << QString("CSeq: %1").arg(cseq);
 		resp << lsep;
 
-		gstRtp->stopPlayback();
+		if (clients.size() == 0)
+			gstRtp->stopPlayback();
 	} else
 		mDebug("Unknown RTSP directive:\n %s", qPrintable(mes));
 
