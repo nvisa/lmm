@@ -16,13 +16,13 @@ public:
 	int flush();
 
 	int getMaxFrameRate() { return maxFrameRate / 1000; }
-	int setMaxFrameRate(int v) { maxFrameRate = v * 1000; return 0; }
+	int setMaxFrameRate(int v) { maxFrameRate = v * 1000; dirty = true; return 0; }
 	RateControl getBitrateControlMethod() { return rateControl; }
 	int getBitrate() { return videoBitRate; }
-	int setBitrateControl(RateControl v) { rateControl = v; return 0; }
-	int setBitrate(int v) { videoBitRate = v; return 0; }
+	int setBitrateControl(RateControl v) { rateControl = v; dirty = true; return 0; }
+	int setBitrate(int v) { videoBitRate = v; dirty = true; return 0; }
 	int getIntraFrameInterval() { return intraFrameInterval; }
-	int setIntraFrameInterval(int v) { intraFrameInterval = v; return 0; }
+	int setIntraFrameInterval(int v) { intraFrameInterval = v; dirty = true; return 0; }
 signals:
 	
 public slots:
@@ -34,6 +34,7 @@ private:
 	int videoBitRate;
 	int intraFrameInterval;
 	int seiBufferSize;
+	bool dirty;
 	VIDENC1_DynamicParams   defaultDynParams;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);

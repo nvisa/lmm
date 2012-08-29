@@ -444,6 +444,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	videoBitRate = -1;
 	intraFrameInterval = 30;
 	seiBufferSize = 0;
+	dirty = false;
 }
 
 int H264Encoder::flush()
@@ -451,6 +452,11 @@ int H264Encoder::flush()
 	if (codec == CODEC_H264 && encodeCount) {
 		mDebug("flusing encoder, generating IDR frame");
 		generateIdrFrame = true;
+		if (dirty) {
+			stopCodec();
+			startCodec();
+			dirty = false;
+		}
 	}
 	return DmaiEncoder::flush();
 }
@@ -697,6 +703,12 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 
 int H264Encoder::startCodec()
 {
+	mDebug("starting codec, parameters:\n\tMax frame rate: %d\n\t"
+		   "Rate control: %d\n\t"
+		   "Target bitrate: %d\n\t"
+		   "Intra frame interval: %d\n\t"
+		   "SEI buffer size: %d\n\t"
+		   , maxFrameRate, rateControl, videoBitRate, intraFrameInterval, seiBufferSize);
 	generateIdrFrame = false;
 	defaultDynParams = Venc1_DynamicParams_DEFAULT;
 	VIDENC1_Params          defaultParams       = Venc1_Params_DEFAULT;
