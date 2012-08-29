@@ -22,6 +22,8 @@
 #define VIDEO_PIPE_SIZE 4
 #define CODECHEIGHTALIGN 16
 
+extern VUIParamBuffer VUIPARAMBUFFER;
+
 static void printErrorMsg(XDAS_Int32 errorCode)
 {
 	if(0 == errorCode)
@@ -714,7 +716,7 @@ int H264Encoder::startCodec()
 	VIDENC1_Params          defaultParams       = Venc1_Params_DEFAULT;
 	BufferGfx_Attrs         gfxAttrs            = BufferGfx_Attrs_DEFAULT;
 	VIDENC1_Params         *params;
-	VIDENC1_DynamicParams  *dynParams;
+	IH264VENC_DynamicParams *dynParams;
 
 	/* DM365 only supports YUV420P semi planar chroma format */
 	ColorSpace_Type         colorSpace = ColorSpace_YUV420PSEMI;
@@ -733,7 +735,10 @@ int H264Encoder::startCodec()
 
 	/* Use supplied params if any, otherwise use defaults */
 	params = &defaultParams;
-	dynParams = &defaultDynParams;
+	dynParams = new IH264VENC_DynamicParams;
+	memset(dynParams, 0, sizeof(IH264VENC_DynamicParams));
+	dynParams->VUI_Buffer = &VUIPARAMBUFFER;
+	dynParams->videncDynamicParams.size = sizeof(IH264VENC_DynamicParams);
 
 	/*
 	 * Set up codec parameters. We round up the height to accomodate for
@@ -760,18 +765,26 @@ int H264Encoder::startCodec()
 	} else if (rateControl == RATE_VBR) {
 		params->rateControlPreset = IVIDEO_STORAGE;
 		params->maxBitRate = 50000000;
-	} else {
+	} else if (rateControl == RATE_NONE) {
 		params->rateControlPreset = IVIDEO_NONE;
 		params->maxBitRate = 50000000;
+	} else {
+		params->rateControlPreset = IVIDEO_USER_DEFINED;
 	}
 
-	dynParams->targetBitRate   = params->maxBitRate;
-	dynParams->inputWidth      = imageWidth;
-	dynParams->inputHeight     = imageHeight;
-	dynParams->refFrameRate    = params->maxFrameRate;
-	dynParams->targetFrameRate = params->maxFrameRate;
-	dynParams->interFrameInterval = 0;
-	dynParams->intraFrameInterval = intraFrameInterval;
+	dynParams->videncDynamicParams.targetBitRate   = params->maxBitRate;
+	dynParams->videncDynamicParams.inputWidth      = imageWidth;
+	dynParams->videncDynamicParams.inputHeight     = imageHeight;
+	dynParams->videncDynamicParams.refFrameRate    = params->maxFrameRate;
+	dynParams->videncDynamicParams.targetFrameRate = params->maxFrameRate;
+	dynParams->videncDynamicParams.interFrameInterval = 0;
+	dynParams->videncDynamicParams.intraFrameInterval = intraFrameInterval;
+	dynParams->rcAlgo = 0;
+	dynParams->maxDelay = 2000; //2 secs, default value
+	dynParams->aspectRatioX = 1;
+	dynParams->aspectRatioY = 1;
+	dynParams->idrFrameInterval = 1; //no I frames, all will be IDR
+	dynParams->initQ = -1;
 
 	QString codecName;
 	if (codec == CODEC_H264)
@@ -781,7 +794,7 @@ int H264Encoder::startCodec()
 	else
 		return -EINVAL;
 	/* Create the video encoder */
-	hCodec = Venc1_create(hEngine, (Char *)qPrintable(codecName), params, dynParams);
+	hCodec = Venc1_create(hEngine, (Char *)qPrintable(codecName), params, (VIDENC1_DynamicParams *)dynParams);
 
 	if (hCodec == NULL) {
 		mDebug("Failed to create video encoder: %s", qPrintable(codecName));
