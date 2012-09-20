@@ -13,6 +13,7 @@ class QTcpServer;
 class QTcpSocket;
 class QSignalMapper;
 class QEventLoop;
+class RtspSession;
 
 class RtspOutput : public BaseLmmOutput
 {
@@ -31,24 +32,16 @@ private slots:
 	void clientDisconnected(QObject*obj);
 	void clientError(QObject*);
 	void clientDataReady(QObject*obj);
-	void initStreams();
 
 	/* vlc slots */
 	void connectedToVlc();
 	void vlcDataReady();
 private:
-	RtpStreamer *gstRtp;
+	QMap<QString, RtspSession *> sessions;
 	QList<QTcpSocket *> clients;
 	QTcpServer *server;
 	QSignalMapper *mapperDis, *mapperErr, *mapperRead;
 	QMap<QTcpSocket *, QString> msgbuffer;
-
-	/* resource counters */
-	QSemaphore freeStreams;
-	QSemaphore usedStreams;
-
-	QSemaphore freeMStreams;
-	QSemaphore usedMStreams;
 
 	/* vlc variables */
 	QTcpSocket *fwdSock;
@@ -62,6 +55,8 @@ private:
 	void sendRtspMessage(QTcpSocket *sock, const QStringList &lines, const QString &lsep);
 	QStringList createSdp(QString url);
 	QString forwardToVlc(const QString &mes);
+	bool canSetupMore(bool multicast);
+	RtspSession * findSession(bool multicast, QString url = "", QString sessionId = "");
 };
 
 #endif // RTSPOUTPUT_H
