@@ -681,9 +681,10 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		seidata[17] = seiBufferSize >> 8;
 		/* NOTE: vlc doesn't like '0' at byte 18 */
 		seidata[18] = 0x1; //version
-		QByteArray ba(seidata + 19, seiBufferSize - 19);
+		seidata[19] = 0x1; //version
+		QByteArray ba(seidata + 20, seiBufferSize - 20);
 		addSeiData(&ba, source);
-		memcpy(seidata + 19, ba.constData(), ba.size());
+		memcpy(seidata + 20, ba.constData(), ba.size());
 		//for (int i = 19; i < seiBufferSize; i++)
 			//seidata[i] = i - 19;
 	}
