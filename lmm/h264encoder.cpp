@@ -714,9 +714,8 @@ int H264Encoder::startCodec()
 		   , maxFrameRate, rateControl, videoBitRate, intraFrameInterval, seiBufferSize);
 	generateIdrFrame = false;
 	defaultDynParams = Venc1_DynamicParams_DEFAULT;
-	VIDENC1_Params          defaultParams       = Venc1_Params_DEFAULT;
 	BufferGfx_Attrs         gfxAttrs            = BufferGfx_Attrs_DEFAULT;
-	VIDENC1_Params         *params;
+	IH264VENC_Params         *params = new IH264VENC_Params;
 	IH264VENC_DynamicParams *dynParams;
 
 	/* DM365 only supports YUV420P semi planar chroma format */
@@ -735,7 +734,8 @@ int H264Encoder::startCodec()
 	}
 
 	/* Use supplied params if any, otherwise use defaults */
-	params = &defaultParams;
+	params->videncParams = Venc1_Params_DEFAULT;
+	params->videncParams.size = sizeof(IH264VENC_Params);
 	dynParams = new IH264VENC_DynamicParams;
 	memset(dynParams, 0, sizeof(IH264VENC_DynamicParams));
 	dynParams->VUI_Buffer = &VUIPARAMBUFFER;
@@ -745,39 +745,39 @@ int H264Encoder::startCodec()
 	 * Set up codec parameters. We round up the height to accomodate for
 	 * alignment restrictions from codecs
 	 */
-	params->maxWidth = imageWidth;
-	params->maxHeight = Dmai_roundUp(imageHeight, CODECHEIGHTALIGN);
+	params->videncParams.maxWidth = imageWidth;
+	params->videncParams.maxHeight = Dmai_roundUp(imageHeight, CODECHEIGHTALIGN);
 	/*
 	 * According to codec user guide, high speed or high quality
 	 * setting does not make any difference on bitstream/performance
 	 */
-	params->encodingPreset  = XDM_HIGH_SPEED;
+	params->videncParams.encodingPreset  = XDM_HIGH_SPEED;
 	if (colorSpace ==  ColorSpace_YUV420PSEMI) {
-		params->inputChromaFormat = XDM_YUV_420SP;
+		params->videncParams.inputChromaFormat = XDM_YUV_420SP;
 	} else {
-		params->inputChromaFormat = XDM_YUV_422ILE;
+		params->videncParams.inputChromaFormat = XDM_YUV_422ILE;
 	}
-	params->reconChromaFormat = XDM_YUV_420SP;
-	params->maxFrameRate      = maxFrameRate;
+	params->videncParams.reconChromaFormat = XDM_YUV_420SP;
+	params->videncParams.maxFrameRate      = maxFrameRate;
 
 	if (rateControl == RATE_CBR) {
-		params->rateControlPreset = IVIDEO_LOW_DELAY;
-		params->maxBitRate = videoBitRate;
+		params->videncParams.rateControlPreset = IVIDEO_LOW_DELAY;
+		params->videncParams.maxBitRate = videoBitRate;
 	} else if (rateControl == RATE_VBR) {
-		params->rateControlPreset = IVIDEO_STORAGE;
-		params->maxBitRate = 50000000;
+		params->videncParams.rateControlPreset = IVIDEO_STORAGE;
+		params->videncParams.maxBitRate = 50000000;
 	} else if (rateControl == RATE_NONE) {
-		params->rateControlPreset = IVIDEO_NONE;
-		params->maxBitRate = 50000000;
+		params->videncParams.rateControlPreset = IVIDEO_NONE;
+		params->videncParams.maxBitRate = 50000000;
 	} else {
-		params->rateControlPreset = IVIDEO_USER_DEFINED;
+		params->videncParams.rateControlPreset = IVIDEO_USER_DEFINED;
 	}
 
-	dynParams->videncDynamicParams.targetBitRate   = params->maxBitRate;
+	dynParams->videncDynamicParams.targetBitRate   = params->videncParams.maxBitRate;
 	dynParams->videncDynamicParams.inputWidth      = imageWidth;
 	dynParams->videncDynamicParams.inputHeight     = imageHeight;
-	dynParams->videncDynamicParams.refFrameRate    = params->maxFrameRate;
-	dynParams->videncDynamicParams.targetFrameRate = params->maxFrameRate;
+	dynParams->videncDynamicParams.refFrameRate    = params->videncParams.maxFrameRate;
+	dynParams->videncDynamicParams.targetFrameRate = params->videncParams.maxFrameRate;
 	dynParams->videncDynamicParams.interFrameInterval = 0;
 	dynParams->videncDynamicParams.intraFrameInterval = intraFrameInterval;
 	dynParams->rcAlgo = 0;
@@ -787,6 +787,27 @@ int H264Encoder::startCodec()
 	dynParams->idrFrameInterval = 1; //no I frames, all will be IDR
 	dynParams->initQ = -1;
 
+	/* extended H.264 parameters */
+	params->profileIdc = 100;
+	params->levelIdc = 40;
+	params->Log2MaxFrameNumMinus4 = 0;
+	params->ConstraintSetFlag = 0;
+	params->entropyMode = 0; //0: CAVLC, 1:CABAC
+	params->transform8x8FlagIntraFrame = 0;
+	params->transform8x8FlagInterFrame = 0;
+	params->enableVUIparams = 0; //assumed to be 1 by the codec, in case of SEI insertion
+	params->meAlgo = 0;
+	params->seqScalingFlag = 0;
+	params->encQuality = 2;
+	params->enableARM926Tcm = 0;
+	params->enableDDRbuff = 0;
+	params->sliceMode = 0;
+	params->numTemporalLayers = 0;
+	params->svcSyntaxEnable = 0;
+	params->EnableLongTermFrame = 0;
+	params->outputDataMode = 1;
+	params->sliceFormat = 1;
+
 	QString codecName;
 	if (codec == CODEC_H264)
 		codecName = "h264enc";
@@ -795,7 +816,8 @@ int H264Encoder::startCodec()
 	else
 		return -EINVAL;
 	/* Create the video encoder */
-	hCodec = Venc1_create(hEngine, (Char *)qPrintable(codecName), params, (VIDENC1_DynamicParams *)dynParams);
+	hCodec = Venc1_create(hEngine, (Char *)qPrintable(codecName), (VIDENC1_Params *)params,
+						  (VIDENC1_DynamicParams *)dynParams);
 
 	if (hCodec == NULL) {
 		mDebug("Failed to create video encoder: %s", qPrintable(codecName));
