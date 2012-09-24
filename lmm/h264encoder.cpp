@@ -691,8 +691,10 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	RawBuffer buf = DmaiBuffer("video/x-h264", hDstBuf, this);
 	buf.addBufferParameter("frameType", (int)BufferGfx_getFrameType(buffer));
 	buf.addBufferParameter("fps", source.getBufferParameter("fps"));
-	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
+	buf.addBufferParameter("captureTime", source.getBufferParameter("captureTime"));
+	buf.addBufferParameter("encodeTime", streamTime->getCurrentTime());
 	buf.setStreamBufferNo(encodeCount++);
+	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
 	outputLock.lock();
