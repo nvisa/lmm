@@ -30,6 +30,11 @@ public:
 			}
 		}
 	}
+	~RtspSession()
+	{
+		delete gstRtp;
+	}
+
 	int setup(bool mcast, int dPort, int cPort, QString clientIp)
 	{
 		if (mcast && state != TEARDOWN) {
