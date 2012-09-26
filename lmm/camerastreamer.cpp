@@ -320,6 +320,8 @@ void CameraStreamer::encodeLoop()
 		}
 		if (dmaiCapture())
 			input->addBuffer(buf);
+		if (useTestInput)
+			testInput->addBuffer(buf);
 	}
 
 	if (debugServer->addCustomStat(DebugServer::STAT_LOOP_TIME, t.restart())) {
