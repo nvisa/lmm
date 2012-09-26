@@ -5,6 +5,7 @@
 #include <emdesk/debug.h>
 
 #include <QFile>
+#include <QTime>
 
 #include <linux/videodev2.h>
 
@@ -48,6 +49,20 @@ VideoTestSource::VideoTestSource(QObject *parent) :
 	lastBufferTime = 0;
 	setFps(25);
 	pattern = PATTERN_COUNT;
+	noisy = false;
+}
+
+VideoTestSource::VideoTestSource(int nWidth, int nHeight, QObject *parent)
+{
+	width = 1280;
+	height = 720;
+	lastBufferTime = 0;
+	setFps(25);
+	pattern = PATTERN_COUNT;
+	noisy = true;
+	noiseWidth = nWidth;
+	noiseHeight = nHeight;
+	setThreaded(true);
 }
 
 #define bound(_x) \
@@ -64,19 +79,25 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 	pImage = getPatternImage(p);
 	bool cvalid = false;
 
-	/* color space is assumed to be NV12 */
+	/* TODO: color space is assumed to be NV12 */
 	if (f.exists()) {
 		f.open(QIODevice::ReadOnly);
 		QByteArray ba = f.readAll();
 		if (ba.at(0) == p) {
-			imageBuf = DmaiBuffer((ba.constData() + 1), width * height * 3 / 2);
+			for (int i = 0; i < 3; i++) {
+				DmaiBuffer imageBuf("video/x-raw-yuv", (ba.constData() + 1)
+									  , width * height * 3 / 2);
+				imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+				inputBuffers << imageBuf;
+			}
 			cvalid = true;
 		}
 		f.close();
 	}
 	if (!cvalid) {
-		imageBuf = DmaiBuffer("video/x-raw-yuv", width * height * 3 / 2);
+		DmaiBuffer imageBuf("video/x-raw-yuv", width * height * 3 / 2, this);
 		imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+		inputBuffers << imageBuf;
 
 		uchar *ydata = (uchar *)imageBuf.constData();
 		uchar *cdata = ydata + imageBuf.size() / 3 * 2;
@@ -111,6 +132,21 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 			f.write((const char *)imageBuf.constData(), imageBuf.size());
 		}
 	}
+
+	if (noisy && noise.size() == 0) {
+		QFile randF("/dev/urandom");
+		if (!randF.open(QIODevice::ReadOnly)) {
+			mDebug("error opening /dev/urandom");
+			noisy = false;
+			return;
+		}
+		for (int i = 0; i < 16; i++) {
+			char *nd = new char[noiseHeight * noiseWidth];
+			randF.read(nd, noiseHeight * noiseWidth);
+			noise << nd;
+		}
+		randF.close();
+	}
 }
 
 void VideoTestSource::setFps(int fps)
@@ -121,6 +157,11 @@ void VideoTestSource::setFps(int fps)
 
 RawBuffer VideoTestSource::nextBuffer()
 {
+	inputLock.lock();
+	if (!inputBuffers.size()) {
+		inputLock.unlock();
+		return RawBuffer();
+	}
 	qint64 time = streamTime->getFreeRunningTime();
 
 	if (time > lastBufferTime + bufferTime) {
@@ -129,11 +170,20 @@ RawBuffer VideoTestSource::nextBuffer()
 		 * creating a new buffer with software copy is so slow,
 		 * don't event think about it. But dma may work
 		 */
+		DmaiBuffer imageBuf = inputBuffers.takeFirst();
+		if (noisy)
+			imageBuf = addNoise(imageBuf);
 		outputBuffers.append(imageBuf);
-		mInfo("time: %lld - %d", time / 1000, bufferTime);
+		mInfo("time: %lld - %d, buffer count %d", time / 1000, bufferTime, inputBuffers.size());
 	}
 
+	inputLock.unlock();
 	return BaseLmmElement::nextBuffer();
+}
+
+int VideoTestSource::flush()
+{
+	return 0;
 }
 
 QImage VideoTestSource::getPatternImage(VideoTestSource::TestPattern p)
@@ -166,4 +216,18 @@ QImage VideoTestSource::getPatternImage(VideoTestSource::TestPattern p)
 
 	mDebug("unknown pattern type, returning default one");
 	return QImage(str.arg("colorbars.png"));
+}
+
+DmaiBuffer VideoTestSource::addNoise(DmaiBuffer imageBuf)
+{
+	/* TODO: color space is assumed to be NV12 */
+	char *ydata = (char *)imageBuf.data();
+	int offset = imageBuf.size() / 3 * 2 - width * noiseHeight;
+	QTime t; t.start();
+	static int ni = 0;
+	char *ndata = noise.at((ni++ & 0xf));
+	for (int i = offset, noff = 0; i < offset + noiseHeight * width; i += width, noff += noiseWidth)
+		memcpy(ydata + i + width - noiseWidth, ndata + noff, noiseWidth);
+	mInfo("noise addition took %d msecs", t.elapsed());
+	return imageBuf;
 }

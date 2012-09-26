@@ -5,6 +5,9 @@
 
 #include <QImage>
 
+class QFile;
+class DmaiBuffer;
+
 class VideoTestSource : public BaseLmmElement
 {
 	Q_OBJECT
@@ -27,11 +30,13 @@ public:
 	};
 
 	explicit VideoTestSource(QObject *parent = 0);
+	explicit VideoTestSource(int nWidth, int nHeight, QObject *parent = 0);
 	void setTestPattern(TestPattern p);
 	TestPattern getPattern() { return pattern; }
 	void setFps(int fps);
 
 	RawBuffer nextBuffer();
+	int flush();
 signals:
 
 public slots:
@@ -43,9 +48,13 @@ private:
 	int bufferTime;
 	TestPattern pattern;
 	QImage pImage;
-	RawBuffer imageBuf;
+	bool noisy;
+	QList<char *> noise;
+	int noiseWidth;
+	int noiseHeight;
 
 	QImage getPatternImage(TestPattern p);
+	DmaiBuffer addNoise(DmaiBuffer imageBuf);
 };
 
 #endif // VIDEOTESTSOURCE_H
