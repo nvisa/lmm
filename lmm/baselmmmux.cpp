@@ -224,7 +224,7 @@ RawBuffer BaseLmmMux::nextBuffer()
 
 int BaseLmmMux::writePacket(const uint8_t *buffer, int buf_size)
 {
-	RawBuffer buf((void *)buffer, buf_size);
+	RawBuffer buf(mimeType(), (void *)buffer, buf_size);
 	outputBuffers << buf;
 	return buf_size;
 }
@@ -240,9 +240,9 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 		if (buf.size() > left) {
 			memcpy(buffer + copied, buf.constData(), left);
 			/* some data will left, put back to input buffers */
-			RawBuffer iibuf((void *)buf.constData(), left);
+			RawBuffer iibuf(mimeType(), (void *)buf.constData(), left);
 			inputInfoBuffers << iibuf;
-			RawBuffer newbuf((uchar *)buf.constData() + left, buf.size() - left);
+			RawBuffer newbuf(mimeType(), (uchar *)buf.constData() + left, buf.size() - left);
 			inputBuffers.prepend(newbuf);
 			copied += left;
 			left -= left;

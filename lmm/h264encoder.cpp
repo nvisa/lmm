@@ -1,6 +1,6 @@
 #include "h264encoder.h"
 #include "dmaiencoder.h"
-#include "rawbuffer.h"
+#include "dmai/dmaibuffer.h"
 #include "emdesk/debug.h"
 #include "dm365/ih264venc.h"
 #include "streamtime.h"
@@ -687,11 +687,9 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		//for (int i = 19; i < seiBufferSize; i++)
 			//seidata[i] = i - 19;
 	}
-	RawBuffer buf = RawBuffer(this);
-	buf.setRefData(Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
-	buf.addBufferParameter("dmaiBuffer", (int)hDstBuf);
+	RawBuffer buf = DmaiBuffer("video/x-h264", hDstBuf, this);
 	buf.addBufferParameter("frameType", (int)BufferGfx_getFrameType(buffer));
-	buf.addBufferParameter("fps", 30); //TODO: generalize fps
+	buf.addBufferParameter("fps", source.getBufferParameter("fps"));
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	buf.setStreamBufferNo(encodeCount++);
 	/* Reset the dimensions to what they were originally */

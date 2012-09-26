@@ -27,7 +27,11 @@ void RtpStreamer::sendBuffer(RawBuffer buf)
 	mInfo("queueing new buffer with size %d", buf.size());
 	GstBuffer *buffer = gst_buffer_new_and_alloc(buf.size());
 	memcpy(GST_BUFFER_DATA(buffer), buf.constData(), buf.size());
-	int fps = buf.getBufferParameter("fps").toInt();
+	float fps = buf.getBufferParameter("fps").toFloat();
+	if (fps == 0) {
+		mDebug("fps value for buffer is 0, assuming 30 fps");
+		fps = 30;
+	}
 	GST_BUFFER_DURATION(buffer) = 1000000000ll / fps;
 	GST_BUFFER_TIMESTAMP(buffer) = GST_BUFFER_DURATION(buffer) * buf.streamBufferNo();
 	gstBuffers << buffer;
@@ -101,7 +105,7 @@ void RtpStreamer::pushNextBuffer()
 	mDebug("sending buffer, %d bytes", buf.size());
 	GstBuffer *buffer = gst_buffer_new_and_alloc(buf.size());
 	memcpy(GST_BUFFER_DATA(buffer), buf.constData(), buf.size());
-	int fps = buf.getBufferParameter("fps").toInt();
+	float fps = buf.getBufferParameter("fps").toFloat();
 	GST_BUFFER_DURATION(buffer) = 1000000000ll / fps;
 	GST_BUFFER_TIMESTAMP(buffer) = GST_BUFFER_DURATION(buffer) * buf.streamBufferNo();
 	if (gst_app_src_push_buffer((GstAppSrc *)appsrc, buffer) != GST_FLOW_OK)

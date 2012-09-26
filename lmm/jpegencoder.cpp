@@ -1,4 +1,5 @@
 #include "jpegencoder.h"
+#include "dmai/dmaibuffer.h"
 
 #include <emdesk/debug.h>
 
@@ -131,9 +132,7 @@ int JpegEncoder::encode(Buffer_Handle buffer)
 		BufTab_freeBuf(hDstBuf);
 		return -EIO;
 	}
-	RawBuffer buf = RawBuffer(this);
-	buf.setRefData(Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
-	buf.addBufferParameter("dmaiBuffer", (int)hDstBuf);
+	RawBuffer buf = DmaiBuffer("image/jpeg", hDstBuf, this);
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	buf.setStreamBufferNo(encodeCount++);
 	/* Reset the dimensions to what they were originally */

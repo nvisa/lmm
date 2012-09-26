@@ -1,9 +1,10 @@
 #include "v4l2output.h"
-#include "rawbuffer.h"
+#include "dmai/dmaibuffer.h"
 
 #include <emdesk/debug.h>
 
 #include <errno.h>
+#include <linux/videodev2.h>
 
 #include <ti/sdo/dmai/BufTab.h>
 #include <ti/sdo/dmai/Display.h>
@@ -73,10 +74,8 @@ int V4l2Output::start()
 	}
 	for (int i = 0; i < BufTab_getNumBufs(hDispBufTab); i++) {
 		Buffer_Handle dmaibuf = BufTab_getBuf(hDispBufTab, i);
-		RawBuffer newbuf = RawBuffer();
-		newbuf.setParentElement(this);
-		newbuf.setRefData(Buffer_getUserPtr(dmaibuf), Buffer_getSize(dmaibuf));
-		newbuf.addBufferParameter("dmaiBuffer", (int)dmaibuf);
+		RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dmaibuf, this);
+		newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
 		bufferPool.insert(dmaibuf, newbuf);
 	}
 

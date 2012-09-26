@@ -1,5 +1,7 @@
 #include "dm365videooutput.h"
 #include "rawbuffer.h"
+#include "dmai/dmaibuffer.h"
+#include "tools/videoutils.h"
 
 #include <emdesk/debug.h>
 
@@ -21,7 +23,8 @@ void DM365VideoOutput::
 	videoCopy(RawBuffer buf, Buffer_Handle dispbuf, Buffer_Handle dmai)
 {
 	if (hFrameCopy == NULL) {
-		int linelen = buf.getBufferParameter("linelen").toInt();
+		int linelen = VideoUtils::getLineLength(buf.getBufferParameter("v4l2PixelFormat").toInt(),
+												buf.getBufferParameter("width").toInt());
 		char *dst = (char *)Buffer_getUserPtr(dispbuf);
 		char *src = (char *)Buffer_getUserPtr(dmai);
 		int dstTotal = gfxAttrs.dim.lineLength * gfxAttrs.dim.height;
@@ -141,10 +144,8 @@ int DM365VideoOutput::start()
 	}
 	for (int i = 0; i < BufTab_getNumBufs(hDispBufTab); i++) {
 		Buffer_Handle dmaibuf = BufTab_getBuf(hDispBufTab, i);
-		RawBuffer newbuf = RawBuffer();
-		newbuf.setParentElement(this);
-		newbuf.setRefData(Buffer_getUserPtr(dmaibuf), Buffer_getSize(dmaibuf));
-		newbuf.addBufferParameter("dmaiBuffer", (int)dmaibuf);
+		DmaiBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dmaibuf, this);
+		newbuf.addBufferParameter("v4l2PixelFormat", (int)pixelFormat);
 		bufferPool.insert(dmaibuf, newbuf);
 	}
 

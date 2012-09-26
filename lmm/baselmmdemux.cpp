@@ -120,7 +120,7 @@ int BaseLmmDemux::demuxOne()
 	if (packet->stream_index == audioStreamIndex) {
 		mInfo("new audio stream: size=%d", packet->size);
 		if (demuxAudio) {
-			RawBuffer buf(packet->data, packet->size);
+			RawBuffer buf("audio/x-raw-int", packet->data, packet->size);
 			buf.setDuration(packet->duration * audioTimeBaseN / 1000);
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 				buf.setPts(packet->pts * audioTimeBaseN / 1000);
@@ -139,7 +139,7 @@ int BaseLmmDemux::demuxOne()
 			   packet->pts == (int64_t)AV_NOPTS_VALUE ? -1 : packet->pts ,
 			   packet->duration, packet->flags);
 		if (demuxVideo) {
-			RawBuffer buf(packet->data, packet->size);
+			RawBuffer buf("video/x-raw-yuv", packet->data, packet->size);
 			buf.setDuration(packet->duration * videoTimeBaseN / 1000);
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 				buf.setPts(packet->pts * videoTimeBaseN / 1000);

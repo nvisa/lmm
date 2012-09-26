@@ -39,6 +39,7 @@ public:
 		parameters = other.parameters;
 		bufferNo = other.bufferNo;
 		myParent = other.myParent;
+		mimeType = other.mimeType;
 	}
 
 	~RawBufferData();
@@ -56,26 +57,27 @@ public:
 	QMap<QString, QVariant> parameters;
 	int bufferNo;
 	BaseLmmElement* myParent;
+	QString mimeType;
 };
 
 class RawBuffer
 {
 public:
 	explicit RawBuffer(BaseLmmElement *parent = 0);
-	explicit RawBuffer(void *data, int size, BaseLmmElement *parent = 0);
-	explicit RawBuffer(int size, BaseLmmElement *parent = 0);
+	explicit RawBuffer(QString mimeType, void *data, int size, BaseLmmElement *parent = 0);
+	explicit RawBuffer(QString mimeType, int size, BaseLmmElement *parent = 0);
 	RawBuffer(const RawBuffer &other);
 	~RawBuffer();
 
 	void setParentElement(BaseLmmElement *el);
-	void setRefData(void *data, int size);
+	void setRefData(QString mimeType, void *data, int size);
 	void addBufferParameter(QString, QVariant);
 	QVariant getBufferParameter(QString) const;
 	void setSize(int size);
 	int prepend(const void *data, int size);
 	const void * constData() const;
 	void * data();
-	int size();
+	int size() const;
 	int setUsedSize(int size);
 	void setDuration(unsigned int val);
 	unsigned int getDuration() const;
@@ -83,6 +85,7 @@ public:
 	qint64 getPts() const;
 	void setDts(qint64 val);
 	qint64 getDts() const;
+	QString getMimeType() const;
 
 	void setStreamBufferNo(int val);
 	int streamBufferNo() const;
@@ -90,8 +93,9 @@ public:
 signals:
 	
 public slots:
-private:
+protected:
 	QExplicitlySharedDataPointer<RawBufferData> d;
+private:
 };
 
 #endif // RAWBUFFER_H

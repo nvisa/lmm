@@ -1,5 +1,5 @@
 #include "dm365dmaicapture.h"
-#include "rawbuffer.h"
+#include "dmai/dmaibuffer.h"
 
 #include <emdesk/debug.h>
 
@@ -95,7 +95,6 @@ void DM365DmaiCapture::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
 	Buffer_Handle dmai = (Buffer_Handle)params["dmaiBuffer"].toInt();
 	RawBuffer buffer = createNewRawBuffer(dmai);
-	buffer.addBufferParameter("linelen", params["linelen"]);
 	inputBuffers << buffer;
 	mDebug("buffer finished");
 }
@@ -186,8 +185,7 @@ int DM365DmaiCapture::openCamera()
 
 	for (int i = 0; i < BufTab_getNumBufs(bufTab); i++) {
 		Buffer_Handle hBuf = BufTab_getBuf(bufTab, i);
-		RawBuffer buffer = createNewRawBuffer(hBuf);
-		buffer.addBufferParameter("linelen", (int)gfxAttrs.dim.lineLength);
+		createNewRawBuffer(hBuf);
 	}
 	bufsFree.release(NUM_CAPTURE_BUFS - 1);
 	return 0;
@@ -286,13 +284,9 @@ int DM365DmaiCapture::configureResizer(void)
 
 RawBuffer DM365DmaiCapture::createNewRawBuffer(Buffer_Handle hBuf)
 {
-	RawBuffer newbuf = RawBuffer();
-	newbuf.setParentElement(this);
-	newbuf.setRefData(Buffer_getUserPtr(hBuf), Buffer_getSize(hBuf));
-	newbuf.addBufferParameter("width", captureWidth);
-	newbuf.addBufferParameter("height", captureHeight);
+	RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", hBuf, this);
 	newbuf.addBufferParameter("v4l2PixelFormat", (int)outPixFormat);
-	newbuf.addBufferParameter("dmaiBuffer", (int)hBuf);
+	newbuf.addBufferParameter("fps", 30);
 	bufferPool.insert(hBuf, newbuf);
 	return newbuf;
 }

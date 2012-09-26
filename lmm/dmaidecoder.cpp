@@ -2,9 +2,8 @@
 #include <QVariant>
 
 #include "dmaidecoder.h"
-#include "rawbuffer.h"
+#include "dmai/dmaibuffer.h"
 #include "circularbuffer.h"
-#define DEBUG
 #include "emdesk/debug.h"
 #include "dm6446/xdc_config.h"
 
@@ -19,6 +18,7 @@
 #include <ti/sdo/ce/Engine.h>
 
 #include <errno.h>
+#include <linux/videodev2.h>
 
 static DmaiDecoder *instance = NULL;
 
@@ -146,11 +146,8 @@ int DmaiDecoder::decodeOne()
 			BufferGfx_Dimensions dim;
 			BufferGfx_getDimensions(outbuf, &dim);
 			mInfo("decoded frame width=%d height=%d", int(dim.width), (int)dim.height);
-			RawBuffer newbuf;
-			newbuf.setRefData(Buffer_getUserPtr(outbuf), Buffer_getSize(outbuf));
-			newbuf.addBufferParameter("width", (int)dim.width);
-			newbuf.addBufferParameter("height", (int)dim.height);
-			newbuf.addBufferParameter("dmaiBuffer", (int)outbuf);
+			DmaiBuffer newbuf("video/x-raw-yuv", outbuf, this);
+			newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_UYVY);
 			newbuf.setStreamBufferNo(decodeCount++);
 
 			mInfo("handling timestamps");

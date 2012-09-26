@@ -6,6 +6,8 @@
 
 #include <QFile>
 
+#include <linux/videodev2.h>
+
 /**
 	\class VideoTestSource
 
@@ -67,13 +69,14 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 		f.open(QIODevice::ReadOnly);
 		QByteArray ba = f.readAll();
 		if (ba.at(0) == p) {
-			imageBuf = DmaiBuffer((void *)(ba.constData() + 1), width * height * 3 / 2);
+			imageBuf = DmaiBuffer((ba.constData() + 1), width * height * 3 / 2);
 			cvalid = true;
 		}
 		f.close();
 	}
 	if (!cvalid) {
-		imageBuf = DmaiBuffer(width * height * 3 / 2);
+		imageBuf = DmaiBuffer("video/x-raw-yuv", width * height * 3 / 2);
+		imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
 
 		uchar *ydata = (uchar *)imageBuf.constData();
 		uchar *cdata = ydata + imageBuf.size() / 3 * 2;

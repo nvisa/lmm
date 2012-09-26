@@ -1,4 +1,5 @@
 #include "dmaibuffer.h"
+#include "baselmmelement.h"
 
 #include <emdesk/debug.h>
 
@@ -34,17 +35,36 @@
 	\sa RawBuffer
 */
 
-DmaiBuffer::DmaiBuffer(void *data, int size, BaseLmmElement *parent) :
-	RawBuffer(parent)
+DmaiBuffer::DmaiBuffer(QString mimeType, Buffer_Handle handle, BaseLmmElement *parent)
 {
+	d = new DmaiBufferData();
+	d->myParent = parent;
+	d->rawData = NULL;
+	d->refData = false;
+
+	d->mimeType = mimeType;
+	init(handle);
+}
+
+DmaiBuffer::DmaiBuffer(QString mimeType, const void *data, int size, BaseLmmElement *parent)
+{
+	d = new DmaiBufferData();
+	d->myParent = parent;
+	d->rawData = NULL;
+	d->refData = false;
+	d->mimeType = mimeType;
 	pixFormat = V4L2_PIX_FMT_NV12;
 	init(size);
 	memcpy(this->data(), data, size);
 }
 
-DmaiBuffer::DmaiBuffer(int size, BaseLmmElement *parent) :
-	RawBuffer(parent)
+DmaiBuffer::DmaiBuffer(QString mimeType, int size, BaseLmmElement *parent)
 {
+	d = new DmaiBufferData();
+	d->myParent = parent;
+	d->rawData = NULL;
+	d->refData = false;
+	d->mimeType = mimeType;
 	pixFormat = V4L2_PIX_FMT_NV12;
 	init(size);
 }
@@ -79,11 +99,38 @@ void DmaiBuffer::init(int size)
 
 	if (bufSize != size)
 		qDebug("buffer size doesn't match graphic attributes");
-	dmaibuf = Buffer_create(size, BufferGfx_getBufferAttrs(&gfxAttrs));
-
-	setRefData(Buffer_getUserPtr(dmaibuf), bufSize);
+	DmaiBufferData *dd = (DmaiBufferData *)d.data();
+	dd->dmaibuf = Buffer_create(size, BufferGfx_getBufferAttrs(&gfxAttrs));
+	dd->bufferOwner = true;
+	setRefData(d->mimeType, Buffer_getUserPtr(dd->dmaibuf), bufSize);
 	addBufferParameter("width", (int)gfxAttrs.dim.width);
 	addBufferParameter("height", (int)gfxAttrs.dim.height);
-	addBufferParameter("dmaiBuffer", (int)dmaibuf);
-	addBufferParameter("dmaiBufferFree", (int)dmaibuf);
+	addBufferParameter("dmaiBuffer", (int)dd->dmaibuf);
+}
+
+void DmaiBuffer::init(Buffer_Handle handle)
+{
+	DmaiBufferData *dd = (DmaiBufferData *)d.data();
+	dd->bufferOwner = false;
+	dd->dmaibuf = handle;
+	Buffer_Attrs attrs; //= BufferGfx_getBufferAttrs(&gfxAttrs);
+	Buffer_getAttrs(dd->dmaibuf, &attrs);
+	BufferGfx_Attrs *gfxAttrs = (BufferGfx_Attrs *)&attrs;
+	int size = Buffer_getNumBytesUsed(dd->dmaibuf);
+	if (!size)
+		size = Buffer_getSize(dd->dmaibuf);
+	setRefData(d->mimeType, Buffer_getUserPtr(dd->dmaibuf), size);
+	addBufferParameter("width", (int)gfxAttrs->dim.width);
+	addBufferParameter("height", (int)gfxAttrs->dim.height);
+	addBufferParameter("dmaiBuffer", (int)dd->dmaibuf);
+}
+
+DmaiBufferData::~DmaiBufferData()
+{
+	if (rawData && !refData)
+		delete [] rawData;
+	if (myParent)
+		myParent->aboutDeleteBuffer(parameters);
+	if (bufferOwner)
+		Buffer_delete(dmaibuf);
 }

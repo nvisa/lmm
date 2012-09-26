@@ -156,7 +156,7 @@ int RtspServer::addBuffer(RawBuffer buffer)
 	CameraDeviceSource *src = liveThread->subs->lastDeviceSource();
 	if (src) {
 		receivedBufferCount++;
-		RawBuffer buf(buffer.data(), buffer.size());
+		RawBuffer buf(buffer.getMimeType(), buffer.data(), buffer.size());
 		src->addBuffer(buf);
 	}
 	return 0;

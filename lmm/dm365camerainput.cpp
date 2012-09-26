@@ -1,5 +1,5 @@
 #include "dm365camerainput.h"
-#include "rawbuffer.h"
+#include "dmai/dmaibuffer.h"
 #include "streamtime.h"
 
 #include <emdesk/debug.h>
@@ -326,19 +326,13 @@ bool DM365CameraInput::captureLoop()
 		int passed = timing.restart();
 		mInfo("captured %p, time is %lld, passed %d", buffer, streamTime->getFreeRunningTime(), passed);
 		Buffer_Handle dmaibuf = BufTab_getBuf(bufTab, buffer->index);
-		char *data = userptr[buffer->index];
-		RawBuffer newbuf = RawBuffer();
-		newbuf.setParentElement(this);
-
-		newbuf.setRefData(data, buffer->length);
-		newbuf.addBufferParameter("width", (int)captureWidth);
-		newbuf.addBufferParameter("height", (int)captureHeight);
+		RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dmaibuf, this);
 		newbuf.addBufferParameter("v4l2Buffer",
 								  qVariantFromValue((void *)buffer));
-		newbuf.addBufferParameter("dmaiBuffer", (int)dmaibuf);
-		newbuf.addBufferParameter("dataPtr", (int)data);
 		newbuf.addBufferParameter("creationTime", streamTime->getCurrentTime());
 		newbuf.addBufferParameter("captureTime", streamTime->getCurrentTime());
+		newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
+		newbuf.addBufferParameter("fps", 30);
 		outputLock.lock();
 		outputBuffers << newbuf;
 		outputLock.unlock();

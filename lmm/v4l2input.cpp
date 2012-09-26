@@ -315,11 +315,11 @@ bool V4l2Input::captureLoop()
 		RawBuffer newbuf = RawBuffer();
 		newbuf.setParentElement(this);
 
-		newbuf.setRefData(data, buffer->length);
+		newbuf.setRefData("video/x-raw-yuv", data, buffer->length);
 		newbuf.addBufferParameter("width", (int)captureWidth);
 		newbuf.addBufferParameter("height", (int)captureHeight);
-		newbuf.addBufferParameter("v4l2Buffer",
-								   qVariantFromValue((void *)buffer));
+		newbuf.addBufferParameter("v4l2Buffer", qVariantFromValue((void *)buffer));
+		newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_UYVY);
 		outputLock.lock();
 		outputBuffers << newbuf;
 		outputLock.unlock();
