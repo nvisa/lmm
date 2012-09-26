@@ -329,7 +329,6 @@ bool DM365CameraInput::captureLoop()
 		RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dmaibuf, this);
 		newbuf.addBufferParameter("v4l2Buffer",
 								  qVariantFromValue((void *)buffer));
-		newbuf.addBufferParameter("creationTime", streamTime->getCurrentTime());
 		newbuf.addBufferParameter("captureTime", streamTime->getCurrentTime());
 		newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
 		newbuf.addBufferParameter("fps", 30);
