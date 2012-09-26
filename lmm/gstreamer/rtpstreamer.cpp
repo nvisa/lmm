@@ -2,10 +2,16 @@
 
 #include <gst/app/gstappsrc.h>
 #include <gst/gstbuffer.h>
+#include <gst/app/gstappsink.h>
 
 #include <emdesk/debug.h>
 
 #include <QUdpSocket>
+
+static inline bool useH264Parser() { return false; }
+static inline bool useAppSink() { return true; }
+
+static GstAppSinkCallbacks sinkCallbacks;
 
 RtpStreamer::RtpStreamer(QObject *parent) :
 	AbstractGstreamerInterface(parent)
@@ -23,8 +29,7 @@ void RtpStreamer::sendBuffer(RawBuffer buf)
 	if (!isRunning())
 		return;
 
-	//inputBuffers << buf;
-	mInfo("queueing new buffer with size %d", buf.size());
+	mInfo("queueing new buffer with size %d, waiting %d", buf.size(), gstBuffers.size());
 	GstBuffer *buffer = gst_buffer_new_and_alloc(buf.size());
 	memcpy(GST_BUFFER_DATA(buffer), buf.constData(), buf.size());
 	float fps = buf.getBufferParameter("fps").toFloat();
@@ -36,8 +41,7 @@ void RtpStreamer::sendBuffer(RawBuffer buf)
 	GST_BUFFER_TIMESTAMP(buffer) = GST_BUFFER_DURATION(buffer) * buf.streamBufferNo();
 	gstBuffers << buffer;
 
-	//if (needData)
-		pushNextBuffer();
+	pushNextBuffer();
 }
 
 int RtpStreamer::startPlayback()
@@ -47,8 +51,12 @@ int RtpStreamer::startPlayback()
 
 int RtpStreamer::stopPlayback()
 {
-	qDebug() << "stopping playback";
 	inputBuffers.clear();
+	foreach (GstBuffer *buf, gstBuffers) {
+		gst_buffer_unref(buf);
+	}
+	gstBuffers.clear();
+
 	return AbstractGstreamerInterface::stopPlayback();
 }
 
@@ -57,61 +65,77 @@ int RtpStreamer::createElementsList()
 	GstPipeElement *el;
 	el = addElement("appsrc", "rtpsrc");
 
-	el = addElement("h264parse", "parser");
+	if (useH264Parser())
+		el = addElement("h264parse", "parser");
+
 	el = addElement("rtph264pay", "payloader");
 	el->addParameter("timestamp-offset", rtpTimestampOffset);
 	el->addParameter("seqnum-offset", rtpSequenceOffset);
 
-	el = addElement("udpsink", "netsink");
-	el->addParameter("host", dstIp);
-	el->addParameter("port", dstDataPort);
-	el->addParameter("sync", false);
-	el->addParameter("async", false);
+	if (useAppSink()) {
+		el = addElement("appsink", "netsink");
+		el->addParameter("sync", false);
+		el->addParameter("async", false);
+	} else {
+		el = addElement("udpsink", "netsink");
+		el->addParameter("host", dstIp);
+		el->addParameter("port", dstDataPort);
+		el->addParameter("sync", false);
+		el->addParameter("async", false);
+	}
 
-	/*el = addElement("filesink", "filesink");
-	el->addParameter("location", "test.h264");
-	el->addParameter("sync", false);
-	el->addParameter("async", false);*/
 	return 0;
 }
 
-void appsrc_need_data(GstAppSrc *src, guint length, gpointer user_data)
+GstFlowReturn sink_new_preroll(GstAppSink *sink, gpointer user_data)
 {
-	((RtpStreamer *)(user_data))->pushNextBuffer();
+	GstBuffer *buf = gst_app_sink_pull_preroll(sink);
+	if (buf) {
+		((RtpStreamer *)user_data)->sendData((const char *)GST_BUFFER_DATA(buf), GST_BUFFER_SIZE(buf));
+		gst_buffer_unref(buf);
+	}
+	return GST_FLOW_OK;
 }
-GstAppSrcCallbacks mycallbacks;
+
+GstFlowReturn sink_new_buffer(GstAppSink *sink, gpointer user_data)
+{
+	GstBuffer *buf = gst_app_sink_pull_buffer(sink);
+	if (buf) {
+		((RtpStreamer *)user_data)->sendData((const char *)GST_BUFFER_DATA(buf), GST_BUFFER_SIZE(buf));
+		gst_buffer_unref(buf);
+	}
+	return GST_FLOW_OK;
+}
 
 void RtpStreamer::pipelineCreated()
 {
 	appsrc = getGstPipeElement("rtpsrc");
 	gst_app_src_set_caps((GstAppSrc *)appsrc, gst_caps_new_simple("video/x-h264", NULL));
 	gst_app_src_set_stream_type((GstAppSrc *)appsrc, GST_APP_STREAM_TYPE_STREAM);
-	mycallbacks.need_data = &appsrc_need_data;
-	mycallbacks.enough_data = NULL;
-	mycallbacks.seek_data = NULL;
-	//gst_app_src_set_callbacks((GstAppSrc *)appsrc, &mycallbacks, this,  NULL);
 
-	g_object_set(G_OBJECT(getGstPipeElement("netsink")), "sockfd", srcDataSock->socketDescriptor(), NULL);
+	if (!useAppSink())
+		g_object_set(G_OBJECT(getGstPipeElement("netsink")), "sockfd", srcDataSock->socketDescriptor(), NULL);
+
+	if (useAppSink()) {
+		sinkCallbacks.eos = NULL;
+		sinkCallbacks.new_preroll = sink_new_preroll;
+		sinkCallbacks.new_buffer = sink_new_buffer;
+		GstAppSink *appsink = (GstAppSink *)getGstPipeElement("netsink");
+		gst_app_sink_set_caps(appsink, gst_caps_new_simple("application/x-rtp", NULL));
+		gst_app_sink_set_callbacks(appsink, &sinkCallbacks, this, NULL);
+	}
+}
+
+void RtpStreamer::sendData(const char *data, int size)
+{
+	if (size < 1500)
+		srcDataSock->write(data, size);
+	else
+		srcDataSock->write(data, 1400);
 }
 
 void RtpStreamer::pushNextBuffer()
 {
-#if 0
-	if (inputBuffers.size() == 0) {
-		needData = true;
-		return;
-	}
-	RawBuffer buf = inputBuffers.takeFirst();
-	mDebug("sending buffer, %d bytes", buf.size());
-	GstBuffer *buffer = gst_buffer_new_and_alloc(buf.size());
-	memcpy(GST_BUFFER_DATA(buffer), buf.constData(), buf.size());
-	float fps = buf.getBufferParameter("fps").toFloat();
-	GST_BUFFER_DURATION(buffer) = 1000000000ll / fps;
-	GST_BUFFER_TIMESTAMP(buffer) = GST_BUFFER_DURATION(buffer) * buf.streamBufferNo();
-	if (gst_app_src_push_buffer((GstAppSrc *)appsrc, buffer) != GST_FLOW_OK)
-		mDebug("buffer send error");
-	needData = false;
-#else
 	mInfo("new data request: %d available", gstBuffers.size());
 	if (gstBuffers.size() == 0) {
 		needData = true;
@@ -121,7 +145,6 @@ void RtpStreamer::pushNextBuffer()
 	if (gst_app_src_push_buffer((GstAppSrc *)appsrc, buffer) != GST_FLOW_OK)
 		mDebug("buffer send error");
 	needData = false;
-#endif
 }
 
 void RtpStreamer::setDestinationDataPort(int port)
