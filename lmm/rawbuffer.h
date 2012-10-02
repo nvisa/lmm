@@ -64,7 +64,7 @@ class RawBuffer
 {
 public:
 	explicit RawBuffer(BaseLmmElement *parent = 0);
-	explicit RawBuffer(QString mimeType, void *data, int size, BaseLmmElement *parent = 0);
+	explicit RawBuffer(QString mimeType, const void *data, int size, BaseLmmElement *parent = 0);
 	explicit RawBuffer(QString mimeType, int size, BaseLmmElement *parent = 0);
 	RawBuffer(const RawBuffer &other);
 	~RawBuffer();

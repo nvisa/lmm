@@ -71,7 +71,7 @@
 	\sa DmaiBuffer
 */
 
-RawBuffer::RawBuffer(QString mimeType, void *data, int size, BaseLmmElement *parent)
+RawBuffer::RawBuffer(QString mimeType, const void *data, int size, BaseLmmElement *parent)
 {
 	d = new RawBufferData;
 	d->refData = false;
