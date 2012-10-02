@@ -46,8 +46,8 @@ protected:
 
 	int muxNumber; /* global mux number of this instance, needed for UrlProtocol */
 
-	int initMuxer();
-	int findInputStreamInfo();
+	virtual int initMuxer();
+	virtual int findInputStreamInfo();
 	virtual QString mimeType() = 0;
 };
 

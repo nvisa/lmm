@@ -25,6 +25,7 @@ static int lmmUrlOpen(URLContext *h, const char *url, int flags)
 	if (pname.startsWith("lmmmuxo"))
 		mux = pname.remove("lmmmuxo").toInt();
 	h->priv_data = muxPriv.at(mux);
+	fDebug("opening url %s", h->prot->name);
 	return ((BaseLmmMux *)h->priv_data)->openUrl(url, flags);
 }
 
@@ -136,17 +137,23 @@ int BaseLmmMux::findInputStreamInfo()
 	mDebug("trying to find input stream info");
 	if (!inputContext) {
 		inputContext = avformat_alloc_context();
-		if (!inputContext)
+		if (!inputContext) {
+			mDebug("error allocating input context");
 			return -ENOMEM;
+		}
 		QString pname = QString("lmmmuxi%1://muxvideoinput").arg(muxNumber);
 		int err = av_open_input_file(&inputContext, qPrintable(pname), NULL, 0, NULL);
-		if (err)
+		if (err) {
+			mDebug("error opening input file %s", qPrintable(pname));
 			return err;
+		}
 	}
 	inputContext->max_analyze_duration = libavAnalayzeDuration;
 	int err = av_find_stream_info(inputContext);
-	if (err < 0)
+	if (err < 0) {
+		mDebug("cannot find input stream info");
 		return err;
+	}
 	mDebug("%d streams, %d programs present in the file", inputContext->nb_streams, inputContext->nb_programs);
 	for (unsigned int i = 0; i < inputContext->nb_streams; ++i) {
 		mDebug("stream: type %d", inputContext->streams[i]->codec->codec_type);
@@ -194,21 +201,11 @@ RawBuffer BaseLmmMux::nextBuffer()
 			foundStreamInfo = true;
 			while (inputInfoBuffers.size())
 				inputBuffers.prepend(inputInfoBuffers.takeLast());
-			//if (debugMessagesAvailable())
-				//av_dump_format(context, 0, qPrintable(sourceUrlName), false);
-			//emit streamInfoFound();
 			initMuxer();
 		}
 	} else {
 		if (inputBuffers.count() > 0) {
-			mDebug("muxing next packet");
-			//AVPacket *pckt = new AVPacket;
-			//av_read_frame(inputContext, pckt);
-			/*context->
-			//pckt.pts =
-			pckt.stream_index = 0;
-			pckt.data = buf.constData();*/
-
+			mInfo("muxing next packet");
 			RawBuffer buf = inputBuffers.takeFirst();
 			AVPacket pckt;
 			av_init_packet(&pckt);
@@ -216,7 +213,6 @@ RawBuffer BaseLmmMux::nextBuffer()
 			pckt.data = (uint8_t *)buf.constData();
 			pckt.size = buf.size();
 			av_write_frame(context, &pckt);
-
 		}
 	}
 	return BaseLmmElement::nextBuffer();
@@ -254,45 +250,12 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 			inputInfoBuffers << buf;
 		}
 	}
-	/*if (fd < 0)
-		start();
-	QTime timeout; timeout.start();
-	while (buf_size > circBuf->usedSize()) {
-		usleep(50000);
-		if (timeout.elapsed() > 10000)
-			return -ENOENT;
-	}
-	circBuf->lock();
-	memcpy(buf, circBuf->getDataPointer(), buf_size);
-	circBuf->useData(buf_size);
-	circBuf->unlock();*/
 	mInfo("read %d bytes into ffmpeg buffer", copied);
 	return copied;
 }
 
 int BaseLmmMux::openUrl(QString url, int)
 {
-	/*url.remove("lmm://");
-	QStringList fields = url.split(":");
-	QString stream = "tv";
-	QString channel;
-	if (fields.size() == 2) {
-		stream = fields[0];
-		channel = fields[1];
-	} else
-		channel = fields[0];
-	if (!DVBUtils::tuneToChannel(channel))
-		return -EINVAL;
-	struct dvb_ch_info info = DVBUtils::currentChannelInfo();
-	apid = info.apid;
-	vpid = info.vpid;
-	sid = info.spid;
-	if (sid == 0)
-		sid = 1;
-	if (info.freq == 11981)
-		sid = 2;
-	pmt = -1;
-	pcr = -1;*/
 	mDebug("opening %s", qPrintable(url));
 	return 0;
 }
@@ -370,14 +333,6 @@ int BaseLmmMux::initMuxer()
 	mInfo("output codec parameters adjusted");
 
 	context->timestamp = 0;
-	/*AVFormatParameters *ap;
-	memset(ap, 0, sizeof(*ap));
-	if (av_set_parameters(context, ap) < 0) {
-		mDebug("error setting stream paramters");
-		err = -EINVAL;
-		goto err_out1;
-	}
-	mInfo("context parameters set");*/
 
 	context->preload = 0.5 * AV_TIME_BASE; //from ffmpeg source
 	context->max_delay = 0.7 * AV_TIME_BASE; //from ffmpeg source
