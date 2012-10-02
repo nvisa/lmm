@@ -9,7 +9,7 @@
 #include <QUdpSocket>
 
 static inline bool useH264Parser() { return false; }
-static inline bool useAppSink() { return true; }
+static inline bool useAppSink() { return false; }
 
 static GstAppSinkCallbacks sinkCallbacks;
 
