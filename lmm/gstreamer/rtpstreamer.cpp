@@ -100,9 +100,10 @@ GstFlowReturn sink_new_preroll(GstAppSink *sink, gpointer user_data)
 GstFlowReturn sink_new_buffer(GstAppSink *sink, gpointer user_data)
 {
 	GstBuffer *buf = gst_app_sink_pull_buffer(sink);
-	if (buf) {
+	while (buf) {
 		((RtpStreamer *)user_data)->sendData((const char *)GST_BUFFER_DATA(buf), GST_BUFFER_SIZE(buf));
 		gst_buffer_unref(buf);
+		buf = gst_app_sink_pull_buffer(sink);
 	}
 	return GST_FLOW_OK;
 }
