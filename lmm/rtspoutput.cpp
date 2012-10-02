@@ -1,6 +1,8 @@
 #include "rtspoutput.h"
 #include "baselmmoutput.h"
 #include "gstreamer/rtpstreamer.h"
+#include "rtph264mux.h"
+#include "rawbuffer.h"
 
 #include <emdesk/debug.h>
 
@@ -13,12 +15,19 @@
 #include <QNetworkInterface>
 #include <QHostAddress>
 
+#define useGst() 0
+#define useFFmpeg() 1
+#define fastTesting() 0 //enable this for fast testing of RTP
+
 class RtspSession
 {
 public:
 	RtspSession()
 	{
-		gstRtp = new RtpStreamer;
+		if (useFFmpeg())
+			rtpMux = new RtpH264Mux;
+		if (useGst())
+			gstRtp = new RtpStreamer;
 		state = TEARDOWN;
 		/* Let's find our IP address */
 		foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
@@ -32,7 +41,10 @@ public:
 	}
 	~RtspSession()
 	{
-		delete gstRtp;
+		if (useGst())
+			delete gstRtp;
+		if (useFFmpeg())
+			delete rtpMux;
 	}
 
 	int setup(bool mcast, int dPort, int cPort, QString clientIp)
@@ -47,16 +59,32 @@ public:
 		joinedIps << clientIp;
 
 		if (multicast) {
-			gstRtp->setDestinationIpAddress("224.1.1.1");
+			if (useGst())
+				gstRtp->setDestinationIpAddress("224.1.1.1");
+			if (useFFmpeg())
+				rtpMux->setDestinationIpAddress("224.1.1.1");
 			transportString = QString("Transport: RTP/AVP;multicast;destination=224.1.1.1;port=%1-%2;ssrc=6335D514;mode=play")
 					.arg(dataPort).arg(controlPort);
 		} else {
-			gstRtp->setDestinationIpAddress(joinedIps.first());
-			transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=6335D514;mode=play")
-					.arg(dataPort).arg(controlPort).arg(gstRtp->getSourceDataPort()).arg(gstRtp->getSourceControlPort());
+			if (useGst()) {
+				gstRtp->setDestinationIpAddress(joinedIps.first());
+				transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=6335D514;mode=play")
+						.arg(dataPort).arg(controlPort).arg(gstRtp->getSourceDataPort()).arg(gstRtp->getSourceControlPort());
+			}
+			if (useFFmpeg()) {
+				rtpMux->setDestinationIpAddress(joinedIps.first());
+				transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=6335D514;mode=play")
+						.arg(dataPort).arg(controlPort).arg(rtpMux->getSourceDataPort()).arg(rtpMux->getSourceControlPort());
+			}
 		}
-		gstRtp->setDestinationDataPort(dataPort);
-		gstRtp->setDestinationControlPort(controlPort);
+		if (useGst()) {
+			gstRtp->setDestinationDataPort(dataPort);
+			gstRtp->setDestinationControlPort(controlPort);
+		}
+		if (useFFmpeg()) {
+			rtpMux->setDestinationDataPort(dataPort);
+			rtpMux->setDestinationControlPort(controlPort);
+		}
 		/* create session identifier */
 		sessionId = QUuid::createUuid().toString().split("-")[4].remove("}");
 		state = SETUP;
@@ -71,9 +99,16 @@ public:
 	int play()
 	{
 		if (state != PLAY) {
-			gstRtp->setRtpSequenceOffset(6666);
-			gstRtp->setRtpTimestampOffset(1578998879);
-			gstRtp->startPlayback();
+			if (useGst()) {
+				gstRtp->setRtpSequenceOffset(6666);
+				gstRtp->setRtpTimestampOffset(1578998879);
+				gstRtp->startPlayback();
+			}
+			if (useFFmpeg()) {
+				rtpMux->setRtpSequenceOffset(6666);
+				rtpMux->setRtpTimestampOffset(1578998879);
+				rtpMux->start();
+			}
 			state = PLAY;
 		}
 		return 0;
@@ -83,21 +118,39 @@ public:
 		if (joinedIps.contains(peerIp))
 			joinedIps.removeOne(peerIp);
 		if (state == PLAY && joinedIps.size() == 0) {
-			gstRtp->stopPlayback();
+			if (useGst())
+				gstRtp->stopPlayback();
+			if (useFFmpeg())
+				rtpMux->stop();
 			state = TEARDOWN;
 		}
 		return 0;
 	}
 	int sendBuffer(RawBuffer buf)
 	{
-		if (!gstRtp->isRunning())
-			return -1;
-		gstRtp->sendBuffer(buf);
+		if (state != PLAY)
+			return 0;
+		if (useGst()) {
+			if (!gstRtp->isRunning())
+				return -1;
+			gstRtp->sendBuffer(buf);
+		}
+		if (useFFmpeg()) {
+			/* TODO: Parameters should be handled by proper constructor */
+			RawBuffer buf2("application/x-rtp", buf.constData(), buf.size());
+			buf2.setStreamBufferNo(buf.streamBufferNo());
+			buf2.addBufferParameter("fps", buf.getBufferParameter("fps"));
+			rtpMux->addBuffer(buf2);
+		}
 		return 0;
 	}
 	int getWaitingBufferCount()
 	{
-		return gstRtp->getWaitingBufferCount();
+		if (useGst())
+			return gstRtp->getWaitingBufferCount();
+		if (useFFmpeg())
+			return rtpMux->getInputBufferCount();
+		return 0;
 	}
 
 public:
@@ -114,6 +167,7 @@ public:
 	QStringList joinedIps;
 private:
 	RtpStreamer *gstRtp;
+	RtpH264Mux *rtpMux;
 	int dataPort;
 	int controlPort;
 	QHostAddress myIpAddr;
@@ -141,6 +195,13 @@ RtspOutput::RtspOutput(QObject *parent) :
 
 int RtspOutput::start()
 {
+	if (fastTesting()) {
+		/* this is merely for testing purposes */
+		RtspSession *s = new RtspSession;
+		s->setup(false, 15678, 15679, "192.168.1.1");
+		s->play();
+		sessions.insert("qwesad", s);
+	}
 	return BaseLmmOutput::start();
 }
 
@@ -151,7 +212,7 @@ int RtspOutput::stop()
 
 int RtspOutput::outputBuffer(RawBuffer buf)
 {
-	mInfo("pushing new buffer with size %d", buf.size());
+	mInfo("pushing new buffer with size %d, %d sessions are running", buf.size(), sessions.size());
 	foreach (RtspSession *s, sessions)
 		s->sendBuffer(buf);
 	return 0;
