@@ -80,6 +80,7 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 
 void DM365CameraInput::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
+	BufTab_freeBuf((Buffer_Handle)params["dmaiBuffer"].toInt());
 	V4l2Input::aboutDeleteBuffer(params);
 }
 
