@@ -47,7 +47,7 @@ VideoTestSource::VideoTestSource(QObject *parent) :
 	width = 1280;
 	height = 720;
 	lastBufferTime = 0;
-	setFps(25);
+	setFps(30);
 	pattern = PATTERN_COUNT;
 	noisy = false;
 }
@@ -57,7 +57,7 @@ VideoTestSource::VideoTestSource(int nWidth, int nHeight, QObject *parent)
 	width = 1280;
 	height = 720;
 	lastBufferTime = 0;
-	setFps(25);
+	setFps(30);
 	pattern = PATTERN_COUNT;
 	noisy = true;
 	noiseWidth = nWidth;
@@ -157,6 +157,8 @@ void VideoTestSource::setFps(int fps)
 
 RawBuffer VideoTestSource::nextBuffer()
 {
+	/* TODO: Some clever tolerance decision algorithm is needed */
+	int tolerance = 3000;
 	inputLock.lock();
 	if (!inputBuffers.size()) {
 		inputLock.unlock();
@@ -164,7 +166,7 @@ RawBuffer VideoTestSource::nextBuffer()
 	}
 	qint64 time = streamTime->getFreeRunningTime();
 
-	if (time > lastBufferTime + bufferTime) {
+	if (time > lastBufferTime + bufferTime - tolerance) {
 		lastBufferTime = time;
 		/*
 		 * creating a new buffer with software copy is so slow,
