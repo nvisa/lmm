@@ -192,6 +192,49 @@ int BaseLmmMux::findInputStreamInfo()
 	return 0;
 }
 
+void BaseLmmMux::printInputInfo()
+{
+	qDebug() << "class" << inputContext->av_class;
+	qDebug() << "iformat" << inputContext->iformat;
+	qDebug() << "oformat" << inputContext->iformat;
+	qDebug() << "priv_data" << inputContext->priv_data;
+	qDebug() << "pb" << inputContext->pb;
+	qDebug() << "nb_streams" << inputContext->nb_streams;
+	qDebug() << "timestamp" << inputContext->timestamp;
+	qDebug() << "ctx_flags" << inputContext->ctx_flags;
+	qDebug() << "packet_buffer" << inputContext->packet_buffer; //touched
+	qDebug() << "start_time" << inputContext->start_time;
+	qDebug() << "duration" << inputContext->duration;
+	qDebug() << "file_size" << inputContext->file_size;
+	qDebug() << "bit_rate" << inputContext->bit_rate;
+	qDebug() << "cur_st" << inputContext->cur_st;
+	qDebug() << "data_offset" << inputContext->data_offset;
+	qDebug() << "mux_rate" << inputContext->mux_rate;
+	qDebug() << "packet_size" << inputContext->packet_size;
+	qDebug() << "preload" << inputContext->preload;
+	qDebug() << "max_delay" << inputContext->max_delay;
+	qDebug() << "loop_output" << inputContext->loop_output;
+	qDebug() << "flags" << inputContext->flags;
+	qDebug() << "loop_input" << inputContext->loop_input;
+	qDebug() << "probesize" << inputContext->probesize;
+	qDebug() << "max_analyze_duration" << inputContext->max_analyze_duration;
+	qDebug() << "key" << inputContext->key;
+	qDebug() << "keylen" << inputContext->keylen;
+	qDebug() << "nb_programs" << inputContext->nb_programs;
+	qDebug() << "video_codec_id" << inputContext->video_codec_id;
+	qDebug() << "audio_codec_id" << inputContext->audio_codec_id;
+	qDebug() << "subtitle_codec_id" << inputContext->subtitle_codec_id;
+	qDebug() << "max_index_size" << inputContext->max_index_size;
+	qDebug() << "max_picture_buffer" << inputContext->max_picture_buffer;
+	qDebug() << "nb_chapters" << inputContext->nb_chapters;
+	qDebug() << "raw_packet_buffer" << inputContext->raw_packet_buffer;
+	qDebug() << "raw_packet_buffer_end" << inputContext->raw_packet_buffer_end;
+	qDebug() << "packet_buffer_end" << inputContext->packet_buffer_end;
+	qDebug() << "metadata" << inputContext->metadata;
+	qDebug() << "raw_packet_buffer_remaining_size" << inputContext->raw_packet_buffer_remaining_size;
+	qDebug() << "start_time_realtime" << inputContext->start_time_realtime;
+}
+
 RawBuffer BaseLmmMux::nextBuffer()
 {
 	if (!foundStreamInfo) {

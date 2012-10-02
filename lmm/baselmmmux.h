@@ -49,6 +49,7 @@ protected:
 	virtual int initMuxer();
 	virtual int findInputStreamInfo();
 	virtual QString mimeType() = 0;
+	void printInputInfo();
 };
 
 #endif // BASELMMMUX_H
