@@ -30,7 +30,7 @@ SOURCES += \
     tools/unittimestat.cpp \
     gstreamer/rtpstreamer.cpp \
     tools/videoutils.cpp \
-    tools/systeminfo.cpp
+    tools/systeminfo.cpp \
 
 HEADERS  += \
     filesource.h \
@@ -57,7 +57,7 @@ HEADERS  += \
 	tools/unittimestat.h \
     gstreamer/rtpstreamer.h \
     tools/videoutils.h \
-    tools/systeminfo.h
+    tools/systeminfo.h \
 
 vlc {
 	SOURCES += vlc/vlcrtspstreamer.cpp
@@ -98,6 +98,7 @@ ffmpeg {
 		mp4mux.h \
 		avimux.h \
         dvbplayer.h \
+		rtph264mux.h \
 
     SOURCES += \
         avidecoder.cpp \
@@ -108,6 +109,7 @@ ffmpeg {
 		mp4mux.cpp \
 		avimux.cpp \
         dvbplayer.cpp \
+		rtph264mux.cpp \
 
     DEFINES += CONFIG_FFMPEG
 }
