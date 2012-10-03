@@ -3,6 +3,8 @@
 
 #include "dmaiencoder.h"
 
+struct IH264VENC_DynamicParams;
+
 class H264Encoder : public DmaiEncoder
 {
 	Q_OBJECT
@@ -36,6 +38,8 @@ private:
 	int seiBufferSize;
 	bool dirty;
 	VIDENC1_DynamicParams   defaultDynParams;
+	IH264VENC_DynamicParams *dynParams;
+	bool useH264SpecificParameters;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec();

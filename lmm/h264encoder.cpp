@@ -447,12 +447,13 @@ H264Encoder::H264Encoder(QObject *parent) :
 	intraFrameInterval = 30;
 	seiBufferSize = 0;
 	dirty = false;
+	useH264SpecificParameters = true;
 }
 
 int H264Encoder::flush()
 {
 	if (codec == CODEC_H264 && encodeCount) {
-		mDebug("flusing encoder, generating IDR frame");
+		mDebug("flusing encoder, will generate IDR frame");
 		generateIdrFrame = true;
 		if (dirty) {
 			stopCodec();
@@ -631,12 +632,12 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	BufferGfx_setDimensions(buffer, &dim);
 
 	if (generateIdrFrame) {
+		mDebug("generating IDR");
 		VIDENC1_Status status;
 		status.size = sizeof(IH264VENC_Status);
-		VIDENC1_DynamicParams  *dynParams = &defaultDynParams;
-		dynParams->forceFrame = IVIDEO_IDR_FRAME;
+		dynParams->videncDynamicParams.forceFrame = IVIDEO_IDR_FRAME;
 		if (VIDENC1_control(Venc1_getVisaHandle(hCodec), XDM_SETPARAMS,
-							dynParams, &status) != VIDENC1_EOK) {
+							&dynParams->videncDynamicParams, &status) != VIDENC1_EOK) {
 			qDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
 			printErrorMsg(status.extendedError);
 		} else
@@ -662,10 +663,9 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	if (idrGenerated) {
 		VIDENC1_Status status;
 		status.size = sizeof(IH264VENC_Status);
-		VIDENC1_DynamicParams  *dynParams = &defaultDynParams;
-		dynParams->forceFrame = IVIDEO_NA_FRAME;
+		dynParams->videncDynamicParams.forceFrame = IVIDEO_NA_FRAME;
 		if (VIDENC1_control(Venc1_getVisaHandle(hCodec), XDM_SETPARAMS,
-							dynParams, &status) != VIDENC1_EOK)
+							&dynParams->videncDynamicParams, &status) != VIDENC1_EOK)
 			qDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
 		generateIdrFrame = false;
 	}
@@ -716,7 +716,6 @@ int H264Encoder::startCodec()
 	defaultDynParams = Venc1_DynamicParams_DEFAULT;
 	BufferGfx_Attrs         gfxAttrs            = BufferGfx_Attrs_DEFAULT;
 	IH264VENC_Params         *params = new IH264VENC_Params;
-	IH264VENC_DynamicParams *dynParams;
 
 	/* DM365 only supports YUV420P semi planar chroma format */
 	ColorSpace_Type         colorSpace = ColorSpace_YUV420PSEMI;
@@ -735,11 +734,19 @@ int H264Encoder::startCodec()
 
 	/* Use supplied params if any, otherwise use defaults */
 	params->videncParams = Venc1_Params_DEFAULT;
-	params->videncParams.size = sizeof(IH264VENC_Params);
+	if (useH264SpecificParameters)
+		params->videncParams.size = sizeof(IH264VENC_Params);
+	else
+		params->videncParams.size = sizeof(IVIDENC1_Params);
+
 	dynParams = new IH264VENC_DynamicParams;
 	memset(dynParams, 0, sizeof(IH264VENC_DynamicParams));
+	dynParams->videncDynamicParams = defaultDynParams;
 	dynParams->VUI_Buffer = &VUIPARAMBUFFER;
-	dynParams->videncDynamicParams.size = sizeof(IH264VENC_DynamicParams);
+	if (useH264SpecificParameters)
+		dynParams->videncDynamicParams.size = sizeof(IH264VENC_DynamicParams);
+	else
+		dynParams->videncDynamicParams.size = sizeof(IVIDENC1_DynamicParams);
 
 	/*
 	 * Set up codec parameters. We round up the height to accomodate for
@@ -780,12 +787,43 @@ int H264Encoder::startCodec()
 	dynParams->videncDynamicParams.targetFrameRate = params->videncParams.maxFrameRate;
 	dynParams->videncDynamicParams.interFrameInterval = 0;
 	dynParams->videncDynamicParams.intraFrameInterval = intraFrameInterval;
-	dynParams->rcAlgo = 0;
+	dynParams->sliceSize = 0;
+	dynParams->airRate = 0;
+	dynParams->interPFrameQP = 28;
+	dynParams->intraFrameQP = 28;
+	dynParams->initQ = 30;
+	dynParams->rcQMax = 51;
+	dynParams->rcQMin = 0;
+	dynParams->rcQMaxI = 51;
+	dynParams->rcQMinI = 0;
+	dynParams->rcAlgo = 1;
 	dynParams->maxDelay = 2000; //2 secs, default value
+	dynParams->lfDisableIdc = 0;
+	dynParams->enableBufSEI = 0;
+	dynParams->enablePicTimSEI = 0;
+	dynParams->perceptualRC = 0;
+	dynParams->mvSADoutFlag = 0;
+	dynParams->resetHDVICPeveryFrame = 0;
+	dynParams->enableROI = 0;
+	dynParams->metaDataGenerateConsume = 0;
+	dynParams->maxBitrateCVBR = 768000;
+	dynParams->interlaceRefMode = 0;
+	dynParams->enableGDR = 0;
+	dynParams->GDRduration = 5;
+	dynParams->GDRinterval = 30;
+	dynParams->LongTermRefreshInterval = 0;
+	dynParams->UseLongTermFrame = 0;
+	dynParams->SetLongTermFrame = 0;
+	dynParams->CVBRsensitivity = 0;
+	dynParams->CVBRminbitrate = 0;
+	dynParams->LBRmaxpicsize = 0;
+	dynParams->LBRminpicsize = 0;
+	dynParams->LBRskipcontrol = 0;
+	dynParams->maxHighCmpxIntCVBR = 0;
+	dynParams->disableMVDCostFactor = 0;
 	dynParams->aspectRatioX = 1;
 	dynParams->aspectRatioY = 1;
 	dynParams->idrFrameInterval = 1; //no I frames, all will be IDR
-	dynParams->initQ = -1;
 
 	/* extended H.264 parameters */
 	params->profileIdc = 100;
