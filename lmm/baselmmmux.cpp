@@ -256,7 +256,7 @@ RawBuffer BaseLmmMux::nextBuffer()
 			pckt.data = (uint8_t *)buf.constData();
 			pckt.size = buf.size();
 			AVRational avrat = context->streams[0]->time_base;
-			pckt.pts = pckt.dts = buf.streamBufferNo() * avrat.den/ avrat.num
+			pckt.pts = pckt.dts = (quint64)buf.streamBufferNo() * avrat.den / avrat.num
 					 / buf.getBufferParameter("fps").toFloat();
 			mInfo("writing next frame");
 			av_write_frame(context, &pckt);
