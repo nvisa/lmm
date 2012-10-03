@@ -5,6 +5,7 @@
 #include "dm365/ih264venc.h"
 #include "streamtime.h"
 #include "cpuload.h"
+#include "tools/systeminfo.h"
 
 #include <xdc/std.h>
 #include <ti/sdo/ce/Engine.h>
@@ -683,10 +684,10 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		seidata[18] = 0x1; //version
 		seidata[19] = 0x1; //version
 		QByteArray ba(seidata + 20, seiBufferSize - 20);
+		QTime t2; t2.start();
 		addSeiData(&ba, source);
+		mInfo("sei addition took %d msecs", t2.elapsed());
 		memcpy(seidata + 20, ba.constData(), ba.size());
-		//for (int i = 19; i < seiBufferSize; i++)
-			//seidata[i] = i - 19;
 	}
 	RawBuffer buf = DmaiBuffer("video/x-h264", hDstBuf, this);
 	buf.addBufferParameter("frameType", (int)BufferGfx_getFrameType(buffer));
@@ -931,4 +932,6 @@ void H264Encoder::addSeiData(QByteArray *ba, const RawBuffer source)
 	out << (qint32)CpuLoad::getCpuLoad();
 	out << (qint32)CpuLoad::getAverageCpuLoad();
 	out << (qint32)sentBufferCount;
+	out << (qint32)SystemInfo::getFreeMemory();
+	out << (qint32)getFps();
 }
