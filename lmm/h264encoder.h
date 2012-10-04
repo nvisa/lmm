@@ -9,11 +9,6 @@ class H264Encoder : public DmaiEncoder
 {
 	Q_OBJECT
 public:
-	enum RateControl {
-		RATE_CBR,
-		RATE_VBR,
-		RATE_NONE
-	};
 	explicit H264Encoder(QObject *parent = 0);
 	int flush();
 
@@ -29,17 +24,8 @@ signals:
 	
 public slots:
 private:
-	Venc1_Handle hCodec;
-	bool generateIdrFrame;
-	int maxFrameRate;
-	RateControl rateControl;
-	int videoBitRate;
-	int intraFrameInterval;
 	int seiBufferSize;
-	bool dirty;
-	VIDENC1_DynamicParams   defaultDynParams;
-	IH264VENC_DynamicParams *dynParams;
-	bool useH264SpecificParameters;
+	IH264VENC_DynamicParams *dynH264Params;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec();

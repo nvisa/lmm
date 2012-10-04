@@ -20,6 +20,8 @@
 class UnitTimeStat;
 class QTime;
 
+#define CODECHEIGHTALIGN 16
+
 class DmaiEncoder : public BaseLmmElement
 {
 	Q_OBJECT
@@ -27,7 +29,12 @@ public:
 	enum CodecType {
 		CODEC_MPEG2,
 		CODEC_MPEG4,
-		CODEC_H264,
+		CODEC_H264
+	};
+	enum RateControl {
+		RATE_CBR,
+		RATE_VBR,
+		RATE_NONE
 	};
 	explicit DmaiEncoder(QObject *parent = 0);
 	int start();
@@ -59,9 +66,20 @@ protected:
 	UnitTimeStat *encodeTimeStat;
 	QTime *encodeTiming;
 
-	virtual int startCodec() = 0;
-	virtual int stopCodec() = 0;
-	virtual int encode(Buffer_Handle buffer, const RawBuffer source) = 0;
+	Venc1_Handle hCodec;
+	int maxFrameRate;
+	RateControl rateControl;
+	int videoBitRate;
+	int intraFrameInterval;
+	bool generateIdrFrame;
+	bool dirty;
+
+	virtual int startCodec();
+	virtual int stopCodec();
+	virtual int encode(Buffer_Handle buffer, const RawBuffer source);
+
+private:
+	IVIDENC1_DynamicParams *dynParams;
 };
 
 #endif // DMAIENCODER_H
