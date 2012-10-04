@@ -21,6 +21,7 @@ public:
 		usedLen = 0;
 		bufferNo = 0;
 		myParent = NULL;
+		duration = 0;
 	}
 
 	RawBufferData(const RawBufferData &other)
