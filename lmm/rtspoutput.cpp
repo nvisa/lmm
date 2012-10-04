@@ -251,7 +251,7 @@ void RtspOutput::clientDisconnected(QObject *obj)
 	sock->abort();
 	sock->deleteLater();
 	clients.removeOne(sock);
-	qDebug() << "connection closed";
+	mDebug("connection closed");
 	foreach (RtspSession *s, sessions) {
 		s->teardown(sock->peerAddress().toString());
 	}
@@ -259,7 +259,7 @@ void RtspOutput::clientDisconnected(QObject *obj)
 
 void RtspOutput::clientError(QObject *)
 {
-	qDebug() << "connection error";
+	mDebug("connection error");
 }
 
 void RtspOutput::clientDataReady(QObject *obj)
@@ -284,7 +284,7 @@ void RtspOutput::clientDataReady(QObject *obj)
 	}
 	QString end = lsep + lsep;
 	if (mes.contains(end)) {
-		qDebug() << "new message from rtsp client: " << mes;
+		mDebug("new message from rtsp client: \n%s", qPrintable(mes));
 #if 1
 		QStringList resp = handleRtspMessage(mes, lsep, sock->peerAddress().toString());
 		msgbuffer[sock] = "";
@@ -496,13 +496,13 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString pee
 
 void RtspOutput::sendRtspMessage(QTcpSocket *sock, const QByteArray &mes)
 {
-	qDebug() << "sending rtsp message to" << sock->peerAddress() << QString::fromUtf8(mes);
+	mDebug("sending rtsp message to %s: %s", qPrintable(sock->peerAddress().toString()),
+		   mes.constData());
 	sock->write(mes);
 }
 
 void RtspOutput::sendRtspMessage(QTcpSocket *sock, const QStringList &lines, const QString &lsep)
 {
-	//qDebug() << "sending mes:\n" << lines;
 	sendRtspMessage(sock, lines.join(lsep).toUtf8());
 }
 
