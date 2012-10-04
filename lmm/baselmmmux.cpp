@@ -96,6 +96,7 @@ BaseLmmMux::BaseLmmMux(QObject *parent) :
 
 	fmt = NULL;
 	libavAnalayzeDuration = 5000000; /* this is ffmpeg default */
+	threaded = true;
 }
 
 int BaseLmmMux::start()
@@ -242,11 +243,14 @@ RawBuffer BaseLmmMux::nextBuffer()
 			mDebug("error in input stream info");
 		} else {
 			foundStreamInfo = true;
+			inputLock.lock();
 			while (inputInfoBuffers.size())
 				inputBuffers.prepend(inputInfoBuffers.takeLast());
+			inputLock.unlock();
 			initMuxer();
 		}
 	} else {
+		inputLock.lock();
 		if (inputBuffers.count() > 0) {
 			mInfo("muxing next packet");
 			RawBuffer buf = inputBuffers.takeFirst();
@@ -261,6 +265,7 @@ RawBuffer BaseLmmMux::nextBuffer()
 			mInfo("writing next frame");
 			av_write_frame(context, &pckt);
 		}
+		inputLock.unlock();
 	}
 	return BaseLmmElement::nextBuffer();
 }
@@ -268,7 +273,9 @@ RawBuffer BaseLmmMux::nextBuffer()
 int BaseLmmMux::writePacket(const uint8_t *buffer, int buf_size)
 {
 	RawBuffer buf(mimeType(), (void *)buffer, buf_size);
+	outputLock.lock();
 	outputBuffers << buf;
+	outputLock.unlock();
 	return buf_size;
 }
 
@@ -277,6 +284,7 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 	mInfo("will read %d bytes into ffmpeg buffer", buf_size);
 	/* This routine may be called before the stream started */
 	int copied = 0, left = buf_size;
+	inputLock.lock();
 	while (inputBuffers.size()) {
 		RawBuffer buf = inputBuffers.takeFirst();
 		mInfo("using next input buffer, copied=%d left=%d buf.size()=%d", copied, left, buf.size());
@@ -297,6 +305,7 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 			inputInfoBuffers << buf;
 		}
 	}
+	inputLock.unlock();
 	mInfo("read %d bytes into ffmpeg buffer", copied);
 	return copied;
 }
