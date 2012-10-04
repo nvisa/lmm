@@ -248,6 +248,7 @@ RawBuffer BaseLmmMux::nextBuffer()
 				inputBuffers.prepend(inputInfoBuffers.takeLast());
 			inputLock.unlock();
 			initMuxer();
+			emit inputInfoFound();
 		}
 	} else {
 		inputLock.lock();

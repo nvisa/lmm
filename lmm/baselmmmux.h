@@ -27,7 +27,7 @@ public:
 	int openUrl(QString url, int flags);
 	int closeUrl(URLContext *h);
 signals:
-	
+	void inputInfoFound();
 public slots:
 protected:
 	int libavAnalayzeDuration;
