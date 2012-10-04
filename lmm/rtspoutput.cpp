@@ -140,6 +140,7 @@ public:
 			/* TODO: Parameters should be handled by proper constructor */
 			RawBuffer buf2("application/x-rtp", buf.constData(), buf.size());
 			buf2.setStreamBufferNo(buf.streamBufferNo());
+			buf2.setDuration(buf.getDuration());
 			buf2.addBufferParameter("fps", buf.getBufferParameter("fps"));
 			rtpMux->addBuffer(buf2);
 		}
