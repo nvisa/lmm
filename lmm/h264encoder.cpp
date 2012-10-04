@@ -680,6 +680,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	buf.addBufferParameter("captureTime", source.getBufferParameter("captureTime"));
 	buf.addBufferParameter("encodeTime", streamTime->getCurrentTime());
 	buf.setStreamBufferNo(encodeCount++);
+	buf.setDuration(1000 / buf.getBufferParameter("fps").toFloat());
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
