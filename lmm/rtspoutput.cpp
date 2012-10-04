@@ -24,6 +24,7 @@ class RtspSession
 public:
 	RtspSession()
 	{
+		rtpMux = NULL;
 		if (useFFmpeg())
 			rtpMux = new RtpH264Mux;
 		if (useGst())
@@ -152,6 +153,7 @@ public:
 			return rtpMux->getInputBufferCount();
 		return 0;
 	}
+	RtpH264Mux * getMuxer() { return rtpMux; }
 
 public:
 	enum SessionState {
@@ -302,6 +304,11 @@ void RtspOutput::clientDataReady(QObject *obj)
 #endif
 	} else
 		msgbuffer[sock] = mes;
+}
+
+void RtspOutput::sessionNeedFlushing()
+{
+	emit needFlushing();
 }
 
 void RtspOutput::connectedToVlc()
@@ -545,8 +552,11 @@ bool RtspOutput::canSetupMore(bool multicast)
 
 RtspSession * RtspOutput::findSession(bool multicast, QString url, QString sessionId)
 {
-	if (!sessions.size())
-		return new RtspSession;
+	if (!sessions.size()) {
+		RtspSession *s = new RtspSession;
+		connect(s->getMuxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
+		return s;
+	}
 	foreach (RtspSession *s, sessions) {
 		if (!url.isEmpty() && (s->controlUrl != url))
 			continue;

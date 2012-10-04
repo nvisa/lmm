@@ -32,6 +32,7 @@ private slots:
 	void clientDisconnected(QObject*obj);
 	void clientError(QObject*);
 	void clientDataReady(QObject*obj);
+	void sessionNeedFlushing();
 
 	/* vlc slots */
 	void connectedToVlc();
