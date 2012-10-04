@@ -437,6 +437,7 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString pee
 				delete ses;
 				return createRtspErrorResponse(err);
 			}
+			emit newSessionCreated();
 			ses->controlUrl = cbase;
 			sessions.insert(cbase, ses);
 

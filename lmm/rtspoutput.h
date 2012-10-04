@@ -26,7 +26,7 @@ public:
 
 	int getOutputBufferCount();
 signals:
-	
+	void newSessionCreated();
 private slots:
 	void newRtspConnection();
 	void clientDisconnected(QObject*obj);
