@@ -47,6 +47,7 @@ public:
 	int getSentBufferCount() { return sentBufferCount; }
 	int getFps() { return elementFps; }
 	UnitTimeStat * getOutputTimeStat() { return outputTimeStat; }
+	int getAvailableDuration();
 signals:
 	void needFlushing();
 public slots:

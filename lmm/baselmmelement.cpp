@@ -192,6 +192,14 @@ void BaseLmmElement::printStats()
 	qDebug() << this << receivedBufferCount << sentBufferCount;
 }
 
+int BaseLmmElement::getAvailableDuration()
+{
+	int availDuration = 0;
+	for (int i = 0; i < inputBuffers.size(); i++)
+		availDuration += inputBuffers.at(i).getDuration();
+	return availDuration;
+}
+
 void BaseLmmElement::calculateFps()
 {
 	fpsBufferCount++;
