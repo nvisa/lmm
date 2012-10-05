@@ -150,7 +150,7 @@ public:
 		if (useGst())
 			return gstRtp->getWaitingBufferCount();
 		if (useFFmpeg())
-			return rtpMux->getInputBufferCount();
+			return rtpMux->getInputBufferCount() + rtpMux->getOutputBufferCount();
 		return 0;
 	}
 	RtpH264Mux * getMuxer() { return rtpMux; }
