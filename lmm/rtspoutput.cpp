@@ -200,6 +200,10 @@ int RtspOutput::start()
 	if (fastTesting()) {
 		/* this is merely for testing purposes */
 		RtspSession *s = new RtspSession;
+		if (s->getMuxer()) {
+			s->getMuxer()->setStreamTime(streamTime);
+			connect(s->getMuxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
+		}
 		s->setup(false, 15678, 15679, "192.168.1.1");
 		s->play();
 		sessions.insert("qwesad", s);
@@ -555,7 +559,10 @@ RtspSession * RtspOutput::findSession(bool multicast, QString url, QString sessi
 {
 	if (!sessions.size()) {
 		RtspSession *s = new RtspSession;
-		connect(s->getMuxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
+		if (s->getMuxer()) {
+			s->getMuxer()->setStreamTime(streamTime);
+			connect(s->getMuxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
+		}
 		return s;
 	}
 	foreach (RtspSession *s, sessions) {
