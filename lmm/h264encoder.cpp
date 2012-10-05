@@ -681,9 +681,8 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		memcpy(seidata + 20, ba.constData(), ba.size());
 	}
 	RawBuffer buf = DmaiBuffer("video/x-h264", hDstBuf, this);
+	buf.addBufferParameters(source.bufferParameters());
 	buf.addBufferParameter("frameType", (int)BufferGfx_getFrameType(buffer));
-	buf.addBufferParameter("fps", source.getBufferParameter("fps"));
-	buf.addBufferParameter("captureTime", source.getBufferParameter("captureTime"));
 	buf.addBufferParameter("encodeTime", streamTime->getCurrentTime());
 	buf.setStreamBufferNo(encodeCount++);
 	buf.setDuration(1000 / buf.getBufferParameter("fps").toFloat());

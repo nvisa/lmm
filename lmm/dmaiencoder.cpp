@@ -318,9 +318,8 @@ int DmaiEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	int frameType = BufferGfx_getFrameType(buffer);
 	if (frameType == IVIDEO_IDR_FRAME)
 		qDebug("IDR frame generated");
+	buf.addBufferParameters(source.bufferParameters());
 	buf.addBufferParameter("frameType", frameType);
-	buf.addBufferParameter("fps", source.getBufferParameter("fps"));
-	buf.addBufferParameter("captureTime", source.getBufferParameter("captureTime"));
 	buf.addBufferParameter("encodeTime", streamTime->getCurrentTime());
 	buf.setStreamBufferNo(encodeCount++);
 	buf.setDuration(1000 / buf.getBufferParameter("fps").toFloat());
