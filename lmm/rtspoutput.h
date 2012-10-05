@@ -23,6 +23,7 @@ public:
 	int start();
 	int stop();
 	int outputBuffer(RawBuffer buf);
+	int getLoopLatency();
 
 	int getOutputBufferCount();
 signals:

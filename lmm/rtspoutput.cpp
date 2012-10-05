@@ -224,6 +224,16 @@ int RtspOutput::outputBuffer(RawBuffer buf)
 	return 0;
 }
 
+int RtspOutput::getLoopLatency()
+{
+	if (!sessions.size())
+		return 0;
+	RtpH264Mux *mux = sessions.values()[0]->getMuxer();
+	if (mux)
+		return mux->getLoopLatency();
+	return 0;
+}
+
 int RtspOutput::getOutputBufferCount()
 {
 	int cnt = 0;
