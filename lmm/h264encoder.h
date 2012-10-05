@@ -20,10 +20,14 @@ public:
 	int setBitrate(int v) { videoBitRate = v; dirty = true; return 0; }
 	int getIntraFrameInterval() { return intraFrameInterval; }
 	int setIntraFrameInterval(int v) { intraFrameInterval = v; dirty = true; return 0; }
+
+	/* sei information */
+	void setSeiLoopLatency(int lat);
 signals:
 	
 public slots:
 private:
+	int seiLoopLatency;
 	int seiBufferSize;
 	IH264VENC_DynamicParams *dynH264Params;
 

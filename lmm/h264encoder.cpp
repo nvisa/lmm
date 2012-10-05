@@ -441,6 +441,7 @@ static void printErrorMsg(XDAS_Int32 errorCode)
 H264Encoder::H264Encoder(QObject *parent) :
 	DmaiEncoder(parent)
 {
+	seiLoopLatency = 0;
 	seiBufferSize = 0;
 	dirty = false;
 }
@@ -448,6 +449,11 @@ H264Encoder::H264Encoder(QObject *parent) :
 int H264Encoder::flush()
 {
 	return DmaiEncoder::flush();
+}
+
+void H264Encoder::setSeiLoopLatency(int lat)
+{
+	seiLoopLatency = lat;
 }
 
 typedef struct Venc1_Object {
@@ -903,4 +909,6 @@ void H264Encoder::addSeiData(QByteArray *ba, const RawBuffer source)
 	out << (qint32)sentBufferCount;
 	out << (qint32)SystemInfo::getFreeMemory();
 	out << (qint32)getFps();
+	out << (qint32)seiLoopLatency;
+	out << (qint32)source.getBufferParameter("latencyId").toInt();
 }
