@@ -68,6 +68,12 @@ int BaseLmmOutput::setThreaded(bool v)
 	return 0;
 }
 
+int BaseLmmOutput::getLoopLatency()
+{
+	/* TODO: Implement default loop latency calculation */
+	return 0;
+}
+
 int BaseLmmOutput::checkBufferTimeStamp(RawBuffer buf, int jitter)
 {
 	if (!streamTime)

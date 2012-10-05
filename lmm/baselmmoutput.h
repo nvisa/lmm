@@ -20,6 +20,7 @@ public:
 	virtual int output();
 	virtual qint64 getLatency();
 	virtual int setThreaded(bool v);
+	virtual int getLoopLatency();
 signals:
 	
 public slots:
