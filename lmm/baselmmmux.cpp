@@ -97,6 +97,7 @@ BaseLmmMux::BaseLmmMux(QObject *parent) :
 	fmt = NULL;
 	libavAnalayzeDuration = 5000000; /* this is ffmpeg default */
 	threaded = true;
+	muxOutputOpened = false;
 }
 
 int BaseLmmMux::start()
@@ -265,6 +266,8 @@ RawBuffer BaseLmmMux::nextBuffer()
 					 / buf.getBufferParameter("fps").toFloat();
 			mInfo("writing next frame");
 			av_write_frame(context, &pckt);
+			if (!muxOutputOpened)
+				outputBuffers << buf;
 		}
 		inputLock.unlock();
 	}
@@ -314,6 +317,8 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 int BaseLmmMux::openUrl(QString url, int)
 {
 	mDebug("opening %s", qPrintable(url));
+	if (url.contains("lmmmuxo"))
+		muxOutputOpened = true;
 	return 0;
 }
 

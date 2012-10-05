@@ -1,8 +1,8 @@
 #define __STDC_CONSTANT_MACROS
 #include "rtph264mux.h"
+#include "streamtime.h"
 
 #include <emdesk/debug.h>
-
 
 extern "C" {
 	#include <libavformat/avformat.h>
@@ -12,6 +12,7 @@ extern "C" {
 RtpH264Mux::RtpH264Mux(QObject *parent) :
 	BaseLmmMux(parent)
 {
+	loopLatency = 0;
 	srcDataPort = 17458;
 	srcControlPort = 17489;
 	sourceUrlName = "rtp://192.168.1.1:12346?localrtpport=17458?localrtcpport=17489";
@@ -43,7 +44,12 @@ int RtpH264Mux::addBuffer(RawBuffer buffer)
 	int err = BaseLmmElement::addBuffer(buffer);
 	if (err)
 		return err;
-	nextBuffer();
+	RawBuffer buf = nextBuffer();
+	while (buf.size()) {
+		if (streamTime)
+			loopLatency = streamTime->getCurrentTime() - buf.getBufferParameter("captureTime").toInt();
+		buf = nextBuffer();
+	}
 	return 0;
 }
 

@@ -22,6 +22,7 @@ public:
 	void setDestinationControlPort(int port) { dstControlPort = port; }
 	int getSourceDataPort() { return srcDataPort; }
 	int getSourceControlPort() { return srcControlPort; }
+	int getLoopLatency() { return loopLatency; }
 protected:
 	int findInputStreamInfo();
 	int initMuxer();
@@ -32,6 +33,7 @@ private:
 	int srcControlPort;
 	int rtpSequenceOffset;
 	int rtpTimestampOffset;
+	int loopLatency;
 	QString dstIp;
 };
 

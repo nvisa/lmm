@@ -45,6 +45,7 @@ protected:
 	QList<RawBuffer> inputInfoBuffers;
 
 	int muxNumber; /* global mux number of this instance, needed for UrlProtocol */
+	bool muxOutputOpened;
 
 	virtual int initMuxer();
 	virtual int findInputStreamInfo();
