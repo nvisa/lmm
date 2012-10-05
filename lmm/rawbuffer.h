@@ -73,6 +73,8 @@ public:
 	void setParentElement(BaseLmmElement *el);
 	void setRefData(QString mimeType, void *data, int size);
 	void addBufferParameter(QString, QVariant);
+	void addBufferParameters(const QMap<QString, QVariant> &other);
+	const QMap<QString, QVariant> bufferParameters() const;
 	QVariant getBufferParameter(QString) const;
 	void setSize(int size);
 	int prepend(const void *data, int size);
