@@ -127,6 +127,7 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 	rtspOutput->syncOnClock(false);
 	rtspOutput->setThreaded(false);
 	elements << rtspOutput;
+	connect(rtspOutput, SIGNAL(newSessionCreated()), SLOT(newRtspSessionCreated()));
 
 	timer = new QTimer(this);
 	timer->setSingleShot(true);
@@ -154,12 +155,12 @@ int CameraStreamer::start()
 	foreach (BaseLmmElement *el, elements) {
 		mInfo("starting element %s", el->metaObject()->className());
 		el->flush();
+		el->setStreamTime(streamTime);
 		int err = el->start();
 		if (err) {
 			mDebug("error starting element %s", el->metaObject()->className());
 			return err;
 		}
-		el->setStreamTime(streamTime);
 		connect(el, SIGNAL(needFlushing()), SLOT(flushElements()));
 	}
 	if (threadedEncode) {
@@ -260,6 +261,10 @@ void CameraStreamer::encodeLoop()
 		encoder->addBuffer(buf);
 	}
 
+	if (flushForSpsPps) {
+		encoder->flush();
+		flushForSpsPps = 0;
+	}
 	if (!threadedEncode)
 		encoder->encodeNext();
 	RawBuffer buf2 = encoder->nextBuffer();
@@ -276,24 +281,8 @@ void CameraStreamer::encodeLoop()
 			if (streamingType == RTSP) {
 				if (!useFileIOForRtsp) { //due to live555 rtsp bug
 					rtspOutput->addBuffer(buf2);
-					int res = rtspOutput->output();
-					/*
-					 * When we have a new RTSP connection
-					 * H.264 encoder is needed to be flushed
-					 * so that client receives SPS/PPS
-					 */
-					if (res == 0) {
-						if (flushForSpsPps) {
-							encoder->flush();
-							flushForSpsPps = 0;
-						}
-					} else
-						flushForSpsPps = 1;
-
-					//rtspServer->addBuffer(buf2);
-
-					//rtspVlc->addBuffer(buf2);
-					/* no need to call output, vlc pulls buffers on his own */
+					rtspOutput->output();
+					encoder->setSeiLoopLatency(rtspOutput->getLoopLatency());
 				} else {
 					output->addBuffer(buf2);
 					output->output();
@@ -308,7 +297,6 @@ void CameraStreamer::encodeLoop()
 			output->addBuffer(buf2);
 			output->output();
 			debugServer->addCustomStat(DebugServer::STAT_RTSP_OUT_TIME, timing.restart());
-			//rtsp->addBuffer(buf2);
 		}
 	}
 
@@ -337,6 +325,11 @@ void CameraStreamer::flushElements()
 	foreach (BaseLmmElement *el, elements) {
 		el->flush();
 	}
+}
+
+void CameraStreamer::newRtspSessionCreated()
+{
+	flushForSpsPps = 1;
 }
 
 void CameraStreamer::useThreadedEncode(bool v)

@@ -76,6 +76,7 @@ signals:
 public slots:
 	void encodeLoop();
 	void flushElements();
+	void newRtspSessionCreated();
 private:
 	QList<BaseLmmElement *> elements;
 	H264Encoder *encoder;
@@ -86,7 +87,7 @@ private:
 	BaseLmmElement *testInput;
 	TextOverlay *overlay;
 	QTimer *timer;
-	BaseLmmOutput *rtspOutput;
+	RtspOutput *rtspOutput;
 	RtspServer *rtspServer;
 	QTime timing;
 	DebugServer *debugServer;
