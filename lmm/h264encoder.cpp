@@ -442,7 +442,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	DmaiEncoder(parent)
 {
 	seiLoopLatency = 0;
-	seiBufferSize = 0;
+	seiBufferSize = 1024;
 	dirty = false;
 }
 
