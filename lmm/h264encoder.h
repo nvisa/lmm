@@ -34,7 +34,7 @@ private:
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec();
 	int stopCodec();
-	void addSeiData(QByteArray *ba, const RawBuffer source);
+	int addSeiData(QByteArray *ba, const RawBuffer source);
 };
 
 #endif // H264ENCODER_H

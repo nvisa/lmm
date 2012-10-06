@@ -676,7 +676,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		seidata[19] = 0x1; //version
 		QByteArray ba(seidata + 20, seiBufferSize - 20);
 		QTime t2; t2.start();
-		addSeiData(&ba, source);
+		seiBufferSize = addSeiData(&ba, source) + 20;
 		mInfo("sei addition took %d msecs", t2.elapsed());
 		memcpy(seidata + 20, ba.constData(), ba.size());
 	}
@@ -895,9 +895,10 @@ int H264Encoder::stopCodec()
 	return DmaiEncoder::stop();
 }
 
-void H264Encoder::addSeiData(QByteArray *ba, const RawBuffer source)
+int H264Encoder::addSeiData(QByteArray *ba, const RawBuffer source)
 {
 	QDataStream out(ba, QIODevice::WriteOnly);
+	int start = out.device()->pos();
 	out.setByteOrder(QDataStream::LittleEndian);
 	out << (qint32)0x11223344; //version
 	out << (qint64)streamTime->getCurrentTime();
@@ -910,4 +911,5 @@ void H264Encoder::addSeiData(QByteArray *ba, const RawBuffer source)
 	out << (qint32)getFps();
 	out << (qint32)seiLoopLatency;
 	out << (qint32)source.getBufferParameter("latencyId").toInt();
+	return out.device()->pos() - start;
 }
