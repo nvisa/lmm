@@ -46,8 +46,6 @@ public:
 	/* control API */
 	int setCodecType(CodecType type);
 	CodecType getCodecType() { return codec; }
-	void setImageSize(QSize s);
-	QSize getImageSize() { return QSize(imageWidth, imageHeight); }
 
 	static void initCodecEngine();
 signals:

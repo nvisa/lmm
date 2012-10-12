@@ -25,12 +25,6 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 	encodeTiming = new QTime;
 }
 
-void DmaiEncoder::setImageSize(QSize s)
-{
-	imageWidth = s.width();
-	imageHeight = s.height();
-}
-
 int DmaiEncoder::setCodecType(DmaiEncoder::CodecType type)
 {
 	if (type == CODEC_MPEG2)
