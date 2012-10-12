@@ -41,6 +41,12 @@ int DmaiEncoder::setCodecType(DmaiEncoder::CodecType type)
 
 int DmaiEncoder::start()
 {
+	int w = getParameter("videoWidth").toInt();
+	int h = getParameter("videoHeight").toInt();
+	if (w)
+		imageWidth = w;
+	if (h)
+		imageHeight = h;
 	encodeTimeStat->reset();
 	encodeTiming->start();
 	encodeCount = 0;

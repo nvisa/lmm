@@ -97,6 +97,9 @@ private:
 	int muxType;
 	bool flushForSpsPps;
 
+	int imageWidth;
+	int imageHeight;
+
 	bool useFileIOForRtsp;
 	bool useOverlay;
 	bool useDisplay;

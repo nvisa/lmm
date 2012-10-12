@@ -146,16 +146,31 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 	threadedEncode = true;
 	useFileIOForRtsp = false;
 	flushForSpsPps = false;
+
+	imageWidth = 320;
+	imageHeight = 240;
 }
 
 int CameraStreamer::start()
 {
-	if (useTestInput)
+	if (useTestInput) {
+		testInput->setParameter("videoWidth", imageWidth);
+		testInput->setParameter("videoHeight", imageHeight);
 		((VideoTestSource *)testInput)->setTestPattern(VideoTestSource::COLORCHART);
+	}
 	foreach (BaseLmmElement *el, elements) {
 		mInfo("starting element %s", el->metaObject()->className());
 		el->flush();
 		el->setStreamTime(streamTime);
+		/*
+		 * set element parameters, not all parameters are used
+		 * in all elements but we notify all of them. These can be
+		 * regarded as global pipeline parameters
+		 */
+		el->setParameter("videoWidth", imageWidth);
+		el->setParameter("videoHeight", imageHeight);
+
+		/* start element */
 		int err = el->start();
 		if (err) {
 			mDebug("error starting element %s", el->metaObject()->className());

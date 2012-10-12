@@ -73,6 +73,14 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 {
 	if (p == pattern)
 		return;
+	int w, h;
+	w = getParameter("videoWidth").toInt();
+	h = getParameter("videoHeight").toInt();
+	if (w)
+		width = w;
+	if (h)
+		height = h;
+	mDebug("creating test pattern %d, widht=%d, height=%d", p, width, height);
 	/* we will use cache data if exists */
 	QFile f("/tmp/lmmtestpattern.yuv");
 	pattern = p;
@@ -80,13 +88,14 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 	bool cvalid = false;
 
 	/* TODO: color space is assumed to be NV12 */
+	BufferGfx_Attrs *attr = DmaiBuffer::createGraphicAttrs(width, height, V4L2_PIX_FMT_NV12);
 	if (f.exists()) {
 		f.open(QIODevice::ReadOnly);
 		QByteArray ba = f.readAll();
 		if (ba.at(0) == p) {
 			for (int i = 0; i < 3; i++) {
 				DmaiBuffer imageBuf("video/x-raw-yuv", (ba.constData() + 1)
-									  , width * height * 3 / 2);
+									  , width * height * 3 / 2, attr, this);
 				imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
 				inputBuffers << imageBuf;
 			}
@@ -95,12 +104,16 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 		f.close();
 	}
 	if (!cvalid) {
-		DmaiBuffer imageBuf("video/x-raw-yuv", width * height * 3 / 2, this);
+		DmaiBuffer imageBuf("video/x-raw-yuv", width * height * 3 / 2, attr, this);
 		imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
 		inputBuffers << imageBuf;
 
 		uchar *ydata = (uchar *)imageBuf.constData();
 		uchar *cdata = ydata + imageBuf.size() / 3 * 2;
+
+		/* scale image if necessary */
+		if (pImage.width() != width || pImage.height() != height)
+			pImage = pImage.scaled(width, height);
 
 		int cindex = 0;
 		/* do colorspace conversion */
@@ -147,6 +160,7 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 		}
 		randF.close();
 	}
+	mDebug("test pattern created successfully");
 }
 
 void VideoTestSource::setFps(int fps)

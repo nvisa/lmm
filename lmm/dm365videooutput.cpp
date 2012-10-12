@@ -92,16 +92,22 @@ int DM365VideoOutput::outputBuffer(RawBuffer buf)
 
 int DM365VideoOutput::start()
 {
+	int w = getParameter("videoWidth").toInt();
+	int h = getParameter("videoHeight").toInt();
+	if (!w)
+		w = 1280;
+	if (!h)
+		h = 720;
 	int bufSize;
 	ColorSpace_Type colorSpace = ColorSpace_YUV420PSEMI;
 	if (pixelFormat == V4L2_PIX_FMT_UYVY)
 		colorSpace = ColorSpace_UYVY;
 	if (outputType == Lmm::COMPONENT) {
-		gfxAttrs.dim.width = 1280;
-		gfxAttrs.dim.height = 720;
+		gfxAttrs.dim.width = w;
+		gfxAttrs.dim.height = h;
 	} else if (outputType == Lmm::COMPOSITE) {
-		gfxAttrs.dim.width = 720;
-		gfxAttrs.dim.height = 576;
+		gfxAttrs.dim.width = w;
+		gfxAttrs.dim.height = h;
 	} else
 		return -EINVAL;
 	gfxAttrs.dim.lineLength =

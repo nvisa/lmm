@@ -46,27 +46,25 @@ DmaiBuffer::DmaiBuffer(QString mimeType, Buffer_Handle handle, BaseLmmElement *p
 	init(handle);
 }
 
-DmaiBuffer::DmaiBuffer(QString mimeType, const void *data, int size, BaseLmmElement *parent)
+DmaiBuffer::DmaiBuffer(QString mimeType, const void *data, int size, BufferGfx_Attrs *gfxAttrs, BaseLmmElement *parent)
 {
 	d = new DmaiBufferData();
 	d->myParent = parent;
 	d->rawData = NULL;
 	d->refData = false;
 	d->mimeType = mimeType;
-	pixFormat = V4L2_PIX_FMT_NV12;
-	init(size);
+	init(size, gfxAttrs);
 	memcpy(this->data(), data, size);
 }
 
-DmaiBuffer::DmaiBuffer(QString mimeType, int size, BaseLmmElement *parent)
+DmaiBuffer::DmaiBuffer(QString mimeType, int size, BufferGfx_Attrs *gfxAttrs, BaseLmmElement *parent)
 {
 	d = new DmaiBufferData();
 	d->myParent = parent;
 	d->rawData = NULL;
 	d->refData = false;
 	d->mimeType = mimeType;
-	pixFormat = V4L2_PIX_FMT_NV12;
-	init(size);
+	init(size, gfxAttrs);
 }
 
 DmaiBuffer::DmaiBuffer(const RawBuffer &other) :
@@ -78,15 +76,41 @@ DmaiBuffer::~DmaiBuffer()
 {
 }
 
-void DmaiBuffer::init(int size)
+BufferGfx_Attrs * DmaiBuffer::createGraphicAttrs(int width, int height, int pixFormat)
+{
+	BufferGfx_Attrs *gfxAttrs = new BufferGfx_Attrs;
+	*gfxAttrs = BufferGfx_Attrs_DEFAULT;
+	gfxAttrs->dim.x = 0;
+	gfxAttrs->dim.y = 0;
+	gfxAttrs->dim.width = width;
+	gfxAttrs->dim.height = height;
+	if (pixFormat == V4L2_PIX_FMT_UYVY) {
+		gfxAttrs->colorSpace = ColorSpace_UYVY;
+		gfxAttrs->dim.lineLength = Dmai_roundUp(gfxAttrs->dim.width * 2, 32);
+	} else if (pixFormat == V4L2_PIX_FMT_NV12) {
+		gfxAttrs->colorSpace = ColorSpace_YUV420PSEMI;
+		gfxAttrs->dim.lineLength = Dmai_roundUp(gfxAttrs->dim.width, 32);
+	}
+	return gfxAttrs;
+}
+
+int DmaiBuffer::getBufferSizeFor(BufferGfx_Attrs *attrs)
+{
+	if (attrs->colorSpace = ColorSpace_UYVY)
+		return attrs->dim.width * attrs->dim.height * 2;
+	if (attrs->colorSpace = ColorSpace_YUV420PSEMI)
+		return attrs->dim.width * attrs->dim.height * 3 / 2;
+	return 0;
+}
+
+void DmaiBuffer::init(int size, BufferGfx_Attrs *gfxAttrs)
 {
 	/* buffer allocation */
-	BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
+	/*BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
 	gfxAttrs.dim.x = 0;
 	gfxAttrs.dim.y = 0;
-	gfxAttrs.dim.width = 1280; //TODO:
-	gfxAttrs.dim.height = 720; //TODO:
-	int bufSize;
+	gfxAttrs.dim.width = width;
+	gfxAttrs.dim.height = height;
 	if (pixFormat == V4L2_PIX_FMT_UYVY) {
 		gfxAttrs.colorSpace = ColorSpace_UYVY;
 		gfxAttrs.dim.lineLength = Dmai_roundUp(gfxAttrs.dim.width * 2, 32);
@@ -97,14 +121,15 @@ void DmaiBuffer::init(int size)
 		bufSize = gfxAttrs.dim.width * gfxAttrs.dim.height * 3 / 2;
 	}
 
+	int bufSize;
 	if (bufSize != size)
-		qDebug("buffer size doesn't match graphic attributes");
+		qDebug("buffer size doesn't match graphic attributes");*/
 	DmaiBufferData *dd = (DmaiBufferData *)d.data();
-	dd->dmaibuf = Buffer_create(size, BufferGfx_getBufferAttrs(&gfxAttrs));
+	dd->dmaibuf = Buffer_create(size, BufferGfx_getBufferAttrs(gfxAttrs));
 	dd->bufferOwner = true;
-	setRefData(d->mimeType, Buffer_getUserPtr(dd->dmaibuf), bufSize);
-	addBufferParameter("width", (int)gfxAttrs.dim.width);
-	addBufferParameter("height", (int)gfxAttrs.dim.height);
+	setRefData(d->mimeType, Buffer_getUserPtr(dd->dmaibuf), size);
+	addBufferParameter("width", (int)gfxAttrs->dim.width);
+	addBufferParameter("height", (int)gfxAttrs->dim.height);
 	addBufferParameter("dmaiBuffer", (int)dd->dmaibuf);
 }
 

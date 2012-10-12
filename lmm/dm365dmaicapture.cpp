@@ -31,6 +31,7 @@ DM365DmaiCapture::DM365DmaiCapture(QObject *parent) :
 	V4l2Input(parent)
 {
 	inputType = COMPONENT;
+	/* these capture w and h are defaults, v4l2input overrides them in start */
 	captureWidth = 1280;
 	captureHeight = 720;
 	pixFormat = V4L2_PIX_FMT_UYVY;

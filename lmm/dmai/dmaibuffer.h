@@ -5,6 +5,7 @@
 
 struct _Buffer_Object;
 typedef struct _Buffer_Object *Buffer_Handle;
+struct BufferGfx_Attrs;
 
 class DmaiBufferData : public RawBufferData
 {
@@ -29,10 +30,13 @@ class DmaiBuffer : public RawBuffer
 {
 public:
 	explicit DmaiBuffer(QString mimeType, Buffer_Handle handle, BaseLmmElement *parent = 0);
-	explicit DmaiBuffer(QString mimeType, const void *data, int size, BaseLmmElement *parent = 0);
-	explicit DmaiBuffer(QString mimeType, int size, BaseLmmElement *parent = 0);
+	explicit DmaiBuffer(QString mimeType, const void *data, int size, BufferGfx_Attrs *gfxAttrs, BaseLmmElement *parent = 0);
+	explicit DmaiBuffer(QString mimeType, int size, BufferGfx_Attrs *gfxAttrs, BaseLmmElement *parent = 0);
 	DmaiBuffer(const RawBuffer &other);
 	~DmaiBuffer();
+
+	static BufferGfx_Attrs * createGraphicAttrs(int width, int height, int pixFormat);
+	static int getBufferSizeFor(BufferGfx_Attrs *attrs);
 signals:
 	
 public slots:
@@ -40,7 +44,7 @@ protected:
 private:
 	int pixFormat;
 
-	void init(int size);
+	void init(int size, BufferGfx_Attrs *gfxAttrs);
 	void init(Buffer_Handle handle);
 };
 

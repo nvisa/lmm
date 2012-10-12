@@ -38,10 +38,18 @@ int V4l2Output::start()
 	BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
 	Display_Attrs dAttrs = Display_Attrs_DM365_VID_DEFAULT;
 
+	int w, h;
+	w = getParameter("videoWidth").toInt();
+	h = getParameter("videoHeight").toInt();
+	if (!w)
+		w = 1280;
+	if (!h)
+		h = 720;
+
 	int bufSize;
 	ColorSpace_Type colorSpace = ColorSpace_YUV420PSEMI;
-	gfxAttrs.dim.width = 1280;
-	gfxAttrs.dim.height = 720;
+	gfxAttrs.dim.width = w;
+	gfxAttrs.dim.height = h;
 	gfxAttrs.dim.lineLength =
 			Dmai_roundUp(BufferGfx_calcLineLength(gfxAttrs.dim.width,
 												  colorSpace), 32);
@@ -65,8 +73,8 @@ int V4l2Output::start()
 	dAttrs.videoOutput = Display_Output_COMPONENT;
 	dAttrs.numBufs = 3;
 	dAttrs.colorSpace = ColorSpace_YUV420PSEMI;
-	dAttrs.width = 1280;
-	dAttrs.height = 720;
+	dAttrs.width = w;
+	dAttrs.height = h;
 	hDisplay = Display_create(hDispBufTab, &dAttrs);
 	if (hDisplay == NULL) {
 		mDebug("Failed to create display device");

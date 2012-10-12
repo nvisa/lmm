@@ -65,6 +65,13 @@ V4l2Input::V4l2Input(QObject *parent) :
 int V4l2Input::start()
 {
 	if (fd < 0) {
+		int w, h;
+		w = getParameter("videoWidth").toInt();
+		h = getParameter("videoHeight").toInt();
+		if (w)
+			captureWidth = w;
+		if (h)
+			captureHeight = h;
 		int err = openCamera();
 		if (err)
 			return err;
