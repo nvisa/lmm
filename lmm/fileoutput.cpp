@@ -5,6 +5,7 @@
 #include "emdesk/debug.h"
 
 #include <QFile>
+#include <QDateTime>
 #include <QtConcurrentRun>
 
 #include <errno.h>
@@ -54,6 +55,10 @@ int FileOutput::outputFunc()
 	RawBuffer buf = inputBuffers.takeFirst();
 	/* We don't do any syncing */
 	int err = writeBuffer(buf);
+	if (incremental) {
+		file->close();
+		file->setFileName(QDateTime::currentDateTime().toString("ddMMyyyy_hhmmss_").append(fileName));
+	}
 	sentBufferCount++;
 	calculateFps();
 	return err;

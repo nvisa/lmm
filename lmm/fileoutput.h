@@ -16,6 +16,7 @@ public:
 	int start();
 	int stop();
 	void setFileName(QString name);
+	void setIncremental(bool v) { incremental = v; }
 	virtual void signalReceived(int);
 signals:
 	
@@ -26,6 +27,7 @@ private:
 	bool isPipe;
 	QFutureWatcher<int> *watcher;
 	bool pipeClosed;
+	bool incremental;
 
 	int writeBuffer(RawBuffer buf);
 	int fifoOutput();
