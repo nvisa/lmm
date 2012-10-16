@@ -416,9 +416,10 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString pee
 		QString cbase = lines[0].split(" ")[1];
 
 		QStringList fields = cbase.split("/", QString::SkipEmptyParts);
+		QString stream = fields[2];
 		if (fields.size() >= 3) {
 			bool multicast = false;
-			if (fields[2] == "stream1m")
+			if (stream.endsWith("m"))
 				multicast = true;
 			int cseq = lines[1].remove("CSeq: ").toInt();
 			int dataPort = 0, controlPort = 0;
@@ -451,7 +452,7 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString pee
 				delete ses;
 				return createRtspErrorResponse(err);
 			}
-			emit newSessionCreated();
+			emit newSessionCreated(getSessionType(stream));
 			ses->controlUrl = cbase;
 			sessions.insert(cbase, ses);
 
@@ -590,4 +591,21 @@ RtspSession * RtspOutput::findSession(bool multicast, QString url, QString sessi
 		}
 	}
 	return NULL;
+}
+
+RtspOutput::sessionType RtspOutput::getSessionType(QString streamName)
+{
+	if (streamName == "stream1")
+		return H264_UNICAST;
+	if (streamName == "stream1m")
+		return H264_MULTICAST;
+	if (streamName == "stream2")
+		return H264_LOWRES_UNICAST;
+	if (streamName == "stream2m")
+		return H264_LOWRES_MULTICAST;
+	if (streamName == "stream3")
+		return MJPEG_UNICAST;
+	if (streamName == "stream3m")
+		return MJPEG_MULTICAST;
+	return H264_UNICAST;
 }

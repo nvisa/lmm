@@ -19,6 +19,14 @@ class RtspOutput : public BaseLmmOutput
 {
 	Q_OBJECT
 public:
+	enum sessionType {
+		H264_UNICAST,
+		H264_MULTICAST,
+		H264_LOWRES_UNICAST,
+		H264_LOWRES_MULTICAST,
+		MJPEG_UNICAST,
+		MJPEG_MULTICAST
+	};
 	explicit RtspOutput(QObject *parent = 0);
 	int start();
 	int stop();
@@ -27,7 +35,7 @@ public:
 
 	int getOutputBufferCount();
 signals:
-	void newSessionCreated();
+	void newSessionCreated(sessionType);
 private slots:
 	void newRtspConnection();
 	void clientDisconnected(QObject*obj);
@@ -59,6 +67,7 @@ private:
 	QString forwardToVlc(const QString &mes);
 	bool canSetupMore(bool multicast);
 	RtspSession * findSession(bool multicast, QString url = "", QString sessionId = "");
+	sessionType getSessionType(QString streamName);
 };
 
 #endif // RTSPOUTPUT_H
