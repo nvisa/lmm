@@ -18,6 +18,8 @@
 JpegEncoder::JpegEncoder(QObject *parent) :
 	DmaiEncoder(parent)
 {
+	codec = CODEC_JPEG;
+	qFact = 90;
 }
 
 int JpegEncoder::startCodec()
@@ -60,12 +62,13 @@ int JpegEncoder::startCodec()
 	dynParams->inputWidth = imageWidth;
 	dynParams->inputHeight = imageHeight;
 	dynParams->captureWidth = imageWidth;
+	dynParams->qValue = qFact;
 
 	QString codecName = "jpegenc";
 	/* Create the video encoder */
 	hCodec = Ienc1_create(hEngine, (Char *)qPrintable(codecName), params, dynParams);
 	if (hCodec == NULL) {
-		mDebug("Failed to create image encoder: %s", qPrintable(codecName));
+		mDebug("Failed to create image encoder %s.", qPrintable(codecName));
 		return -EINVAL;
 	}
 
@@ -95,7 +98,7 @@ int JpegEncoder::stopCodec()
 	return 0;
 }
 
-int JpegEncoder::encode(Buffer_Handle buffer)
+int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 {
 	mInfo("start");
 	bufferLock.lock();

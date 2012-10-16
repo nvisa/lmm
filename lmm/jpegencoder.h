@@ -10,19 +10,18 @@ class JpegEncoder : public DmaiEncoder
 	Q_OBJECT
 public:
 	explicit JpegEncoder(QObject *parent = 0);
+	void setQualityFactor(int q);
 signals:
 	
 public slots:
 private:
-	int encodeCount;
-	int imageWidth;
-	int imageHeight;
 	IMGENC1_DynamicParams   defaultDynParams;
 	Ienc1_Handle hCodec;
+	int qFact;
 
 	virtual int startCodec();
 	virtual int stopCodec();
-	virtual int encode(Buffer_Handle buffer);
+	virtual int encode(Buffer_Handle buffer, const RawBuffer source);
 };
 
 #endif // JPEGENCODER_H
