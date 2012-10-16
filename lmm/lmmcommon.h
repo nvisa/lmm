@@ -8,6 +8,12 @@ namespace Lmm {
 		COMPOSITE,
 		COMPONENT
 	};
+	enum CodecType {
+		CODEC_MPEG2,
+		CODEC_MPEG4,
+		CODEC_H264,
+		CODEC_JPEG
+	};
 }
 
 class QGraphicsView;

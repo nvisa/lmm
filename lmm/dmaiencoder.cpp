@@ -96,6 +96,7 @@ int DmaiEncoder::encodeNext()
 		goto out;
 	}
 	t.start();
+	Buffer_setNumBytesUsed(dmai, buf.size());
 	err = encode(dmai, buf);
 	mInfo("encode took %d msecs", t.elapsed());
 	encodeTimeStat->addStat(encodeTiming->restart());
