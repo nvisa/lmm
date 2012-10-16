@@ -23,6 +23,7 @@ public:
 	int getSourceDataPort() { return srcDataPort; }
 	int getSourceControlPort() { return srcControlPort; }
 	int getLoopLatency() { return loopLatency; }
+	QString getSdp();
 protected:
 	int findInputStreamInfo();
 	int initMuxer();

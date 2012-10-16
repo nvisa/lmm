@@ -53,6 +53,27 @@ int RtpH264Mux::addBuffer(RawBuffer buffer)
 	return 0;
 }
 
+QString RtpH264Mux::getSdp()
+{
+	if (!foundStreamInfo)
+		return "";
+	char *buff = new char[16384];
+	/*
+	 * avf_sdp_create doesn't perform any size checking
+	 * on input buffer so if we do not provide enough of
+	 * it then things can get nasty
+	 */
+	int err = avf_sdp_create(&context, 1, buff, 16384);
+	if (err) {
+		mDebug("error %d while getting sdp info.", err);
+		delete buff;
+		return "";
+	}
+	QString str(buff);
+	delete buff;
+	return str;
+}
+
 int RtpH264Mux::findInputStreamInfo()
 {
 	return BaseLmmMux::findInputStreamInfo();
