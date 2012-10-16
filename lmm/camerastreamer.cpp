@@ -3,6 +3,7 @@
 #include "dm365dmaicapture.h"
 #include "fileoutput.h"
 #include "h264encoder.h"
+#include "jpegencoder.h"
 #include "rawbuffer.h"
 #include "fboutput.h"
 #include "dm365videooutput.h"
@@ -89,13 +90,24 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 	testInput = new VideoTestSource;
 	elements << testInput;
 
-	encoder = new H264Encoder;
-	elements << encoder;
+	jpegEncoder = new JpegEncoder;
+	elements << jpegEncoder;
+	jpegShotInterval = 1000;
+
+	h264Encoder = new H264Encoder;
+	elements << h264Encoder;
 
 	output =  new FileOutput;
 	output->syncOnClock(false);
 	output->setFileName("camera.264");
 	//elements << output;
+
+	jpegFileOutput = new FileOutput;
+	jpegFileOutput->syncOnClock(false);
+	jpegFileOutput->setThreaded(true);
+	jpegFileOutput->setIncremental(true);
+	jpegFileOutput->setFileName("sshot.jpg");
+	elements << jpegFileOutput;
 
 	videoOutputType = Lmm::COMPOSITE;
 	dm365Output = new DM365VideoOutput;
@@ -127,7 +139,8 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 	rtspOutput->syncOnClock(false);
 	rtspOutput->setThreaded(false);
 	elements << rtspOutput;
-	connect(rtspOutput, SIGNAL(newSessionCreated()), SLOT(newRtspSessionCreated()));
+	connect(rtspOutput, SIGNAL(newSessionCreated(RtspOutput::sessionType)),
+			SLOT(newRtspSessionCreated(RtspOutput::sessionType)));
 
 	timer = new QTimer(this);
 	timer->setSingleShot(true);
@@ -147,8 +160,8 @@ CameraStreamer::CameraStreamer(QObject *parent) :
 	useFileIOForRtsp = false;
 	flushForSpsPps = false;
 
-	imageWidth = 320;
-	imageHeight = 240;
+	imageWidth = 1280;
+	imageHeight = 720;
 }
 
 int CameraStreamer::start()
@@ -179,12 +192,17 @@ int CameraStreamer::start()
 		connect(el, SIGNAL(needFlushing()), SLOT(flushElements()));
 	}
 	if (threadedEncode) {
-		encoder->setThreaded(true);
-		encodeThread = new EncodeThread(encoder);
+		h264Encoder->setThreaded(true);
+		encodeThread = new EncodeThread(h264Encoder);
 		encodeThread->start();
+		encoder = h264Encoder;
+		jpegEncoder->setThreaded(true);
+		jpegEncodeThread = new EncodeThread(jpegEncoder);
+		jpegEncodeThread->start();
 	}
 	timer->start(10);
 	streamTime->start();
+	jpegTime.start();
 	return BaseLmmElement::start();
 }
 
@@ -194,6 +212,9 @@ int CameraStreamer::stop()
 		encodeThread->stop();
 		encodeThread->wait();
 		encodeThread->deleteLater();
+		jpegEncodeThread->stop();
+		jpegEncodeThread->wait();
+		jpegEncodeThread->deleteLater();
 	}
 	foreach (BaseLmmElement *el, elements) {
 		mInfo("stopping element %s", el->metaObject()->className());
@@ -277,7 +298,7 @@ void CameraStreamer::encodeLoop()
 	}
 
 	if (flushForSpsPps) {
-		encoder->flush();
+		h264Encoder->flush();
 		flushForSpsPps = 0;
 	}
 	if (!threadedEncode)
@@ -297,7 +318,7 @@ void CameraStreamer::encodeLoop()
 				if (!useFileIOForRtsp) { //due to live555 rtsp bug
 					rtspOutput->addBuffer(buf2);
 					rtspOutput->output();
-					encoder->setSeiLoopLatency(rtspOutput->getLoopLatency());
+					h264Encoder->setSeiLoopLatency(rtspOutput->getLoopLatency());
 				} else {
 					output->addBuffer(buf2);
 					output->output();
@@ -325,8 +346,25 @@ void CameraStreamer::encodeLoop()
 			input->addBuffer(buf);
 		if (useTestInput)
 			testInput->addBuffer(buf);
+		/*
+		 * If we are in jpeg streaming mode we do not take
+		 * snapshots so we don't need to feed extra buffers
+		 */
+		if (getSessionCodec(sessionType) != Lmm::CODEC_JPEG) {
+			if (jpegTime.elapsed() > jpegShotInterval) {
+				jpegEncoder->addBuffer(buf);
+				if (!threadedEncode)
+					jpegEncoder->encodeNext();
+				jpegTime.start();
+			}
+		}
 	}
-
+	/* get snapshot if we are not jpeg streaming */
+	if (getSessionCodec(sessionType) != Lmm::CODEC_JPEG) {
+		buf2 = jpegEncoder->nextBuffer();
+		if (buf2.size())
+			jpegFileOutput->addBuffer(buf2);
+	}
 	if (debugServer->addCustomStat(DebugServer::STAT_LOOP_TIME, t.restart())) {
 		mInfo("encoder fps is %d", encoder->getFps());
 	}
@@ -342,9 +380,30 @@ void CameraStreamer::flushElements()
 	}
 }
 
-void CameraStreamer::newRtspSessionCreated()
+void CameraStreamer::newRtspSessionCreated(RtspOutput::sessionType type)
 {
-	flushForSpsPps = 1;
+	Lmm::CodecType ctype = getSessionCodec(type);
+	if (ctype == Lmm::CODEC_H264) {
+		encoder = h264Encoder;
+		flushForSpsPps = 1;
+	} else if (ctype == Lmm::CODEC_JPEG) {
+		encoder = jpegEncoder;
+	}
+	sessionType = type;
+}
+
+Lmm::CodecType CameraStreamer::getSessionCodec(RtspOutput::sessionType type)
+{
+	if (type == RtspOutput::H264_UNICAST
+			|| type == RtspOutput::H264_MULTICAST
+			|| type == RtspOutput::H264_LOWRES_UNICAST
+			|| type == RtspOutput::H264_LOWRES_MULTICAST
+			)
+		return Lmm::CODEC_H264;
+	if (type == RtspOutput::MJPEG_MULTICAST
+			|| type == RtspOutput::MJPEG_UNICAST)
+		return Lmm::CODEC_JPEG;
+	return Lmm::CODEC_MPEG4;
 }
 
 void CameraStreamer::useThreadedEncode(bool v)
@@ -352,13 +411,19 @@ void CameraStreamer::useThreadedEncode(bool v)
 	if (v == threadedEncode)
 		return;
 	if (v == true) {
-		encoder->setThreaded(true);
-		encodeThread = new EncodeThread(encoder);
+		h264Encoder->setThreaded(true);
+		encodeThread = new EncodeThread(h264Encoder);
 		encodeThread->start();
+		jpegEncodeThread = new EncodeThread(jpegEncoder);
+		jpegEncodeThread->start();
+		jpegEncoder->setThreaded(true);
 	} else {
 		encodeThread->stop();
 		encodeThread->wait();
 		encodeThread->deleteLater();
+		jpegEncodeThread->stop();
+		jpegEncodeThread->wait();
+		jpegEncodeThread->deleteLater();
 	}
 	threadedEncode = v;
 }

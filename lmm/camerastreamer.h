@@ -6,6 +6,7 @@
 #include "lmmcommon.h"
 #include "dmaiencoder.h"
 #include "h264encoder.h"
+#include "rtspoutput.h"
 
 #include <QTime>
 
@@ -23,6 +24,7 @@ class QXmlStreamReader;
 class BaseLmmMux;
 class VlcRtspStreamer;
 class RtspServer;
+class JpegEncoder;
 
 class CameraStreamer : public BaseLmmElement
 {
@@ -66,7 +68,7 @@ public:
 	void setStreamingType (StreamingProtocol v) { streamingType = v; }
 	StreamingProtocol getStreamingType () { return streamingType; }
 	Lmm::VideoOutput getVideoOutputType() { return videoOutputType; }
-	DmaiEncoder * getEncoder() { return encoder; }
+	H264Encoder * getH264Encoder() { return h264Encoder; }
 	bool getThreadedEncode() { return threadedEncode; }
 
 	/* settings */
@@ -76,13 +78,16 @@ signals:
 public slots:
 	void encodeLoop();
 	void flushElements();
-	void newRtspSessionCreated();
+	void newRtspSessionCreated(RtspOutput::sessionType type);
 private:
 	QList<BaseLmmElement *> elements;
-	H264Encoder *encoder;
+	DmaiEncoder *encoder;
+	H264Encoder *h264Encoder;
+	JpegEncoder *jpegEncoder;
 	FileOutput *output;
 	DM365VideoOutput *dm365Output;
 	BaseLmmOutput *output3;
+	FileOutput *jpegFileOutput;
 	V4l2Input *input;
 	BaseLmmElement *testInput;
 	TextOverlay *overlay;
@@ -92,10 +97,13 @@ private:
 	QTime timing;
 	DebugServer *debugServer;
 	EncodeThread *encodeThread;
+	EncodeThread *jpegEncodeThread;
 	BaseLmmMux *mux;
 	VlcRtspStreamer *rtspVlc;
 	int muxType;
 	bool flushForSpsPps;
+	QTime jpegTime;
+	int jpegShotInterval;
 
 	int imageWidth;
 	int imageHeight;
@@ -109,6 +117,9 @@ private:
 	bool useTestInput;
 	Lmm::VideoOutput videoOutputType;
 	StreamingProtocol streamingType;
+	RtspOutput::sessionType sessionType;
+
+	Lmm::CodecType getSessionCodec(RtspOutput::sessionType type);
 };
 
 #endif // CAMERASTREAMER_H
