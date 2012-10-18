@@ -1,5 +1,6 @@
 #include "jpegencoder.h"
 #include "dmai/dmaibuffer.h"
+#include "streamtime.h"
 
 #include <emdesk/debug.h>
 
@@ -136,6 +137,11 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		return -EIO;
 	}
 	RawBuffer buf = DmaiBuffer("image/jpeg", hDstBuf, this);
+	buf.addBufferParameters(source.bufferParameters());
+	buf.addBufferParameter("frameType", (int)IVIDEO_I_FRAME);
+	buf.addBufferParameter("encodeTime", streamTime->getCurrentTime());
+	buf.setStreamBufferNo(encodeCount++);
+	buf.setDuration(1000 / buf.getBufferParameter("fps").toFloat());
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	buf.setStreamBufferNo(encodeCount++);
 	/* Reset the dimensions to what they were originally */
