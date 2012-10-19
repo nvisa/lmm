@@ -5,7 +5,6 @@
 #include <emdesk/debug.h>
 
 #include <xdc/std.h>
-
 #include <ti/sdo/ce/Engine.h>
 #include <ti/sdo/dmai/Buffer.h>
 #include <ti/sdo/dmai/BufTab.h>
@@ -143,7 +142,6 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	buf.setStreamBufferNo(encodeCount++);
 	buf.setDuration(1000 / buf.getBufferParameter("fps").toFloat());
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
-	buf.setStreamBufferNo(encodeCount++);
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
 	outputLock.lock();
