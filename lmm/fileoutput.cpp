@@ -18,6 +18,7 @@ FileOutput::FileOutput(QObject *parent) :
 {
 	watcher = new QFutureWatcher<int>;
 	file = NULL;
+	incremental = false;
 	setFileName("fileout");
 	LmmCommon::registerForPipeSignal(this);
 }
