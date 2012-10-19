@@ -190,6 +190,7 @@ RawBuffer VideoTestSource::nextBuffer()
 		if (noisy)
 			imageBuf = addNoise(imageBuf);
 		imageBuf.addBufferParameter("captureTime", streamTime->getCurrentTime());
+		imageBuf.addBufferParameter("fps", targetFps);
 		outputBuffers.append(imageBuf);
 		mInfo("time: %lld - %d, buffer count %d", time / 1000, bufferTime, inputBuffers.size());
 	}
