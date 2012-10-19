@@ -389,6 +389,8 @@ int BaseLmmMux::initMuxer()
 	codec->has_b_frames = icodec->has_b_frames;
 	codec->sample_aspect_ratio = st->sample_aspect_ratio = av_d2q(0, 255); //ffmpeg does so
 	st->stream_copy = 1;
+	st->pts.num = codec->time_base.num;
+	st->pts.den = codec->time_base.den;
 	if (context->oformat->flags & AVFMT_GLOBALHEADER)
 		codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 	mInfo("output codec parameters adjusted");
