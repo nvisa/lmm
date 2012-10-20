@@ -2,6 +2,7 @@
 #include "baselmmoutput.h"
 #include "gstreamer/rtpstreamer.h"
 #include "rtph264mux.h"
+#include "rtpmjpegmux.h"
 #include "rawbuffer.h"
 
 #include <emdesk/debug.h>
@@ -24,9 +25,12 @@ class RtspSession
 public:
 	RtspSession()
 	{
-		rtpMux = NULL;
-		if (useFFmpeg())
-			rtpMux = new RtpH264Mux;
+		rtpJpegMux = NULL;
+		rtpH264Mux = NULL;
+		if (useFFmpeg()) {
+			rtpH264Mux = new RtpH264Mux;
+			rtpJpegMux = new RtpMjpegMux;
+		}
 		if (useGst())
 			gstRtp = new RtpStreamer;
 		state = TEARDOWN;
@@ -44,11 +48,13 @@ public:
 	{
 		if (useGst())
 			delete gstRtp;
-		if (useFFmpeg())
-			delete rtpMux;
+		if (useFFmpeg()) {
+			delete rtpH264Mux;
+			delete rtpJpegMux;
+		}
 	}
 
-	int setup(bool mcast, int dPort, int cPort, QString clientIp)
+	int setup(bool mcast, int dPort, int cPort, QString clientIp, RtspOutput::sessionType type)
 	{
 		if (mcast && state != TEARDOWN) {
 			joinedIps << clientIp;
@@ -58,6 +64,13 @@ public:
 		dataPort = dPort;
 		controlPort = cPort;
 		joinedIps << clientIp;
+
+		if (RtspOutput::getSessionCodec(type) == Lmm::CODEC_H264)
+			rtpMux = rtpH264Mux;
+		else if (RtspOutput::getSessionCodec(type) == Lmm::CODEC_JPEG)
+			rtpMux = rtpJpegMux;
+		else
+			return -EINVAL;
 
 		if (multicast) {
 			if (useGst())
@@ -153,7 +166,14 @@ public:
 			return rtpMux->getInputBufferCount() + rtpMux->getOutputBufferCount();
 		return 0;
 	}
-	RtpH264Mux * getMuxer() { return rtpMux; }
+	RtpMux * getMuxer() { return rtpMux; }
+	RtpMux * getMjpegMuxer() { return rtpJpegMux; }
+	RtpMux * getH264Muxer() { return rtpH264Mux; }
+	void setStreamTime(StreamTime *s)
+	{
+		rtpH264Mux->setStreamTime(s);
+		rtpJpegMux->setStreamTime(s);
+	}
 
 public:
 	enum SessionState {
@@ -169,7 +189,9 @@ public:
 	QStringList joinedIps;
 private:
 	RtpStreamer *gstRtp;
-	RtpH264Mux *rtpMux;
+	RtpH264Mux *rtpH264Mux;
+	RtpMjpegMux *rtpJpegMux;
+	RtpMux *rtpMux;
 	int dataPort;
 	int controlPort;
 	QHostAddress myIpAddr;
@@ -200,11 +222,10 @@ int RtspOutput::start()
 	if (fastTesting()) {
 		/* this is merely for testing purposes */
 		RtspSession *s = new RtspSession;
-		if (s->getMuxer()) {
-			s->getMuxer()->setStreamTime(streamTime);
-			connect(s->getMuxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
-		}
-		s->setup(false, 15678, 15679, "192.168.1.1");
+		s->setStreamTime(streamTime);
+		connect(s->getH264Muxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
+		connect(s->getMjpegMuxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
+		s->setup(false, 15678, 15679, "192.168.1.1", H264_UNICAST);
 		s->play();
 		sessions.insert("qwesad", s);
 	}
@@ -228,7 +249,7 @@ int RtspOutput::getLoopLatency()
 {
 	if (!sessions.size())
 		return 0;
-	RtpH264Mux *mux = sessions.values()[0]->getMuxer();
+	RtpMux *mux = sessions.values()[0]->getMuxer();
 	if (mux)
 		return mux->getLoopLatency();
 	return 0;
@@ -446,7 +467,7 @@ QStringList RtspOutput::handleRtspMessage(QString mes, QString lsep, QString pee
 				mDebug("cannot create more sessions");
 				return createRtspErrorResponse(403);
 			}
-			int err = ses->setup(multicast, dataPort, controlPort, peerIp);
+			int err = ses->setup(multicast, dataPort, controlPort, peerIp, getSessionType(stream));
 			if (err) {
 				mDebug("cannot create session, error is %d", err);
 				delete ses;
@@ -529,11 +550,24 @@ QStringList RtspOutput::createSdp(QString url)
 	if (fields.size() < 3)
 		return QStringList();
 	QStringList sdp;
-	sdp << "m=video 0 RTP/AVP 96";
-	sdp << "a=rtpmap:96 H264/90000";
-	sdp << "a=fmtp:96 packetization-mode=1";
-	sdp << "a=mimetype:string;\"video/h264\"";
-	sdp << QString("a=control:%1").arg(url);
+	sessionType type = getSessionType(fields[2]);
+	Lmm::CodecType codec = getSessionCodec(type);
+	if (codec == Lmm::CODEC_H264) {
+		sdp << "m=video 0 RTP/AVP 96";
+		sdp << "a=rtpmap:96 H264/90000";
+		sdp << "a=fmtp:96 packetization-mode=1";
+		sdp << "a=mimetype:string;\"video/h264\"";
+		sdp << QString("a=control:%1").arg(url);
+	} else if (codec == Lmm::CODEC_JPEG) {
+		sdp << "v=0";
+		sdp << "o=- 0 0 IN IP4 127.0.0.1";
+		sdp << "s=No Name";
+		//sdp << "c=IN IP4 192.168.1.1";
+		sdp << "t=0 0";
+		sdp << "a=tool:libavformat 52.102.0";
+		sdp << "m=video 15678 RTP/AVP 26";
+		sdp << QString("a=control:%1").arg(url);
+	}
 	if (fields[2] == "stream1m") {
 		sdp << "c=IN IP4 224.1.1.1/4"; //TODO: Parametrize multicast address
 	}
@@ -570,10 +604,9 @@ RtspSession * RtspOutput::findSession(bool multicast, QString url, QString sessi
 {
 	if (!sessions.size()) {
 		RtspSession *s = new RtspSession;
-		if (s->getMuxer()) {
-			s->getMuxer()->setStreamTime(streamTime);
-			connect(s->getMuxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
-		}
+		s->setStreamTime(streamTime);
+		connect(s->getH264Muxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
+		connect(s->getMjpegMuxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
 		return s;
 	}
 	foreach (RtspSession *s, sessions) {
@@ -608,4 +641,18 @@ RtspOutput::sessionType RtspOutput::getSessionType(QString streamName)
 	if (streamName == "stream3m")
 		return MJPEG_MULTICAST;
 	return H264_UNICAST;
+}
+
+Lmm::CodecType RtspOutput::getSessionCodec(sessionType type)
+{
+	if (type == RtspOutput::H264_UNICAST
+			|| type == RtspOutput::H264_MULTICAST
+			|| type == RtspOutput::H264_LOWRES_UNICAST
+			|| type == RtspOutput::H264_LOWRES_MULTICAST
+			)
+		return Lmm::CODEC_H264;
+	if (type == RtspOutput::MJPEG_MULTICAST
+			|| type == RtspOutput::MJPEG_UNICAST)
+		return Lmm::CODEC_JPEG;
+	return Lmm::CODEC_MPEG4;
 }

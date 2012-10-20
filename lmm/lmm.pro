@@ -31,6 +31,8 @@ SOURCES += \
     gstreamer/rtpstreamer.cpp \
     tools/videoutils.cpp \
     tools/systeminfo.cpp \
+    rtpmjpegmux.cpp \
+    rtpmux.cpp
 
 HEADERS  += \
     filesource.h \
@@ -58,6 +60,8 @@ HEADERS  += \
     gstreamer/rtpstreamer.h \
     tools/videoutils.h \
     tools/systeminfo.h \
+    rtpmjpegmux.h \
+    rtpmux.h
 
 vlc {
 	SOURCES += vlc/vlcrtspstreamer.cpp

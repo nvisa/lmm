@@ -9,6 +9,7 @@ struct AVPacket;
 struct AVFormatContext;
 struct AVStream;
 struct AVOutputFormat;
+struct AVInputFormat;
 struct URLContext;
 
 class BaseLmmMux : public BaseLmmElement
@@ -35,6 +36,7 @@ protected:
 	AVFormatContext *context;
 	AVFormatContext *inputContext;
 	AVOutputFormat *fmt;
+	AVInputFormat *inputFmt;
 	bool foundStreamInfo;
 
 	int videoStreamIndex;

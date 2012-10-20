@@ -196,6 +196,7 @@ int CameraStreamer::start()
 		encodeThread = new EncodeThread(h264Encoder);
 		encodeThread->start();
 		encoder = h264Encoder;
+		sessionType = RtspOutput::H264_UNICAST;
 		jpegEncoder->setThreaded(true);
 		jpegEncodeThread = new EncodeThread(jpegEncoder);
 		jpegEncodeThread->start();

@@ -98,6 +98,7 @@ BaseLmmMux::BaseLmmMux(QObject *parent) :
 	libavAnalayzeDuration = 5000000; /* this is ffmpeg default */
 	threaded = true;
 	muxOutputOpened = false;
+	inputFmt = NULL;
 }
 
 int BaseLmmMux::start()
@@ -144,7 +145,7 @@ int BaseLmmMux::findInputStreamInfo()
 			return -ENOMEM;
 		}
 		QString pname = QString("lmmmuxi%1://muxvideoinput").arg(muxNumber);
-		int err = av_open_input_file(&inputContext, qPrintable(pname), NULL, 0, NULL);
+		int err = av_open_input_file(&inputContext, qPrintable(pname), inputFmt, 0, NULL);
 		if (err) {
 			mDebug("error opening input file %s", qPrintable(pname));
 			return err;

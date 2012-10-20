@@ -3,6 +3,7 @@
 
 #include "baselmmoutput.h"
 #include "rawbuffer.h"
+#include "lmmcommon.h"
 
 #include <QList>
 #include <QMap>
@@ -34,8 +35,9 @@ public:
 	int getLoopLatency();
 
 	int getOutputBufferCount();
+	static Lmm::CodecType getSessionCodec(sessionType type);
 signals:
-	void newSessionCreated(sessionType);
+	void newSessionCreated(RtspOutput::sessionType);
 private slots:
 	void newRtspConnection();
 	void clientDisconnected(QObject*obj);
