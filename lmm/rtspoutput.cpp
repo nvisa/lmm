@@ -19,6 +19,8 @@
 #define useGst() 0
 #define useFFmpeg() 1
 #define fastTesting() 0 //enable this for fast testing of RTP
+#define TEST_STREAM H264_UNICAST
+//#define TEST_STREAM MJPEG_UNICAST
 
 class RtspSession
 {
@@ -225,9 +227,10 @@ int RtspOutput::start()
 		s->setStreamTime(streamTime);
 		connect(s->getH264Muxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
 		connect(s->getMjpegMuxer(), SIGNAL(inputInfoFound()), SLOT(sessionNeedFlushing()));
-		s->setup(false, 15678, 15679, "192.168.1.1", H264_UNICAST);
+		s->setup(false, 15678, 15679, "192.168.1.1", TEST_STREAM);
 		s->play();
 		sessions.insert("qwesad", s);
+		emit newSessionCreated(TEST_STREAM);
 	}
 	return BaseLmmOutput::start();
 }
