@@ -142,7 +142,6 @@ dm365 {
         dmaiencoder.cpp \
         dm365dmaicapture.cpp \
         dm365camerainput.cpp \
-        camerastreamer.cpp \
         v4l2output.cpp \
         dm365videooutput.cpp \
         textoverlay.cpp \
@@ -153,7 +152,6 @@ dm365 {
 
     HEADERS += dmaiencoder.h \
         dm365dmaicapture.h \
-        camerastreamer.h \
         dm365camerainput.h \
         v4l2output.h \
         dm365videooutput.h \
