@@ -207,7 +207,7 @@ live555 {
 		live555/h264camerasubsession.h \
 		rtspserver.h
 	QMAKE_CXXFLAGS += -DSOCKLEN_T=socklen_t -DNO_SSTREAM=1 -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64 -DBSD=1
-	DEFINES += USE_LIVEMEDIA
+	DEFINES += USE_LIEMEDIA
 }
 
 x86 {
@@ -215,8 +215,8 @@ x86 {
     include($$INSTALL_PREFIX/usr/local/include/emdesk/emdeskCommon.pri)
 }
 arm {
-    include($$INSTALL_PREFIX/usr/local/include/qtCommon.pri)
-    include($$INSTALL_PREFIX/usr/local/include/emdesk/emdeskCommon.pri)
+	include($$INSTALL_PREFIX/usr/local/include/qtCommon.pri)
+	include($$INSTALL_PREFIX/usr/local/include/emdesk/emdeskCommon.pri)
     DEFINES += TARGET_ARM
 }
 
