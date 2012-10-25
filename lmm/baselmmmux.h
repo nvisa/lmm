@@ -1,7 +1,7 @@
 #ifndef BASELMMMUX_H
 #define BASELMMMUX_H
 
-#include "baselmmelement.h"
+#include <lmm/baselmmelement.h>
 
 #include <stdint.h>
 

@@ -1,7 +1,7 @@
 #ifndef UDPOUTPUT_H
 #define UDPOUTPUT_H
 
-#include <baselmmoutput.h>
+#include <lmm/baselmmoutput.h>
 
 #include <QHostAddress>
 

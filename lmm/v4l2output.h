@@ -1,7 +1,7 @@
 #ifndef V4L2OUTPUT_H
 #define V4L2OUTPUT_H
 
-#include <baselmmoutput.h>
+#include <lmm/baselmmoutput.h>
 
 #include <QMap>
 
