@@ -72,9 +72,11 @@ int V4l2Input::start()
 			captureWidth = w;
 		if (h)
 			captureHeight = h;
+		mInfo("opening camera");
 		int err = openCamera();
 		if (err)
 			return err;
+		mInfo("starting capture thread");
 		cThread = new captureThread(this);
 		cThread->start();
 		timing.start();
