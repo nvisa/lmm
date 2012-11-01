@@ -14,3 +14,12 @@ int VideoUtils::getLineLength(int pixFmt, int width)
 		return width;
 	return 0;
 }
+
+int VideoUtils::getFrameSize(int pixFmt, int width, int height)
+{
+	if (pixFmt == V4L2_PIX_FMT_UYVY)
+		return width * height * 2;
+	if (pixFmt == V4L2_PIX_FMT_NV12)
+		return width * height * 3 / 2;
+	return 0;
+}
