@@ -6,7 +6,10 @@
 namespace Lmm {
 	enum VideoOutput {
 		COMPOSITE,
-		COMPONENT
+		COMPONENT,
+		PRGB,
+		YCC8,
+		YCC16
 	};
 	enum CodecType {
 		CODEC_MPEG2,
