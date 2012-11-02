@@ -32,6 +32,7 @@ public:
 	explicit DM365CameraInput(QObject *parent = 0);
 	void setInputType(cameraInput inp) { inputType = inp; }
 	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
+	RawBuffer nextBuffer(int ch);
 signals:
 	
 public slots:
@@ -40,6 +41,7 @@ private:
 	int closeCamera();
 	int fpsWorkaround();
 	int allocBuffers();
+	void clearDmaiBuffers();
 	int configurePreviewer();
 	int configureResizer();
 	virtual int putFrame(struct v4l2_buffer * buffer);
@@ -47,16 +49,16 @@ private:
 	bool captureLoop();
 
 	cameraInput inputType;
-	BufTab_Handle bufTab;
-	struct _VideoBufDesc *bufDescs;
+	QList<Buffer_Handle> refBuffersA;
+	QList<Buffer_Handle> refBuffersB;
+	QList<Buffer_Handle> srcBuffers;
+	QList<int> useCount;
 	int pixFormat;
 	int rszFd;
 	int preFd;
 
 	QSemaphore bufsFree;
-	//QSemaphore bufsTaken;
-	QList<Buffer_Handle> finishedDmaiBuffers;
-	QMap<Buffer_Handle, RawBuffer> bufferPool;
+	QList<RawBuffer> outputBuffers2;
 
 	Capture_Handle hCapture;
 };

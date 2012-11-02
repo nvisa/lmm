@@ -1,6 +1,7 @@
 #include "dm365camerainput.h"
 #include "dmai/dmaibuffer.h"
 #include "streamtime.h"
+#include "tools/videoutils.h"
 
 #include <emdesk/debug.h>
 
@@ -11,7 +12,7 @@
 #include <ti/sdo/dmai/Dmai.h>
 #include <ti/sdo/dmai/Buffer.h>
 #include <ti/sdo/dmai/BufferGfx.h>
-#include <ti/sdo/dmai/BufTab.h>
+#include <ti/sdo/dmai/priv/_Buffer.h>
 
 #include <media/davinci/imp_previewer.h>
 #include <media/davinci/imp_resizer.h>
@@ -75,14 +76,31 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	captureHeight = 720;
 	pixFormat = V4L2_PIX_FMT_NV12;
 	hCapture = NULL;
-	bufTab = NULL;
 	captureBufferCount = 8;
 }
 
 void DM365CameraInput::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
-	BufTab_freeBuf((Buffer_Handle)params["dmaiBuffer"].toInt());
-	V4l2Input::aboutDeleteBuffer(params);
+	v4l2_buffer *buffer = (v4l2_buffer *)params["v4l2Buffer"].value<void *>();
+	if (--useCount[buffer->index] == 0) {
+		mInfo("buffer %p use count is zero, giving back to kernel driver", buffer);
+		V4l2Input::aboutDeleteBuffer(params);
+	}
+}
+
+RawBuffer DM365CameraInput::nextBuffer(int ch)
+{
+	if (ch == 0)
+		return BaseLmmElement::nextBuffer();
+
+	RawBuffer buf;
+	if (threaded)
+		outputLock.lock();
+	if (outputBuffers2.size() != 0)
+		buf = outputBuffers2.takeFirst();
+	if (threaded)
+		outputLock.unlock();
+	return buf;
 }
 
 int DM365CameraInput::openCamera()
@@ -90,6 +108,7 @@ int DM365CameraInput::openCamera()
 	struct v4l2_capability cap;
 	struct v4l2_input input;
 	int width = captureWidth, height = captureHeight;
+	int width2 = 320, height2 = 240;
 	int err = 0;
 
 	if (V4L2_PIX_FMT_NV12 == pixFormat) {
@@ -141,24 +160,65 @@ int DM365CameraInput::openCamera()
 	gfxAttrs.dim.y = 0;
 	gfxAttrs.dim.width = width;
 	gfxAttrs.dim.height = height;
-	int bufSize;
+	int bufSize = VideoUtils::getFrameSize(
+				pixFormat, (width + width2), (height + height2));
 	if (pixFormat == V4L2_PIX_FMT_UYVY) {
 		gfxAttrs.colorSpace = ColorSpace_UYVY;
 		gfxAttrs.dim.lineLength = Dmai_roundUp(width * 2, 32);
-		bufSize = width * height * 2;
 	} else if (pixFormat == V4L2_PIX_FMT_NV12) {
 		gfxAttrs.colorSpace = ColorSpace_YUV420PSEMI;
 		gfxAttrs.dim.lineLength = Dmai_roundUp(width, 32);
-		bufSize = width * height * 3 / 2;
 	}
-	bufTab = BufTab_create(NUM_CAPTURE_BUFS, bufSize, BufferGfx_getBufferAttrs(&gfxAttrs));
-	if (!bufTab) {
-		mDebug("unable to create capture buffers");
-		return -ENOMEM;
+
+	for (uint i = 0; i < captureBufferCount; i++) {
+		gfxAttrs.bAttrs.reference = 0;
+		Buffer_Handle h = Buffer_create(bufSize, BufferGfx_getBufferAttrs(&gfxAttrs));
+		if (!h) {
+			mDebug("unable to create capture buffers");
+			return -ENOMEM;
+		}
+		Buffer_setNumBytesUsed(h, bufSize);
+		srcBuffers << h;
+
+		/* create reference buffers for rsz A channel */
+		//qDebug() << gfxAttrs.bAttrs.reference;
+		gfxAttrs.bAttrs.reference = 1;
+		Buffer_Handle h2 = Buffer_create(0, BufferGfx_getBufferAttrs(&gfxAttrs));
+		if (!h2) {
+			mDebug("unable to create capture buffers");
+			return -ENOMEM;
+		}
+		Buffer_setSize(h2, VideoUtils::getFrameSize(pixFormat, width, height));
+		Buffer_setUserPtr(h2, Buffer_getUserPtr(h));
+		refBuffersA << h2;
+
+		/* create reference buffers for rsz B channel */
+		gfxAttrs.bAttrs.reference = true;
+		Buffer_Handle h3 = Buffer_create(0, BufferGfx_getBufferAttrs(&gfxAttrs));
+		if (!h3) {
+			mDebug("unable to create capture buffers");
+			return -ENOMEM;
+		}
+		Buffer_setSize(h3, VideoUtils::getFrameSize(pixFormat, width2, height2));
+		/*
+		 * NOTE:
+		 * we cannot simple set user pointer like this:
+		 *		Buffer_setUserPtr(h3, Buffer_getUserPtr(h) + Buffer_getSize(h3));
+		 * This is because cmem allocator will not be able to resolve physical
+		 * address from this. Workaround is to use these buffers with a proper
+		 * offset
+		 **/
+		Buffer_setUserPtr(h3, Buffer_getUserPtr(h));
+		h3->physPtr += Buffer_getSize(h2);
+		h3->userPtr += Buffer_getSize(h2);
+		refBuffersB << h3;
+
+		useCount << 0;
 	}
-	if (allocBuffers()) {
-		mDebug("unable to allocate driver buffers");
-		return -ENOMEM;
+	err = allocBuffers();
+	if (err) {
+		mDebug("unable to allocate driver buffers with error %d", err);
+		return err;
 	}
 
 	return startStreaming();
@@ -174,7 +234,7 @@ int DM365CameraInput::closeCamera()
 	v4l2buf.clear();
 	userptr.clear();
 	fd = rszFd = preFd = -1;
-	BufTab_delete(bufTab);
+	clearDmaiBuffers();
 	bufsFree.acquire(bufsFree.available());
 	mInfo("capture closed");
 
@@ -223,28 +283,8 @@ Int DM365CameraInput::allocBuffers()
 		return -ENOMEM;
 	}
 
-	/* Allocate space for buffer descriptors */
-	/**bufDescsPtr = calloc(numBufs, sizeof(_VideoBufDesc));
-
-	if (*bufDescsPtr == NULL) {
-		Dmai_err0("Failed to allocate space for buffer descriptors\n");
-		return -ENOMEM;
-	}*/
-
 	for (int i = 0; i < (int)req.count; i++) {
-		//bufDesc = &(*bufDescsPtr)[bufIdx];
-		Buffer_Handle hBuf = BufTab_getBuf(bufTab, i);
-
-		if (hBuf == NULL) {
-			mDebug("Failed to get buffer from BufTab for display");
-			return -ENOMEM;
-		}
-
-		if (Buffer_getType(hBuf) != Buffer_Type_GRAPHICS) {
-			mDebug("Buffer supplied to Display not a Graphics buffer");
-			return -EINVAL;
-		}
-
+		Buffer_Handle hBuf = srcBuffers[i];
 		userptr << (char *)Buffer_getUserPtr(hBuf);
 		v4l2buf << new struct v4l2_buffer;
 		memset(v4l2buf[i], 0, sizeof(v4l2_buffer));
@@ -252,16 +292,7 @@ Int DM365CameraInput::allocBuffers()
 		v4l2buf[i]->memory = V4L2_MEMORY_USERPTR;
 		v4l2buf[i]->index = i;
 		v4l2buf[i]->m.userptr = (int)Buffer_getUserPtr(hBuf);
-		v4l2buf[i]->length = Buffer_getSize(hBuf);
-
-		//		bufDesc->hBuf              = hBuf;
-		//		bufDesc->used              = (queueBuffers == FALSE) ? TRUE : FALSE;
-
-		/* If queueBuffers is TRUE, initialize the buffers to black and queue
-		 * them into the driver.
-		 */
-
-		Buffer_setNumBytesUsed(hBuf, Buffer_getSize(hBuf));
+		v4l2buf[i]->length = Buffer_getNumBytesUsed(hBuf);
 
 		/* Queue buffer in device driver */
 		if (ioctl(fd, VIDIOC_QBUF, v4l2buf[i]) == -1) {
@@ -272,6 +303,20 @@ Int DM365CameraInput::allocBuffers()
 	bufsFree.release(NUM_CAPTURE_BUFS - 1);
 
 	return 0;
+}
+
+void DM365CameraInput::clearDmaiBuffers()
+{
+	foreach (Buffer_Handle h, refBuffersA)
+		Buffer_delete(h);
+	foreach (Buffer_Handle h, refBuffersB)
+		Buffer_delete(h);
+	foreach (Buffer_Handle h, srcBuffers)
+		Buffer_delete(h);
+	refBuffersA.clear();
+	refBuffersB.clear();
+	srcBuffers.clear();
+	useCount.clear();
 }
 
 int DM365CameraInput::putFrame(v4l2_buffer *buffer)
@@ -327,8 +372,10 @@ bool DM365CameraInput::captureLoop()
 		//bufsTaken.release(1);
 		int passed = timing.restart();
 		mInfo("captured %p, time is %lld, passed %d", buffer, streamTime->getFreeRunningTime(), passed);
-		Buffer_Handle dmaibuf = BufTab_getBuf(bufTab, buffer->index);
-		RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dmaibuf, this);
+		Buffer_Handle dbufa = refBuffersA[buffer->index];
+		Buffer_Handle dbufb = refBuffersB[buffer->index];
+
+		RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dbufa, this);
 		int fps = 30;
 		newbuf.addBufferParameter("v4l2Buffer",
 								  qVariantFromValue((void *)buffer));
@@ -336,8 +383,18 @@ bool DM365CameraInput::captureLoop()
 								  - (captureBufferCount - 1) * 1000 * 1000 / fps);
 		newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
 		newbuf.addBufferParameter("fps", fps);
+		useCount[buffer->index]++;
+
+		RawBuffer sbuf = DmaiBuffer("video/x-raw-yuv", dbufb, this);
+		sbuf.addBufferParameter("v4l2Buffer", qVariantFromValue((void *)buffer));
+		newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
+		sbuf.addBufferParameter("captureTime", newbuf.getBufferParameter("captureTime"));
+		sbuf.addBufferParameter("fps", fps);
+		useCount[buffer->index]++;
+
 		outputLock.lock();
 		outputBuffers << newbuf;
+		outputBuffers2 << sbuf;
 		outputLock.unlock();
 
 		if (passed > 35)
@@ -408,7 +465,33 @@ int DM365CameraInput::configureResizer(void)
 	/* we can ignore the input spec since we are chaining. So only
 	   set output specs */
 	rsz_cont_config.output1.enable = 1;
-	rsz_cont_config.output2.enable = 0;
+	rsz_cont_config.output2.enable = 1;
+	rsz_cont_config.output2.pix_fmt = IPIPE_YUV420SP;
+	rsz_cont_config.output2.height = 320;
+	rsz_cont_config.output2.width = 240;
+	rsz_cont_config.output2.vst_y = 0;  //line offset for y
+	rsz_cont_config.output2.vst_c = 0;  //line offset for c
+	rsz_cont_config.output2.h_flip = 0; //enable/disable horizontal flip
+	rsz_cont_config.output2.v_flip = 0; //enable/disable horizontal flip
+
+	/* interpolation types */
+	rsz_cont_config.output2.v_typ_y = RSZ_INTP_CUBIC;
+	rsz_cont_config.output2.v_typ_c = RSZ_INTP_CUBIC;
+	rsz_cont_config.output2.h_typ_y = RSZ_INTP_CUBIC;
+	rsz_cont_config.output2.h_typ_c = RSZ_INTP_CUBIC;
+
+	/* intensities */
+	rsz_cont_config.output2.v_lpf_int_y = 0;
+	rsz_cont_config.output2.v_lpf_int_c = 0;
+	rsz_cont_config.output2.h_lpf_int_y = 0;
+	rsz_cont_config.output2.h_lpf_int_c = 0;
+
+	rsz_cont_config.output2.en_down_scale = 1;
+	rsz_cont_config.output2.h_dscale_ave_sz = IPIPE_DWN_SCALE_1_OVER_4;
+	rsz_cont_config.output2.v_dscale_ave_sz = IPIPE_DWN_SCALE_1_OVER_4; //BUG???
+	rsz_cont_config.output2.user_y_ofst = 0;
+	rsz_cont_config.output2.user_c_ofst = 0;
+
 	rsz_chan_config.len = sizeof(struct rsz_continuous_config);
 	rsz_chan_config.config = &rsz_cont_config;
 	if (ioctl(rszFd, RSZ_S_CONFIG, &rsz_chan_config) < 0) {
