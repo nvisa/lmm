@@ -1,43 +1,73 @@
 #include "v4l2output.h"
 #include "dmai/dmaibuffer.h"
+#include "tools/videoutils.h"
 
 #include <emdesk/debug.h>
 
 #include <errno.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <asm/types.h>
 #include <linux/videodev2.h>
-
-#include <ti/sdo/dmai/BufTab.h>
-#include <ti/sdo/dmai/Display.h>
-#include <ti/sdo/dmai/VideoStd.h>
-#include <ti/sdo/dmai/BufferGfx.h>
 
 V4l2Output::V4l2Output(QObject *parent) :
 	BaseLmmOutput(parent)
 {
-	dontDeleteBuffers = true;
+	fd = -1;
+	deviceName = "/dev/video2";
+	bufferCount = 3;
 }
 
 int V4l2Output::outputBuffer(RawBuffer buf)
 {
-	Buffer_Handle dispbuf;
-	Display_get(hDisplay, &dispbuf);
-	outputBuffers << bufferPool[dispbuf];
+	if (driverStarted) {
+		mInfo("receiving one from the driver");
+		v4l2_buffer v4l2buf;
+		v4l2buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+		v4l2buf.memory = V4L2_MEMORY_USERPTR;
+		if (ioctl(fd, VIDIOC_DQBUF, &v4l2buf) == -1) {
+			mDebug("cannot receive buffer from driver");
+			return -errno;
+		}
+		mInfo("buffer received from driver");
+		buffersInUse.remove(v4l2buf.index);
+		reqBuffers << reqBuffersInUse.take(v4l2buf.index);
+	}
 
-	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer")
-			.toInt();
-	Display_put(hDisplay, dmai);
-	if (!bufferPool.contains(dmai))
-		bufferPool.insert(dmai, buf);
+	v4l2_buffer *buffer = (v4l2_buffer *)buf.getBufferParameter("v4l2Buffer").value<void *>();
 
-	mDebug("displaying %p, returning %p", dispbuf, dmai);
+	v4l2_buffer *outbuf = reqBuffers.takeFirst();
+	outbuf->m.userptr = buffer->m.userptr;
+	if (ioctl(fd, VIDIOC_QBUF, outbuf)) {
+		mDebug("Unable to queue buffer");
+		return -EINVAL;
+	}
+	mInfo("buffer sent to driver");
+	buffersInUse.insert(outbuf->index, buf);
+	reqBuffersInUse.insert(outbuf->index, outbuf);
+
+	if (!driverStarted && buffersInUse.size() == bufferCount) {
+		enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+		if (ioctl(fd, VIDIOC_STREAMON, &type) == -1) {
+			mDebug("cannot start streaming in driver");
+			return -errno;
+		}
+		mInfo("driver streamoned");
+		driverStarted = true;
+	}
+
 	return 0;
 }
 
 int V4l2Output::start()
 {
-	BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
-	Display_Attrs dAttrs = Display_Attrs_DM365_VID_DEFAULT;
-
+	driverStarted = false;
 	int w, h;
 	w = getParameter("videoWidth").toInt();
 	h = getParameter("videoHeight").toInt();
@@ -46,62 +76,82 @@ int V4l2Output::start()
 	if (!h)
 		h = 720;
 
-	int bufSize;
-	ColorSpace_Type colorSpace = ColorSpace_YUV420PSEMI;
-	gfxAttrs.dim.width = w;
-	gfxAttrs.dim.height = h;
-	gfxAttrs.dim.lineLength =
-			Dmai_roundUp(BufferGfx_calcLineLength(gfxAttrs.dim.width,
-												  colorSpace), 32);
-	gfxAttrs.dim.x = 0;
-	gfxAttrs.dim.y = 0;
-	if (colorSpace ==  ColorSpace_YUV420PSEMI) {
-		bufSize = gfxAttrs.dim.lineLength * gfxAttrs.dim.height * 3 / 2;
-	}
-	else {
-		bufSize = gfxAttrs.dim.lineLength * gfxAttrs.dim.height * 2;
-	}
-	/* Create a table of buffers to use with the capture driver */
-	gfxAttrs.colorSpace = colorSpace;
-	hDispBufTab = BufTab_create(3, bufSize,
-								BufferGfx_getBufferAttrs(&gfxAttrs));
-	if (hDispBufTab == NULL) {
-		mDebug("Failed to create buftab");
-		return -ENOMEM;
-	}
-	dAttrs.videoStd = VideoStd_720P_60;
-	dAttrs.videoOutput = Display_Output_COMPONENT;
-	dAttrs.numBufs = 3;
-	dAttrs.colorSpace = ColorSpace_YUV420PSEMI;
-	dAttrs.width = w;
-	dAttrs.height = h;
-	hDisplay = Display_create(hDispBufTab, &dAttrs);
-	if (hDisplay == NULL) {
-		mDebug("Failed to create display device");
-		return -EINVAL;
-	}
-	for (int i = 0; i < BufTab_getNumBufs(hDispBufTab); i++) {
-		Buffer_Handle dmaibuf = BufTab_getBuf(hDispBufTab, i);
-		RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dmaibuf, this);
-		newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-		bufferPool.insert(dmaibuf, newbuf);
+	dispWidth = w;
+	dispHeight = h;
+	if (fd < 0) {
+		mInfo("opening display device");
+		int err = openDisplay();
+		if (err)
+			return err;
+		return BaseLmmElement::start();
 	}
 
-	return BaseLmmOutput::start();
+	return 0;
 }
 
 int V4l2Output::stop()
 {
-	Display_delete(hDisplay);
-	BufTab_delete(hDispBufTab);
-
 	return BaseLmmOutput::stop();
 }
 
-void V4l2Output::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
+int V4l2Output::openDisplay()
 {
-	//Buffer_Handle dmai = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer")
-		//	.toInt();
-	//finishedDmaiBuffers << dmai;
-	//mDebug("buffer finished");
+	int err = openDeviceNode();
+	if (err)
+		return err;
+
+	struct v4l2_format fmt;
+	fmt.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+	if (ioctl(fd, VIDIOC_G_FMT, &fmt) == -1) {
+		mDebug("Failed to determine video display format");
+		return -ENOENT;
+	}
+	fmt.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+	fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;
+	fmt.fmt.pix.width = dispWidth;
+	fmt.fmt.pix.height = dispHeight;
+	fmt.fmt.pix.bytesperline = VideoUtils::getLineLength(V4L2_PIX_FMT_NV12, dispWidth);
+	fmt.fmt.pix.sizeimage = VideoUtils::getFrameSize(V4L2_PIX_FMT_NV12, dispWidth, dispHeight);
+	fmt.fmt.pix.field = V4L2_FIELD_NONE;
+	if (ioctl(fd, VIDIOC_S_FMT, &fmt) == -1) {
+		mDebug("Failed VIDIOC_S_FMT on %s (%s)\n", qPrintable(deviceName),
+				  strerror(errno));
+		return errno;
+	}
+
+	struct v4l2_requestbuffers req;
+	fmt.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+	req.count = bufferCount;
+	req.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+	req.memory = V4L2_MEMORY_USERPTR;
+	if (ioctl(fd, VIDIOC_REQBUFS, &req) == -1) {
+		mDebug("Could not allocate video display buffers");
+		return -ENOMEM;
+	}
+	/* The driver may return less buffers than requested */
+	if (req.count < (uint)bufferCount || !req.count) {
+		mDebug("Insufficient device driver buffer memory");
+		return -ENOMEM;
+	}
+	for (uint i = 0; i < req.count; i++) {
+		reqBuffers << new v4l2_buffer;
+		reqBuffers.last()->index = i;
+		reqBuffers.last()->type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+		reqBuffers.last()->memory = V4L2_MEMORY_USERPTR;
+		//reqBuffers.last()->m.userptr
+		reqBuffers.last()->length = VideoUtils::getFrameSize(V4L2_PIX_FMT_NV12, dispWidth, dispHeight);
+	}
+
+	return 0;
+}
+
+int V4l2Output::openDeviceNode()
+{
+	/* Open video capture device */
+	fd = open(qPrintable(deviceName), O_RDWR, 0);
+	if (fd == -1) {
+		mDebug("Cannot open capture device %s", qPrintable(deviceName));
+		return -ENODEV;
+	}
+	return 0;
 }

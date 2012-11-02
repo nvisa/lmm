@@ -5,12 +5,7 @@
 
 #include <QMap>
 
-struct Display_Object;
-struct BufTab_Object;
-struct _Buffer_Object;
-typedef struct _Buffer_Object *Buffer_Handle;
-typedef struct BufTab_Object *BufTab_Handle;
-typedef struct Display_Object *Display_Handle;
+struct v4l2_buffer;
 class RawBuffer;
 
 class V4l2Output : public BaseLmmOutput
@@ -21,13 +16,21 @@ public:
 	virtual int outputBuffer(RawBuffer buf);
 	virtual int start();
 	virtual int stop();
-	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 signals:
 public slots:
 protected:
-	Display_Handle hDisplay;
-	BufTab_Handle hDispBufTab;
-	QMap<Buffer_Handle, RawBuffer> bufferPool;
+	QList<v4l2_buffer *> reqBuffers;
+	QMap<int, v4l2_buffer *> reqBuffersInUse;
+	QMap<int, RawBuffer> buffersInUse;
+	int fd;
+	QString deviceName;
+	int dispWidth;
+	int dispHeight;
+	bool driverStarted;
+	int bufferCount;
+
+	virtual int openDisplay();
+	virtual int openDeviceNode();
 };
 
 #endif // V4L2OUTPUT_H
