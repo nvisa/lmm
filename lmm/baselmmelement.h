@@ -25,6 +25,7 @@ public:
 	explicit BaseLmmElement(QObject *parent = 0);
 	int addBuffer(RawBuffer buffer);
 	virtual RawBuffer nextBuffer();
+	virtual RawBuffer nextBuffer(int ch);
 	void setStreamTime(StreamTime *t) { streamTime = t; }
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
 	virtual CircularBuffer * getCircularBuffer() { return NULL; }

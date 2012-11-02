@@ -169,6 +169,11 @@ RawBuffer BaseLmmElement::nextBuffer()
 	return buf;
 }
 
+RawBuffer BaseLmmElement::nextBuffer(int ch)
+{
+	return nextBuffer();
+}
+
 int BaseLmmElement::start()
 {
 	receivedBufferCount = sentBufferCount = 0;
