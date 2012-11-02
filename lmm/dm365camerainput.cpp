@@ -158,19 +158,19 @@ int DM365CameraInput::openCamera()
 	BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
 	gfxAttrs.dim.x = 0;
 	gfxAttrs.dim.y = 0;
-	gfxAttrs.dim.width = width;
-	gfxAttrs.dim.height = height;
 	int bufSize = VideoUtils::getFrameSize(
 				pixFormat, (width + width2), (height + height2));
-	if (pixFormat == V4L2_PIX_FMT_UYVY) {
+	if (pixFormat == V4L2_PIX_FMT_UYVY)
 		gfxAttrs.colorSpace = ColorSpace_UYVY;
-		gfxAttrs.dim.lineLength = Dmai_roundUp(width * 2, 32);
-	} else if (pixFormat == V4L2_PIX_FMT_NV12) {
+	else if (pixFormat == V4L2_PIX_FMT_NV12)
 		gfxAttrs.colorSpace = ColorSpace_YUV420PSEMI;
-		gfxAttrs.dim.lineLength = Dmai_roundUp(width, 32);
-	}
+	else
+		return -EINVAL;
 
 	for (uint i = 0; i < captureBufferCount; i++) {
+		gfxAttrs.dim.width = width;
+		gfxAttrs.dim.height = height;
+		gfxAttrs.dim.lineLength = VideoUtils::getLineLength(pixFormat, width);
 		gfxAttrs.bAttrs.reference = 0;
 		Buffer_Handle h = Buffer_create(bufSize, BufferGfx_getBufferAttrs(&gfxAttrs));
 		if (!h) {
@@ -182,7 +182,10 @@ int DM365CameraInput::openCamera()
 
 		/* create reference buffers for rsz A channel */
 		//qDebug() << gfxAttrs.bAttrs.reference;
-		gfxAttrs.bAttrs.reference = 1;
+		gfxAttrs.dim.width = width;
+		gfxAttrs.dim.height = height;
+		gfxAttrs.dim.lineLength = VideoUtils::getLineLength(pixFormat, width);
+		gfxAttrs.bAttrs.reference = true;
 		Buffer_Handle h2 = Buffer_create(0, BufferGfx_getBufferAttrs(&gfxAttrs));
 		if (!h2) {
 			mDebug("unable to create capture buffers");
@@ -194,6 +197,9 @@ int DM365CameraInput::openCamera()
 
 		/* create reference buffers for rsz B channel */
 		gfxAttrs.bAttrs.reference = true;
+		gfxAttrs.dim.width = width2;
+		gfxAttrs.dim.height = height2;
+		gfxAttrs.dim.lineLength = VideoUtils::getLineLength(pixFormat, width2);
 		Buffer_Handle h3 = Buffer_create(0, BufferGfx_getBufferAttrs(&gfxAttrs));
 		if (!h3) {
 			mDebug("unable to create capture buffers");
@@ -467,8 +473,8 @@ int DM365CameraInput::configureResizer(void)
 	rsz_cont_config.output1.enable = 1;
 	rsz_cont_config.output2.enable = 1;
 	rsz_cont_config.output2.pix_fmt = IPIPE_YUV420SP;
-	rsz_cont_config.output2.height = 320;
-	rsz_cont_config.output2.width = 240;
+	rsz_cont_config.output2.width = 320;
+	rsz_cont_config.output2.height = 240;
 	rsz_cont_config.output2.vst_y = 0;  //line offset for y
 	rsz_cont_config.output2.vst_c = 0;  //line offset for c
 	rsz_cont_config.output2.h_flip = 0; //enable/disable horizontal flip
@@ -486,7 +492,7 @@ int DM365CameraInput::configureResizer(void)
 	rsz_cont_config.output2.h_lpf_int_y = 0;
 	rsz_cont_config.output2.h_lpf_int_c = 0;
 
-	rsz_cont_config.output2.en_down_scale = 1;
+	rsz_cont_config.output2.en_down_scale = 0;
 	rsz_cont_config.output2.h_dscale_ave_sz = IPIPE_DWN_SCALE_1_OVER_4;
 	rsz_cont_config.output2.v_dscale_ave_sz = IPIPE_DWN_SCALE_1_OVER_4; //BUG???
 	rsz_cont_config.output2.user_y_ofst = 0;
