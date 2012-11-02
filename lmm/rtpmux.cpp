@@ -90,5 +90,6 @@ int RtpMux::initMuxer()
 	rtpCtx->base_timestamp = 1578998879;
 	rtpCtx->ssrc = 0x6335D514;
 	mDebug("changed RTP private information");
+	emit sdpReady(getSdp());
 	return 0;
 }

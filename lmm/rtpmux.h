@@ -27,6 +27,8 @@ public:
 	QString getSdp();
 protected:
 	virtual int initMuxer();
+signals:
+	void sdpReady(QString sdp);
 private:
 	int dstDataPort;
 	int dstControlPort;
