@@ -77,6 +77,7 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	pixFormat = V4L2_PIX_FMT_NV12;
 	hCapture = NULL;
 	captureBufferCount = 8;
+	bufsem << new QSemaphore;
 }
 
 void DM365CameraInput::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
@@ -402,6 +403,8 @@ bool DM365CameraInput::captureLoop()
 		outputBuffers << newbuf;
 		outputBuffers2 << sbuf;
 		outputLock.unlock();
+		bufsem[0]->release();
+		bufsem[1]->release();
 
 		if (passed > 35)
 			mInfo("late capture: %d", passed);
