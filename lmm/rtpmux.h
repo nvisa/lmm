@@ -13,7 +13,8 @@ public:
 
 	int start();
 	int stop();
-	int addBuffer(RawBuffer buffer);
+	int sendNext();
+	int sendNextBlocking();
 
 	virtual Lmm::CodecType codecType() = 0;
 	void setDestinationIpAddress(QString ip) { dstIp = ip; }

@@ -4,6 +4,8 @@
 
 #include <emdesk/debug.h>
 
+#include <QSemaphore>
+
 extern "C" {
 	#include <libavformat/avformat.h>
 	#include <libavformat/rtpenc.h>
@@ -39,17 +41,23 @@ int RtpMux::stop()
 	return BaseLmmMux::stop();
 }
 
-int RtpMux::addBuffer(RawBuffer buffer)
+int RtpMux::sendNext()
 {
-	int err = BaseLmmElement::addBuffer(buffer);
-	if (err)
-		return err;
 	RawBuffer buf = nextBuffer();
 	while (buf.size()) {
 		if (streamTime)
 			loopLatency = streamTime->getCurrentTime() - buf.getBufferParameter("captureTime").toInt();
 		buf = nextBuffer();
 	}
+	return 0;
+}
+
+int RtpMux::sendNextBlocking()
+{
+	inbufsem[0]->acquire();
+	RawBuffer buf = nextBuffer();
+	if (streamTime)
+		loopLatency = streamTime->getCurrentTime() - buf.getBufferParameter("captureTime").toInt();
 	return 0;
 }
 
