@@ -115,6 +115,12 @@ out:
 	return err;
 }
 
+int DmaiEncoder::encodeNextBlocking()
+{
+	inbufsem[0]->acquire();
+	return encodeNext();
+}
+
 void DmaiEncoder::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
 	Buffer_Handle dmai = (Buffer_Handle)params["dmaiBuffer"].toInt();

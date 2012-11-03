@@ -42,6 +42,7 @@ public:
 	int stop();
 	int flush();
 	int encodeNext();
+	int encodeNextBlocking();
 	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 
 	/* control API */
