@@ -157,6 +157,7 @@ public:
 			buf2.setDuration(buf.getDuration());
 			buf2.addBufferParameters(buf.bufferParameters());
 			rtpMux->addBuffer(buf2);
+			rtpMux->sendNext();
 		}
 		return 0;
 	}
