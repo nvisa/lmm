@@ -12,6 +12,7 @@
 class StreamTime;
 class CircularBuffer;
 class UnitTimeStat;
+class QSemaphore;
 
 class BaseLmmElement : public QObject
 {
@@ -26,6 +27,7 @@ public:
 	int addBuffer(RawBuffer buffer);
 	virtual RawBuffer nextBuffer();
 	virtual RawBuffer nextBuffer(int ch);
+	virtual RawBuffer nextBufferBlocking(int ch);
 	void setStreamTime(StreamTime *t) { streamTime = t; }
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
 	virtual CircularBuffer * getCircularBuffer() { return NULL; }
@@ -63,6 +65,9 @@ protected:
 
 	QMutex inputLock;
 	QMutex outputLock;
+
+	QList<QSemaphore *> bufsem;
+	QList<QSemaphore *> inbufsem;
 
 	virtual void updateOutputTimeStats();
 	virtual void calculateFps();

@@ -7,6 +7,7 @@
 #include <errno.h>
 
 #include <QTime>
+#include <QSemaphore>
 
 /**
 	\class BaseLmmElement
@@ -136,6 +137,9 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	elementFps = fpsBufferCount = 0;
 	fpsTiming->start();
 	outputTimeStat = new UnitTimeStat;
+
+	bufsem  << new QSemaphore;
+	inbufsem << new QSemaphore;
 }
 
 int BaseLmmElement::addBuffer(RawBuffer buffer)
@@ -147,6 +151,7 @@ int BaseLmmElement::addBuffer(RawBuffer buffer)
 	inputBuffers << buffer;
 	if (threaded)
 		inputLock.unlock();
+	inbufsem[0]->release();
 	receivedBufferCount++;
 	return 0;
 }
@@ -172,6 +177,12 @@ RawBuffer BaseLmmElement::nextBuffer()
 RawBuffer BaseLmmElement::nextBuffer(int ch)
 {
 	return nextBuffer();
+}
+
+RawBuffer BaseLmmElement::nextBufferBlocking(int ch)
+{
+	bufsem[ch]->acquire();
+	return nextBuffer(ch);
 }
 
 int BaseLmmElement::start()
@@ -228,6 +239,8 @@ int BaseLmmElement::flush()
 	outputLock.lock();
 	outputBuffers.clear();
 	outputLock.unlock();
+	inbufsem[0]->acquire(inbufsem[0]->available());
+	bufsem[0]->acquire(bufsem[0]->available());
 	return 0;
 }
 
