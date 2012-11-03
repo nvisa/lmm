@@ -53,6 +53,7 @@ public:
 	int getAvailableDuration();
 signals:
 	void needFlushing();
+	void newBufferAvailable();
 public slots:
 protected:
 	QList<RawBuffer> inputBuffers;
