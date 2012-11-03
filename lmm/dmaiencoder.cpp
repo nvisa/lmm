@@ -10,6 +10,7 @@
 #include <errno.h>
 
 #include <QTime>
+#include <QSemaphore>
 
 DmaiEncoder::DmaiEncoder(QObject *parent) :
 	BaseLmmElement(parent)
@@ -108,6 +109,7 @@ int DmaiEncoder::encodeNext()
 	if (!inputBuffers.isEmpty())
 		inputBuffers.removeFirst();
 	inputLock.unlock();
+	bufsem[0]->release();
 	return 0;
 out:
 	return err;
