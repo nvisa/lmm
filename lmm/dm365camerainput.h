@@ -5,6 +5,7 @@
 
 #include <QSemaphore>
 #include <QMap>
+#include <QSize>
 
 #include <xdc/std.h>
 #include <ti/sdo/dmai/BufTab.h>
@@ -33,6 +34,10 @@ public:
 	void setInputType(cameraInput inp) { inputType = inp; }
 	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 	RawBuffer nextBuffer(int ch);
+
+	int setSize(int ch, QSize sz);
+	void setVerticalFlip(int ch, bool flip);
+	void setHorizontalFlip(int ch, bool flip);
 signals:
 	
 public slots:
@@ -56,6 +61,12 @@ private:
 	int pixFormat;
 	int rszFd;
 	int preFd;
+	int captureWidth2;
+	int captureHeight2;
+	bool ch1HorFlip;
+	bool ch1VerFlip;
+	bool ch2HorFlip;
+	bool ch2VerFlip;
 
 	QSemaphore bufsFree;
 	QList<RawBuffer> outputBuffers2;

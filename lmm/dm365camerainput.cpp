@@ -78,6 +78,11 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	hCapture = NULL;
 	captureBufferCount = 8;
 	bufsem << new QSemaphore;
+
+	ch1HorFlip = false;
+	ch1VerFlip = false;
+	ch2HorFlip = false;
+	ch2VerFlip = false;
 }
 
 void DM365CameraInput::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
@@ -102,12 +107,40 @@ RawBuffer DM365CameraInput::nextBuffer(int ch)
 	return buf;
 }
 
+int DM365CameraInput::setSize(int ch, QSize sz)
+{
+	if (ch == 0) {
+		captureWidth = sz.width();
+		captureHeight = sz.height();
+	} else {
+		captureWidth2 = sz.width();
+		captureHeight2 = sz.height();
+	}
+	return 0;
+}
+
+void DM365CameraInput::setVerticalFlip(int ch, bool flip)
+{
+	if (ch)
+		ch2VerFlip = flip;
+	else
+		ch1VerFlip = flip;
+}
+
+void DM365CameraInput::setHorizontalFlip(int ch, bool flip)
+{
+	if (ch)
+		ch2HorFlip = flip;
+	else
+		ch1HorFlip = flip;
+}
+
 int DM365CameraInput::openCamera()
 {
 	struct v4l2_capability cap;
 	struct v4l2_input input;
 	int width = captureWidth, height = captureHeight;
-	int width2 = 320, height2 = 240;
+	int width2 = captureWidth2, height2 = captureHeight2;
 	int err = 0;
 
 	if (V4L2_PIX_FMT_NV12 == pixFormat) {
@@ -472,14 +505,17 @@ int DM365CameraInput::configureResizer(void)
 	/* we can ignore the input spec since we are chaining. So only
 	   set output specs */
 	rsz_cont_config.output1.enable = 1;
+	rsz_cont_config.output1.h_flip = ch1HorFlip;
+	rsz_cont_config.output1.v_flip = ch1VerFlip;
+
 	rsz_cont_config.output2.enable = 1;
 	rsz_cont_config.output2.pix_fmt = IPIPE_YUV420SP;
-	rsz_cont_config.output2.width = 320;
-	rsz_cont_config.output2.height = 240;
+	rsz_cont_config.output2.width = captureWidth2;
+	rsz_cont_config.output2.height = captureHeight2;
 	rsz_cont_config.output2.vst_y = 0;  //line offset for y
 	rsz_cont_config.output2.vst_c = 0;  //line offset for c
-	rsz_cont_config.output2.h_flip = 0; //enable/disable horizontal flip
-	rsz_cont_config.output2.v_flip = 0; //enable/disable horizontal flip
+	rsz_cont_config.output2.h_flip = ch2HorFlip; //enable/disable horizontal flip
+	rsz_cont_config.output2.v_flip = ch2VerFlip; //enable/disable horizontal flip
 
 	/* interpolation types */
 	rsz_cont_config.output2.v_typ_y = RSZ_INTP_CUBIC;
