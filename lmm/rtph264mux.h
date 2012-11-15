@@ -10,7 +10,8 @@ public:
 	explicit RtpH264Mux(QObject *parent = 0);
 	Lmm::CodecType codecType();
 protected:
-
+	int initMuxer();
+	int findInputStreamInfo();
 };
 
 #endif // RTPH264MUX_H
