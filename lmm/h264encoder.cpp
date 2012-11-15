@@ -813,7 +813,7 @@ int H264Encoder::startCodec()
 	dynH264Params->disableMVDCostFactor = 0;
 	dynH264Params->aspectRatioX = 1;
 	dynH264Params->aspectRatioY = 1;
-	dynH264Params->idrFrameInterval = 1; //no I frames, all will be IDR
+	dynH264Params->idrFrameInterval = 300; //no I frames, all will be IDR
 
 	/* extended H.264 parameters */
 	params->profileIdc = 100;
