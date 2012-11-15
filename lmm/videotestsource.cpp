@@ -62,7 +62,6 @@ VideoTestSource::VideoTestSource(int nWidth, int nHeight, QObject *parent)
 	noisy = true;
 	noiseWidth = nWidth;
 	noiseHeight = nHeight;
-	setThreaded(true);
 }
 
 #define bound(_x) \

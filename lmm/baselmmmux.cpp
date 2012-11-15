@@ -96,7 +96,6 @@ BaseLmmMux::BaseLmmMux(QObject *parent) :
 
 	fmt = NULL;
 	libavAnalayzeDuration = 5000000; /* this is ffmpeg default */
-	threaded = true;
 	muxOutputOpened = false;
 	inputFmt = NULL;
 }

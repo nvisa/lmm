@@ -9,26 +9,6 @@
 
 #include <errno.h>
 
-class OutputThread : public LmmThread
-{
-public:
-	OutputThread(BaseLmmOutput *parent)
-		: LmmThread(parent->metaObject()->className())
-	{
-		out = parent;
-	}
-	int operation()
-	{
-		out->inputLock.lock();
-		out->outputFunc();
-		out->inputLock.unlock();
-		QThread::usleep(1000);
-		return 0;
-	}
-private:
-	BaseLmmOutput *out;
-};
-
 BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 	BaseLmmElement(parent)
 {
@@ -40,32 +20,17 @@ BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 int BaseLmmOutput::start()
 {
 	outputDelay = 0;
-	if (threaded) {
-		thread = new OutputThread(this);
-		thread->start(QThread::LowestPriority);
-	}
 	return BaseLmmElement::start();
 }
 
 int BaseLmmOutput::stop()
 {
-	if (threaded) {
-		thread->stop();
-		thread->wait();
-		thread->deleteLater();
-	}
 	return BaseLmmElement::stop();
 }
 
 qint64 BaseLmmOutput::getLatency()
 {
 	return getAvailableBufferTime() + outputLatency;
-}
-
-int BaseLmmOutput::setThreaded(bool v)
-{
-	threaded = v;
-	return 0;
 }
 
 int BaseLmmOutput::getLoopLatency()
@@ -137,7 +102,5 @@ int BaseLmmOutput::outputFunc()
 
 int BaseLmmOutput::output()
 {
-	if (threaded)
-		return 0;
 	return outputFunc();
 }

@@ -24,7 +24,6 @@ static int imem_release(void *data, const char *cookie, size_t bufferSize, void 
 VlcRtspStreamer::VlcRtspStreamer(QObject *parent) :
 	BaseLmmElement(parent)
 {
-	threaded = true;
 	fps = 30;
 }
 

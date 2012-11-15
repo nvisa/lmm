@@ -95,12 +95,10 @@ RawBuffer DM365CameraInput::nextBuffer(int ch)
 		return BaseLmmElement::nextBuffer();
 
 	RawBuffer buf;
-	if (threaded)
-		outputLock.lock();
+	outputLock.lock();
 	if (outputBuffers2.size() != 0)
 		buf = outputBuffers2.takeFirst();
-	if (threaded)
-		outputLock.unlock();
+	outputLock.unlock();
 	return buf;
 }
 

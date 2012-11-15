@@ -39,8 +39,6 @@ public:
 	virtual QVariant getParameter(QString param);
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &) {}
 	virtual void signalReceived(int) {}
-	virtual int setThreaded(bool);
-	bool isThreaded() { return threaded; }
 
 	/* stat information */
 	void printStats();
@@ -62,7 +60,6 @@ protected:
 	qint64 streamDuration;
 	int receivedBufferCount;
 	int sentBufferCount;
-	bool threaded;
 
 	QMutex inputLock;
 	QMutex outputLock;
