@@ -22,14 +22,15 @@ public:
 	int setIntraFrameInterval(int v) { intraFrameInterval = v; dirty = true; return 0; }
 
 	/* sei information */
-	void setSeiLoopLatency(int lat);
+	void setCustomSeiFieldCount(int value);
+	void setSeiField(int field, int value);
 signals:
 	
 public slots:
 private:
-	int seiLoopLatency;
 	int seiBufferSize;
 	IH264VENC_DynamicParams *dynH264Params;
+	QList<int> customSeiData;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec();
