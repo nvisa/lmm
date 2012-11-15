@@ -75,7 +75,7 @@ int JpegEncoder::startCodec()
 	/* Allocate output buffers */
 	Buffer_Attrs bAttrs = Buffer_Attrs_DEFAULT;
 	outBufSize = Ienc1_getOutBufSize(hCodec);
-	outputBufTab = BufTab_create(1, outBufSize, &bAttrs);
+	outputBufTab = BufTab_create(3, outBufSize, &bAttrs);
 	if (outputBufTab == NULL) {
 		mDebug("unable to allocate output buffer tab of size %d for %d buffers", outBufSize, 3);
 		return -ENOMEM;
