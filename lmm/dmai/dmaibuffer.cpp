@@ -96,9 +96,9 @@ BufferGfx_Attrs * DmaiBuffer::createGraphicAttrs(int width, int height, int pixF
 
 int DmaiBuffer::getBufferSizeFor(BufferGfx_Attrs *attrs)
 {
-	if (attrs->colorSpace = ColorSpace_UYVY)
+	if (attrs->colorSpace == ColorSpace_UYVY)
 		return attrs->dim.width * attrs->dim.height * 2;
-	if (attrs->colorSpace = ColorSpace_YUV420PSEMI)
+	if (attrs->colorSpace == ColorSpace_YUV420PSEMI)
 		return attrs->dim.width * attrs->dim.height * 3 / 2;
 	return 0;
 }
