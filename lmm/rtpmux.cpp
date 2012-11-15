@@ -16,8 +16,8 @@ RtpMux::RtpMux(QObject *parent) :
 {
 	loopLatency = 0;
 	srcDataPort = 17458;
-	srcControlPort = 17489;
-	sourceUrlName = "rtp://192.168.1.1:12346?localrtpport=17458?localrtcpport=17489";
+	srcControlPort = 17459;
+	sourceUrlName = "rtp://192.168.1.1:12346?localrtpport=17458?localrtcpport=17459";
 	fmt = av_guess_format("rtp", NULL, NULL);
 	if (fmt)
 		mDebug("rtp encoder found");

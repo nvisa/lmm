@@ -22,6 +22,8 @@ public:
 	void setRtpTimestampOffset(int value) { rtpTimestampOffset = value; }
 	void setDestinationDataPort(int port) { dstDataPort = port; }
 	void setDestinationControlPort(int port) { dstControlPort = port; }
+	void setSourceDataPort(int port) { srcDataPort = port; }
+	void setSourceControlPort(int port) { srcControlPort = port; }
 	int getSourceDataPort() { return srcDataPort; }
 	int getSourceControlPort() { return srcControlPort; }
 	int getLoopLatency() { return loopLatency; }
