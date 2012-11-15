@@ -51,11 +51,13 @@ static void platformInit()
 #endif
 }
 
+int dbgtemp = 0;
 static void signalHandler(int signalNumber)
 {
 	signalCount[signalNumber] += 1;
 	if (signalCount[signalNumber] == 1)
-		qWarning("main: Received signal %d, thread id is %p", signalNumber, QThread::currentThreadId());
+		qWarning("main: Received signal %d, thread id is %p, dbgtemp is %d",
+				 signalNumber, QThread::currentThreadId(), dbgtemp);
 	if (signalNumber == SIGSEGV) {
 		platformCleanUp();
 		exit(0);
