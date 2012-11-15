@@ -195,8 +195,11 @@ int BaseLmmMux::findInputStreamInfo()
 	return 0;
 }
 
+#define PRINFO(__x) qDebug() << #__x << __x
 void BaseLmmMux::printInputInfo()
 {
+	if (!inputContext)
+		return;
 	qDebug() << "class" << inputContext->av_class;
 	qDebug() << "iformat" << inputContext->iformat;
 	qDebug() << "oformat" << inputContext->iformat;
@@ -236,6 +239,24 @@ void BaseLmmMux::printInputInfo()
 	qDebug() << "metadata" << inputContext->metadata;
 	qDebug() << "raw_packet_buffer_remaining_size" << inputContext->raw_packet_buffer_remaining_size;
 	qDebug() << "start_time_realtime" << inputContext->start_time_realtime;
+
+	if (!videoStream)
+		return;
+	PRINFO(videoStream->codec->codec_id);
+	PRINFO(videoStream->codec->codec_type);
+	PRINFO(videoStream->codec->bit_rate);
+	PRINFO(videoStream->codec->rc_max_rate);
+	PRINFO(videoStream->codec->rc_buffer_size);
+	PRINFO(videoStream->codec->extradata_size);
+	PRINFO(videoStream->codec->time_base.num);
+	PRINFO(videoStream->codec->time_base.den);
+	PRINFO(videoStream->codec->ticks_per_frame);
+	PRINFO(videoStream->codec->pix_fmt);
+	PRINFO(videoStream->codec->width);
+	PRINFO(videoStream->codec->height);
+	PRINFO(videoStream->codec->has_b_frames);
+	PRINFO(videoStream->time_base.num);
+	PRINFO(videoStream->time_base.den);
 }
 
 RawBuffer BaseLmmMux::nextBuffer()
