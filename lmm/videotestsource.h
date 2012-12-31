@@ -36,10 +36,13 @@ public:
 	void setFps(int fps);
 
 	RawBuffer nextBuffer();
+	RawBuffer nextBufferBlocking(int ch);
+	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 	int flush();
 signals:
 
-public slots:
+private slots:
+	void timeout();
 private:
 	int targetFps;
 	int width;
@@ -52,6 +55,8 @@ private:
 	QList<char *> noise;
 	int noiseWidth;
 	int noiseHeight;
+	QTimer *timer;
+	QMap<int, RawBuffer> usedBuffers;
 
 	QImage getPatternImage(TestPattern p);
 	DmaiBuffer addNoise(DmaiBuffer imageBuf);

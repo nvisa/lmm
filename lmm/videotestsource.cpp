@@ -6,6 +6,8 @@
 
 #include <QFile>
 #include <QTime>
+#include <QTimer>
+#include <QSemaphore>
 
 #include <linux/videodev2.h>
 
@@ -50,6 +52,9 @@ VideoTestSource::VideoTestSource(QObject *parent) :
 	setFps(30);
 	pattern = PATTERN_COUNT;
 	noisy = false;
+	timer = new QTimer;
+	timer->setSingleShot(true);
+	connect(timer, SIGNAL(timeout()), SLOT(timeout()));
 }
 
 VideoTestSource::VideoTestSource(int nWidth, int nHeight, QObject *parent)
@@ -198,9 +203,41 @@ RawBuffer VideoTestSource::nextBuffer()
 	return BaseLmmElement::nextBuffer();
 }
 
+RawBuffer VideoTestSource::nextBufferBlocking(int)
+{
+	timer->start(bufferTime / 1000);
+	bufsem[0]->acquire();
+	inputLock.lock();
+	DmaiBuffer imageBuf = inputBuffers.takeFirst();
+	if (noisy)
+		imageBuf = addNoise(imageBuf);
+	imageBuf.addBufferParameter("captureTime", streamTime->getCurrentTime());
+	imageBuf.addBufferParameter("fps", targetFps);
+	usedBuffers.insert(imageBuf.getBufferParameter("dmaiBuffer").toInt(), imageBuf);
+	inputLock.unlock();
+	outputLock.lock();
+	outputBuffers.append(imageBuf);
+	outputLock.unlock();
+	return BaseLmmElement::nextBuffer();
+}
+
+void VideoTestSource::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
+{
+	int key = params["dmaiBuffer"].toInt();
+	inputLock.lock();
+	inputBuffers << usedBuffers[key];
+	usedBuffers.remove(key);
+	inputLock.unlock();
+}
+
 int VideoTestSource::flush()
 {
 	return 0;
+}
+
+void VideoTestSource::timeout()
+{
+	bufsem[0]->release(1);
 }
 
 QImage VideoTestSource::getPatternImage(VideoTestSource::TestPattern p)
