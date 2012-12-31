@@ -794,8 +794,9 @@ typedef struct IH264VENC_Params
   XDAS_Int32  meAlgo;            /*!< Reserved */
   XDAS_Int32  seqScalingFlag; /*!< Sequence Scaling Matrix Present Flag */
                               /*!< = Disable, 1 = Auto, 2 = Low, 3 = Moderate, 4 = Reserved */
-  XDAS_Int32  encQuality;     /*!< 0 => version 1.1 backward compatible mode, 2 => Platinum mode,  
-                                   1 => Full feature, high Quality (It is depreciated due to performance reasons) */
+  XDAS_Int32  encQuality;     /*!< 0 => version 1.1 backward compatible mode, 
+                                   1 => version 1.1 backward compatible Improved Quality mode, 
+                                   2 => High Quality Platinum mode, 3 => High Speed Platinum mode */
   XDAS_Int32  enableARM926Tcm;  /*!< 0 -> do not use ARM926 TCM, 1 -> use ARM926 TCM */
   XDAS_Int32  enableDDRbuff;    /*!< 0 -> do not use DDR, 1 -> use DDR instead of IMCOP */
   XDAS_Int32  sliceMode;        /*!< 0 -> no multiple slices, 1 -> multiple slices - bits/slice  */
@@ -886,7 +887,7 @@ typedef struct VUIParamBuffer
  *
  * Default dynamic parameter values for h264enc instance object
  */
-extern VUIParamBuffer VUIPARAMBUFFER;
+extern VUIParamBuffer H264VENC_TI_VUIPARAMBUFFER;
 
 
 // rrr : CUSTOMSCALINGMATRIX
@@ -927,7 +928,7 @@ typedef struct CustomScalingMatrix
  *
  * Default dynamic parameter values for h264enc instance object
  */
-extern CustomScalingMatrix CUSTOMSCALINGMATRIX;
+extern CustomScalingMatrix H264VENC_TI_CUSTOMSCALINGMATRIX;
 
 /*
  *=============================================================================

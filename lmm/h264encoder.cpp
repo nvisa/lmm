@@ -22,8 +22,6 @@
 
 #define VIDEO_PIPE_SIZE 4
 
-extern VUIParamBuffer VUIPARAMBUFFER;
-
 static void printErrorMsg(XDAS_Int32 errorCode)
 {
 	if(0 == errorCode)
@@ -735,7 +733,7 @@ int H264Encoder::startCodec()
 	dynH264Params = new IH264VENC_DynamicParams;
 	memset(dynH264Params, 0, sizeof(IH264VENC_DynamicParams));
 	dynH264Params->videncDynamicParams = Venc1_DynamicParams_DEFAULT;
-	dynH264Params->VUI_Buffer = &VUIPARAMBUFFER;
+	dynH264Params->VUI_Buffer = &H264VENC_TI_VUIPARAMBUFFER;
 	dynH264Params->videncDynamicParams.size = sizeof(IH264VENC_DynamicParams);
 
 	/*
