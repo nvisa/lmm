@@ -115,6 +115,7 @@ int BaseLmmMux::start()
 
 int BaseLmmMux::stop()
 {
+	inputLock.lock();
 	if (context) {
 		av_write_trailer(context);
 		for(uint i = 0; i < context->nb_streams; i++) {
@@ -130,6 +131,7 @@ int BaseLmmMux::stop()
 		av_close_input_file(inputContext);
 		inputContext = NULL;
 	}
+	inputLock.unlock();
 
 	return BaseLmmElement::stop();
 }
