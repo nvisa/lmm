@@ -32,7 +32,8 @@ SOURCES += \
     tools/videoutils.cpp \
     tools/systeminfo.cpp \
     rtpmjpegmux.cpp \
-    rtpmux.cpp
+    rtpmux.cpp \
+    rtsp/basertspserver.cpp
 
 HEADERS  += \
     filesource.h \
@@ -61,7 +62,8 @@ HEADERS  += \
     tools/videoutils.h \
     tools/systeminfo.h \
     rtpmjpegmux.h \
-    rtpmux.h
+    rtpmux.h \
+    rtsp/basertspserver.h
 
 vlc {
 	SOURCES += vlc/vlcrtspstreamer.cpp
