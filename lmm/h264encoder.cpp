@@ -813,7 +813,17 @@ int H264Encoder::startCodec()
 	dynH264Params->disableMVDCostFactor = 0;
 	dynH264Params->aspectRatioX = 1;
 	dynH264Params->aspectRatioY = 1;
-	dynH264Params->idrFrameInterval = 300; //no I frames, all will be IDR
+	/*
+	 * NOTE: According to codec datasheet making
+	 * idrFrameInterval '1' makes all I frames
+	 * IDR frames which is not TRUE. Making it
+	 * '1' makes *ALL* frames IDR. Correct way of
+	 * making all frames IDR is to set this parameter
+	 * to intraFrameInterval. Also note that there is
+	 * no any noticable bandwidth penalty using IDR frames
+	 * so we make all I IDR.
+	 */
+	dynH264Params->idrFrameInterval = intraFrameInterval; //no I frames, all will be IDR
 
 	/* extended H.264 parameters */
 	params->profileIdc = 100;
