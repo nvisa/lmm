@@ -74,6 +74,8 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	/* these capture w and h are defaults, v4l2input overrides them in start */
 	captureWidth = 1280;
 	captureHeight = 720;
+	captureWidth2 = 352;
+	captureHeight2 = 288;
 	pixFormat = V4L2_PIX_FMT_NV12;
 	hCapture = NULL;
 	captureBufferCount = 8;
@@ -206,7 +208,7 @@ int DM365CameraInput::openCamera()
 		gfxAttrs.bAttrs.reference = 0;
 		Buffer_Handle h = Buffer_create(bufSize, BufferGfx_getBufferAttrs(&gfxAttrs));
 		if (!h) {
-			mDebug("unable to create capture buffers");
+			mDebug("unable to create %d capture buffers with size %d", captureBufferCount, bufSize);
 			return -ENOMEM;
 		}
 		Buffer_setNumBytesUsed(h, bufSize);
