@@ -6,6 +6,7 @@
 
 #include <QTime>
 #include <QThread>
+#include <QSemaphore>
 
 #include <errno.h>
 
@@ -103,4 +104,10 @@ int BaseLmmOutput::outputFunc()
 int BaseLmmOutput::output()
 {
 	return outputFunc();
+}
+
+int BaseLmmOutput::outputBlocking()
+{
+	inbufsem[0]->acquire();
+	return output();
 }

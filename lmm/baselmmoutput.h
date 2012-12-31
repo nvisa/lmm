@@ -18,6 +18,7 @@ public:
 	virtual int start();
 	virtual int stop();
 	virtual int output();
+	virtual int outputBlocking();
 	virtual qint64 getLatency();
 	virtual int getLoopLatency();
 signals:
