@@ -5,6 +5,12 @@
 #include "lmmcommon.h"
 
 struct Framecopy_Object;
+struct Display_Object;
+struct BufTab_Object;
+struct _Buffer_Object;
+typedef struct _Buffer_Object *Buffer_Handle;
+typedef struct BufTab_Object *BufTab_Handle;
+typedef struct Display_Object *Display_Handle;
 
 class DM365VideoOutput : public V4l2Output
 {
@@ -28,6 +34,8 @@ private:
 	int pixelFormat;
 
 	void videoCopy(RawBuffer buf, Buffer_Handle dispbuf, Buffer_Handle dmai);
+	int checkFb(QString filename);
+	int setFb(QString filename);
 };
 
 #endif // DM365VIDEOOUTPUT_H

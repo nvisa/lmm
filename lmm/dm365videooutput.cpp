@@ -5,8 +5,16 @@
 
 #include <emdesk/debug.h>
 
-#include <errno.h>
+#include <QFile>
 
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <linux/fb.h>
+#include <linux/errno.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <errno.h>
 #include <linux/videodev2.h>
 
 #include <ti/sdo/dmai/BufTab.h>
@@ -45,7 +53,7 @@ void DM365VideoOutput::
 DM365VideoOutput::DM365VideoOutput(QObject *parent) :
 	V4l2Output(parent)
 {
-	outputType = Lmm::COMPONENT;
+	//outputType = Lmm::COMPONENT;
 	pixelFormat = V4L2_PIX_FMT_NV12;
 
 	Framecopy_Attrs fcAttrs;
@@ -55,6 +63,10 @@ DM365VideoOutput::DM365VideoOutput(QObject *parent) :
 	hFrameCopy = Framecopy_create(&fcAttrs);
 	if (hFrameCopy)
 		frameCopyConfigured = false;
+
+	//setFb("/dev/fb0");
+	//checkFb("/dev/fb0");
+	//checkFb("/dev/fb0");
 }
 
 void DM365VideoOutput::setVideoOutput(Lmm::VideoOutput out)
@@ -77,7 +89,8 @@ void DM365VideoOutput::setVideoOutput(Lmm::VideoOutput out)
 
 int DM365VideoOutput::outputBuffer(RawBuffer buf)
 {
-	if (outputType == Lmm::COMPONENT)
+#if 0
+	if (outputType == Lmm::COMPONENT || outputType == Lmm::PRGB)
 		return V4l2Output::outputBuffer(buf);
 	/* input size does not match output size, do manual copy */
 	Buffer_Handle dispbuf;
@@ -86,12 +99,13 @@ int DM365VideoOutput::outputBuffer(RawBuffer buf)
 			.toInt();
 	videoCopy(buf, dispbuf, dmai);
 	Display_put(hDisplay, dispbuf);
-
-	return 0;
+#endif
+	return V4l2Output::outputBuffer(buf);
 }
 
 int DM365VideoOutput::start()
 {
+#if 0
 	int w = getParameter("videoWidth").toInt();
 	int h = getParameter("videoHeight").toInt();
 	if (!w)
@@ -106,6 +120,9 @@ int DM365VideoOutput::start()
 		gfxAttrs.dim.width = w;
 		gfxAttrs.dim.height = h;
 	} else if (outputType == Lmm::COMPOSITE) {
+		gfxAttrs.dim.width = w;
+		gfxAttrs.dim.height = h;
+	} else if (outputType == Lmm::PRGB) {
 		gfxAttrs.dim.width = w;
 		gfxAttrs.dim.height = h;
 	} else
@@ -139,6 +156,11 @@ int DM365VideoOutput::start()
 		dAttrs.videoOutput = Display_Output_COMPOSITE;
 		dAttrs.width = gfxAttrs.dim.width;
 		dAttrs.height = gfxAttrs.dim.height;
+	} else if (outputType == Lmm::PRGB) {
+		dAttrs.videoStd = VideoStd_720P_60;
+		dAttrs.videoOutput = Display_Output_LCD;
+		dAttrs.width = gfxAttrs.dim.width;
+		dAttrs.height = gfxAttrs.dim.height;
 	} else
 		return -EINVAL;
 	dAttrs.numBufs = 3;
@@ -148,17 +170,88 @@ int DM365VideoOutput::start()
 		mDebug("Failed to create display device");
 		return -EINVAL;
 	}
-	for (int i = 0; i < BufTab_getNumBufs(hDispBufTab); i++) {
+	/*for (int i = 0; i < BufTab_getNumBufs(hDispBufTab); i++) {
 		Buffer_Handle dmaibuf = BufTab_getBuf(hDispBufTab, i);
 		DmaiBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dmaibuf, this);
 		newbuf.addBufferParameter("v4l2PixelFormat", (int)pixelFormat);
 		bufferPool.insert(dmaibuf, newbuf);
-	}
+	}*/
+#endif
 
-	return BaseLmmOutput::start();
+	QFile f("/sys/class/davinci_display/ch0/output");
+	if (f.open(QIODevice::Unbuffered | QIODevice::WriteOnly)) {
+		f.write("LCD\n");
+		f.close();
+	}
+	f.setFileName("/sys/class/davinci_display/ch0/mode");
+	if (f.open(QIODevice::Unbuffered | QIODevice::WriteOnly)) {
+		f.write("720P-50\n");
+		f.close();
+	}
+	return V4l2Output::start();
 }
 
 int DM365VideoOutput::stop()
 {
 	return V4l2Output::stop();
+}
+
+int DM365VideoOutput::setFb(QString filename)
+{
+	struct fb_var_screeninfo vInfo;
+	struct fb_fix_screeninfo fInfo;
+
+	int fd = open(qPrintable(filename), O_RDWR);
+	if(fd < 0)
+		return -ENOENT;
+
+	if (ioctl(fd, FBIOGET_FSCREENINFO, &fInfo) == -1) {
+		::close(fd);
+		mDebug("failed to get fix screen info");
+		return -EINVAL;
+	}
+
+	if (ioctl(fd, FBIOGET_VSCREENINFO, &vInfo) == -1) {
+		::close(fd);
+		mDebug("failed to get var screen info");
+		return -EINVAL;
+	}
+
+	vInfo.xres = 1280;
+
+	if (ioctl(fd, FBIOPUT_VSCREENINFO, &vInfo) == -1) {
+		::close(fd);
+		mDebug("failed to set var screen info");
+		return -EINVAL;
+	}
+
+	::close(fd);
+	return 0;
+}
+
+int DM365VideoOutput::checkFb(QString filename)
+{
+	struct fb_var_screeninfo vInfo;
+	struct fb_fix_screeninfo fInfo;
+
+	int fd = open(qPrintable(filename), O_RDWR);
+	if(fd < 0)
+		return -ENOENT;
+
+	if (ioctl(fd, FBIOGET_FSCREENINFO, &fInfo) == -1) {
+		::close(fd);
+		mDebug("failed to get fix screen info");
+		return -EINVAL;
+	}
+
+	if (ioctl(fd, FBIOGET_VSCREENINFO, &vInfo) == -1) {
+		::close(fd);
+		mDebug("failed to get var screen info");
+		return -EINVAL;
+	}
+	qDebug() << vInfo.xres << vInfo.yres << vInfo.bits_per_pixel << vInfo.hsync_len << vInfo.vsync_len << vInfo.left_margin << vInfo.right_margin;
+
+
+	::close(fd);
+	return 0;
 }

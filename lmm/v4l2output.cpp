@@ -21,7 +21,7 @@ V4l2Output::V4l2Output(QObject *parent) :
 {
 	fd = -1;
 	deviceName = "/dev/video2";
-	bufferCount = 3;
+	bufferCount = 5;
 }
 
 int V4l2Output::outputBuffer(RawBuffer buf)
@@ -79,7 +79,7 @@ int V4l2Output::start()
 	dispWidth = w;
 	dispHeight = h;
 	if (fd < 0) {
-		mInfo("opening display device");
+		mInfo("opening display device: width=%d height=%d", w, h);
 		int err = openDisplay();
 		if (err)
 			return err;
