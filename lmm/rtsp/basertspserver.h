@@ -22,6 +22,7 @@ struct RtspSessionParameters {
 	int dataPort;
 	int controlPort;
 	QString peerIp;
+	QString streamIp;
 };
 
 class BaseRtspServer : public QObject

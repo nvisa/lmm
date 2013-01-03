@@ -163,6 +163,7 @@ public:
 	int dataPort;
 	int controlPort;
 	QString peerIp;
+	QString streamIp;
 private:
 	QHostAddress myIpAddr;
 };
@@ -195,6 +196,7 @@ RtspSessionParameters BaseRtspServer::getSessionParameters(QString url)
 	sp.sourceDataPort = ses->sourceDataPort;
 	sp.transportString = ses->transportString;
 	sp.peerIp = ses->peerIp;
+	sp.streamIp = ses->streamIp;
 	return sp;
 }
 
@@ -368,6 +370,10 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		}
 
 		ses->peerIp = currentPeerIp;
+		if (multicast)
+			ses->streamIp = "224.1.1.1";
+		else
+			ses->streamIp = ses->peerIp;
 		ses->controlUrl = cbase;
 		sessions.insert(cbase, ses);
 		emit sessionSettedUp(ses->controlUrl);
