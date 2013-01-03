@@ -36,15 +36,15 @@ C64P.rootDir = java.lang.System.getenv("CODEGEN_INSTALL_DIR");
 
 /* location of your Montavista Arm9 tools */
 var MVArm9 = xdc.useModule('gnu.targets.MVArm9');
-MVArm9.rootDir = "/usr/local/angstrom/arm/"
+MVArm9.rootDir = java.lang.System.getenv("TOOLCHAIN_PATH");
 MVArm9.ccOpts.prefix = "-g";
 MVArm9.ccOpts.suffix = "";
 
 /* location of the Codec Sourcery Arm9 tools */
 var GCArmv5T = xdc.useModule('gnu.targets.arm.GCArmv5T');
-GCArmv5T.LONGNAME = 'bin/arm-angstrom-linux-gnueabi-gcc';
+GCArmv5T.LONGNAME = 'bin/arm-none-linux-gnueabi-gcc';
 GCArmv5T.platform = "ti.platforms.evm3530";
-GCArmv5T.rootDir = "/usr/local/angstrom/arm"
+GCArmv5T.rootDir = java.lang.System.getenv("TOOLCHAIN_PATH");
 
 /*
  *  ======== Build.targets ========
