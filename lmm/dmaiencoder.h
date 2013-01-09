@@ -48,6 +48,8 @@ public:
 	/* control API */
 	int setCodecType(CodecType type);
 	CodecType getCodecType() { return codec; }
+	virtual void setFrameRate(float fps);
+	virtual float getFrameRate();
 
 	static void initCodecEngine();
 signals:
@@ -66,6 +68,7 @@ protected:
 	UnitTimeStat *encodeTimeStat;
 	QTime *encodeTiming;
 
+	float frameRate;
 	Venc1_Handle hCodec;
 	int maxFrameRate;
 	RateControl rateControl;

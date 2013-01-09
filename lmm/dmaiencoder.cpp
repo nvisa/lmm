@@ -34,6 +34,17 @@ int DmaiEncoder::setCodecType(DmaiEncoder::CodecType type)
 	return 0;
 }
 
+void DmaiEncoder::setFrameRate(float fps)
+{
+	frameRate = fps;
+	maxFrameRate = frameRate * 1000;
+}
+
+float DmaiEncoder::getFrameRate()
+{
+	return frameRate;
+}
+
 int DmaiEncoder::start()
 {
 	int w = getParameter("videoWidth").toInt();
