@@ -22,6 +22,8 @@
 
 #define VIDEO_PIPE_SIZE 4
 
+extern VUIParamBuffer H264VENC_TI_VUIPARAMBUFFER;
+
 static void printErrorMsg(XDAS_Int32 errorCode)
 {
 	if(0 == errorCode)
@@ -441,11 +443,33 @@ H264Encoder::H264Encoder(QObject *parent) :
 {
 	seiBufferSize = 1024;
 	dirty = false;
+	encodeFps = 30;
+	enablePictureTimingSei(true);
 }
 
 int H264Encoder::flush()
 {
 	return DmaiEncoder::flush();
+}
+
+int H264Encoder::enablePictureTimingSei(bool enable)
+{
+	if (enable) {
+		enableBufSei = 1;
+		enableVUIParams = 4;
+		enablePicTimSei = 1;
+	} else {
+		enableBufSei = 0;
+		enableVUIParams = 0;
+		enablePicTimSei = 0;
+	}
+	return 0;
+}
+
+void H264Encoder::setFrameRate(float fps)
+{
+	maxFrameRate = fps * 1000;
+	encodeFps = fps;
 }
 
 void H264Encoder::setCustomSeiFieldCount(int value)
@@ -474,7 +498,8 @@ typedef struct Venc1_Object {
 #define GETID(x)  ((x) + 1)
 #define GETIDX(x) ((x) - 1)
 
-static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle hOutBuf, int seiDataSize, int *seiDataOffset)
+static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle hOutBuf, int seiDataSize, int *seiDataOffset
+						  , int timeStamp)
 {
 	IVIDEO1_BufDescIn       inBufDesc;
 	XDM_BufDesc             outBufDesc;
@@ -540,7 +565,7 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 		inArgs.insertUserData = 1;
 	else
 		inArgs.insertUserData = 0;
-	inArgs.timeStamp = 0;
+	inArgs.timeStamp = timeStamp;
 	inArgs.roiParameters.numOfROI = 0;
 
 	outArgs.videncOutArgs.size                        = sizeof(IH264VENC_OutArgs);
@@ -643,7 +668,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		  (int)dim.width, (int)dim.height);
 	/* Encode the video buffer */
 	int seiDataOffset;
-	if (Venc1_processL(hCodec, buffer, hDstBuf, seiBufferSize, &seiDataOffset) < 0) {
+	if (Venc1_processL(hCodec, buffer, hDstBuf, seiBufferSize, &seiDataOffset, timeStamp) < 0) {
 		mDebug("Failed to encode video buffer");
 		BufferGfx_getDimensions(buffer, &dim);
 		mInfo("colorspace=%d dims: x=%d y=%d width=%d height=%d linelen=%d",
@@ -655,6 +680,8 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		bufferLock.unlock();
 		return -EIO;
 	}
+	if (enablePicTimSei)
+		timeStamp++;
 	if (idrGenerated) {
 		VIDENC1_Status status;
 		status.size = sizeof(IH264VENC_Status);
@@ -708,6 +735,9 @@ int H264Encoder::startCodec()
 		   "SEI buffer size: %d\n\t"
 		   , maxFrameRate, rateControl, videoBitRate, intraFrameInterval, seiBufferSize);
 	generateIdrFrame = false;
+	timeStamp = 0;
+	vuiparambuf = new VUIParamBuffer;
+	*vuiparambuf = H264VENC_TI_VUIPARAMBUFFER;
 	BufferGfx_Attrs         gfxAttrs            = BufferGfx_Attrs_DEFAULT;
 	IH264VENC_Params         *params = new IH264VENC_Params;
 
@@ -733,7 +763,9 @@ int H264Encoder::startCodec()
 	dynH264Params = new IH264VENC_DynamicParams;
 	memset(dynH264Params, 0, sizeof(IH264VENC_DynamicParams));
 	dynH264Params->videncDynamicParams = Venc1_DynamicParams_DEFAULT;
-	dynH264Params->VUI_Buffer = &H264VENC_TI_VUIPARAMBUFFER;
+	dynH264Params->VUI_Buffer = vuiparambuf;
+	dynH264Params->VUI_Buffer->numUnitsInTicks = 100;
+	dynH264Params->VUI_Buffer->timeScale = 100 * encodeFps;
 	dynH264Params->videncDynamicParams.size = sizeof(IH264VENC_DynamicParams);
 
 	/*
@@ -787,8 +819,8 @@ int H264Encoder::startCodec()
 	dynH264Params->rcAlgo = 1;
 	dynH264Params->maxDelay = 2000; //2 secs, default value
 	dynH264Params->lfDisableIdc = 0;
-	dynH264Params->enableBufSEI = 0;
-	dynH264Params->enablePicTimSEI = 0;
+	dynH264Params->enableBufSEI = enableBufSei;
+	dynH264Params->enablePicTimSEI = enablePicTimSei;
 	dynH264Params->perceptualRC = 0;
 	dynH264Params->mvSADoutFlag = 0;
 	dynH264Params->resetHDVICPeveryFrame = 0;
@@ -831,7 +863,7 @@ int H264Encoder::startCodec()
 	params->entropyMode = 0; //0: CAVLC, 1:CABAC
 	params->transform8x8FlagIntraFrame = 0;
 	params->transform8x8FlagInterFrame = 0;
-	params->enableVUIparams = 0; //assumed to be 1 by the codec, in case of SEI insertion
+	params->enableVUIparams = enableVUIParams;
 	params->meAlgo = 0;
 	params->seqScalingFlag = 0;
 	params->encQuality = 2;
