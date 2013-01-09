@@ -38,10 +38,6 @@ int RtpH264Mux::initMuxer()
 	 */
 	AVCodecContext *codec;
 	uint64_t extra_size;
-	int copy_tb = 1;
-	AVRational itb;
-	AVRational itb2;
-	int ticks_per_frame;
 	RTPMuxContext *rtpCtx;
 
 	int err = 0;
@@ -78,20 +74,8 @@ int RtpH264Mux::initMuxer()
 	extra_size = (uint64_t)22 + FF_INPUT_BUFFER_PADDING_SIZE;
 	//TODO: we need to free codec extra data
 	codec->extradata = (uint8_t *)av_mallocz(extra_size);
-	copy_tb = 1;
 
-	itb.num = 1;
-	itb.den = 50;
-	itb2.num = 1;
-	itb2.den = 1200000;
-	ticks_per_frame = 2;
-	if (!copy_tb && av_q2d(itb) * ticks_per_frame > av_q2d(itb2) && av_q2d(itb2) < 1.0/500) {
-		codec->time_base = itb;
-		codec->time_base.num *= ticks_per_frame;
-		av_reduce(&codec->time_base.num, &codec->time_base.den,
-				  codec->time_base.num, codec->time_base.den, INT_MAX);
-	} else
-		codec->time_base = itb2;
+	codec->time_base = st->time_base;
 	codec->pix_fmt = (PixelFormat)0;
 	codec->width = w;
 	codec->height = h;
