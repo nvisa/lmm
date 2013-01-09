@@ -520,17 +520,20 @@ int DM365CameraInput::configureResizer(void)
 	/* we can ignore the input spec since we are chaining. So only
 	   set output specs */
 	rsz_cont_config.output1.enable = 1;
-	rsz_cont_config.output1.h_flip = ch1HorFlip;
-	rsz_cont_config.output1.v_flip = ch1VerFlip;
+	rsz_cont_config.output1.h_flip = ch1HorFlip ? 1 : 0;
+	rsz_cont_config.output1.v_flip = ch1VerFlip ? 1 : 0;
 
-	rsz_cont_config.output2.enable = 1;
+	if (captureWidth2 == 0 || captureHeight2 == 0)
+		rsz_cont_config.output2.enable = 0;
+	else
+		rsz_cont_config.output2.enable = 1;
 	rsz_cont_config.output2.pix_fmt = IPIPE_YUV420SP;
 	rsz_cont_config.output2.width = captureWidth2;
 	rsz_cont_config.output2.height = captureHeight2;
 	rsz_cont_config.output2.vst_y = 0;  //line offset for y
 	rsz_cont_config.output2.vst_c = 0;  //line offset for c
-	rsz_cont_config.output2.h_flip = ch2HorFlip; //enable/disable horizontal flip
-	rsz_cont_config.output2.v_flip = ch2VerFlip; //enable/disable horizontal flip
+	rsz_cont_config.output2.h_flip = ch2HorFlip ? 1 : 0;
+	rsz_cont_config.output2.v_flip = ch2VerFlip ? 1 : 0;
 
 	/* interpolation types */
 	rsz_cont_config.output2.v_typ_y = RSZ_INTP_CUBIC;
