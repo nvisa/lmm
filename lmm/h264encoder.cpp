@@ -848,7 +848,7 @@ int H264Encoder::startCodec()
 	 * idrFrameInterval '1' makes all I frames
 	 * IDR frames which is not TRUE. Making it
 	 * '1' makes *ALL* frames IDR. Correct way of
-	 * making all frames IDR is to set this parameter
+	 * making all I frames IDR is to set this parameter
 	 * to intraFrameInterval. Also note that there is
 	 * no any noticable bandwidth penalty using IDR frames
 	 * so we make all I IDR.
