@@ -85,6 +85,18 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	ch1VerFlip = false;
 	ch2HorFlip = false;
 	ch2VerFlip = false;
+
+	inputFps = outputFps = 30;
+}
+
+void DM365CameraInput::setInputFps(float fps)
+{
+	inputFps = fps;
+}
+
+void DM365CameraInput::setOutputFps(float fps)
+{
+	outputFps = fps;
 }
 
 void DM365CameraInput::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
@@ -180,7 +192,8 @@ int DM365CameraInput::openCamera()
 	if (err)
 		return err;
 
-	//fpsWorkaround();
+	if (outputFps != inputFps)
+		fpsWorkaround();
 
 	err = queryCapabilities(&cap);
 	if (err)
@@ -287,7 +300,7 @@ int DM365CameraInput::fpsWorkaround()
 	Dmai_clear(streamparam);
 	streamparam.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	streamparam.parm.capture.timeperframe.numerator = 1;
-	streamparam.parm.capture.timeperframe.denominator = 30;
+	streamparam.parm.capture.timeperframe.denominator = 25;
 	if (ioctl(fd, VIDIOC_S_PARM , &streamparam) < 0) {
 		mDebug("VIDIOC_S_PARM failed (%s)", strerror(errno));
 		return -errno;

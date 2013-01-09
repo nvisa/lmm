@@ -32,6 +32,8 @@ public:
 
 	explicit DM365CameraInput(QObject *parent = 0);
 	void setInputType(cameraInput inp) { inputType = inp; }
+	void setInputFps(float fps);
+	void setOutputFps(float fps);
 	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 	RawBuffer nextBuffer(int ch);
 
@@ -53,6 +55,8 @@ private:
 	virtual v4l2_buffer * getFrame();
 	bool captureLoop();
 
+	float inputFps;
+	float outputFps;
 	cameraInput inputType;
 	QList<Buffer_Handle> refBuffersA;
 	QList<Buffer_Handle> refBuffersB;
