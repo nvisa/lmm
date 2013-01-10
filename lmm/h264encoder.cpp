@@ -500,7 +500,7 @@ typedef struct Venc1_Object {
 #define GETIDX(x) ((x) - 1)
 
 static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle hOutBuf, int seiDataSize, int *seiDataOffset
-						  , int timeStamp)
+						  , int timeStamp, struct ROI_Interface *roi)
 {
 	IVIDEO1_BufDescIn       inBufDesc;
 	XDM_BufDesc             outBufDesc;
@@ -568,8 +568,10 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 		inArgs.insertUserData = 0;
 	inArgs.timeStamp = timeStamp;
 	inArgs.roiParameters.numOfROI = 0;
+	if (roi)
+		inArgs.roiParameters = *roi;
 
-	outArgs.videncOutArgs.size                        = sizeof(IH264VENC_OutArgs);
+	outArgs.videncOutArgs.size = sizeof(IH264VENC_OutArgs);
 
 	/* Encode video buffer */
 	status = VIDENC1_process(hVe->hEncode, &inBufDesc, &outBufDesc, (VIDENC1_InArgs *)&inArgs,
@@ -669,7 +671,8 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		  (int)dim.width, (int)dim.height);
 	/* Encode the video buffer */
 	int seiDataOffset;
-	if (Venc1_processL(hCodec, buffer, hDstBuf, seiBufferSize, &seiDataOffset, timeStamp) < 0) {
+	if (Venc1_processL(hCodec, buffer, hDstBuf, seiBufferSize, &seiDataOffset,
+					   timeStamp, roiParameter((uchar *)Buffer_getUserPtr(buffer))) < 0) {
 		mDebug("Failed to encode video buffer");
 		BufferGfx_getDimensions(buffer, &dim);
 		mInfo("colorspace=%d dims: x=%d y=%d width=%d height=%d linelen=%d",
@@ -991,6 +994,10 @@ int H264Encoder::setDefaultDynamicParams(IH264VENC_Params *params)
 	 */
 	dynH264Params->idrFrameInterval = intraFrameInterval; //no I frames, all will be IDR
 
+	/* roi */
+	if (!roiRect.isNull())
+		dynH264Params->enableROI = 1;
+
 	return 0;
 }
 
@@ -999,5 +1006,41 @@ int H264Encoder::setDynamicParamsProfile1(IH264VENC_Params *params)
 	setDefaultDynamicParams(params);
 	dynH264Params->initQ = -1;
 	dynH264Params->rcQMax = 44;
+
 	return 0;
+}
+
+ROI_Interface * H264Encoder::roiParameter(uchar *vdata)
+{
+	if (dynH264Params->enableROI) {
+		ROI_Interface *roi = new ROI_Interface;
+		int x = roiRect.left(), y = roiRect.top(), w = roiRect.width(), h = roiRect.height();
+		roi->listROI[0].topLeft.x = x;
+		roi->listROI[0].topLeft.y = y;
+		roi->listROI[0].bottomRight.x = x + w;
+		roi->listROI[0].bottomRight.y = y + h;
+		roi->numOfROI = 1;
+		roi->roiPriority[0] = 4;
+		roi->roiType[0] = FOREGROUND_OBJECT;
+		if (vdata && markRoi) {
+			QTime t; t.start();
+			int linewidth = 1;
+			int col = 255;
+			/* top line */
+			for (int i = y; i < y + linewidth; i++)
+				memset(&vdata[i * 1280] + x, col, w);
+			/* bottom line */
+			for (int i = y + h - linewidth; i < y + h; i++)
+				memset(&vdata[i * 1280] + x, col, w);
+			/* left line */
+			for (int i = y; i < y + h; i++)
+				memset(&vdata[i * 1280] + x, col, linewidth);
+			/* right line */
+			for (int i = y; i < y + h; i++)
+				memset(&vdata[i * 1280] + x + w - linewidth, col, linewidth);
+			mInfo("roi mark took %d msecs", t.elapsed());
+		}
+		return roi;
+	}
+	return NULL;
 }

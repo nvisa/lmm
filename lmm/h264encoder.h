@@ -3,9 +3,12 @@
 
 #include "dmaiencoder.h"
 
+struct ROI_Interface;
 struct IH264VENC_Params;
 struct IH264VENC_DynamicParams;
 struct VUIParamBuffer;
+
+#include <QRect>
 
 class H264Encoder : public DmaiEncoder
 {
@@ -25,6 +28,8 @@ public:
 	int enablePictureTimingSei(bool enable);
 	int setProfile(int v) { profileId = v; return 0; }
 	int getProfile() { return profileId; }
+	int setRoi(QRect rect, bool mark) { roiRect = rect; return 0; markRoi = mark; }
+	QRect getRoi() { return roiRect; }
 	virtual void setFrameRate(float fps);
 
 	/* sei information */
@@ -45,6 +50,8 @@ private:
 	float encodeFps;
 	struct VUIParamBuffer *vuiparambuf;
 	int profileId;
+	QRect roiRect;
+	bool markRoi;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec();
@@ -55,6 +62,7 @@ private:
 	int setParamsProfile1(IH264VENC_Params *params);
 	int setDefaultDynamicParams(IH264VENC_Params *params);
 	int setDynamicParamsProfile1(IH264VENC_Params *params);
+	ROI_Interface *roiParameter(uchar *vdata);
 };
 
 #endif // H264ENCODER_H
