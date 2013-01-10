@@ -445,6 +445,9 @@ H264Encoder::H264Encoder(QObject *parent) :
 	dirty = false;
 	encodeFps = 30;
 	profileId = 0;
+	useMetadata = false;
+	genMetadata = false;
+	frameinfoInterface = NULL;
 	enablePictureTimingSei(true);
 }
 
@@ -465,6 +468,24 @@ int H264Encoder::enablePictureTimingSei(bool enable)
 		enablePicTimSei = 0;
 	}
 	return 0;
+}
+
+int H264Encoder::useGeneratedMetadata(bool v)
+{
+	useMetadata = v;
+	return 0;
+}
+
+int H264Encoder::generateMetadata(bool v)
+{
+	genMetadata = v;
+	return 0;
+}
+
+void H264Encoder::setMetadata(void *data)
+{
+	if (data)
+		memcpy(frameinfoInterface, data, sizeof(FrameInfo_Interface));
 }
 
 void H264Encoder::setFrameRate(float fps)
@@ -500,16 +521,16 @@ typedef struct Venc1_Object {
 #define GETIDX(x) ((x) - 1)
 
 static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle hOutBuf, int seiDataSize, int *seiDataOffset
-						  , int timeStamp, struct ROI_Interface *roi)
+						  , int timeStamp, struct ROI_Interface *roi, bool genFinf, void *finf, Buffer_Handle *finfg)
 {
 	IVIDEO1_BufDescIn       inBufDesc;
 	XDM_BufDesc             outBufDesc;
-	XDAS_Int32              outBufSizeArray[1];
+	XDAS_Int32              outBufSizeArray[3];
 	XDAS_Int32              status;
 	IH264VENC_InArgs		inArgs;
 	IH264VENC_OutArgs       outArgs;
 	XDAS_Int8              *inPtr;
-	XDAS_Int8              *outPtr;
+	XDAS_Int8              *outPtr[4];
 	BufferGfx_Dimensions    dim;
 	Int32                  offset = 0;
 	Uint32                  bpp;
@@ -522,7 +543,7 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 	assert(offset < Buffer_getSize(hInBuf));
 
 	inPtr  = Buffer_getUserPtr(hInBuf)  + offset;
-	outPtr = Buffer_getUserPtr(hOutBuf);
+	outPtr[0] = Buffer_getUserPtr(hOutBuf);
 
 	/* Set up the codec buffer dimensions */
 	inBufDesc.frameWidth                = dim.width;
@@ -537,6 +558,11 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 		inBufDesc.bufDesc[0].buf        = inPtr;
 		inBufDesc.bufDesc[1].buf        = inPtr + Buffer_getSize(hInBuf) * 2/3;
 		inBufDesc.numBufs               = 2;
+
+		if (finf) {
+			inBufDesc.bufDesc[2].buf		= (XDAS_Int8 *)finf;
+			inBufDesc.numBufs++;
+		}
 	}
 	else if (BufferGfx_getColorSpace(hInBuf) == ColorSpace_UYVY) {
 		inBufDesc.bufDesc[0].bufSize    = Buffer_getSize(hInBuf);
@@ -551,8 +577,14 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 	outBufSizeArray[0]                  = Buffer_getSize(hOutBuf);
 
 	outBufDesc.numBufs                  = 1;
-	outBufDesc.bufs                     = &outPtr;
+	outBufDesc.bufs	                    = outPtr;
 	outBufDesc.bufSizes                 = outBufSizeArray;
+
+	if (genFinf) {
+		outBufSizeArray[1]                  = Buffer_getSize(finfg[0]);
+		outPtr[1]							= Buffer_getUserPtr(finfg[0]);
+		outBufDesc.numBufs					+= 1;
+	}
 
 	inArgs.videncInArgs.size                         = sizeof(IH264VENC_InArgs);
 	inArgs.videncInArgs.inputID                      = GETID(Buffer_getId(hInBuf));
@@ -671,8 +703,11 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		  (int)dim.width, (int)dim.height);
 	/* Encode the video buffer */
 	int seiDataOffset;
+	if (useMetadata)
+		mDebug("multi-channel encoding video height is %d", ((FrameInfo_Interface *)frameinfoInterface)->hight);
 	if (Venc1_processL(hCodec, buffer, hDstBuf, seiBufferSize, &seiDataOffset,
-					   timeStamp, roiParameter((uchar *)Buffer_getUserPtr(buffer))) < 0) {
+					   timeStamp, roiParameter((uchar *)Buffer_getUserPtr(buffer)),
+					   genMetadata, useMetadata ? frameinfoInterface : NULL, metadataBuf) < 0) {
 		mDebug("Failed to encode video buffer");
 		BufferGfx_getDimensions(buffer, &dim);
 		mInfo("colorspace=%d dims: x=%d y=%d width=%d height=%d linelen=%d",
@@ -683,6 +718,10 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		BufTab_freeBuf(hDstBuf);
 		bufferLock.unlock();
 		return -EIO;
+	}
+	if (genMetadata) {
+		memcpy(frameinfoInterface, Buffer_getUserPtr(metadataBuf[0]), sizeof(FrameInfo_Interface));
+		mDebug("multi-channel encoding video width is %d", ((FrameInfo_Interface *)frameinfoInterface)->width);
 	}
 	if (enablePicTimSei)
 		timeStamp++;
@@ -858,6 +897,10 @@ int H264Encoder::startCodec()
 
 	}
 
+	Buffer_Attrs attr = Buffer_Attrs_DEFAULT;
+	frameinfoInterface = new FrameInfo_Interface;
+	metadataBuf[0] = Buffer_create(sizeof(FrameInfo_Interface), &attr);
+
 	return 0;
 }
 
@@ -997,6 +1040,12 @@ int H264Encoder::setDefaultDynamicParams(IH264VENC_Params *params)
 	/* roi */
 	if (!roiRect.isNull())
 		dynH264Params->enableROI = 1;
+
+	/* multi-pass encoding */
+	if (genMetadata)
+		dynH264Params->metaDataGenerateConsume = 1;
+	else if (useMetadata)
+		dynH264Params->metaDataGenerateConsume = 2;
 
 	return 0;
 }

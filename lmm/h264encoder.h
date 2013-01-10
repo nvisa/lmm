@@ -30,6 +30,10 @@ public:
 	int getProfile() { return profileId; }
 	int setRoi(QRect rect, bool mark) { roiRect = rect; return 0; markRoi = mark; }
 	QRect getRoi() { return roiRect; }
+	int generateMetadata(bool v);
+	int useGeneratedMetadata(bool v);
+	void * getMetadata() { return frameinfoInterface; }
+	void setMetadata(void * data);
 	virtual void setFrameRate(float fps);
 
 	/* sei information */
@@ -52,6 +56,10 @@ private:
 	int profileId;
 	QRect roiRect;
 	bool markRoi;
+	bool genMetadata;
+	bool useMetadata;
+	Buffer_Handle metadataBuf[3];
+	void *frameinfoInterface;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec();
