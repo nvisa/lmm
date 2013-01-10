@@ -444,6 +444,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	seiBufferSize = 1024;
 	dirty = false;
 	encodeFps = 30;
+	profileId = 0;
 	enablePictureTimingSei(true);
 }
 
@@ -760,25 +761,12 @@ int H264Encoder::startCodec()
 	params->videncParams = Venc1_Params_DEFAULT;
 	params->videncParams.size = sizeof(IH264VENC_Params);
 
-	dynH264Params = new IH264VENC_DynamicParams;
-	memset(dynH264Params, 0, sizeof(IH264VENC_DynamicParams));
-	dynH264Params->videncDynamicParams = Venc1_DynamicParams_DEFAULT;
-	dynH264Params->VUI_Buffer = vuiparambuf;
-	dynH264Params->VUI_Buffer->numUnitsInTicks = 100;
-	dynH264Params->VUI_Buffer->timeScale = 100 * encodeFps;
-	dynH264Params->videncDynamicParams.size = sizeof(IH264VENC_DynamicParams);
-
 	/*
 	 * Set up codec parameters. We round up the height to accomodate for
 	 * alignment restrictions from codecs
 	 */
 	params->videncParams.maxWidth = imageWidth;
 	params->videncParams.maxHeight = Dmai_roundUp(imageHeight, CODECHEIGHTALIGN);
-	/*
-	 * According to codec user guide, high speed or high quality
-	 * setting does not make any difference on bitstream/performance
-	 */
-	params->videncParams.encodingPreset  = XDM_HIGH_SPEED;
 	if (colorSpace ==  ColorSpace_YUV420PSEMI) {
 		params->videncParams.inputChromaFormat = XDM_YUV_420SP;
 	} else {
@@ -799,82 +787,17 @@ int H264Encoder::startCodec()
 	} else {
 		params->videncParams.rateControlPreset = IVIDEO_USER_DEFINED;
 	}
+	if (profileId == 0)
+		setDefaultParams(params);
+	else if (profileId == 1)
+		setParamsProfile1(params);
 
-	dynH264Params->videncDynamicParams.targetBitRate   = params->videncParams.maxBitRate;
-	dynH264Params->videncDynamicParams.inputWidth      = imageWidth;
-	dynH264Params->videncDynamicParams.inputHeight     = imageHeight;
-	dynH264Params->videncDynamicParams.refFrameRate    = params->videncParams.maxFrameRate;
-	dynH264Params->videncDynamicParams.targetFrameRate = params->videncParams.maxFrameRate;
-	dynH264Params->videncDynamicParams.interFrameInterval = 0;
-	dynH264Params->videncDynamicParams.intraFrameInterval = intraFrameInterval;
-	dynH264Params->sliceSize = 0;
-	dynH264Params->airRate = 0;
-	dynH264Params->interPFrameQP = 28;
-	dynH264Params->intraFrameQP = 28;
-	dynH264Params->initQ = 30;
-	dynH264Params->rcQMax = 51;
-	dynH264Params->rcQMin = 0;
-	dynH264Params->rcQMaxI = 51;
-	dynH264Params->rcQMinI = 0;
-	dynH264Params->rcAlgo = 1;
-	dynH264Params->maxDelay = 2000; //2 secs, default value
-	dynH264Params->lfDisableIdc = 0;
-	dynH264Params->enableBufSEI = enableBufSei;
-	dynH264Params->enablePicTimSEI = enablePicTimSei;
-	dynH264Params->perceptualRC = 0;
-	dynH264Params->mvSADoutFlag = 0;
-	dynH264Params->resetHDVICPeveryFrame = 0;
-	dynH264Params->enableROI = 0;
-	dynH264Params->metaDataGenerateConsume = 0;
-	dynH264Params->maxBitrateCVBR = 768000;
-	dynH264Params->interlaceRefMode = 0;
-	dynH264Params->enableGDR = 0;
-	dynH264Params->GDRduration = 5;
-	dynH264Params->GDRinterval = 30;
-	dynH264Params->LongTermRefreshInterval = 0;
-	dynH264Params->UseLongTermFrame = 0;
-	dynH264Params->SetLongTermFrame = 0;
-	dynH264Params->CVBRsensitivity = 0;
-	dynH264Params->CVBRminbitrate = 0;
-	dynH264Params->LBRmaxpicsize = 0;
-	dynH264Params->LBRminpicsize = 0;
-	dynH264Params->LBRskipcontrol = 0;
-	dynH264Params->maxHighCmpxIntCVBR = 0;
-	dynH264Params->disableMVDCostFactor = 0;
-	dynH264Params->aspectRatioX = 1;
-	dynH264Params->aspectRatioY = 1;
-	/*
-	 * NOTE: According to codec datasheet making
-	 * idrFrameInterval '1' makes all I frames
-	 * IDR frames which is not TRUE. Making it
-	 * '1' makes *ALL* frames IDR. Correct way of
-	 * making all I frames IDR is to set this parameter
-	 * to intraFrameInterval. Also note that there is
-	 * no any noticable bandwidth penalty using IDR frames
-	 * so we make all I IDR.
-	 */
-	dynH264Params->idrFrameInterval = intraFrameInterval; //no I frames, all will be IDR
-
-	/* extended H.264 parameters */
-	params->profileIdc = 100;
-	params->levelIdc = 40;
-	params->Log2MaxFrameNumMinus4 = 0;
-	params->ConstraintSetFlag = 0;
-	params->entropyMode = 0; //0: CAVLC, 1:CABAC
-	params->transform8x8FlagIntraFrame = 0;
-	params->transform8x8FlagInterFrame = 0;
-	params->enableVUIparams = enableVUIParams;
-	params->meAlgo = 0;
-	params->seqScalingFlag = 0;
-	params->encQuality = 2;
-	params->enableARM926Tcm = 0;
-	params->enableDDRbuff = 0;
-	params->sliceMode = 0;
-	params->numTemporalLayers = 0;
-	params->svcSyntaxEnable = 0;
-	params->EnableLongTermFrame = 0;
-	params->outputDataMode = 1;
-	params->sliceFormat = 1;
+	dynH264Params = new IH264VENC_DynamicParams;
+	memset(dynH264Params, 0, sizeof(IH264VENC_DynamicParams));
+	if (profileId == 0)
+		setDefaultDynamicParams(params);
+	else if (profileId == 1)
+		setDynamicParamsProfile1(params);
 
 	QString codecName;
 	if (codec == CODEC_H264)
@@ -958,4 +881,123 @@ int H264Encoder::addSeiData(QByteArray *ba, const RawBuffer source)
 	for (int i = 0; i < customSeiData.size(); i++)
 		out << (qint32)customSeiData[i];
 	return out.device()->pos() - start;
+}
+
+int H264Encoder::setDefaultParams(IH264VENC_Params *params)
+{
+	/*
+	 * According to codec user guide, high speed or high quality
+	 * setting does not make any difference on bitstream/performance
+	 */
+	params->videncParams.encodingPreset  = XDM_HIGH_SPEED;
+	/* extended H.264 parameters */
+	params->profileIdc = 100;
+	params->levelIdc = 40;
+	params->Log2MaxFrameNumMinus4 = 0;
+	params->ConstraintSetFlag = 0;
+	params->entropyMode = 0; //0: CAVLC, 1:CABAC
+	params->transform8x8FlagIntraFrame = 0;
+	params->transform8x8FlagInterFrame = 0;
+	params->enableVUIparams = enableVUIParams;
+	params->meAlgo = 0;
+	params->seqScalingFlag = 0;
+	params->encQuality = 2;
+	params->enableARM926Tcm = 0;
+	params->enableDDRbuff = 0;
+	params->sliceMode = 0;
+	params->numTemporalLayers = 0;
+	params->svcSyntaxEnable = 0;
+	params->EnableLongTermFrame = 0;
+	params->outputDataMode = 1;
+	params->sliceFormat = 1;
+
+	return 0;
+}
+
+int H264Encoder::setParamsProfile1(IH264VENC_Params *params)
+{
+	setDefaultParams(params);
+	params->videncParams.encodingPreset = XDM_HIGH_QUALITY;
+	params->levelIdc = 50;
+	params->entropyMode = 1; //CABAC
+	params->transform8x8FlagIntraFrame = 1;
+	params->transform8x8FlagInterFrame = 1;
+	params->meAlgo = 1;
+	params->seqScalingFlag = 1;
+	params->encQuality = 1;
+
+	return 0;
+}
+
+int H264Encoder::setDefaultDynamicParams(IH264VENC_Params *params)
+{
+	dynH264Params->videncDynamicParams = Venc1_DynamicParams_DEFAULT;
+	dynH264Params->VUI_Buffer = vuiparambuf;
+	dynH264Params->VUI_Buffer->numUnitsInTicks = 100;
+	dynH264Params->VUI_Buffer->timeScale = 100 * encodeFps;
+	dynH264Params->videncDynamicParams.size = sizeof(IH264VENC_DynamicParams);
+	dynH264Params->videncDynamicParams.targetBitRate   = params->videncParams.maxBitRate;
+	dynH264Params->videncDynamicParams.inputWidth      = imageWidth;
+	dynH264Params->videncDynamicParams.inputHeight     = imageHeight;
+	dynH264Params->videncDynamicParams.refFrameRate    = params->videncParams.maxFrameRate;
+	dynH264Params->videncDynamicParams.targetFrameRate = params->videncParams.maxFrameRate;
+	dynH264Params->videncDynamicParams.interFrameInterval = 0;
+	dynH264Params->videncDynamicParams.intraFrameInterval = intraFrameInterval;
+	dynH264Params->sliceSize = 0;
+	dynH264Params->airRate = 0;
+	dynH264Params->interPFrameQP = 28;
+	dynH264Params->intraFrameQP = 28;
+	dynH264Params->initQ = 30;
+	dynH264Params->rcQMax = 51;
+	dynH264Params->rcQMin = 0;
+	dynH264Params->rcQMaxI = 51;
+	dynH264Params->rcQMinI = 0;
+	dynH264Params->rcAlgo = 1;
+	dynH264Params->maxDelay = 2000; //2 secs, default value
+	dynH264Params->lfDisableIdc = 0;
+	dynH264Params->enableBufSEI = enableBufSei;
+	dynH264Params->enablePicTimSEI = enablePicTimSei;
+	dynH264Params->perceptualRC = 0;
+	dynH264Params->mvSADoutFlag = 0;
+	dynH264Params->resetHDVICPeveryFrame = 0;
+	dynH264Params->enableROI = 0;
+	dynH264Params->metaDataGenerateConsume = 0;
+	dynH264Params->maxBitrateCVBR = 768000;
+	dynH264Params->interlaceRefMode = 0;
+	dynH264Params->enableGDR = 0;
+	dynH264Params->GDRduration = 5;
+	dynH264Params->GDRinterval = 30;
+	dynH264Params->LongTermRefreshInterval = 0;
+	dynH264Params->UseLongTermFrame = 0;
+	dynH264Params->SetLongTermFrame = 0;
+	dynH264Params->CVBRsensitivity = 0;
+	dynH264Params->CVBRminbitrate = 0;
+	dynH264Params->LBRmaxpicsize = 0;
+	dynH264Params->LBRminpicsize = 0;
+	dynH264Params->LBRskipcontrol = 0;
+	dynH264Params->maxHighCmpxIntCVBR = 0;
+	dynH264Params->disableMVDCostFactor = 0;
+	dynH264Params->aspectRatioX = 1;
+	dynH264Params->aspectRatioY = 1;
+	/*
+	 * NOTE: According to codec datasheet making
+	 * idrFrameInterval '1' makes all I frames
+	 * IDR frames which is not TRUE. Making it
+	 * '1' makes *ALL* frames IDR. Correct way of
+	 * making all I frames IDR is to set this parameter
+	 * to intraFrameInterval. Also note that there is
+	 * no any noticable bandwidth penalty using IDR frames
+	 * so we make all I IDR.
+	 */
+	dynH264Params->idrFrameInterval = intraFrameInterval; //no I frames, all will be IDR
+
+	return 0;
+}
+
+int H264Encoder::setDynamicParamsProfile1(IH264VENC_Params *params)
+{
+	setDefaultDynamicParams(params);
+	dynH264Params->initQ = -1;
+	dynH264Params->rcQMax = 44;
+	return 0;
 }

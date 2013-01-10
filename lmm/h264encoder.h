@@ -3,6 +3,7 @@
 
 #include "dmaiencoder.h"
 
+struct IH264VENC_Params;
 struct IH264VENC_DynamicParams;
 struct VUIParamBuffer;
 
@@ -22,7 +23,8 @@ public:
 	int getIntraFrameInterval() { return intraFrameInterval; }
 	int setIntraFrameInterval(int v) { intraFrameInterval = v; dirty = true; return 0; }
 	int enablePictureTimingSei(bool enable);
-
+	int setProfile(int v) { profileId = v; return 0; }
+	int getProfile() { return profileId; }
 	virtual void setFrameRate(float fps);
 
 	/* sei information */
@@ -42,11 +44,17 @@ private:
 	int timeStamp;
 	float encodeFps;
 	struct VUIParamBuffer *vuiparambuf;
+	int profileId;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec();
 	int stopCodec();
 	int addSeiData(QByteArray *ba, const RawBuffer source);
+	/* codec parameters api */
+	int setDefaultParams(IH264VENC_Params *params);
+	int setParamsProfile1(IH264VENC_Params *params);
+	int setDefaultDynamicParams(IH264VENC_Params *params);
+	int setDynamicParamsProfile1(IH264VENC_Params *params);
 };
 
 #endif // H264ENCODER_H
