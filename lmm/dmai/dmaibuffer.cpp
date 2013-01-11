@@ -76,6 +76,12 @@ DmaiBuffer::~DmaiBuffer()
 {
 }
 
+Buffer_Handle DmaiBuffer::getDmaiBuffer()
+{
+	DmaiBufferData *dd = (DmaiBufferData *)d.data();
+	return dd->dmaibuf;
+}
+
 BufferGfx_Attrs * DmaiBuffer::createGraphicAttrs(int width, int height, int pixFormat)
 {
 	BufferGfx_Attrs *gfxAttrs = new BufferGfx_Attrs;

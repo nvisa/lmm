@@ -35,6 +35,8 @@ public:
 	DmaiBuffer(const RawBuffer &other);
 	~DmaiBuffer();
 
+	Buffer_Handle getDmaiBuffer();
+
 	static BufferGfx_Attrs * createGraphicAttrs(int width, int height, int pixFormat);
 	static int getBufferSizeFor(BufferGfx_Attrs *attrs);
 signals:
