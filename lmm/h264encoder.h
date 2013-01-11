@@ -28,7 +28,7 @@ public:
 	int enablePictureTimingSei(bool enable);
 	int setProfile(int v) { profileId = v; return 0; }
 	int getProfile() { return profileId; }
-	int setRoi(QRect rect, bool mark) { roiRect = rect; return 0; markRoi = mark; }
+	int setRoi(QRect rect, bool mark) { roiRect = rect; markRoi = mark; return 0; }
 	QRect getRoi() { return roiRect; }
 	int generateMetadata(bool v);
 	int useGeneratedMetadata(bool v);
