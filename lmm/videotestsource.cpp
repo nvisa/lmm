@@ -112,6 +112,10 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 	/* TODO: color space is assumed to be NV12 */
 	BufferGfx_Attrs *attr = DmaiBuffer::createGraphicAttrs(width, height, V4L2_PIX_FMT_NV12);
 
+	if (p == RAW_YUV_FILE) {
+		/* cache is not used in this mode */
+		return;
+	}
 	/* we will use cache data if exists */
 	if (!checkCache(p, attr)) {
 		mDebug("cache is not valid");
@@ -193,6 +197,28 @@ void VideoTestSource::setFps(int fps)
 {
 	targetFps = fps;
 	bufferTime = 1000000 / targetFps;
+}
+
+void VideoTestSource::setYUVFile(QString filename)
+{
+	QFile f(filename);
+	if (f.exists()) {
+		f.open(QIODevice::ReadOnly);
+		QByteArray ba = f.readAll();
+		/* TODO: color space is assumed to be NV12 */
+		BufferGfx_Attrs *attr = DmaiBuffer::createGraphicAttrs(width, height, V4L2_PIX_FMT_NV12);
+		for (int i = 0; i < NUM_OF_BUFFERS; i++) {
+			DmaiBuffer imageBuf("video/x-raw-yuv", (ba.constData())
+								, width * height * 3 / 2, attr);
+			imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+			refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
+			DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
+			tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+			inputBuffers << tmp;
+		}
+
+		f.close();
+	}
 }
 
 RawBuffer VideoTestSource::nextBuffer()

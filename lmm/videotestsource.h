@@ -2,7 +2,6 @@
 #define VIDEOTESTSOURCE_H
 
 #include <lmm/baselmmelement.h>
-#include <dmai/dmaibuffer.h>
 
 #include <QImage>
 
@@ -28,6 +27,7 @@ public:
 		STAR_SINE_144,
 		TRT,
 		ZONE_HARDEDGE,
+		RAW_YUV_FILE,
 
 		PATTERN_COUNT
 	};
@@ -37,6 +37,7 @@ public:
 	void setTestPattern(TestPattern p);
 	TestPattern getPattern() { return pattern; }
 	void setFps(int fps);
+	void setYUVFile(QString filename);
 
 	RawBuffer nextBuffer();
 	RawBuffer nextBufferBlocking(int ch);
@@ -60,7 +61,7 @@ private:
 	int noiseWidth;
 	int noiseHeight;
 	TimeoutThread *tt;
-	QMap<int, DmaiBuffer> refBuffers;
+	QMap<int, RawBuffer> refBuffers;
 
 	QImage getPatternImage(TestPattern p);
 	DmaiBuffer addNoise(DmaiBuffer imageBuf);
