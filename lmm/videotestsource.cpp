@@ -1,6 +1,7 @@
 #include "videotestsource.h"
 #include "streamtime.h"
 #include "dmai/dmaibuffer.h"
+#include "lmmthread.h"
 
 #include <emdesk/debug.h>
 
@@ -43,6 +44,27 @@
 	\sa DM365CameraInput
 */
 
+#define NUM_OF_BUFFERS 3
+
+class TimeoutThread : public LmmThread
+{
+public:
+	TimeoutThread(int sleepTime, QSemaphore *wakeSem) : LmmThread("VideoTestSourceTimeoutThread")
+	{
+		stime = sleepTime;
+		sem = wakeSem;
+	}
+protected:
+	int operation()
+	{
+		QThread::msleep(stime);
+		sem->release();
+		return 0;
+	}
+	int stime;
+	QSemaphore *sem;
+};
+
 VideoTestSource::VideoTestSource(QObject *parent) :
 	BaseLmmElement(parent)
 {
@@ -52,9 +74,6 @@ VideoTestSource::VideoTestSource(QObject *parent) :
 	setFps(30);
 	pattern = PATTERN_COUNT;
 	noisy = false;
-	timer = new QTimer;
-	timer->setSingleShot(true);
-	connect(timer, SIGNAL(timeout()), SLOT(timeout()));
 }
 
 VideoTestSource::VideoTestSource(int nWidth, int nHeight, QObject *parent)
@@ -84,33 +103,24 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 		width = w;
 	if (h)
 		height = h;
-	mDebug("creating test pattern %d, widht=%d, height=%d", p, width, height);
-	/* we will use cache data if exists */
-	QFile f("/tmp/lmmtestpattern.yuv");
+	mDebug("creating test pattern %d, width=%d, height=%d", p, width, height);
 	pattern = p;
 	pImage = getPatternImage(p);
-	bool cvalid = false;
+
+	refBuffers.clear();
 
 	/* TODO: color space is assumed to be NV12 */
 	BufferGfx_Attrs *attr = DmaiBuffer::createGraphicAttrs(width, height, V4L2_PIX_FMT_NV12);
-	if (f.exists()) {
-		f.open(QIODevice::ReadOnly);
-		QByteArray ba = f.readAll();
-		if (ba.at(0) == p) {
-			for (int i = 0; i < 3; i++) {
-				DmaiBuffer imageBuf("video/x-raw-yuv", (ba.constData() + 1)
-									  , width * height * 3 / 2, attr, this);
-				imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-				inputBuffers << imageBuf;
-			}
-			cvalid = true;
-		}
-		f.close();
-	}
-	if (!cvalid) {
-		DmaiBuffer imageBuf("video/x-raw-yuv", width * height * 3 / 2, attr, this);
+
+	/* we will use cache data if exists */
+	if (!checkCache(p, attr)) {
+		mDebug("cache is not valid");
+		DmaiBuffer imageBuf("video/x-raw-yuv", width * height * 3 / 2, attr);
 		imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-		inputBuffers << imageBuf;
+		refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
+		DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
+		tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+		inputBuffers << tmp;
 
 		uchar *ydata = (uchar *)imageBuf.constData();
 		uchar *cdata = ydata + imageBuf.size() / 3 * 2;
@@ -144,13 +154,25 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 		}
 
 		/* write cache data so that next time we will be faster */
+		QFile f("/tmp/lmmtestpattern.yuv");
 		if (f.open(QIODevice::WriteOnly)) {
 			f.write((char *)&pattern, 1);
 			f.write((const char *)imageBuf.constData(), imageBuf.size());
 		}
+
+		for (int i = 1; i < NUM_OF_BUFFERS; i++) {
+			DmaiBuffer imageBuf2("video/x-raw-yuv", imageBuf.constData()
+								  , width * height * 3 / 2, attr);
+			imageBuf2.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+			refBuffers.insert((int)imageBuf2.getDmaiBuffer(), imageBuf2);
+			DmaiBuffer tmp2("video/x-raw-yuv", imageBuf2.getDmaiBuffer(), this);
+			tmp2.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+			inputBuffers << tmp2;
+		}
 	}
 
 	if (noisy && noise.size() == 0) {
+		mDebug("creating noise");
 		QFile randF("/dev/urandom");
 		if (!randF.open(QIODevice::ReadOnly)) {
 			mDebug("error opening /dev/urandom");
@@ -203,17 +225,23 @@ RawBuffer VideoTestSource::nextBuffer()
 	return BaseLmmElement::nextBuffer();
 }
 
-RawBuffer VideoTestSource::nextBufferBlocking(int)
+RawBuffer VideoTestSource::nextBufferBlocking(int ch)
 {
-	timer->start(bufferTime / 1000);
+	/* only single channel is supported */
+	if (ch)
+		return RawBuffer();
+
+	mInfo("new ch %d requested, buffer time is %d msecs", ch, bufferTime / 1000);
 	bufsem[0]->acquire();
+	/* if all buffers are in use, wait till we have one */
+	while (!inputBuffers.size())
+		bufsem[0]->acquire();
 	inputLock.lock();
 	DmaiBuffer imageBuf = inputBuffers.takeFirst();
 	if (noisy)
 		imageBuf = addNoise(imageBuf);
 	imageBuf.addBufferParameter("captureTime", streamTime->getCurrentTime());
 	imageBuf.addBufferParameter("fps", targetFps);
-	usedBuffers.insert(imageBuf.getBufferParameter("dmaiBuffer").toInt(), imageBuf);
 	inputLock.unlock();
 	outputLock.lock();
 	outputBuffers.append(imageBuf);
@@ -224,9 +252,10 @@ RawBuffer VideoTestSource::nextBufferBlocking(int)
 void VideoTestSource::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
 	int key = params["dmaiBuffer"].toInt();
+	DmaiBuffer tmp("video/x-raw-yuv", (Buffer_Handle)key, this);
+	tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
 	inputLock.lock();
-	inputBuffers << usedBuffers[key];
-	usedBuffers.remove(key);
+	inputBuffers << tmp;
 	inputLock.unlock();
 }
 
@@ -235,9 +264,18 @@ int VideoTestSource::flush()
 	return 0;
 }
 
-void VideoTestSource::timeout()
+int VideoTestSource::start()
 {
-	bufsem[0]->release(1);
+	tt = new TimeoutThread(bufferTime / 1000, bufsem[0]);
+	tt->start();
+	return BaseLmmElement::start();
+}
+
+int VideoTestSource::stop()
+{
+	tt->stop();
+	tt->deleteLater();
+	return BaseLmmElement::stop();
 }
 
 QImage VideoTestSource::getPatternImage(VideoTestSource::TestPattern p)
@@ -284,4 +322,28 @@ DmaiBuffer VideoTestSource::addNoise(DmaiBuffer imageBuf)
 		memcpy(ydata + i + width - noiseWidth, ndata + noff, noiseWidth);
 	mInfo("noise addition took %d msecs", t.elapsed());
 	return imageBuf;
+}
+
+bool VideoTestSource::checkCache(TestPattern p, BufferGfx_Attrs *attr)
+{
+	bool valid = false;
+	QFile f("/tmp/lmmtestpattern.yuv");
+	if (f.exists()) {
+		f.open(QIODevice::ReadOnly);
+		QByteArray ba = f.readAll();
+		if (ba.at(0) == p) {
+			for (int i = 0; i < NUM_OF_BUFFERS; i++) {
+				DmaiBuffer imageBuf("video/x-raw-yuv", (ba.constData() + 1)
+									  , width * height * 3 / 2, attr);
+				imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+				refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
+				DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
+				tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+				inputBuffers << tmp;
+			}
+			valid = true;
+		}
+		f.close();
+	}
+	return valid;
 }

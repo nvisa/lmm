@@ -1,12 +1,15 @@
 #ifndef VIDEOTESTSOURCE_H
 #define VIDEOTESTSOURCE_H
 
-#include "baselmmelement.h"
+#include <lmm/baselmmelement.h>
+#include <dmai/dmaibuffer.h>
 
 #include <QImage>
 
 class QFile;
 class DmaiBuffer;
+class TimeoutThread;
+struct BufferGfx_Attrs;
 
 class VideoTestSource : public BaseLmmElement
 {
@@ -39,10 +42,11 @@ public:
 	RawBuffer nextBufferBlocking(int ch);
 	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 	int flush();
+	int start();
+	int stop();
 signals:
 
 private slots:
-	void timeout();
 private:
 	int targetFps;
 	int width;
@@ -55,11 +59,12 @@ private:
 	QList<char *> noise;
 	int noiseWidth;
 	int noiseHeight;
-	QTimer *timer;
-	QMap<int, RawBuffer> usedBuffers;
+	TimeoutThread *tt;
+	QMap<int, DmaiBuffer> refBuffers;
 
 	QImage getPatternImage(TestPattern p);
 	DmaiBuffer addNoise(DmaiBuffer imageBuf);
+	bool checkCache(TestPattern p, BufferGfx_Attrs *attr);
 };
 
 #endif // VIDEOTESTSOURCE_H
