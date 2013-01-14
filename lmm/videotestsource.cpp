@@ -76,7 +76,8 @@ VideoTestSource::VideoTestSource(QObject *parent) :
 	noisy = false;
 }
 
-VideoTestSource::VideoTestSource(int nWidth, int nHeight, QObject *parent)
+VideoTestSource::VideoTestSource(int nWidth, int nHeight, QObject *parent) :
+	BaseLmmElement(parent)
 {
 	width = 1280;
 	height = 720;
@@ -204,7 +205,7 @@ void VideoTestSource::setYUVFile(QString filename)
 	QFile f(filename);
 	if (f.exists()) {
 		f.open(QIODevice::ReadOnly);
-		QByteArray ba = f.readAll();
+		QByteArray ba = f.read(width * height * 3 / 2);
 		/* TODO: color space is assumed to be NV12 */
 		BufferGfx_Attrs *attr = DmaiBuffer::createGraphicAttrs(width, height, V4L2_PIX_FMT_NV12);
 		for (int i = 0; i < NUM_OF_BUFFERS; i++) {
