@@ -113,7 +113,7 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 	/* TODO: color space is assumed to be NV12 */
 	BufferGfx_Attrs *attr = DmaiBuffer::createGraphicAttrs(width, height, V4L2_PIX_FMT_NV12);
 
-	if (p == RAW_YUV_FILE) {
+	if (p == RAW_YUV_FILE || p == RAW_YUV_VIDEO) {
 		/* cache is not used in this mode */
 		return;
 	}
@@ -220,6 +220,27 @@ void VideoTestSource::setYUVFile(QString filename)
 
 		f.close();
 	}
+	pattern = RAW_YUV_FILE;
+}
+
+void VideoTestSource::setYUVVideo(QString filename)
+{
+	pattern  = RAW_YUV_VIDEO;
+	if (videoFile.isOpen())
+		videoFile.close();
+	videoFile.setFileName(filename);
+	videoFile.open(QIODevice::ReadOnly);
+
+	/* TODO: color space is assumed to be NV12 */
+	BufferGfx_Attrs *attr = DmaiBuffer::createGraphicAttrs(width, height, V4L2_PIX_FMT_NV12);
+	for (int i = 0; i < NUM_OF_BUFFERS; i++) {
+		DmaiBuffer imageBuf("video/x-raw-yuv", width * height * 3 / 2, attr);
+		imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+		refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
+		DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
+		tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+		inputBuffers << tmp;
+	}
 }
 
 RawBuffer VideoTestSource::nextBuffer()
@@ -258,18 +279,26 @@ RawBuffer VideoTestSource::nextBufferBlocking(int ch)
 	if (ch)
 		return RawBuffer();
 
-	mInfo("new ch %d requested, buffer time is %d msecs", ch, bufferTime / 1000);
+	mInfo("new ch %d requested, buffer time is %d msecs, pattern is %d"
+		  , ch, bufferTime / 1000, pattern);
 	bufsem[0]->acquire();
 	/* if all buffers are in use, wait till we have one */
 	while (!inputBuffers.size())
 		bufsem[0]->acquire();
 	inputLock.lock();
 	DmaiBuffer imageBuf = inputBuffers.takeFirst();
+	inputLock.unlock();
+	if (pattern == RAW_YUV_VIDEO) {
+		videoFile.read((char *)imageBuf.data(), width * height * 3 / 2);
+		if (videoFile.atEnd()) {
+			videoFile.close();
+			videoFile.open(QIODevice::ReadOnly);
+		}
+	}
 	if (noisy)
 		imageBuf = addNoise(imageBuf);
 	imageBuf.addBufferParameter("captureTime", streamTime->getCurrentTime());
 	imageBuf.addBufferParameter("fps", targetFps);
-	inputLock.unlock();
 	outputLock.lock();
 	outputBuffers.append(imageBuf);
 	outputLock.unlock();

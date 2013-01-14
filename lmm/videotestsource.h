@@ -3,6 +3,7 @@
 
 #include <lmm/baselmmelement.h>
 
+#include <QFile>
 #include <QImage>
 
 class QFile;
@@ -28,6 +29,7 @@ public:
 		TRT,
 		ZONE_HARDEDGE,
 		RAW_YUV_FILE,
+		RAW_YUV_VIDEO,
 
 		PATTERN_COUNT
 	};
@@ -38,6 +40,7 @@ public:
 	TestPattern getPattern() { return pattern; }
 	void setFps(int fps);
 	void setYUVFile(QString filename);
+	void setYUVVideo(QString filename);
 
 	RawBuffer nextBuffer();
 	RawBuffer nextBufferBlocking(int ch);
@@ -62,6 +65,7 @@ private:
 	int noiseHeight;
 	TimeoutThread *tt;
 	QMap<int, RawBuffer> refBuffers;
+	QFile videoFile;
 
 	QImage getPatternImage(TestPattern p);
 	DmaiBuffer addNoise(DmaiBuffer imageBuf);
