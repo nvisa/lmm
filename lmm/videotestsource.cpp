@@ -223,8 +223,9 @@ void VideoTestSource::setYUVFile(QString filename)
 	pattern = RAW_YUV_FILE;
 }
 
-void VideoTestSource::setYUVVideo(QString filename)
+void VideoTestSource::setYUVVideo(QString filename, bool loop)
 {
+	loopVideoFile = loop;
 	pattern  = RAW_YUV_VIDEO;
 	if (videoFile.isOpen())
 		videoFile.close();
@@ -289,10 +290,13 @@ RawBuffer VideoTestSource::nextBufferBlocking(int ch)
 	DmaiBuffer imageBuf = inputBuffers.takeFirst();
 	inputLock.unlock();
 	if (pattern == RAW_YUV_VIDEO) {
+		if (videoFile.isOpen() == false)
+			return RawBuffer();
 		videoFile.read((char *)imageBuf.data(), width * height * 3 / 2);
 		if (videoFile.atEnd()) {
 			videoFile.close();
-			videoFile.open(QIODevice::ReadOnly);
+			if (loopVideoFile)
+				videoFile.open(QIODevice::ReadOnly);
 		}
 	}
 	if (noisy)

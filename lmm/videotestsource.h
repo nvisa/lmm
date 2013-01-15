@@ -40,7 +40,7 @@ public:
 	TestPattern getPattern() { return pattern; }
 	void setFps(int fps);
 	void setYUVFile(QString filename);
-	void setYUVVideo(QString filename);
+	void setYUVVideo(QString filename, bool loop = false);
 
 	RawBuffer nextBuffer();
 	RawBuffer nextBufferBlocking(int ch);
@@ -66,6 +66,7 @@ private:
 	TimeoutThread *tt;
 	QMap<int, RawBuffer> refBuffers;
 	QFile videoFile;
+	bool loopVideoFile;
 
 	QImage getPatternImage(TestPattern p);
 	DmaiBuffer addNoise(DmaiBuffer imageBuf);
