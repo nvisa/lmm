@@ -158,6 +158,7 @@ public:
 	QString sessionId;
 	bool multicast;
 	QString controlUrl;
+	QString streamName;
 	int sourceDataPort;
 	int sourceControlPort;
 	int dataPort;
@@ -197,6 +198,7 @@ RtspSessionParameters BaseRtspServer::getSessionParameters(QString url)
 	sp.transportString = ses->transportString;
 	sp.peerIp = ses->peerIp;
 	sp.streamIp = ses->streamIp;
+	sp.streamName = ses->streamName;
 	return sp;
 }
 
@@ -375,6 +377,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		else
 			ses->streamIp = ses->peerIp;
 		ses->controlUrl = cbase;
+		ses->streamName = stream;
 		sessions.insert(cbase, ses);
 		emit sessionSettedUp(ses->controlUrl);
 
