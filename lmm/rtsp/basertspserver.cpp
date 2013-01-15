@@ -21,8 +21,7 @@
 /**
  *
  * Stream mapping:
- *		stream1    -> h.264 session
- *		stream1m   -> h.264 multicast session
+ *		Application specific...
  *		.
  *		.
  *		.
@@ -75,8 +74,9 @@
 class BaseRtspSession
 {
 public:
-	BaseRtspSession()
+	BaseRtspSession(BaseRtspServer *parent)
 	{
+		server = parent;
 		state = TEARDOWN;
 		/* Let's find our IP address */
 		foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
@@ -92,7 +92,7 @@ public:
 	{
 	}
 
-	int setup(bool mcast, int dPort, int cPort, BaseRtspServer::sessionType type)
+	int setup(bool mcast, int dPort, int cPort, QString streamName)
 	{
 		multicast = mcast;
 		dataPort = dPort;
@@ -109,8 +109,8 @@ public:
 			sourceControlPort = sock.localPort() + 1;
 		}
 
-		if (BaseRtspServer::getSessionCodec(type) != Lmm::CODEC_H264
-				|| BaseRtspServer::getSessionCodec(type) == Lmm::CODEC_JPEG)
+		if (server->getSessionCodec(streamName) != Lmm::CODEC_H264
+				|| server->getSessionCodec(streamName) == Lmm::CODEC_JPEG)
 			return -EINVAL;
 
 		if (multicast) {
@@ -129,8 +129,8 @@ public:
 	QString rtpInfo()
 	{
 		if (multicast)
-			return QString("url=rtsp://%1/stream1m;seq=6666;rtptime=1578998879").arg(myIpAddr.toString());
-		return QString("url=rtsp://%1/stream1;seq=6666;rtptime=1578998879").arg(myIpAddr.toString());
+			return QString("url=rtsp://%1/%2;seq=6666;rtptime=1578998879").arg(myIpAddr.toString()).arg(streamName);
+		return QString("url=rtsp://%1/%2;seq=6666;rtptime=1578998879").arg(myIpAddr.toString()).arg(streamName);
 	}
 	int play()
 	{
@@ -167,6 +167,7 @@ public:
 	QString streamIp;
 private:
 	QHostAddress myIpAddr;
+	BaseRtspServer *server;
 };
 
 BaseRtspServer::BaseRtspServer(QObject *parent) :
@@ -184,9 +185,9 @@ BaseRtspServer::BaseRtspServer(QObject *parent) :
 	connect(mapperRead, SIGNAL(mapped(QObject*)), SLOT(clientDataReady(QObject*)));
 }
 
-RtspSessionParameters BaseRtspServer::getSessionParameters(QString url)
+RtspSessionParameters BaseRtspServer::getSessionParameters(QString id)
 {
-	BaseRtspSession *ses = sessions[url];
+	BaseRtspSession *ses = sessions[id];
 	RtspSessionParameters sp;
 	sp.controlPort = ses->controlPort;
 	sp.controlUrl = ses->controlUrl;
@@ -219,6 +220,16 @@ QString BaseRtspServer::detectLineSeperator(QString mes)
 		mDebug("detected lsep as \\r");
 	}
 	return lsep;
+}
+
+QString BaseRtspServer::getField(const QStringList lines, QString desc)
+{
+	foreach (QString line, lines) {
+		if (line.contains(QString("%1:").arg(desc), Qt::CaseInsensitive)) {
+			return line.split(":")[1].trimmed();
+		}
+	}
+	return "";
 }
 
 void BaseRtspServer::newRtspConnection()
@@ -363,8 +374,8 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 				}
 			}
 		}
-		BaseRtspSession *ses = new BaseRtspSession;
-		int err = ses->setup(multicast, dataPort, controlPort, getSessionType(stream));
+		BaseRtspSession *ses = new BaseRtspSession(this);
+		int err = ses->setup(multicast, dataPort, controlPort, stream);
 		if (err) {
 			mDebug("cannot create session, error is %d", err);
 			delete ses;
@@ -378,8 +389,9 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 			ses->streamIp = ses->peerIp;
 		ses->controlUrl = cbase;
 		ses->streamName = stream;
-		sessions.insert(cbase, ses);
-		emit sessionSettedUp(ses->controlUrl);
+		sessions.insert(ses->sessionId, ses);
+		sessionSetupExtra(ses->sessionId);
+		emit sessionSettedUp(ses->sessionId);
 
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("CSeq: %1").arg(cseq);
@@ -402,8 +414,9 @@ QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 	if (!url.endsWith("/"))
 		url.append("/");
 	mDebug("handling play directive: %s", qPrintable(url));
-	if (sessions.contains(url)) {
-		BaseRtspSession *ses = sessions[url];
+	QString sid = getField(lines, "Session");
+	if (sessions.contains(sid)) {
+		BaseRtspSession *ses = sessions[sid];
 		int cseq = lines[1].remove("CSeq: ").toInt();
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("RTP-Info: %1").arg(ses->rtpInfo());
@@ -415,7 +428,8 @@ QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 		int err = ses->play();
 		if (err)
 			return createRtspErrorResponse(err);
-		emit sessionPlayed(ses->controlUrl);
+		sessionPlayExtra(ses->sessionId);
+		emit sessionPlayed(ses->sessionId);
 	} else
 		return createRtspErrorResponse(404);
 	return resp;
@@ -429,8 +443,9 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 	QString url = lines[0].split(" ")[1];
 	if (!url.endsWith("/"))
 		url.append("/");
-	if (sessions.contains(url)) {
-		BaseRtspSession *ses = sessions[url];
+	QString sid = getField(lines, "Session");
+	if (sessions.contains(sid)) {
+		BaseRtspSession *ses = sessions[sid];
 		int err = ses->teardown();
 		if (err)
 			return createRtspErrorResponse(err);
@@ -441,8 +456,9 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 		resp << QString("CSeq: %1").arg(cseq);
 		resp << lsep;
 
-		emit sessionTearedDown(ses->controlUrl);
-		sessions.remove(url);
+		sessionTeardownExtra(ses->sessionId);
+		emit sessionTearedDown(ses->sessionId);
+		sessions.remove(sid);
 		delete ses;
 	} else
 		return createRtspErrorResponse(400);
@@ -487,43 +503,12 @@ void BaseRtspServer::sendRtspMessage(QTcpSocket *sock, QStringList &lines, const
 	sendRtspMessage(sock, lines.join(lsep).toUtf8());
 }
 
-BaseRtspServer::sessionType BaseRtspServer::getSessionType(QString streamName)
-{
-	if (streamName == "stream1")
-		return H264_UNICAST;
-	if (streamName == "stream1m")
-		return H264_MULTICAST;
-	if (streamName == "stream2")
-		return H264_LOWRES_UNICAST;
-	if (streamName == "stream2m")
-		return H264_LOWRES_MULTICAST;
-	if (streamName == "stream3")
-		return MJPEG_UNICAST;
-	if (streamName == "stream3m")
-		return MJPEG_MULTICAST;
-	return H264_UNICAST;
-}
-
-Lmm::CodecType BaseRtspServer::getSessionCodec(sessionType type)
-{
-	if (type == BaseRtspServer::H264_UNICAST
-			|| type == BaseRtspServer::H264_MULTICAST
-			|| type == BaseRtspServer::H264_LOWRES_UNICAST
-			|| type == BaseRtspServer::H264_LOWRES_MULTICAST
-			)
-		return Lmm::CODEC_H264;
-	if (type == BaseRtspServer::MJPEG_MULTICAST
-			|| type == BaseRtspServer::MJPEG_UNICAST)
-		return Lmm::CODEC_JPEG;
-	return Lmm::CODEC_MPEG4;
-}
-
 QStringList BaseRtspServer::createSdp(QString url)
 {
 	QStringList fields = url.split("/", QString::SkipEmptyParts);
 	QString stream = fields[2];
 	QStringList sdp;
-	Lmm::CodecType codec = getSessionCodec(getSessionType(stream));
+	Lmm::CodecType codec = getSessionCodec(stream);
 	if (codec == Lmm::CODEC_H264) {
 		sdp << "v=0";
 		sdp << "o=- 0 0 IN IP4 127.0.0.1";

@@ -30,19 +30,9 @@ class BaseRtspServer : public QObject
 {
 	Q_OBJECT
 public:
-	enum sessionType {
-		H264_UNICAST,
-		H264_MULTICAST,
-		H264_LOWRES_UNICAST,
-		H264_LOWRES_MULTICAST,
-		MJPEG_UNICAST,
-		MJPEG_MULTICAST
-	};
-
 	explicit BaseRtspServer(QObject *parent = 0);
-	RtspSessionParameters getSessionParameters(QString url);
-	static sessionType getSessionType(QString streamName);
-	static Lmm::CodecType getSessionCodec(sessionType type);
+	RtspSessionParameters getSessionParameters(QString id);
+	virtual Lmm::CodecType getSessionCodec(QString streamName) = 0;
 signals:
 	void sessionSettedUp(QString);
 	void sessionPlayed(QString);
@@ -66,6 +56,7 @@ protected:
 	virtual void sendRtspMessage(QTcpSocket *sock, QStringList &lines, const QString &lsep);
 	virtual QStringList createSdp(QString url);
 	virtual QString detectLineSeperator(QString mes);
+	virtual QString getField(const QStringList lines, QString desc);
 
 	/* command handling */
 	virtual QStringList handleCommandOptions(QStringList lines, QString lsep);
@@ -73,6 +64,11 @@ protected:
 	virtual QStringList handleCommandSetup(QStringList lines, QString lsep);
 	virtual QStringList handleCommandPlay(QStringList lines, QString lsep);
 	virtual QStringList handleCommandTeardown(QStringList lines, QString lsep);
+
+	/* extra setup by inherited classes */
+	virtual int sessionSetupExtra(QString) { return 0; }
+	virtual int sessionPlayExtra(QString) { return 0; }
+	virtual int sessionTeardownExtra(QString) { return 0; }
 };
 
 #endif // BASERTSPSERVER_H
