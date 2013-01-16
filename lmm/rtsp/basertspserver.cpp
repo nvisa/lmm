@@ -278,7 +278,7 @@ void BaseRtspServer::clientDataReady(QObject *obj)
 	}
 }
 
-QStringList BaseRtspServer::createRtspErrorResponse(int errcode)
+QStringList BaseRtspServer::createRtspErrorResponse(int errcode, QString lsep)
 {
 	QStringList resp;
 	QString errString;
@@ -295,6 +295,7 @@ QStringList BaseRtspServer::createRtspErrorResponse(int errcode)
 	else if (errcode == 453)
 		errString = "Not Enough Bandwidth";
 	resp << QString("RTSP/1.0 %1 %2").arg(errcode).arg(errString);
+	resp << lsep;
 	return resp;
 }
 
@@ -358,7 +359,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		int dataPort = 0, controlPort = 0;
 		foreach(QString line, lines) {
 			if (line.startsWith("Require"))
-				return createRtspErrorResponse(551);
+				return createRtspErrorResponse(551, lsep);
 			if (line.contains("Transport:")) {
 				mDebug("setup transport line coming from client is: %s", qPrintable(line));
 				QStringList fields2 = line.remove("Transport:").split(";");
@@ -379,7 +380,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		if (err) {
 			mDebug("cannot create session, error is %d", err);
 			delete ses;
-			return createRtspErrorResponse(err);
+			return createRtspErrorResponse(err, lsep);
 		}
 
 		ses->peerIp = currentPeerIp;
@@ -395,7 +396,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 			mDebug("cannot setup session in sub-class, error is %d", err);
 			sessions.remove(ses->sessionId);
 			delete ses;
-			return createRtspErrorResponse(err);
+			return createRtspErrorResponse(err, lsep);
 		}
 		emit sessionSettedUp(ses->sessionId);
 
@@ -408,7 +409,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		resp << lsep;
 	} else {
 		mDebug("not enough fields in setup url");
-		return createRtspErrorResponse(400);
+		return createRtspErrorResponse(400, lsep);
 	}
 	return resp;
 }
@@ -433,11 +434,11 @@ QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 		resp << lsep;
 		int err = ses->play();
 		if (err)
-			return createRtspErrorResponse(err);
+			return createRtspErrorResponse(err, lsep);
 		sessionPlayExtra(ses->sessionId);
 		emit sessionPlayed(ses->sessionId);
 	} else
-		return createRtspErrorResponse(404);
+		return createRtspErrorResponse(404, lsep);
 	return resp;
 }
 
@@ -454,7 +455,7 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 		BaseRtspSession *ses = sessions[sid];
 		int err = ses->teardown();
 		if (err)
-			return createRtspErrorResponse(err);
+			return createRtspErrorResponse(err, lsep);
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("Session: %1").arg(ses->sessionId);
 		resp << "Content-Length: 0";
@@ -467,7 +468,7 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 		sessions.remove(sid);
 		delete ses;
 	} else
-		return createRtspErrorResponse(400);
+		return createRtspErrorResponse(400, lsep);
 	return resp;
 }
 
@@ -491,7 +492,7 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 		resp = handleCommandTeardown(lines, lsep);
 	} else {
 		mDebug("Unknown RTSP directive:\n %s", qPrintable(mes));
-		return createRtspErrorResponse(501);
+		return createRtspErrorResponse(501, lsep);
 	}
 
 	return resp;

@@ -49,7 +49,7 @@ private:
 	QMap<QString, BaseRtspSession *> sessions;
 	QString currentPeerIp;
 protected:
-	virtual QStringList createRtspErrorResponse(int errcode);
+	virtual QStringList createRtspErrorResponse(int errcode, QString lsep);
 	virtual QStringList createDescribeResponse(int cseq, QString url, QString lsep);
 	virtual QStringList handleRtspMessage(QString mes, QString lsep);
 	virtual void sendRtspMessage(QTcpSocket *sock, const QByteArray &mes);
