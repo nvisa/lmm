@@ -133,6 +133,13 @@ int DM365CameraInput::setSize(int ch, QSize sz)
 	return 0;
 }
 
+QSize DM365CameraInput::getSize(int ch)
+{
+	if (ch)
+		return QSize(captureWidth2, captureHeight2);
+	return QSize(captureWidth, captureHeight);
+}
+
 void DM365CameraInput::setVerticalFlip(int ch, bool flip)
 {
 	if (ch)

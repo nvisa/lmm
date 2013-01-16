@@ -38,6 +38,7 @@ public:
 	RawBuffer nextBuffer(int ch);
 
 	int setSize(int ch, QSize sz);
+	QSize getSize(int ch);
 	void setVerticalFlip(int ch, bool flip);
 	void setHorizontalFlip(int ch, bool flip);
 signals:
