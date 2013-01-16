@@ -390,7 +390,13 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		ses->controlUrl = cbase;
 		ses->streamName = stream;
 		sessions.insert(ses->sessionId, ses);
-		sessionSetupExtra(ses->sessionId);
+		err = sessionSetupExtra(ses->sessionId);
+		if (err) {
+			mDebug("cannot setup session in sub-class, error is %d", err);
+			sessions.remove(ses->sessionId);
+			delete ses;
+			return createRtspErrorResponse(err);
+		}
 		emit sessionSettedUp(ses->sessionId);
 
 		resp << "RTSP/1.0 200 OK";
