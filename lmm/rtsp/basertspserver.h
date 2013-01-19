@@ -33,6 +33,8 @@ public:
 	explicit BaseRtspServer(QObject *parent = 0);
 	RtspSessionParameters getSessionParameters(QString id);
 	virtual Lmm::CodecType getSessionCodec(QString streamName) = 0;
+	virtual bool isMulticast(QString streamName) = 0;
+	virtual QString getMulticastAddress(QString streamName);
 signals:
 	void sessionSettedUp(QString);
 	void sessionPlayed(QString);

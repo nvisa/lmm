@@ -114,8 +114,8 @@ public:
 			return -EINVAL;
 
 		if (multicast) {
-			transportString = QString("Transport: RTP/AVP;multicast;destination=224.1.1.1;port=%1-%2;ssrc=6335D514;mode=play")
-					.arg(dataPort).arg(controlPort);
+			transportString = QString("Transport: RTP/AVP;multicast;destination=%3;port=%1-%2;ssrc=6335D514;mode=play")
+					.arg(dataPort).arg(controlPort).arg(streamIp);
 		} else {
 			transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=6335D514;mode=play")
 					.arg(dataPort).arg(controlPort).arg(sourceDataPort)
@@ -201,6 +201,11 @@ RtspSessionParameters BaseRtspServer::getSessionParameters(QString id)
 	sp.streamIp = ses->streamIp;
 	sp.streamName = ses->streamName;
 	return sp;
+}
+
+QString BaseRtspServer::getMulticastAddress(QString)
+{
+	return "224.1.1.1";
 }
 
 QString BaseRtspServer::detectLineSeperator(QString mes)
@@ -352,9 +357,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 	QStringList fields = cbase.split("/", QString::SkipEmptyParts);
 	QString stream = fields[2];
 	if (fields.size() >= 3) {
-		bool multicast = false;
-		if (stream.endsWith("m"))
-			multicast = true;
+		bool multicast = isMulticast(stream);
 		int cseq = lines[1].remove("CSeq: ").toInt();
 		int dataPort = 0, controlPort = 0;
 		foreach(QString line, lines) {
@@ -376,20 +379,19 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 			}
 		}
 		BaseRtspSession *ses = new BaseRtspSession(this);
+		ses->peerIp = currentPeerIp;
+		if (multicast)
+			ses->streamIp = getMulticastAddress(stream);
+		else
+			ses->streamIp = ses->peerIp;
+		ses->controlUrl = cbase;
+		ses->streamName = stream;
 		int err = ses->setup(multicast, dataPort, controlPort, stream);
 		if (err) {
 			mDebug("cannot create session, error is %d", err);
 			delete ses;
 			return createRtspErrorResponse(err, lsep);
 		}
-
-		ses->peerIp = currentPeerIp;
-		if (multicast)
-			ses->streamIp = "224.1.1.1";
-		else
-			ses->streamIp = ses->peerIp;
-		ses->controlUrl = cbase;
-		ses->streamName = stream;
 		sessions.insert(ses->sessionId, ses);
 		err = sessionSetupExtra(ses->sessionId);
 		if (err) {
@@ -516,11 +518,14 @@ QStringList BaseRtspServer::createSdp(QString url)
 	QString stream = fields[2];
 	QStringList sdp;
 	Lmm::CodecType codec = getSessionCodec(stream);
+	QString dstIp = currentPeerIp;
+	if (isMulticast(stream))
+		dstIp = getMulticastAddress(stream);
 	if (codec == Lmm::CODEC_H264) {
 		sdp << "v=0";
 		sdp << "o=- 0 0 IN IP4 127.0.0.1";
 		sdp << "s=No Name";
-		sdp << "c=IN IP4 " + currentPeerIp;
+		sdp << "c=IN IP4 " + dstIp;
 		sdp << "t=0 0";
 		sdp << "a=tool:libavformat 52.102.0";
 		sdp << "m=video 15678 RTP/AVP 96";
@@ -531,7 +536,7 @@ QStringList BaseRtspServer::createSdp(QString url)
 		sdp << "v=0";
 		sdp << "o=- 0 0 IN IP4 127.0.0.1";
 		sdp << "s=No Name";
-		sdp << "c=IN IP4 " + currentPeerIp;
+		sdp << "c=IN IP4 " + dstIp;
 		sdp << "t=0 0";
 		sdp << "a=tool:libavformat 52.102.0";
 		sdp << "m=video 15678 RTP/AVP 26";
