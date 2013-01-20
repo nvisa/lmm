@@ -87,6 +87,7 @@ public:
 				break;
 			}
 		}
+		clientCount = 1;
 	}
 	~BaseRtspSession()
 	{
@@ -165,6 +166,7 @@ public:
 	int controlPort;
 	QString peerIp;
 	QString streamIp;
+	int clientCount;
 private:
 	QHostAddress myIpAddr;
 	BaseRtspServer *server;
@@ -235,6 +237,18 @@ QString BaseRtspServer::getField(const QStringList lines, QString desc)
 		}
 	}
 	return "";
+}
+
+BaseRtspSession * BaseRtspServer::findMulticastSession(QString streamName)
+{
+	QMapIterator<QString, BaseRtspSession *> it(sessions);
+	while (it.hasNext()) {
+		it.next();
+		BaseRtspSession *s = it.value();
+		if (s->multicast && s->streamName == streamName)
+			return s;
+	}
+	return NULL;
 }
 
 void BaseRtspServer::newRtspConnection()
@@ -378,29 +392,34 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 				}
 			}
 		}
-		BaseRtspSession *ses = new BaseRtspSession(this);
-		ses->peerIp = currentPeerIp;
-		if (multicast)
-			ses->streamIp = getMulticastAddress(stream);
-		else
-			ses->streamIp = ses->peerIp;
-		ses->controlUrl = cbase;
-		ses->streamName = stream;
-		int err = ses->setup(multicast, dataPort, controlPort, stream);
-		if (err) {
-			mDebug("cannot create session, error is %d", err);
-			delete ses;
-			return createRtspErrorResponse(err, lsep);
+		BaseRtspSession *ses = findMulticastSession(stream);
+		if (!ses) {
+			ses = new BaseRtspSession(this);
+			ses->peerIp = currentPeerIp;
+			if (multicast)
+				ses->streamIp = getMulticastAddress(stream);
+			else
+				ses->streamIp = ses->peerIp;
+			ses->controlUrl = cbase;
+			ses->streamName = stream;
+			int err = ses->setup(multicast, dataPort, controlPort, stream);
+			if (err) {
+				mDebug("cannot create session, error is %d", err);
+				delete ses;
+				return createRtspErrorResponse(err, lsep);
+			}
+			sessions.insert(ses->sessionId, ses);
+			err = sessionSetupExtra(ses->sessionId);
+			if (err) {
+				mDebug("cannot setup session in sub-class, error is %d", err);
+				sessions.remove(ses->sessionId);
+				delete ses;
+				return createRtspErrorResponse(err, lsep);
+			}
+			emit sessionSettedUp(ses->sessionId);
+		} else {
+			ses->clientCount++;
 		}
-		sessions.insert(ses->sessionId, ses);
-		err = sessionSetupExtra(ses->sessionId);
-		if (err) {
-			mDebug("cannot setup session in sub-class, error is %d", err);
-			sessions.remove(ses->sessionId);
-			delete ses;
-			return createRtspErrorResponse(err, lsep);
-		}
-		emit sessionSettedUp(ses->sessionId);
 
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("CSeq: %1").arg(cseq);
@@ -434,11 +453,13 @@ QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 		resp << "Cache-Control: no-cache";
 		resp << QString("CSeq: %1").arg(cseq);
 		resp << lsep;
-		int err = ses->play();
-		if (err)
-			return createRtspErrorResponse(err, lsep);
-		sessionPlayExtra(ses->sessionId);
-		emit sessionPlayed(ses->sessionId);
+		if (ses->clientCount == 1) {
+			int err = ses->play();
+			if (err)
+				return createRtspErrorResponse(err, lsep);
+			sessionPlayExtra(ses->sessionId);
+			emit sessionPlayed(ses->sessionId);
+		}
 	} else
 		return createRtspErrorResponse(404, lsep);
 	return resp;
@@ -455,20 +476,23 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 	QString sid = getField(lines, "Session");
 	if (sessions.contains(sid)) {
 		BaseRtspSession *ses = sessions[sid];
-		int err = ses->teardown();
-		if (err)
-			return createRtspErrorResponse(err, lsep);
-		resp << "RTSP/1.0 200 OK";
-		resp << QString("Session: %1").arg(ses->sessionId);
-		resp << "Content-Length: 0";
-		resp << "Cache-Control: no-cache";
-		resp << QString("CSeq: %1").arg(cseq);
-		resp << lsep;
+		if (ses->clientCount == 1) {
+			int err = ses->teardown();
+			if (err)
+				return createRtspErrorResponse(err, lsep);
+			resp << "RTSP/1.0 200 OK";
+			resp << QString("Session: %1").arg(ses->sessionId);
+			resp << "Content-Length: 0";
+			resp << "Cache-Control: no-cache";
+			resp << QString("CSeq: %1").arg(cseq);
+			resp << lsep;
 
-		sessionTeardownExtra(ses->sessionId);
-		emit sessionTearedDown(ses->sessionId);
-		sessions.remove(sid);
-		delete ses;
+			sessionTeardownExtra(ses->sessionId);
+			emit sessionTearedDown(ses->sessionId);
+			sessions.remove(sid);
+			delete ses;
+		} else
+			ses->clientCount--;
 	} else
 		return createRtspErrorResponse(400, lsep);
 	return resp;

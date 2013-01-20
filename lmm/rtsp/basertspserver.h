@@ -59,6 +59,7 @@ protected:
 	virtual QStringList createSdp(QString url);
 	virtual QString detectLineSeperator(QString mes);
 	virtual QString getField(const QStringList lines, QString desc);
+	virtual BaseRtspSession * findMulticastSession(QString streamName);
 
 	/* command handling */
 	virtual QStringList handleCommandOptions(QStringList lines, QString lsep);
