@@ -26,6 +26,8 @@ public:
 	void setSourceControlPort(int port) { srcControlPort = port; }
 	int getSourceDataPort() { return srcDataPort; }
 	int getSourceControlPort() { return srcControlPort; }
+	QString getDestinationIpAddress() { return dstIp; }
+	int getDestinationDataPort() { return dstDataPort; }
 	int getLoopLatency() { return loopLatency; }
 	QString getSdp();
 protected:
