@@ -72,6 +72,8 @@ protected:
 	virtual int sessionSetupExtra(QString) { return 0; }
 	virtual int sessionPlayExtra(QString) { return 0; }
 	virtual int sessionTeardownExtra(QString) { return 0; }
+
+	void closeSession(QString sessionId);
 };
 
 #endif // BASERTSPSERVER_H

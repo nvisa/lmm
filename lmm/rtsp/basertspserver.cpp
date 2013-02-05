@@ -487,15 +487,23 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 			resp << QString("CSeq: %1").arg(cseq);
 			resp << lsep;
 
-			sessionTeardownExtra(ses->sessionId);
-			emit sessionTearedDown(ses->sessionId);
-			sessions.remove(sid);
-			delete ses;
+			closeSession(ses->sessionId);
 		} else
 			ses->clientCount--;
 	} else
 		return createRtspErrorResponse(400, lsep);
 	return resp;
+}
+
+void BaseRtspServer::closeSession(QString sessionId)
+{
+	if (!sessions.contains(sessionId))
+		return;
+	sessionTeardownExtra(sessionId);
+	emit sessionTearedDown(sessionId);
+	BaseRtspSession *s = sessions[sessionId];
+	sessions.remove(sessionId);
+	delete s;
 }
 
 QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
