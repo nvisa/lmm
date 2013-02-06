@@ -20,6 +20,7 @@
 #include <QDateTime>
 #include <QTime>
 #include <QFile>
+#include <QSemaphore>
 #include <QDataStream>
 #include <QFontMetrics>
 
@@ -60,12 +61,13 @@ void TextOverlay::setFontSize(int size)
 {
 	fontSize = size;
 	/* refresh maps */
-	if (charMap.size()) {
-		charMap.clear();
-		charPixelMap.clear();
-		charFontWidth.clear();
-		readMapsFromCache();
-	}
+	maplock.lock();
+	charMap.clear();
+	charPixelMap.clear();
+	charFontWidth.clear();
+	readMapsFromCache();
+	mDebug("new size is %d", size);
+	maplock.unlock();
 }
 
 void TextOverlay::setOverlayText(QString text)
@@ -125,6 +127,7 @@ int TextOverlay::addBuffer(RawBuffer buffer)
 		yuvSwPixmapOverlay(buffer);
 	inputBuffers.removeFirst();
 	outputBuffers << buffer;
+	bufsem[0]->release();
 	return 0;
 }
 
@@ -139,6 +142,8 @@ bool TextOverlay::readMapsFromCache()
 	qint32 cnt;
 	in >> cnt;
 	mDebug("%d character maps present", cnt);
+	if (fontSize - 8 > cnt)
+		fontSize = cnt - 8;
 	int index = fontSize - 8;
 	for (int i = 0; i < index; i++) {
 		in >> charFontWidth;
@@ -297,8 +302,8 @@ void TextOverlay::yuvSwMapOverlay(RawBuffer buffer)
 void TextOverlay::yuvSwPixmapOverlay(RawBuffer buffer)
 {
 	int pixfmt = buffer.getBufferParameter("v4l2PixelFormat").toInt();
-	int width = buffer.getBufferParameter("width").toInt();
-	int height = buffer.getBufferParameter("height").toInt();
+	int width = getParameter("videoWidth").toInt();
+	int height = getParameter("videoHeight").toInt();
 	int linelen = width;
 	if (pixfmt == V4L2_PIX_FMT_UYVY)
 		linelen *= 2;
@@ -311,7 +316,9 @@ void TextOverlay::yuvSwPixmapOverlay(RawBuffer buffer)
 	int x, y, val;
 	for (int i = 0; i < ba.size(); i++) {
 		int ch = (int)ba.at(i);
+		maplock.lock();
 		const QList<int> map = charPixelMap[ch - 32];
+		maplock.unlock();
 		int w = charFontWidth[ch - 32];
 		/* check for buffer overflows */
 		if (overlayPos.x() + w > linelen)

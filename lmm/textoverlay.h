@@ -52,6 +52,7 @@ public slots:
 private:
 	int mmapfd;
 	QMutex dmalock;
+	QMutex maplock;
 	Buffer_Handle dmaBuf;
 	QList<QByteArray> charMap;
 	QList<QList<int> > charPixelMap;
