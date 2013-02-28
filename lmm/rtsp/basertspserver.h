@@ -74,6 +74,8 @@ protected:
 	virtual int sessionTeardownExtra(QString) { return 0; }
 
 	void closeSession(QString sessionId);
+
+	QString lastUserAgent;
 };
 
 #endif // BASERTSPSERVER_H

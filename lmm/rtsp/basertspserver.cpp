@@ -340,6 +340,11 @@ QStringList BaseRtspServer::createDescribeResponse(int cseq, QString url, QStrin
 QStringList BaseRtspServer::handleCommandOptions(QStringList lines, QString lsep)
 {
 	QStringList resp;
+	foreach (QString line, lines) {
+		if (line.contains("user-agent", Qt::CaseInsensitive))
+			lastUserAgent = line.split(":")[1];
+	}
+
 	mDebug("handling options directive");
 	int cseq = lines[1].remove("CSeq: ").toInt();
 	resp << "RTSP/1.0 200 OK";
