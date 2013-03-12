@@ -20,7 +20,6 @@ SOURCES += \
     cameraplayer.cpp \
     v4l2input.cpp \
     fboutput.cpp \
-    rtspoutput.cpp \
     debugserver.cpp \
     debugclient.cpp \
     udpoutput.cpp \
@@ -52,7 +51,6 @@ HEADERS  += \
     v4l2input.h \
     fboutput.h \
     textoverlay.h \
-    rtspoutput.h \
     debugserver.h \
     debugclient.h \
     udpoutput.h \

@@ -6,7 +6,10 @@
 #include "circularbuffer.h"
 #include "streamtime.h"
 #include "debug.h"
+
+#ifdef CONFIG_ALSA
 #include "alsa/alsa.h"
+#endif
 
 #include <QTime>
 #include <QTimer>

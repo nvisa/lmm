@@ -4,8 +4,6 @@
 #include "rawbuffer.h"
 #include "streamtime.h"
 
-#include "dmaidecoder.h"
-
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/fb.h>
