@@ -30,11 +30,12 @@ SOURCES += \
     gstreamer/rtpstreamer.cpp \
     tools/videoutils.cpp \
     tools/systeminfo.cpp \
-    rtpmjpegmux.cpp \
-    rtpmux.cpp \
+    ffmpeg/rtpmjpegmux.cpp \
+    ffmpeg/rtpmux.cpp \
     rtsp/basertspserver.cpp \
     debug.cpp \
     hardwareoperations.cpp \
+    v4l2output.cpp \
 
 HEADERS  += \
     filesource.h \
@@ -57,21 +58,22 @@ HEADERS  += \
     udpinput.h \
     lmmthread.h \
     dmai/videotestsource.h \
-	tools/unittimestat.h \
+    tools/unittimestat.h \
     gstreamer/rtpstreamer.h \
     tools/videoutils.h \
     tools/systeminfo.h \
-    rtpmjpegmux.h \
-    rtpmux.h \
+    ffmpeg/rtpmjpegmux.h \
+    ffmpeg/rtpmux.h \
     rtsp/basertspserver.h \
     debug.h \
     hardwareoperations.h \
     platform_info.h \
+    v4l2output.h \
 
 vlc {
-	SOURCES += vlc/vlcrtspstreamer.cpp
-	HEADERS += vlc/vlcrtspstreamer.h
-	DEFINES += CONFIG_VLC
+    SOURCES += vlc/vlcrtspstreamer.cpp
+    HEADERS += vlc/vlcrtspstreamer.h
+    DEFINES += CONFIG_VLC
 }
 
 alsa {
@@ -86,13 +88,13 @@ alsa {
 }
 
 mad {
-	SOURCES += maddecoder.cpp \
-		mp3player.cpp \
-		mp3demux.cpp \
+    SOURCES += maddecoder.cpp \
+        mp3player.cpp \
+        mp3demux.cpp \
 
-	HEADERS += maddecoder.h \
-		mp3player.h \
-		mp3demux.h \
+    HEADERS += maddecoder.h \
+        mp3player.h \
+        mp3demux.h \
     LIBS += -lmad -ltag
     DEFINES += CONFIG_MAD
 }
@@ -103,22 +105,22 @@ ffmpeg {
         avidemux.h \
         mpegtsdemux.h \
         baselmmdemux.h \
-		baselmmmux.h \
-		mp4mux.h \
-		avimux.h \
+        baselmmmux.h \
+        mp4mux.h \
+        avimux.h \
         dvbplayer.h \
-		rtph264mux.h \
+        ffmpeg/rtph264mux.h \
 
     SOURCES += \
         avidecoder.cpp \
         baselmmdemux.cpp \
         mpegtsdemux.cpp \
         avidemux.cpp \
-		baselmmmux.cpp \
-		mp4mux.cpp \
-		avimux.cpp \
+        baselmmmux.cpp \
+        mp4mux.cpp \
+        avimux.cpp \
         dvbplayer.cpp \
-		rtph264mux.cpp \
+        ffmpeg/rtph264mux.cpp \
 
     DEFINES += CONFIG_FFMPEG
 }
@@ -128,10 +130,10 @@ gstreamer {
 
     HEADERS += gstreamer/abstractgstreamerinterface.h \
 
-	x86 {
-		SOURCES += gstreamer/haviplayer.cpp gstreamer/hmp3player.cpp
-		HEADERS += gstreamer/haviplayer.h gstreamer/hmp3player.h
-	}
+    x86 {
+        SOURCES += gstreamer/haviplayer.cpp gstreamer/hmp3player.cpp
+        HEADERS += gstreamer/haviplayer.h gstreamer/hmp3player.h
+    }
 
     DEFINES += USE_GSTREAMER
     GST_CFLAGS = $$system(pkg-config gstreamer-0.10 --cflags-only-I | sed 's/-I//g')
@@ -140,31 +142,35 @@ gstreamer {
     LIBS += $$GST_LIBS -lgstapp-0.10
 }
 
+dmai {
+    SOURCES += dmai/dmaiencoder.cpp \
+        dmai/dmaibuffer.cpp \
+        dmai/cpuload.cpp \
+        dmai/jpegencoder.cpp \
+        dmai/h264encoder.cpp \
+        dmai/dmaidecoder.cpp \
+
+    HEADERS += dmai/dmaiencoder.h \
+        dmai/dmaibuffer.h \
+        dmai/cpuload.h \
+        dmai/jpegencoder.h \
+        dmai/h264encoder.h \
+        dmai/dmaidecoder.h \
+
+}
+
 dm365 {
     include(dm365/tipaths.pri)
     DEFINES += CONFIG_DM365
     SOURCES += \
-        dmaiencoder.cpp \
-        dm365dmaicapture.cpp \
-        dm365camerainput.cpp \
-        v4l2output.cpp \
-        dm365videooutput.cpp \
+        dm365/dm365camerainput.cpp \
+        dm365/dm365videooutput.cpp \
         textoverlay.cpp \
-        cpuload.cpp \
-        jpegencoder.cpp \
-        h264encoder.cpp \
-		dmai/dmaibuffer.cpp \
 
-    HEADERS += dmaiencoder.h \
-        dm365dmaicapture.h \
-        dm365camerainput.h \
-        v4l2output.h \
-        dm365videooutput.h \
+
+    HEADERS += dm365/dm365camerainput.h \
+        dm365/dm365videooutput.h \
         textoverlay.h \
-        cpuload.h \
-        jpegencoder.h \
-        h264encoder.h \
-		dmai/dmaibuffer.h \
 
     xdc.files += dm365/tipaths.pri
     xdc.files += dm365/dm365.pri
@@ -179,47 +185,51 @@ dm365 {
         dm365/config.bld
 }
 
-dm6446 {
-	include(dm6446/dm6446.pri)
-    DEFINES += CONFIG_DM6446
+dvb {
     SOURCES += \
-        dmaidecoder.cpp \
         dvb/tsdemux.cpp \
         dvb/dvbutils.cpp \
+
+    HEADERS  += \
+        dvb/tsdemux.h \
+        dvb/dvbutils.h \
+}
+
+dm6446 {
+    include(dm6446/dm6446.pri)
+    DEFINES += CONFIG_DM6446
+    SOURCES += \
         blec32tunerinput.cpp \
         blec32fboutput.cpp \
         v4l2output.cpp
 
     HEADERS  += \
-        dmaidecoder.h \
-        dvb/tsdemux.h \
-        dvb/dvbutils.h \
         blec32tunerinput.h \
         blec32fboutput.h \
         v4l2output.h
 
-	xdc.files += dm6446/xdc_linker.cmd
+    xdc.files += dm6446/xdc_linker.cmd
     xdc.path = /usr/local/share/lmm
     CONFIG += arm
 }
 
 live555 {
-	SOURCES += live555/cameradevicesource.cpp \
-		live555/h264camerasubsession.cpp \
-		rtspserver.cpp
+    SOURCES += live555/cameradevicesource.cpp \
+        live555/h264camerasubsession.cpp \
+        live555/rtspserver.cpp
 
 	HEADERS += live555/cameradevicesource.h \
 		live555/h264camerasubsession.h \
-		rtspserver.h
+                live555/rtspserver.h
 	QMAKE_CXXFLAGS += -DSOCKLEN_T=socklen_t -DNO_SSTREAM=1 -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64 -DBSD=1
-	DEFINES += USE_LIEMEDIA
+        DEFINES += USE_LIVEMEDIA
 }
 
 x86 {
-    include($$INSTALL_PREFIX/usr/local/include/qtCommon.pri)
+    DEFINES += TARGET_x86
 }
+
 arm {
-	include($$INSTALL_PREFIX/usr/local/include/qtCommon.pri)
     DEFINES += TARGET_ARM
 }
 
@@ -235,7 +245,6 @@ INSTALLS += target headers xdc
 OTHER_FILES += \
     build_config.pri \
     lmm.pri \
-    dm365/tipaths.pri
 
 #Add make targets for checking version info
 VersionCheck.commands = @$$PWD/checkversion.sh $$PWD

@@ -1,5 +1,5 @@
 #include "platformcommondm365.h"
-#include "dmaiencoder.h"
+#include "dmai/dmaiencoder.h"
 
 PlatformCommonDM365::PlatformCommonDM365()
 {

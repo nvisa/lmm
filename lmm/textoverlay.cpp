@@ -1,7 +1,7 @@
 #include "textoverlay.h"
 #include "rawbuffer.h"
 #include "streamtime.h"
-#include "cpuload.h"
+#include "dmai/cpuload.h"
 
 #include "debug.h"
 

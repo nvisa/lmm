@@ -1,7 +1,7 @@
 #ifndef RTPH264MUX_H
 #define RTPH264MUX_H
 
-#include <lmm/rtpmux.h>
+#include <lmm/ffmpeg/rtpmux.h>
 
 class RtpH264Mux : public RtpMux
 {

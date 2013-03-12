@@ -1,7 +1,7 @@
 #ifndef RTPMJPEGMUX_H
 #define RTPMJPEGMUX_H
 
-#include <lmm/rtpmux.h>
+#include <lmm/ffmpeg/rtpmux.h>
 
 class RtpMjpegMux : public RtpMux
 {
