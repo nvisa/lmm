@@ -1,7 +1,7 @@
 #ifndef RTPMUX_H
 #define RTPMUX_H
 
-#include <lmm/baselmmmux.h>
+#include <lmm/ffmpeg/baselmmmux.h>
 #include <lmm/lmmcommon.h>
 
 class RtpMux : public BaseLmmMux

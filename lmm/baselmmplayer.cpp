@@ -1,6 +1,6 @@
 #include "baselmmplayer.h"
 #include "baselmmdecoder.h"
-#include "baselmmdemux.h"
+#include "ffmpeg/baselmmdemux.h"
 #include "baselmmoutput.h"
 #include "rawbuffer.h"
 #include "circularbuffer.h"

@@ -25,13 +25,9 @@ SOURCES += \
     udpoutput.cpp \
     udpinput.cpp \
     lmmthread.cpp \
-    dmai/videotestsource.cpp \
     tools/unittimestat.cpp \
-    gstreamer/rtpstreamer.cpp \
     tools/videoutils.cpp \
     tools/systeminfo.cpp \
-    ffmpeg/rtpmjpegmux.cpp \
-    ffmpeg/rtpmux.cpp \
     rtsp/basertspserver.cpp \
     debug.cpp \
     hardwareoperations.cpp \
@@ -57,13 +53,9 @@ HEADERS  += \
     udpoutput.h \
     udpinput.h \
     lmmthread.h \
-    dmai/videotestsource.h \
     tools/unittimestat.h \
-    gstreamer/rtpstreamer.h \
     tools/videoutils.h \
     tools/systeminfo.h \
-    ffmpeg/rtpmjpegmux.h \
-    ffmpeg/rtpmux.h \
     rtsp/basertspserver.h \
     debug.h \
     hardwareoperations.h \
@@ -101,34 +93,40 @@ mad {
 
 ffmpeg {
     HEADERS += \
-        avidecoder.h \
-        avidemux.h \
-        mpegtsdemux.h \
-        baselmmdemux.h \
-        baselmmmux.h \
-        mp4mux.h \
-        avimux.h \
-        dvbplayer.h \
+        ffmpeg/avidecoder.h \
+        ffmpeg/avidemux.h \
+        ffmpeg/mpegtsdemux.h \
+        ffmpeg/baselmmdemux.h \
+        ffmpeg/baselmmmux.h \
+        ffmpeg/mp4mux.h \
+        ffmpeg/avimux.h \
+        ffmpeg/dvbplayer.h \
         ffmpeg/rtph264mux.h \
+        ffmpeg/rtpmjpegmux.h \
+        ffmpeg/rtpmux.h \
 
     SOURCES += \
-        avidecoder.cpp \
-        baselmmdemux.cpp \
-        mpegtsdemux.cpp \
-        avidemux.cpp \
-        baselmmmux.cpp \
-        mp4mux.cpp \
-        avimux.cpp \
-        dvbplayer.cpp \
+        ffmpeg/avidecoder.cpp \
+        ffmpeg/baselmmdemux.cpp \
+        ffmpeg/mpegtsdemux.cpp \
+        ffmpeg/avidemux.cpp \
+        ffmpeg/baselmmmux.cpp \
+        ffmpeg/mp4mux.cpp \
+        ffmpeg/avimux.cpp \
+        ffmpeg/dvbplayer.cpp \
         ffmpeg/rtph264mux.cpp \
+        ffmpeg/rtpmjpegmux.cpp \
+        ffmpeg/rtpmux.cpp \
 
     DEFINES += CONFIG_FFMPEG
 }
 
 gstreamer {
     SOURCES += gstreamer/abstractgstreamerinterface.cpp \
+        gstreamer/rtpstreamer.cpp \
 
     HEADERS += gstreamer/abstractgstreamerinterface.h \
+        gstreamer/rtpstreamer.h \
 
     x86 {
         SOURCES += gstreamer/haviplayer.cpp gstreamer/hmp3player.cpp
@@ -149,6 +147,7 @@ dmai {
         dmai/jpegencoder.cpp \
         dmai/h264encoder.cpp \
         dmai/dmaidecoder.cpp \
+        dmai/videotestsource.cpp \
 
     HEADERS += dmai/dmaiencoder.h \
         dmai/dmaibuffer.h \
@@ -156,6 +155,7 @@ dmai {
         dmai/jpegencoder.h \
         dmai/h264encoder.h \
         dmai/dmaidecoder.h \
+        dmai/videotestsource.h \
 
 }
 
