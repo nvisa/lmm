@@ -2,7 +2,7 @@
 #include "dmai/dmaibuffer.h"
 #include "tools/videoutils.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <errno.h>
 #include <stdio.h>

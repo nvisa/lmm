@@ -33,7 +33,9 @@ SOURCES += \
     tools/systeminfo.cpp \
     rtpmjpegmux.cpp \
     rtpmux.cpp \
-    rtsp/basertspserver.cpp
+    rtsp/basertspserver.cpp \
+    debug.cpp \
+    hardwareoperations.cpp \
 
 HEADERS  += \
     filesource.h \
@@ -63,7 +65,10 @@ HEADERS  += \
     tools/systeminfo.h \
     rtpmjpegmux.h \
     rtpmux.h \
-    rtsp/basertspserver.h
+    rtsp/basertspserver.h \
+    debug.h \
+    hardwareoperations.h \
+    platform_info.h \
 
 vlc {
 	SOURCES += vlc/vlcrtspstreamer.cpp
@@ -214,11 +219,9 @@ live555 {
 
 x86 {
     include($$INSTALL_PREFIX/usr/local/include/qtCommon.pri)
-    include($$INSTALL_PREFIX/usr/local/include/emdesk/emdeskCommon.pri)
 }
 arm {
 	include($$INSTALL_PREFIX/usr/local/include/qtCommon.pri)
-	include($$INSTALL_PREFIX/usr/local/include/emdesk/emdeskCommon.pri)
     DEFINES += TARGET_ARM
 }
 

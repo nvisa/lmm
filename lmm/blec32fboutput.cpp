@@ -2,7 +2,7 @@
 #include "rawbuffer.h"
 #include "dmaidecoder.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <ti/sdo/dmai/Dmai.h>
 #include <ti/sdo/dmai/Resize.h>

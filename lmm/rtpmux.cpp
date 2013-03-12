@@ -2,7 +2,7 @@
 #include "rtpmux.h"
 #include "streamtime.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <QSemaphore>
 

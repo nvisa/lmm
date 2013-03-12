@@ -1,6 +1,6 @@
 #include "circularbuffer.h"
 #define DEBUG
-#include "emdesk/debug.h"
+#include "debug.h"
 
 #include <errno.h>
 

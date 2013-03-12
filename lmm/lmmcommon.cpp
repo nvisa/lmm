@@ -9,8 +9,8 @@
 #include "baselmmplayer.h"
 #include "baselmmdemux.h"
 #include "circularbuffer.h"
-#include "emdesk/hardwareoperations.h"
-#include "emdesk/debug.h"
+#include "hardwareoperations.h"
+#include "debug.h"
 
 #include <signal.h>
 

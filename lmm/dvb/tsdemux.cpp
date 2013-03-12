@@ -1,5 +1,5 @@
 #include "tsdemux.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 
 #define MAX_PES_PAYLOAD 200*1024
 

@@ -1,6 +1,6 @@
 #include "vlcrtspstreamer.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <vlc/libvlc.h>
 #include <vlc/libvlc_vlm.h>

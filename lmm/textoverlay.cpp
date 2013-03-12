@@ -3,7 +3,7 @@
 #include "streamtime.h"
 #include "cpuload.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <ti/sdo/dmai/Buffer.h>
 #include <ti/sdo/dmai/BufferGfx.h>

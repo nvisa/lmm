@@ -1,7 +1,7 @@
 #include "baselmmdecoder.h"
 #include "rawbuffer.h"
 #define DEBUG
-#include "emdesk/debug.h"
+#include "debug.h"
 
 BaseLmmDecoder::BaseLmmDecoder(QObject *parent) :
 	BaseLmmElement(parent)

@@ -1,7 +1,7 @@
 #include "hmp3player.h"
 
-#include <emdesk/platform_info.h>
-#include <emdesk/platform_info.h>
+#include "platform_info.h"
+#include "platform_info.h"
 
 hMp3Player::hMp3Player(QObject *parent) :
 	AbstractGstreamerInterface(parent)

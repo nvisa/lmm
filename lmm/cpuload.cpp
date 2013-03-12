@@ -1,6 +1,6 @@
 #include "cpuload.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <QTimer>
 

@@ -2,7 +2,7 @@
 #include "rawbuffer.h"
 #include "lmmcommon.h"
 
-#include "emdesk/debug.h"
+#include "debug.h"
 
 #include <QFile>
 #include <QDateTime>

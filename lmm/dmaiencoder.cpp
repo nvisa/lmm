@@ -3,7 +3,7 @@
 #include "streamtime.h"
 #include "tools/unittimestat.h"
 
-#include "emdesk/debug.h"
+#include "debug.h"
 
 #include <ti/sdo/ce/CERuntime.h>
 

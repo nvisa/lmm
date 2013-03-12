@@ -2,7 +2,7 @@
 #include "dmai/dmaibuffer.h"
 #include "streamtime.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <xdc/std.h>
 #include <ti/sdo/ce/Engine.h>

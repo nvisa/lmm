@@ -2,7 +2,7 @@
 #include "baselmmelement.h"
 #include "tools/unittimestat.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <QTcpServer>
 #include <QTcpSocket>

@@ -1,7 +1,7 @@
 #include "lmmthread.h"
 
-#include <emdesk/platform_info.h>
-#include <emdesk/debug.h>
+#include "platform_info.h"
+#include "debug.h"
 
 LmmThread::LmmThread(QString threadName)
 {

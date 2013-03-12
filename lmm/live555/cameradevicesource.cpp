@@ -1,7 +1,7 @@
 #include "cameradevicesource.h"
 #include "baselmmelement.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <GroupsockHelper.hh>
 

@@ -5,7 +5,7 @@
 #include "rawbuffer.h"
 #include "circularbuffer.h"
 #include "streamtime.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 #include "alsa/alsa.h"
 
 #include <QTime>

@@ -1,7 +1,7 @@
 #include "dmaibuffer.h"
 #include "baselmmelement.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <ti/sdo/dmai/Dmai.h>
 #include <ti/sdo/dmai/Buffer.h>

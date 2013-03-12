@@ -1,7 +1,7 @@
 #include "dm365dmaicapture.h"
 #include "dmai/dmaibuffer.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <errno.h>
 #include <sys/ioctl.h>

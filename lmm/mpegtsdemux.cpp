@@ -2,7 +2,7 @@
 #include "circularbuffer.h"
 #include "rawbuffer.h"
 #include "streamtime.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 
 MpegTsDemux::MpegTsDemux(QObject *parent) :
 	BaseLmmDemux(parent)

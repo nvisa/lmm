@@ -4,7 +4,7 @@
 #include <gst/gstbuffer.h>
 #include <gst/app/gstappsink.h>
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <QUdpSocket>
 

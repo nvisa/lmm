@@ -1,7 +1,7 @@
 #include "debugclient.h"
 #include "debugserver.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <QTcpSocket>
 #include <QHostAddress>

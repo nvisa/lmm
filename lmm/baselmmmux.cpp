@@ -3,7 +3,7 @@
 #include "baselmmmux.h"
 #include "rawbuffer.h"
 #include "streamtime.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 
 #include <errno.h>
 

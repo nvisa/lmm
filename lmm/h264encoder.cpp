@@ -1,7 +1,7 @@
 #include "h264encoder.h"
 #include "dmaiencoder.h"
 #include "dmai/dmaibuffer.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 #include "dm365/ih264venc.h"
 #include "streamtime.h"
 #include "cpuload.h"

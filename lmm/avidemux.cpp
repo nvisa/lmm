@@ -3,7 +3,7 @@
 #include "avidemux.h"
 #include "rawbuffer.h"
 #define DEBUG
-#include "emdesk/debug.h"
+#include "debug.h"
 
 extern "C" {
 	#define __STDC_CONSTANT_MACROS

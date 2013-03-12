@@ -1,6 +1,6 @@
 #include "fboutput.h"
 #define DEBUG
-#include "emdesk/debug.h"
+#include "debug.h"
 #include "rawbuffer.h"
 #include "streamtime.h"
 

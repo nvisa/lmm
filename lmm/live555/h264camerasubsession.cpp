@@ -1,7 +1,7 @@
 #include "h264camerasubsession.h"
 #include "cameradevicesource.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <H264VideoStreamFramer.hh>
 #include <H264VideoRTPSink.hh>

@@ -29,9 +29,9 @@
 #endif
 #include <linux/i2c.h>
 
-#include "emdesk/platform_info.h"
+#include "platform_info.h"
 
-#include "emdesk/debug.h"
+#include "debug.h"
 #include "qttools.h"
 #include "dbtools.h"
 

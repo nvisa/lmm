@@ -6,8 +6,8 @@
 #include "blec32fboutput.h"
 #include "dmaidecoder.h"
 #include "streamtime.h"
-#include "emdesk/debug.h"
-#include "emdesk/hardwareoperations.h"
+#include "debug.h"
+#include "hardwareoperations.h"
 #include "alsa/alsa.h"
 
 #include <QTime>

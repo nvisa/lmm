@@ -1,7 +1,7 @@
 #include "v4l2input.h"
 #include "rawbuffer.h"
 #include "lmmthread.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 
 #include <errno.h>
 #include <stdio.h>

@@ -1,5 +1,5 @@
 #include "baselmmelement.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 #include "rawbuffer.h"
 #include "streamtime.h"
 #include "tools/unittimestat.h"

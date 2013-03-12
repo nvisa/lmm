@@ -1,7 +1,7 @@
 #include "blec32tunerinput.h"
 #include "circularbuffer.h"
 #include "streamtime.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 #include "dvb/tsdemux.h"
 #include "dvb/dvbutils.h"
 

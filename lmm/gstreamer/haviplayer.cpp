@@ -2,8 +2,8 @@
 
 #include <gst/interfaces/xoverlay.h>
 
-#include <emdesk/debug.h>
-#include <emdesk/platform_info.h>
+#include "debug.h"
+#include "platform_info.h"
 
 #include <QFile>
 

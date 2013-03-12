@@ -3,7 +3,7 @@
 #include "dmai/dmaibuffer.h"
 #include "lmmthread.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <QFile>
 #include <QTime>

@@ -3,7 +3,7 @@
 #include "v4l2input.h"
 #include "rawbuffer.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <QTimer>
 

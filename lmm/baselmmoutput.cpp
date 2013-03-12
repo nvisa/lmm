@@ -1,7 +1,7 @@
 #include "baselmmoutput.h"
 #include "rawbuffer.h"
 #include "streamtime.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 #include "lmmthread.h"
 
 #include <QTime>

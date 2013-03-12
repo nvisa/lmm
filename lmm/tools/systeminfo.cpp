@@ -1,6 +1,6 @@
 #include "systeminfo.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <QFile>
 #include <QStringList>

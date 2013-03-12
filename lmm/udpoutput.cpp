@@ -1,6 +1,6 @@
 #include "udpoutput.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <QUdpSocket>
 #include <QCryptographicHash>

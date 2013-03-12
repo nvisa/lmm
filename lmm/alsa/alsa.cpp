@@ -15,8 +15,8 @@
 #include <alsa/asoundlib.h>
 #include <alsa/control.h>
 #include <alsa/error.h>
-#include "emdesk/debug.h"
-#include "emdesk/platform_info.h"
+#include "debug.h"
+#include "platform_info.h"
 
 Alsa::Alsa(QObject *parent) :
 	QObject(parent)

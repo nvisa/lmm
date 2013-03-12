@@ -2,7 +2,7 @@
 #include "alsa/alsa.h"
 #include "rawbuffer.h"
 #define DEBUG
-#include "emdesk/debug.h"
+#include "debug.h"
 #include <errno.h>
 
 AlsaOutput::AlsaOutput(QObject *parent) :

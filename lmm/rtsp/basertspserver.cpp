@@ -4,7 +4,7 @@
 #include "rtpmjpegmux.h"
 #include "rawbuffer.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <errno.h>
 

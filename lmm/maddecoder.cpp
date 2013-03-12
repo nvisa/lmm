@@ -1,7 +1,7 @@
 #include "maddecoder.h"
 #include "rawbuffer.h"
 #define DEBUG
-#include "emdesk/debug.h"
+#include "debug.h"
 
 #include <mad.h>
 #include <errno.h>

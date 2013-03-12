@@ -9,7 +9,7 @@
 #include <QStringList>
 #include <QTime>
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 void demux_pad_removed(GstElement *, GstPad *, gpointer)
 {

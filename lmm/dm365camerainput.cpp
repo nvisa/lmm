@@ -3,7 +3,7 @@
 #include "streamtime.h"
 #include "tools/videoutils.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <errno.h>
 #include <sys/ioctl.h>

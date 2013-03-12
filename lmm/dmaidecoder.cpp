@@ -4,7 +4,7 @@
 #include "dmaidecoder.h"
 #include "dmai/dmaibuffer.h"
 #include "circularbuffer.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 #include "dm6446/xdc_config.h"
 
 #include <ti/sdo/dmai/Dmai.h>

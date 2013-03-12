@@ -9,7 +9,7 @@
 #include "circularbuffer.h"
 #include "baselmmdemux.h"
 #include "mpegtsdemux.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 
 DvbPlayer::DvbPlayer(QObject *parent) :
 	BaseLmmPlayer(parent)

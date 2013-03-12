@@ -3,7 +3,7 @@
 #include "baselmmdemux.h"
 #include "rawbuffer.h"
 #include "streamtime.h"
-#include "emdesk/debug.h"
+#include "debug.h"
 
 extern "C" {
 	#include "libavformat/avformat.h"

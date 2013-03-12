@@ -2,7 +2,7 @@
 #include "live555/h264camerasubsession.h"
 #include "live555/cameradevicesource.h"
 
-#include <emdesk/debug.h>
+#include "debug.h"
 
 #include <BasicUsageEnvironment.hh>
 #include <RTSPServer.hh>
