@@ -25,7 +25,7 @@ SOURCES += \
     udpoutput.cpp \
     udpinput.cpp \
     lmmthread.cpp \
-    videotestsource.cpp \
+    dmai/videotestsource.cpp \
     tools/unittimestat.cpp \
     gstreamer/rtpstreamer.cpp \
     tools/videoutils.cpp \
@@ -56,7 +56,7 @@ HEADERS  += \
     udpoutput.h \
     udpinput.h \
     lmmthread.h \
-    videotestsource.h \
+    dmai/videotestsource.h \
 	tools/unittimestat.h \
     gstreamer/rtpstreamer.h \
     tools/videoutils.h \
