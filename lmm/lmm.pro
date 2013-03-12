@@ -2,7 +2,7 @@ TARGET = lmm
 TEMPLATE = lib
 CONFIG += staticlib
 
-QT += sql network
+QT += network
 
 include (build_config.pri)
 
