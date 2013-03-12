@@ -62,12 +62,6 @@ HEADERS  += \
     platform_info.h \
     v4l2output.h \
 
-vlc {
-    SOURCES += vlc/vlcrtspstreamer.cpp
-    HEADERS += vlc/vlcrtspstreamer.h
-    DEFINES += CONFIG_VLC
-}
-
 alsa {
     HEADERS += \
         alsa/alsa.h \
@@ -119,25 +113,6 @@ ffmpeg {
         ffmpeg/rtpmux.cpp \
 
     DEFINES += CONFIG_FFMPEG
-}
-
-gstreamer {
-    SOURCES += gstreamer/abstractgstreamerinterface.cpp \
-        gstreamer/rtpstreamer.cpp \
-
-    HEADERS += gstreamer/abstractgstreamerinterface.h \
-        gstreamer/rtpstreamer.h \
-
-    x86 {
-        SOURCES += gstreamer/haviplayer.cpp gstreamer/hmp3player.cpp
-        HEADERS += gstreamer/haviplayer.h gstreamer/hmp3player.h
-    }
-
-    DEFINES += USE_GSTREAMER
-    GST_CFLAGS = $$system(pkg-config gstreamer-0.10 --cflags-only-I | sed 's/-I//g')
-    GST_LIBS = -lgstreamer-0.10 -lgobject-2.0 -lgmodule-2.0 -lxml2 -lgthread-2.0 -lrt -lglib-2.0 -lgstinterfaces-0.10
-    INCLUDEPATH += $$GST_CFLAGS
-    LIBS += $$GST_LIBS -lgstapp-0.10
 }
 
 dmai {
@@ -211,18 +186,6 @@ dm6446 {
     xdc.files += dm6446/xdc_linker.cmd
     xdc.path = /usr/local/share/lmm
     CONFIG += arm
-}
-
-live555 {
-    SOURCES += live555/cameradevicesource.cpp \
-        live555/h264camerasubsession.cpp \
-        live555/rtspserver.cpp
-
-	HEADERS += live555/cameradevicesource.h \
-		live555/h264camerasubsession.h \
-                live555/rtspserver.h
-	QMAKE_CXXFLAGS += -DSOCKLEN_T=socklen_t -DNO_SSTREAM=1 -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64 -DBSD=1
-        DEFINES += USE_LIVEMEDIA
 }
 
 x86 {
