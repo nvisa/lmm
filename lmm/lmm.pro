@@ -65,11 +65,10 @@ HEADERS  += \
 alsa {
     HEADERS += \
         alsa/alsa.h \
-        alsaoutput.h
+        alsa/alsaoutput.h
     SOURCES += \
         alsa/alsa.cpp \
-        alsaoutput.cpp
-    LIBS += -lasound
+        alsa/alsaoutput.cpp
     DEFINES += CONFIG_ALSA
 }
 
@@ -81,7 +80,6 @@ mad {
     HEADERS += maddecoder.h \
         mp3player.h \
         mp3demux.h \
-    LIBS += -lmad -ltag
     DEFINES += CONFIG_MAD
 }
 
@@ -202,12 +200,26 @@ arm {
 
 INCLUDEPATH += ..
 
-headers.files = $$HEADERS lmm.pri
+headers.files = lmm.pri
 headers.path = /usr/local/include/lmm
 
 target.path = /usr/local/lib
 
 INSTALLS += target headers xdc
+
+#Following for installs each module into its own subdirectory
+#without this all files will be installed into 1 folder
+for(h, HEADERS) {
+    file=$$join(h, "", "/usr/local/include/lmm/")
+    dir=$$dirname(file)
+    base=$$basename(dir)
+    !contains(paths, $$dir) {
+        paths+=$$dir
+        eval($${base}.path = $$dir)
+        INSTALLS += $$base
+    }
+    eval($${base}.files += $$h)
+}
 
 OTHER_FILES += \
     build_config.pri \
