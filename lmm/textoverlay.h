@@ -1,7 +1,7 @@
 #ifndef TEXTOVERLAY_H
 #define TEXTOVERLAY_H
 
-#include "baselmmelement.h"
+#include <lmm/baselmmelement.h>
 
 #include <QPaintDevice>
 #include <QPaintEngine>

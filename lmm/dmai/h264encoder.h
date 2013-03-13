@@ -1,7 +1,7 @@
 #ifndef H264ENCODER_H
 #define H264ENCODER_H
 
-#include "dmaiencoder.h"
+#include <lmm/dmai/dmaiencoder.h>
 
 struct ROI_Interface;
 struct IH264VENC_Params;

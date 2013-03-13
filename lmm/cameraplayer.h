@@ -1,7 +1,7 @@
 #ifndef CAMERAPLAYER_H
 #define CAMERAPLAYER_H
 
-#include "baselmmplayer.h"
+#include <lmm/baselmmplayer.h>
 
 class V4l2Input;
 

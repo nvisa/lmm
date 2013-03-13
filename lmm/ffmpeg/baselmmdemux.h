@@ -1,7 +1,7 @@
 #ifndef BASELMMDEMUX_H
 #define BASELMMDEMUX_H
 
-#include "baselmmelement.h"
+#include <lmm/baselmmelement.h>
 
 struct AVPacket;
 struct AVFormatContext;

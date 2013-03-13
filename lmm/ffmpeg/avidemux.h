@@ -1,7 +1,7 @@
 #ifndef AVIDEMUX_H
 #define AVIDEMUX_H
 
-#include "baselmmdemux.h"
+#include <lmm/ffmpeg/baselmmdemux.h>
 
 struct AVPacket;
 struct AVFormatContext;

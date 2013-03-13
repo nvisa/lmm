@@ -1,7 +1,7 @@
 #ifndef MP3DEMUX_H
 #define MP3DEMUX_H
 
-#include "baselmmdemux.h"
+#include <lmm/ffmpeg/baselmmdemux.h>
 
 class Mp3Demux : public BaseLmmDemux
 {

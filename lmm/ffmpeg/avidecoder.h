@@ -1,7 +1,7 @@
 #ifndef AVIDECODER_H
 #define AVIDECODER_H
 
-#include "baselmmplayer.h"
+#include <lmm/baselmmplayer.h>
 
 class AviPlayer : public BaseLmmPlayer
 {

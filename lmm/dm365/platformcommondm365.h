@@ -1,7 +1,7 @@
 #ifndef PLATFORMCOMMONDM365_H
 #define PLATFORMCOMMONDM365_H
 
-#include "lmmcommon.h"
+#include <lmm/lmmcommon.h>
 
 class PlatformCommonDM365 : public PlatformCommon
 {

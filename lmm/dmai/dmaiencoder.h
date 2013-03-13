@@ -1,7 +1,7 @@
 #ifndef DMAIENCODER_H
 #define DMAIENCODER_H
 
-#include "baselmmelement.h"
+#include <lmm/baselmmelement.h>
 
 #include <QSize>
 

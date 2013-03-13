@@ -1,7 +1,7 @@
 #ifndef FBOUTPUT_H
 #define FBOUTPUT_H
 
-#include "baselmmoutput.h"
+#include <lmm/baselmmoutput.h>
 
 #include <QList>
 #include <QVariant>

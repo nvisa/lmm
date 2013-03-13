@@ -1,7 +1,7 @@
 #ifndef DMAIDECODER_H
 #define DMAIDECODER_H
 
-#include "baselmmdecoder.h"
+#include <lmm/baselmmdecoder.h>
 
 #include <QList>
 #include <QHash>

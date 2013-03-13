@@ -1,7 +1,7 @@
 #ifndef V4L2INPUT_H
 #define V4L2INPUT_H
 
-#include "baselmmelement.h"
+#include <lmm/baselmmelement.h>
 
 #include <QList>
 #include <QTime>

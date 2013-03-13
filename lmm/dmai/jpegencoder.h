@@ -1,7 +1,7 @@
 #ifndef JPEGENCODER_H
 #define JPEGENCODER_H
 
-#include "dmaiencoder.h"
+#include <lmm/dmai/dmaiencoder.h>
 
 #include <ti/sdo/dmai/ce/Ienc1.h>
 

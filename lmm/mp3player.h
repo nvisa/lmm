@@ -1,7 +1,7 @@
 #ifndef MP3PLAYER_H
 #define MP3PLAYER_H
 
-#include "baselmmplayer.h"
+#include <lmm/baselmmplayer.h>
 
 class Mp3Player : public BaseLmmPlayer
 {

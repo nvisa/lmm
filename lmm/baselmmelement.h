@@ -7,7 +7,7 @@
 #include <QVariant>
 #include <QMutex>
 
-#include "rawbuffer.h"
+#include <lmm/rawbuffer.h>
 
 class StreamTime;
 class CircularBuffer;

@@ -1,7 +1,7 @@
 #ifndef ALSAOUTPUT_H
 #define ALSAOUTPUT_H
 
-#include "baselmmoutput.h"
+#include <lmm/baselmmoutput.h>
 #include <QList>
 
 class Alsa;

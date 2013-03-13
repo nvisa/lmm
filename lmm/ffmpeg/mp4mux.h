@@ -1,7 +1,7 @@
 #ifndef MP4MUX_H
 #define MP4MUX_H
 
-#include "baselmmmux.h"
+#include <lmm/ffmpeg/baselmmmux.h>
 
 class Mp4Mux : public BaseLmmMux
 {

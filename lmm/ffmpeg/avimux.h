@@ -1,7 +1,7 @@
 #ifndef AVIMUX_H
 #define AVIMUX_H
 
-#include "baselmmmux.h"
+#include <lmm/ffmpeg/baselmmmux.h>
 
 class AviMux : public BaseLmmMux
 {

@@ -1,7 +1,7 @@
 #ifndef BASELMMOUTPUT_H
 #define BASELMMOUTPUT_H
 
-#include "baselmmelement.h"
+#include <lmm/baselmmelement.h>
 
 class QTime;
 class OutputThread;

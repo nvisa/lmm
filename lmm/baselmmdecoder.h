@@ -1,7 +1,7 @@
 #ifndef BASELMMDECODER_H
 #define BASELMMDECODER_H
 
-#include "baselmmelement.h"
+#include <lmm/baselmmelement.h>
 
 #include <QList>
 

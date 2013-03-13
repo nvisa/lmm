@@ -1,7 +1,7 @@
 #ifndef DVBPLAYER_H
 #define DVBPLAYER_H
 
-#include "baselmmplayer.h"
+#include <lmm/baselmmplayer.h>
 
 class V4l2Input;
 class FileOutput;

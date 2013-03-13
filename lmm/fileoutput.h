@@ -1,7 +1,7 @@
 #ifndef FILEOUTPUT_H
 #define FILEOUTPUT_H
 
-#include "baselmmoutput.h"
+#include <lmm/baselmmoutput.h>
 
 #include <QFuture>
 #include <QFutureWatcher>

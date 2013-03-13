@@ -1,7 +1,7 @@
 #ifndef MADDECODER_H
 #define MADDECODER__H
 
-#include "baselmmdecoder.h"
+#include <lmm/baselmmdecoder.h>
 #include <QList>
 
 struct mad_stream;

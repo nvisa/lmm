@@ -1,7 +1,7 @@
 #ifndef DM365CAMERAINPUT_H
 #define DM365CAMERAINPUT_H
 
-#include "v4l2input.h"
+#include <lmm/v4l2input.h>
 
 #include <QSemaphore>
 #include <QMap>

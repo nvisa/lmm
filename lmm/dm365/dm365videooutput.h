@@ -1,8 +1,8 @@
 #ifndef DM365VIDEOOUTPUT_H
 #define DM365VIDEOOUTPUT_H
 
-#include "v4l2output.h"
-#include "lmmcommon.h"
+#include <lmm/v4l2output.h>
+#include <lmm/lmmcommon.h>
 
 struct Framecopy_Object;
 struct Display_Object;

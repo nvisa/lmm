@@ -22,7 +22,11 @@ namespace Lmm {
 class PlatformCommon
 {
 public:
-	PlatformCommon();
+	PlatformCommon()
+	{
+
+	}
+
 	virtual void platformInit() = 0;
 	virtual void platformCleanUp() = 0;
 };

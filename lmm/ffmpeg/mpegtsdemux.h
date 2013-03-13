@@ -1,7 +1,7 @@
 #ifndef MPEGTSDEMUX_H
 #define MPEGTSDEMUX_H
 
-#include "baselmmdemux.h"
+#include <lmm/ffmpeg/baselmmdemux.h>
 
 class CircularBuffer;
 

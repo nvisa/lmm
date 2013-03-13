@@ -1,6 +1,8 @@
 #ifndef PLATFORMCOMMONDM6446_H
 #define PLATFORMCOMMONDM6446_H
 
+#include <lmm/lmmcommon.h>
+
 class PlatformCommonDM6446 : public PlatformCommon
 {
 public:

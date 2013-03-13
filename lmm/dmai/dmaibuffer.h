@@ -1,7 +1,7 @@
 #ifndef DMAIBUFFER_H
 #define DMAIBUFFER_H
 
-#include "rawbuffer.h"
+#include <lmm/rawbuffer.h>
 
 struct _Buffer_Object;
 typedef struct _Buffer_Object *Buffer_Handle;
