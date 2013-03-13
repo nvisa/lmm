@@ -8,11 +8,11 @@ struct _Buffer_Object;
 typedef struct Resize_Object *Resize_Handle;
 typedef struct _Buffer_Object *Buffer_Handle;
 
-class Blec32FbOutput : public FbOutput
+class DM6446FbOutput : public FbOutput
 {
 	Q_OBJECT
 public:
-	explicit Blec32FbOutput(QObject *parent = 0);
+	explicit DM6446FbOutput(QObject *parent = 0);
 	int outputBuffer(RawBuffer *buf);
 	int start();
 	int stop();

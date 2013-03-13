@@ -4,7 +4,7 @@
 #include "fileoutput.h"
 #include "maddecoder.h"
 #include "alsa/alsaoutput.h"
-#include "blec32fboutput.h"
+#include "dm6446/dm6446fboutput.h"
 #include "dmai/dmaidecoder.h"
 #include "circularbuffer.h"
 #include "baselmmdemux.h"
@@ -22,7 +22,7 @@ DvbPlayer::DvbPlayer(QObject *parent) :
 	elements << v4l2;
 
 	videoDecoder = new DmaiDecoder(DmaiDecoder::MPEG2);
-	videoOutput = new Blec32FbOutput;
+	videoOutput = new DM6446FbOutput;
 	elements << videoDecoder;
 	elements << videoOutput;
 

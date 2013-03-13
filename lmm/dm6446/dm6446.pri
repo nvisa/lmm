@@ -1,5 +1,3 @@
-SOURCES += dm6446/xdc_runtime.c
-
 TI_PATH = /home/caglar/myfs/work/tasks/openembedded/old/build/tmp/sysroots/bilkon-blec32-angstrom-linux-gnueabi/usr/share/ti/
 INCLUDEPATH += "$${TI_PATH}/ti-xdctools-tree/packages" \
     "$${TI_PATH}/ti-dsplink-tree" \

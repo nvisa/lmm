@@ -9,13 +9,13 @@
 #include <ti/sdo/dmai/Buffer.h>
 #include <ti/sdo/dmai/BufferGfx.h>
 
-Blec32FbOutput::Blec32FbOutput(QObject *parent) :
+DM6446FbOutput::DM6446FbOutput(QObject *parent) :
 	FbOutput(parent)
 {
 	hResize = NULL;
 }
 
-int Blec32FbOutput::outputBuffer(RawBuffer *buf)
+int DM6446FbOutput::outputBuffer(RawBuffer *buf)
 {
 	Buffer_Handle dmaiBuf = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
 	if (fd > 0) {
@@ -41,7 +41,7 @@ int Blec32FbOutput::outputBuffer(RawBuffer *buf)
 	return 0;
 }
 
-int Blec32FbOutput::start()
+int DM6446FbOutput::start()
 {
 	int err = FbOutput::start();
 	Resize_Attrs rAttrs = Resize_Attrs_DEFAULT;
@@ -60,7 +60,7 @@ int Blec32FbOutput::start()
 	return err;
 }
 
-int Blec32FbOutput::stop()
+int DM6446FbOutput::stop()
 {
 	if (hResize) {
 		Resize_delete(hResize);
@@ -70,7 +70,7 @@ int Blec32FbOutput::stop()
 	return FbOutput::stop();
 }
 
-int Blec32FbOutput::flush()
+int DM6446FbOutput::flush()
 {
 	foreach (const RawBuffer &buf, inputBuffers) {
 		Buffer_Handle dmaiBuf = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer").toInt();

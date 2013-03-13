@@ -140,11 +140,13 @@ dm365 {
     SOURCES += \
         dm365/dm365camerainput.cpp \
         dm365/dm365videooutput.cpp \
+        dm365/platformcommondm365.cpp \
         textoverlay.cpp \
 
 
     HEADERS += dm365/dm365camerainput.h \
         dm365/dm365videooutput.h \
+        dm365/platformcommondm365.h \
         textoverlay.h \
 
     xdc.files += dm365/tipaths.pri
@@ -174,17 +176,19 @@ dm6446 {
     include(dm6446/dm6446.pri)
     DEFINES += CONFIG_DM6446
     SOURCES += \
-        blec32tunerinput.cpp \
-        blec32fboutput.cpp \
-        v4l2output.cpp
+        dm6446/dm6446fboutput.cpp \
+        dm6446/platformcommondm6446.cpp \
 
     HEADERS  += \
-        blec32tunerinput.h \
-        blec32fboutput.h \
-        v4l2output.h
+        dm6446/blec32fboutput.h \
+        dm6446/platformcommondm6446.h \
 
     xdc.files += dm6446/xdc_linker.cmd
     xdc.path = /usr/local/share/lmm
+    CONFIG += arm
+}
+
+armv5te {
     CONFIG += arm
 }
 

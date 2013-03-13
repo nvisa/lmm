@@ -3,7 +3,7 @@
 #include "maddecoder.h"
 #include "rawbuffer.h"
 #include "alsa/alsaoutput.h"
-#include "blec32fboutput.h"
+#include "dm6446/dm6446fboutput.h"
 #include "dmai/dmaidecoder.h"
 #include "streamtime.h"
 #include "debug.h"
@@ -31,7 +31,7 @@ AviPlayer::AviPlayer(QObject *parent) :
 #endif
 
 	videoDecoder = new DmaiDecoder(DmaiDecoder::MPEG4);
-	videoOutput = new Blec32FbOutput;
+	videoOutput = new DM6446FbOutput;
 	elements << videoDecoder;
 	elements << videoOutput;
 }
