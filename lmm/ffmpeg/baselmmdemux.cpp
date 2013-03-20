@@ -107,8 +107,13 @@ qint64 BaseLmmDemux::getTotalDuration()
 
 int BaseLmmDemux::findStreamInfo()
 {
+	/* context can be allocated by us or libavformat */
+	int err = av_open_input_file(&context, qPrintable(sourceUrlName), av_find_input_format("mpegts"), 0, NULL);
+	if (err)
+		return err;
+
 	context->max_analyze_duration = libavAnalayzeDuration;
-	int err = av_find_stream_info(context);
+	err = av_find_stream_info(context);
 	if (err < 0)
 		return err;
 	mDebug("%d streams, %d programs present in the file", context->nb_streams, context->nb_programs);
@@ -152,9 +157,8 @@ int BaseLmmDemux::findStreamInfo()
 int BaseLmmDemux::setSource(QString filename)
 {
 	sourceUrlName = filename;
-	int err = av_open_input_file(&context, qPrintable(sourceUrlName), NULL, 0, NULL);
-	if (err)
-		return err;
+	if (sourceUrlName.contains("lmmdemuxi"))
+		sourceUrlName = QString("lmmdemuxi%1://demuxvideoinput").arg(demuxNumber);
 	return 0;
 }
 
