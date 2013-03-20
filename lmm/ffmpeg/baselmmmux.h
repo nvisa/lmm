@@ -57,6 +57,8 @@ protected:
 	void printInputInfo();
 	void muxNext();
 	virtual qint64 packetTimestamp();
+	virtual int timebaseNum();
+	virtual int timebaseDenom();
 };
 
 #endif // BASELMMMUX_H

@@ -302,6 +302,16 @@ qint64 BaseLmmMux::packetTimestamp()
 	return muxedBufferCount;
 }
 
+int BaseLmmMux::timebaseNum()
+{
+	return 1;
+}
+
+int BaseLmmMux::timebaseDenom()
+{
+	return 25;
+}
+
 int BaseLmmMux::sync()
 {
 	av_write_trailer(context);
@@ -432,9 +442,13 @@ int BaseLmmMux::initMuxer()
 	codec->height = icodec->height;
 	codec->has_b_frames = icodec->has_b_frames;
 	codec->sample_aspect_ratio = st->sample_aspect_ratio = av_d2q(0, 255); //ffmpeg does so
+	codec->time_base.num = timebaseNum();
+	codec->time_base.den = timebaseDenom();
 	st->stream_copy = 1;
 	st->pts.num = codec->time_base.num;
 	st->pts.den = codec->time_base.den;
+	st->time_base.num = codec->time_base.num;
+	st->time_base.den = codec->time_base.den;
 	if (context->oformat->flags & AVFMT_GLOBALHEADER)
 		codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 	mInfo("output codec parameters adjusted");
