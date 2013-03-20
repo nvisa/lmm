@@ -24,7 +24,7 @@
 	ilgili fonksiyonun dokumantasyonuna bakmanizda fayda vardir, zira
 	pek cok fonksiyon icin baz sinifin fonksiyonu cagirmaniz gerekebilir.
 
-	\section1 BaseLmmElement Sinifindan Kalitma
+	\section Kalitma BaseLmmElement Sinifindan Kalitma
 
 	BaseLmmElement sinifindan yeni bir sinif kalitirken cok fazla yapilmasi
 	gereken birsey yoktur, zira baz sinif komple bir elemanda olmasi gereken
@@ -45,7 +45,7 @@
 	aboutDeleteBuffer() fonksiyonunu override edebilirsiniz. Baz implementasyon
 	hic bir islem yapmamaktadir.
 
-	\section1 Durum Yonetimi
+	\section Durum Durum Yonetimi
 
 	Herhangi bir LMM elemani 3 durumdan birinde olabilir:
 		INIT
@@ -57,7 +57,7 @@
 	start() fonksiyonu ile baslatildiktan sonra STARTED durumuna gecer,
 	stop() ile durdurulursa STOPPED durumuna gecer.
 
-	\section1 Tampon Giris Cikislari
+	\section Tampon Tampon Giris Cikislari
 
 	Her hangi bir eleman addBuffer() fonksiyonu ile yeni bir tampon alabilir.
 	Bu fonksiyon 'virtual' degildir. Bu fonksyion gelen tampon gecerli
@@ -74,7 +74,7 @@
 	FPS hesaplamasi burada yapilir. O yuzden kendi override edilmis
 	fonksiyonlarinizda baz sinifin fonksiyonunu cagirmaniz kiritiktir.
 
-	\section1 Istatistik Yonetimi
+	\section Istatistik Istatistik Yonetimi
 
 	BaseLmmElement sinifinin en faydali ozelliklerinden birisi de ilgili
 	elemana ait akis istatistiklerini sunabilmesidir. Su an icin hesaplanan
