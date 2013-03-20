@@ -39,6 +39,7 @@ protected:
 	AVOutputFormat *fmt;
 	AVInputFormat *inputFmt;
 	bool foundStreamInfo;
+	int muxedBufferCount;
 
 	int videoStreamIndex;
 	int audioStreamIndex;
@@ -55,6 +56,7 @@ protected:
 	virtual QString mimeType() = 0;
 	void printInputInfo();
 	void muxNext();
+	virtual qint64 packetTimestamp();
 };
 
 #endif // BASELMMMUX_H

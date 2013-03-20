@@ -286,15 +286,20 @@ void BaseLmmMux::muxNext()
 			pckt.stream_index = 0;
 			pckt.data = (uint8_t *)buf.constData();
 			pckt.size = buf.size();
-			AVRational avrat = context->streams[0]->time_base;
-			pckt.pts = pckt.dts = streamTime->getCurrentTimeMili() * avrat.den / avrat.num / 1000;
-			mInfo("writing next frame");
+			pckt.pts = pckt.dts = packetTimestamp();
+			mInfo("writing next frame %d %lld", buf.size(), pckt.dts);
 			av_write_frame(context, &pckt);
 			if (!muxOutputOpened)
 				outputBuffers << buf;
+			muxedBufferCount++;
 		}
 		inputLock.unlock();
 	}
+}
+
+qint64 BaseLmmMux::packetTimestamp()
+{
+	return muxedBufferCount;
 }
 
 int BaseLmmMux::sync()
