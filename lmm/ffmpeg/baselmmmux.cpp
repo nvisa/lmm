@@ -7,6 +7,8 @@
 
 #include <errno.h>
 
+#include <QSemaphore>
+
 extern "C" {
 	#include "libavformat/avformat.h"
 	#include "libavformat/avio.h" /* for URLContext on x86 */
@@ -19,27 +21,27 @@ static QList<BaseLmmMux *> muxPriv;
 static int lmmUrlOpen(URLContext *h, const char *url, int flags)
 {
 	int mux;
+	fDebug("opening url %s", h->prot->name);
 	QString pname(h->prot->name);
 	if (pname.startsWith("lmmmuxi"))
 		mux = pname.remove("lmmmuxi").toInt();
 	if (pname.startsWith("lmmmuxo"))
 		mux = pname.remove("lmmmuxo").toInt();
 	h->priv_data = muxPriv.at(mux);
-	fDebug("opening url %s", h->prot->name);
 	return ((BaseLmmMux *)h->priv_data)->openUrl(url, flags);
 }
 
-int lmmUrlRead(URLContext *h, unsigned char *buf, int size)
+static int lmmUrlRead(URLContext *h, unsigned char *buf, int size)
 {
 	return ((BaseLmmMux *)h->priv_data)->readPacket(buf, size);
 }
 
-int lmmUrlWrite(URLContext *h, const unsigned char *buf, int size)
+static int lmmUrlWrite(URLContext *h, const unsigned char *buf, int size)
 {
 	return ((BaseLmmMux *)h->priv_data)->writePacket(buf, size);
 }
 
-int64_t lmmUrlSeek(URLContext *h, int64_t pos, int whence)
+static int64_t lmmUrlSeek(URLContext *h, int64_t pos, int whence)
 {
 	(void)h;
 	(void)pos;
@@ -47,7 +49,7 @@ int64_t lmmUrlSeek(URLContext *h, int64_t pos, int whence)
 	return -EINVAL;
 }
 
-int lmmUrlClose(URLContext *h)
+static int lmmUrlClose(URLContext *h)
 {
 	return ((BaseLmmMux *)h->priv_data)->closeUrl(h);
 }
@@ -108,8 +110,8 @@ int BaseLmmMux::start()
 	audioStream = videoStream = NULL;
 	inputContext = NULL;
 	foundStreamInfo = false;
-	//if (!sourceUrlName.contains("lmmmuxo"))
-		//sourceUrlName = QString("lmmmuxo%1://%2").arg(muxNumber).arg(sourceUrlName);
+	if (sourceUrlName.contains("lmmmuxo"))
+		sourceUrlName = QString("lmmmuxo%1://muxvideooutput").arg(muxNumber);
 	return BaseLmmElement::start();
 }
 
@@ -302,6 +304,7 @@ int BaseLmmMux::writePacket(const uint8_t *buffer, int buf_size)
 	outputLock.lock();
 	outputBuffers << buf;
 	outputLock.unlock();
+	bufsem[0]->release();
 	return buf_size;
 }
 
