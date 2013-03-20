@@ -33,6 +33,7 @@ public:
 	static bool tuneToChannel(QString ch);
 
 	static int checkStatus();
+	static int checkStatusFast();
 	static struct dvb_ch_info currentChannelInfo();
 
 	static QStringList createChannelList();
@@ -44,12 +45,12 @@ public:
 
 	static void fetchChannelsFromDb();
 
+	static int zapTo(int freq, enum channel_pol pol, int symRate, bool power = true);
 signals:
 
 public slots:
 private:
 	static int zapTo();
-	static int zapTo(int freq, enum channel_pol pol, int symRate);
 	static int zapTo(QString channelName);
 	static int selectLNB(channel_pol pol, int hiband);
 

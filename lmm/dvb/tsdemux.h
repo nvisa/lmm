@@ -10,7 +10,7 @@ class tsDemux : public QObject
 	Q_OBJECT
 public:
 	explicit tsDemux(QObject *parent = 0);
-	int newData(unsigned char *data);
+	int newData(unsigned char *data, int pid);
 	const char * getStream(int pid, int *size);
 	static int findPmt(const unsigned char *data, int program);
 	static int findPcr(const unsigned char *data, int pmt);

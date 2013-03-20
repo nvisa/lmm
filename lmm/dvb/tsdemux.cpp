@@ -72,7 +72,7 @@ static void parse_pes_header(pes_data *pes, unsigned char *buf)
 	h->PES_header_data_length = buf[2] + 9;
 }
 
-int tsDemux::newData(unsigned char *data)
+int tsDemux::newData(unsigned char *data, int pid)
 {
 	int err = 0;
 	int esSize;
@@ -83,7 +83,7 @@ int tsDemux::newData(unsigned char *data)
 		mDebug("sync error");
 		return -1;
 	}
-	if (header.PID != 512)
+	if (header.PID != pid)
 		return -1;
 	if (programs[header.PID] == 0) {
 		ts_program *prog = new ts_program;
@@ -92,9 +92,12 @@ int tsDemux::newData(unsigned char *data)
 		prog->foundStart = false;
 	}
 	ts_program *prog = programs[header.PID];
-	if (prog->ccn != ((header.continuity_counter - 1) & 0xf))
+	if (prog->ccn != ((header.continuity_counter - 1) & 0xf)) {
+		err = 2;
 		mDebug("continuity jump for PID %d %d %d", header.PID, header.continuity_counter, prog->ccn);
+	}
 
+#if 0
 	int dataBytes = 184;
 	int afLen = 0;
 	unsigned char *pesData;
@@ -135,7 +138,7 @@ int tsDemux::newData(unsigned char *data)
 	memcpy(prog->payload + prog->payloadLen, pesData + pes->header.PES_header_data_length, esSize);
 	prog->payloadLen += esSize;
 	pes->header.PES_header_data_length = 0;
-
+#endif
 out:
 	if (err != 1)
 		prog->ccn = header.continuity_counter;

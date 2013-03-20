@@ -32,14 +32,17 @@
 #include "platform_info.h"
 
 #include "debug.h"
-#include "qttools.h"
-#include "dbtools.h"
+//#include "qttools.h"
+//#include "dbtools.h"
 
 #include <QMap>
 #include <QSqlDriver>
 #include <QSqlTableModel>
 #include <QSqlRecord>
 #include <QSqlError>
+#include <QTime>
+#include <QFile>
+#include <QXmlStreamReader>
 
 #define FRONTENDDEVICE "/dev/dvb/adapter%d/frontend%d"
 #define DEMUXDEVICE "/dev/dvb/adapter%d/demux%d"
@@ -260,9 +263,13 @@ int DVBUtils::zapTo()
 	return zap_to(0, 0, 0, 11919 * 1000, VER_POL, 24444 * 1000, 0, 0);
 }
 
-int DVBUtils::zapTo(int freq, enum channel_pol pol, int symRate)
+int DVBUtils::zapTo(int freq, enum channel_pol pol, int symRate, bool power)
 {
-	return (zap_to(0, 0, 0, freq * 1000, pol, symRate * 1000, 0, 0) & FE_HAS_LOCK) ? 0 : 1;
+	if (symRate < 9999)
+		symRate *=  1000;
+	if (power)
+		DVBUtils::selectLNB(pol, get_highband(freq * 1000));
+	return (zap_to(0, 0, 0, freq * 1000, pol, symRate, 0, 0) & FE_HAS_LOCK) ? 0 : 1;
 }
 #ifdef TARGET_ARM
 static inline __s32 i2c_smbus_access(int file, char read_write, __u8 command,
@@ -467,6 +474,7 @@ QStringList DVBUtils::fromTurksatList(QString packet)
 
 void DVBUtils::fillDbFromTurksatList()
 {
+#if 0
 	QStringList channels = fromTurksatList("all");
 
 	dbtools::database().driver()->beginTransaction();
@@ -491,6 +499,7 @@ void DVBUtils::fillDbFromTurksatList()
 	if(!model.submitAll())
 		fDebug("submit error: %s", qPrintable(model.lastError().text()));
 	dbtools::database().driver()->commitTransaction();
+#endif
 }
 
 void DVBUtils::fetchChannelsFromDb()
@@ -525,7 +534,7 @@ QStringList DVBUtils::createChannelList()
 {
 	/* first check database */
 	fetchChannelsFromDb();
-
+#if 0
 	/* if database contains nothing about channels, then use szap file */
 	if (channels.size() == 0) {
 		/* We need to create channel info */
@@ -547,6 +556,7 @@ QStringList DVBUtils::createChannelList()
 				radioChannels.insert(fields[0].trimmed(), line);
 		}
 	}
+#endif
 	return channels.keys();
 }
 
@@ -564,3 +574,19 @@ struct dvb_ch_info DVBUtils::currentChannelInfo()
 {
 	return currentCh;
 }
+
+int DVBUtils::checkStatusFast()
+{
+	if (fefd <= 0)
+		return -1;
+
+	fe_status_t status;
+	if (ioctl(fefd, FE_READ_STATUS, &status) == -1)
+		perror("FE_READ_STATUS failed");
+
+	if (status & FE_HAS_LOCK)
+		return 0;
+
+	return -1;
+}
+
