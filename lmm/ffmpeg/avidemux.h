@@ -20,6 +20,7 @@ signals:
 public slots:
 	int demuxAll();
 private:
+	QString mimeType();
 };
 
 #endif // AVIDEMUX_H

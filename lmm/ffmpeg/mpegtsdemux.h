@@ -17,6 +17,7 @@ signals:
 	
 public slots:
 private:
+	QString mimeType();
 };
 
 #endif // MPEGTSDEMUX_H

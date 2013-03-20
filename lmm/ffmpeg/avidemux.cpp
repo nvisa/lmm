@@ -49,3 +49,8 @@ int AviDemux::demuxAll()
 	return 0;
 }
 
+QString AviDemux::mimeType()
+{
+	return "video/x-msvideo";
+}
+

@@ -25,3 +25,8 @@ int MpegTsDemux::seekTo(qint64)
 {
 	return -1;
 }
+
+QString MpegTsDemux::mimeType()
+{
+	return "video/mpegts";
+}
