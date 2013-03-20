@@ -4,6 +4,7 @@
 #include <QObject>
 
 class QMutex;
+class QSemaphore;
 
 class CircularBuffer : public QObject
 {
@@ -21,6 +22,7 @@ public:
 	int useData(int size);
 	int addData(const void *data, int size);
 	int reset();
+	int wait(int size);
 
 	void lock();
 	void unlock();
@@ -37,6 +39,7 @@ private:
 	int usedBufLen;
 
 	QMutex *mutex;
+	QSemaphore *waitSem;
 	Qt::HANDLE lockThread;
 };
 
