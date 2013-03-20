@@ -93,9 +93,7 @@ ffmpeg {
         ffmpeg/mp4mux.h \
         ffmpeg/avimux.h \
         ffmpeg/dvbplayer.h \
-        ffmpeg/rtph264mux.h \
-        ffmpeg/rtpmjpegmux.h \
-        ffmpeg/rtpmux.h \
+        ffmpeg/ffcompat.h \
 
     SOURCES += \
         ffmpeg/avidecoder.cpp \
@@ -106,10 +104,19 @@ ffmpeg {
         ffmpeg/mp4mux.cpp \
         ffmpeg/avimux.cpp \
         ffmpeg/dvbplayer.cpp \
-        ffmpeg/rtph264mux.cpp \
-        ffmpeg/rtpmjpegmux.cpp \
-        ffmpeg/rtpmux.cpp \
 
+    ffmpeg_rtp {
+        HEADERS += \
+            ffmpeg/rtph264mux.h \
+            ffmpeg/rtpmjpegmux.h \
+            ffmpeg/rtpmux.h \
+
+        SOURCES += \
+            ffmpeg/rtph264mux.cpp \
+            ffmpeg/rtpmjpegmux.cpp \
+            ffmpeg/rtpmux.cpp \
+
+    }
     DEFINES += CONFIG_FFMPEG
 }
 

@@ -9,6 +9,11 @@ extern "C" {
 AviMux::AviMux(QObject *parent) :
 	BaseLmmMux(parent)
 {
-	sourceUrlName = "test.avi";
+	sourceUrlName = "lmmmuxo";
 	fmt = av_guess_format("avi", NULL, NULL);
+}
+
+QString AviMux::mimeType()
+{
+	return "video/x-msvideo";
 }

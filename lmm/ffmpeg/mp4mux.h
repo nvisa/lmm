@@ -12,7 +12,8 @@ public:
 signals:
 	
 public slots:
-	
+protected:
+	QString mimeType();
 };
 
 #endif // MP4MUX_H

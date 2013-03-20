@@ -4,6 +4,7 @@
 #include "rawbuffer.h"
 #include "streamtime.h"
 #include "debug.h"
+#include "ffcompat.h"
 
 #include <errno.h>
 
@@ -14,8 +15,6 @@ extern "C" {
 	#include "libavformat/avio.h" /* for URLContext on x86 */
 }
 
-/* TODO: Fix single instance BaseLmmMux */
-//static BaseLmmMux *muxPriv = NULL;
 static QList<BaseLmmMux *> muxPriv;
 
 static int lmmUrlOpen(URLContext *h, const char *url, int flags)
@@ -124,6 +123,7 @@ int BaseLmmMux::stop()
 			av_freep(&context->streams[i]->codec);
 			av_freep(&context->streams[i]);
 		}
+
 		if (!fmt->flags & AVFMT_NOFILE)
 			avio_close(context->pb);
 		av_free(context);
@@ -466,8 +466,8 @@ int BaseLmmMux::initMuxer()
 		err = -EACCES;
 		goto err_out1;
 	}
-	av_write_header(context);
-	mInfo("output header written");
+	err = av_write_header(context);
+	mInfo("output header written, status %d", err);
 
 	return 0;
 err_out1:

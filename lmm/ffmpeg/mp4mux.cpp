@@ -11,6 +11,11 @@ extern "C" {
 Mp4Mux::Mp4Mux(QObject *parent) :
 	BaseLmmMux(parent)
 {
-	sourceUrlName = "test.mp4";
+	sourceUrlName = "lmmmuxo";
 	fmt = av_guess_format("mp4", NULL, NULL);
+}
+
+QString Mp4Mux::mimeType()
+{
+	return "video/quicktime";
 }
