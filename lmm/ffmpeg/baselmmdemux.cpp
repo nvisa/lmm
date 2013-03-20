@@ -5,8 +5,11 @@
 #include "streamtime.h"
 #include "debug.h"
 
+#include <QSemaphore>
+
 extern "C" {
 	#include "libavformat/avformat.h"
+	#include "libavformat/avio.h" /* for URLContext on x86 */
 }
 
 static void deletePacket(AVPacket *packet)
@@ -14,6 +17,42 @@ static void deletePacket(AVPacket *packet)
 	if (packet->data != NULL)
 		av_free_packet(packet);
 	delete packet;
+}
+
+static QList<BaseLmmDemux *> demuxPriv;
+
+static int lmmUrlOpen(URLContext *h, const char *url, int flags)
+{
+	int mux;
+	fDebug("opening url %s", h->prot->name);
+	QString pname(h->prot->name);
+	if (pname.startsWith("lmmdemuxi"))
+		mux = pname.remove("lmmdemuxi").toInt();
+	h->priv_data = demuxPriv.at(mux);
+	return ((BaseLmmDemux *)h->priv_data)->openUrl(url, flags);
+}
+
+static int lmmUrlRead(URLContext *h, unsigned char *buf, int size)
+{
+	return ((BaseLmmDemux *)h->priv_data)->readPacket(buf, size);
+}
+
+static int lmmUrlWrite(URLContext *h, const unsigned char *buf, int size)
+{
+	return ((BaseLmmDemux *)h->priv_data)->writePacket(buf, size);
+}
+
+static int64_t lmmUrlSeek(URLContext *h, int64_t pos, int whence)
+{
+	(void)h;
+	(void)pos;
+	(void)whence;
+	return -EINVAL;
+}
+
+static int lmmUrlClose(URLContext *h)
+{
+	return ((BaseLmmDemux *)h->priv_data)->closeUrl(h);
 }
 
 BaseLmmDemux::BaseLmmDemux(QObject *parent) :
@@ -30,6 +69,26 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	audioStream = NULL;
 	videoStream = NULL;
 	libavAnalayzeDuration = 5000000; /* this is ffmpeg default */
+
+	bufsem << new QSemaphore;
+
+	demuxNumber = demuxPriv.size();
+	/* register one channel for input, we need this to find stream info */
+	URLProtocol *lmmUrlProtocol = new URLProtocol;
+	memset(lmmUrlProtocol , 0 , sizeof(URLProtocol));
+	QString pname = QString("lmmdemuxi%1").arg(demuxNumber);
+	char *pnamep = new char[20];
+	strcpy(pnamep, qPrintable(pname));
+	lmmUrlProtocol->name = pnamep;
+	lmmUrlProtocol->url_open = lmmUrlOpen;
+	lmmUrlProtocol->url_read = lmmUrlRead;
+	lmmUrlProtocol->url_write = lmmUrlWrite;
+	lmmUrlProtocol->url_seek = lmmUrlSeek;
+	lmmUrlProtocol->url_close = lmmUrlClose;
+	av_register_protocol2(lmmUrlProtocol, sizeof (URLProtocol));
+
+	/* add us to mux list of static handlers */
+	demuxPriv << this;
 }
 
 qint64 BaseLmmDemux::getCurrentPosition()
@@ -171,6 +230,78 @@ int BaseLmmDemux::getAudioSampleRate()
 	return 0;
 }
 
+int BaseLmmDemux::readPacket(uint8_t *buffer, int buf_size)
+{
+#if 0
+	mInfo("will read %d bytes into ffmpeg buffer", buf_size);
+	/* This routine may be called before the stream started */
+	int copied = 0, left = buf_size;
+	inputLock.lock();
+	while (inputBuffers.size()) {
+		RawBuffer buf = inputBuffers.takeFirst();
+		mInfo("using next input buffer, copied=%d left=%d buf.size()=%d", copied, left, buf.size());
+		if (buf.size() > left) {
+			memcpy(buffer + copied, buf.constData(), left);
+			/* some data will left, put back to input buffers */
+			RawBuffer newbuf(mimeType(), (uchar *)buf.constData() + left, buf.size() - left);
+			inputBuffers.prepend(newbuf);
+			copied += left;
+			left -= left;
+			break;
+		} else {
+			memcpy(buffer + copied, buf.constData(), buf.size());
+			copied += buf.size();
+			left -= buf.size();
+		}
+	}
+	inputLock.unlock();
+	if (!copied) {
+		inbufsem[0]->acquire();
+		return readPacket(buffer, buf_size);
+	}
+	mInfo("read %d bytes into ffmpeg buffer", copied);
+	return copied;
+#else
+	int copied = 0, left = buf_size;
+	inbufsem[0]->acquire();
+	inputLock.lock();
+	RawBuffer buf = inputBuffers.takeFirst();
+	if (buf.size() > left) {
+		memcpy(buffer + copied, buf.constData(), left);
+		/* some data will left, put back to input buffers */
+		RawBuffer newbuf(mimeType(), (uchar *)buf.constData() + left, buf.size() - left);
+		inputBuffers.prepend(newbuf);
+		inbufsem[0]->release();
+		copied += left;
+		left -= left;
+	} else {
+		memcpy(buffer + copied, buf.constData(), buf.size());
+		copied += buf.size();
+		left -= buf.size();
+	}
+	inputLock.unlock();
+	return copied;
+#endif
+}
+
+int BaseLmmDemux::writePacket(const uint8_t *buffer, int buf_size)
+{
+	qDebug("write %d", buf_size);
+	return buf_size;
+}
+
+int BaseLmmDemux::openUrl(QString url, int)
+{
+	qDebug("opening %s", qPrintable(url));
+	return 0;
+}
+
+int BaseLmmDemux::closeUrl(URLContext *h)
+{
+	/* no need to do anything, stream will be closed later */
+	return 0;
+}
+
 RawBuffer BaseLmmDemux::nextAudioBuffer()
 {
 	if (audioBuffers.size()) {
@@ -204,7 +335,6 @@ int BaseLmmDemux::videoBufferCount()
 int BaseLmmDemux::start()
 {
 	streamPosition = 0;
-	sourceUrlName = "";
 	videoStreamIndex = audioStreamIndex = -1;
 	audioStream = videoStream = NULL;
 	foundStreamInfo = false;

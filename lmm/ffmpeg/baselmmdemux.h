@@ -9,6 +9,7 @@ struct AVStream;
 class RawBuffer;
 class CircularBuffer;
 class StreamTime;
+struct URLContext;
 
 class BaseLmmDemux : public BaseLmmElement
 {
@@ -33,6 +34,12 @@ public:
 
 	/* stream information APIs */
 	int getAudioSampleRate();
+
+	/* ffmpeg url routines */
+	int readPacket(uint8_t *buffer, int buf_size);
+	int writePacket(const uint8_t *buffer, int buf_size);
+	int openUrl(QString url, int flags);
+	int closeUrl(URLContext *h);
 signals:
 	void streamInfoFound();
 public slots:
@@ -50,6 +57,7 @@ protected:
 	bool demuxAudio;
 	bool demuxVideo;
 	bool foundStreamInfo;
+	int demuxNumber;
 
 	/* derived stats */
 	qint64 audioTimeBaseN;		/* in nano secs */
@@ -57,6 +65,7 @@ protected:
 
 	virtual AVPacket * nextPacket();
 	virtual int findStreamInfo();
+	virtual QString mimeType() = 0;
 };
 
 #endif // BASELMMDEMUX_H
