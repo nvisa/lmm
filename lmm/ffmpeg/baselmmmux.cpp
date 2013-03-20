@@ -262,7 +262,7 @@ void BaseLmmMux::printInputInfo()
 	PRINFO(videoStream->time_base.den);
 }
 
-RawBuffer BaseLmmMux::nextBuffer()
+void BaseLmmMux::muxNext()
 {
 	if (!foundStreamInfo) {
 		if (findInputStreamInfo()) {
@@ -295,7 +295,20 @@ RawBuffer BaseLmmMux::nextBuffer()
 		}
 		inputLock.unlock();
 	}
-	return BaseLmmElement::nextBuffer();
+}
+
+int BaseLmmMux::sync()
+{
+	av_write_trailer(context);
+	av_write_header(context);
+	return 0;
+}
+
+int BaseLmmMux::muxNextBlocking()
+{
+	inbufsem[0]->acquire();
+	muxNext();
+	return 0;
 }
 
 int BaseLmmMux::writePacket(const uint8_t *buffer, int buf_size)

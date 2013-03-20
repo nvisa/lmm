@@ -20,7 +20,8 @@ public:
 
 	virtual int start();
 	virtual int stop();
-	virtual RawBuffer nextBuffer();
+	virtual int sync();
+	virtual int muxNextBlocking();
 
 	/* ffmpeg url routines */
 	int readPacket(uint8_t *buffer, int buf_size);
@@ -53,6 +54,7 @@ protected:
 	virtual int findInputStreamInfo();
 	virtual QString mimeType() = 0;
 	void printInputInfo();
+	void muxNext();
 };
 
 #endif // BASELMMMUX_H
