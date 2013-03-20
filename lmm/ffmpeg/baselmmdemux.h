@@ -20,13 +20,16 @@ public:
 	virtual qint64 getTotalDuration();
 	virtual qint64 getCurrentPosition();
 	virtual RawBuffer nextAudioBuffer();
+	virtual RawBuffer nextAudioBufferBlocking();
 	virtual RawBuffer nextVideoBuffer();
+	virtual RawBuffer nextVideoBufferBlocking();
 	virtual int audioBufferCount();
 	virtual int videoBufferCount();
 	virtual int start();
 	virtual int stop();
 	virtual int seekTo(qint64 pos);
 	virtual int demuxOne();
+	virtual int demuxOneBlocking();
 	virtual int flush();
 
 	void setAudioDemuxing(bool v) { demuxAudio = v; } /* TODO: clear existing buffers */

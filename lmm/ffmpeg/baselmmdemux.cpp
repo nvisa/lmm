@@ -196,6 +196,7 @@ int BaseLmmDemux::demuxOne()
 				buf.setDts(-1);
 			}
 			audioBuffers << buf;
+			bufsem[1]->release();
 		}
 	} else if (packet->stream_index == videoStreamIndex) {
 		mInfo("new video stream: size=%d pts=%lld duration=%d dflags=%d", packet->size,
@@ -215,9 +216,15 @@ int BaseLmmDemux::demuxOne()
 				buf.setDts(-1);
 			}
 			videoBuffers << buf;
+			bufsem[0]->release();
 		}
 	}
 	return 0;
+}
+
+int BaseLmmDemux::demuxOneBlocking()
+{
+	return demuxOne();
 }
 
 int BaseLmmDemux::flush()
@@ -316,6 +323,12 @@ RawBuffer BaseLmmDemux::nextAudioBuffer()
 	return RawBuffer();
 }
 
+RawBuffer BaseLmmDemux::nextAudioBufferBlocking()
+{
+	bufsem[1]->acquire();
+	return nextAudioBuffer();
+}
+
 RawBuffer BaseLmmDemux::nextVideoBuffer()
 {
 	if (videoBuffers.size()) {
@@ -324,6 +337,12 @@ RawBuffer BaseLmmDemux::nextVideoBuffer()
 	}
 
 	return RawBuffer();
+}
+
+RawBuffer BaseLmmDemux::nextVideoBufferBlocking()
+{
+	bufsem[0]->acquire();
+	return nextVideoBuffer();
 }
 
 int BaseLmmDemux::audioBufferCount()
