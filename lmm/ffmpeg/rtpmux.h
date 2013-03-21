@@ -32,6 +32,7 @@ public:
 	QString getSdp();
 protected:
 	virtual int initMuxer();
+	virtual qint64 packetTimestamp();
 signals:
 	void sdpReady(QString sdp);
 private:

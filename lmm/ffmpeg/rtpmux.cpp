@@ -55,6 +55,7 @@ int RtpMux::sendNext()
 int RtpMux::sendNextBlocking()
 {
 	inbufsem[0]->acquire();
+	muxNext();
 	RawBuffer buf = nextBuffer();
 	if (streamTime)
 		loopLatency = streamTime->getCurrentTime() - buf.getBufferParameter("captureTime").toInt();
@@ -100,4 +101,10 @@ int RtpMux::initMuxer()
 	mDebug("changed RTP private information");
 	emit sdpReady(getSdp());
 	return 0;
+}
+
+qint64 RtpMux::packetTimestamp()
+{
+	AVRational avrat = context->streams[0]->time_base;
+	return streamTime->getCurrentTimeMili() * avrat.den / avrat.num / 1000;
 }
