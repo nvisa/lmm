@@ -1,6 +1,6 @@
-#include "blec32fboutput.h"
+#include "dm6446fboutput.h"
 #include "rawbuffer.h"
-#include "dmaidecoder.h"
+#include "dmai/dmaidecoder.h"
 
 #include "debug.h"
 

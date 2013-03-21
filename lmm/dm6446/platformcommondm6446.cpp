@@ -1,5 +1,6 @@
 #include "platformcommondm6446.h"
-#include "dmaidecoder.h"
+#include "dmai/dmaidecoder.h"
+#include "hardwareoperations.h"
 
 #include <QGraphicsView>
 #include <QGraphicsScene>
@@ -22,9 +23,10 @@ void PlatformCommonDM6446::platformInit()
 
 void PlatformCommonDM6446::platformCleanUp()
 {
-	//DmaiDecoder::cleanUpDsp();
+	DmaiDecoder::cleanUpDsp();
 }
 
+#if 0
 static QGraphicsScene *scene = NULL;
 static QMap<BaseLmmElement *, QList<QGraphicsSimpleTextItem *> > visuals;
 #define DEMUX_X (10 + 10 + rectW)
@@ -142,3 +144,4 @@ int PlatformCommonDM6446::showDecodeInfo(QGraphicsView *view, BaseLmmPlayer *dec
 	}
 	return 0;
 }
+#endif
