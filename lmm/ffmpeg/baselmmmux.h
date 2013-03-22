@@ -22,6 +22,7 @@ public:
 	virtual int stop();
 	virtual int sync();
 	virtual int muxNextBlocking();
+	virtual int setOutputFilename(QString filename);
 
 	/* ffmpeg url routines */
 	int readPacket(uint8_t *buffer, int buf_size);

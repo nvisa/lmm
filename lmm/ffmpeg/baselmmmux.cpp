@@ -53,6 +53,48 @@ static int lmmUrlClose(URLContext *h)
 	return ((BaseLmmMux *)h->priv_data)->closeUrl(h);
 }
 
+/**
+	\class BaseLmmMux
+
+	\brief BaseLmmMux sinifi ffmpeg tabanli muxer elemanlarinin turetildigi baz
+	siniftir.
+
+	BaseLmmMux ffmpeg libavformat kutuphanesi uzerinde calisan bir siniftir. Uygulamada
+	bu sinif direk olarak kullanilmak icin tasarlanmamistir, ozel bir muxer sinifi
+	yaratmaniz gereklidir.
+
+	BaseLmmMux sinifi giris ve cikislarini addBuffer() ve nextBuffer() fonksiyonlari
+	ile alabilir. Fakat bazi muxer siniflari direk olarak diske yazabilir ya da ag akisi
+	olarak gonderebilir. Bunun icin ilgili sinifin dokumantasyonuna bakabilirsiniz.
+	Fakat tampon ciktisi verebilen siniflari tampon ciktisi verecek sekilde ayarlamak
+	icin setOutputFilename() fonksiyonuna 'lmmmuxo' gecebilirsiniz:
+
+	\code
+	BaseLmmMux *mux = new SomeMuxer();
+	mux->setOutputFilename("lmmmuxo");
+	\endcode
+
+	\section Kalitma BaseLmmMux Sinifindan Kalitma
+
+	Bu siniftan kalitirken en az mimeType() fonksiyonunu implemente etmelisiniz. Bu tip
+	yeni yaratilan tamponlarda kullanilacaktir.
+
+	findInputStreamInfo() ve initMuxer() fonksiyonlari muxer ozelliklerini belirlemek ve
+	ayarlamak icin kullanilir. Alt siniflar bu fonksiyonlari daha hizli muxer olusturumu
+	icin kullanabilir. libavAnalayzeDuration degiskeni findInputStream()'in ne kadar sure
+	ile gelen tamponlari format belirlemek icin arastiracagini belirtir. Gerekli
+	parametreleri bulabilmek icin printInputInfo() fonksiyonunu kullanabilirsiniz.
+
+	packetTimeStamp() fonksiyonunu yeniden gerceklerseniz, olusturulan tamponlarin pts/dts
+	degerlerini atayabilirisiniz. Varsayilan olarak libavformat icinde tavsiye method
+	kullanilir.
+
+	timebaseNum() ve timebaseDenom() fonksiyonlari initMuxer() tarafindan olusturulan
+	codec iceriginin zamanlama degerlerini atamak icin kullanilir, yeniden implemente ederek
+	fps degerini degistirebilirsiniz.
+
+	\ingroup ffmpeg
+*/
 BaseLmmMux::BaseLmmMux(QObject *parent) :
 	BaseLmmElement(parent)
 {
@@ -312,6 +354,14 @@ int BaseLmmMux::timebaseDenom()
 	return 25;
 }
 
+/**
+ * @brief libavformat tamponlarini diske yazar.
+ * @return Hata yoksa '0', hata durumunda negatif hata kodu.
+ *
+ * Bazi muxerlar uzerinde farkli araliklarla bu fonksiyonu cagirmaniz
+ * gerekebilir. Ornegin MP4/QT icinde moov atomlarinin yazilmasi icin
+ * bu fonksiyonu cagirabilirsiniz.
+ */
 int BaseLmmMux::sync()
 {
 	av_write_trailer(context);
@@ -319,6 +369,17 @@ int BaseLmmMux::sync()
 	return 0;
 }
 
+/**
+ * @brief Bir sonraki kareyi kodlar, giris tamponunun hazir olmasini bekler.
+ * @return Hata yoksa '0', hata durumunda negatif hata kodu.
+ *
+ * Bu fonksiyonu is parcaciklari icinden cagirabilirsiniz. Eger hazirda
+ * bekleyen giris tamponu yoksa bu fonksiyonu giris tamponu QSemaphore
+ * kullanarak bekler. Eger uyumayan versiyonuna ihtiyac duyarsaniz muxNext()
+ * fonksiyonunu kullanabilirsiniz.
+ *
+ * \sa muxNext()
+ */
 int BaseLmmMux::muxNextBlocking()
 {
 	inbufsem[0]->acquire();
@@ -326,6 +387,27 @@ int BaseLmmMux::muxNextBlocking()
 	return 0;
 }
 
+/**
+ * @brief Muxer ciktisini secmek icin kullanabilirsiniz.
+ * @param filename Dosya ismi.
+ * @return Hata yoksa '0', hata durumunda negatif hata kodu.
+ *
+ * Muxer cikisinin gonderilecegi adresi belirler. Eger 'lmmmuxo'
+ * gecerseniz elemandan ciktilari nextBuffer() fonksiyonu ile
+ * alabilirsiniz.
+ */
+int BaseLmmMux::setOutputFilename(QString filename)
+{
+	sourceUrlName = filename;
+	return 0;
+}
+
+/**
+ * @brief libavformat tarafindan kullanilir, cagirmayiniz.
+ * @param buffer
+ * @param buf_size
+ * @return
+ */
 int BaseLmmMux::writePacket(const uint8_t *buffer, int buf_size)
 {
 	RawBuffer buf(mimeType(), (void *)buffer, buf_size);
@@ -336,6 +418,12 @@ int BaseLmmMux::writePacket(const uint8_t *buffer, int buf_size)
 	return buf_size;
 }
 
+/**
+ * @brief libavformat tarafindan kullanilir, cagirmayiniz.
+ * @param buffer
+ * @param buf_size
+ * @return
+ */
 int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 {
 	mInfo("will read %d bytes into ffmpeg buffer", buf_size);
@@ -367,6 +455,11 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 	return copied;
 }
 
+/**
+ * @brief libavformat tarafindan kullanilir, cagirmayiniz.
+ * @param url
+ * @return
+ */
 int BaseLmmMux::openUrl(QString url, int)
 {
 	mDebug("opening %s", qPrintable(url));
@@ -375,6 +468,10 @@ int BaseLmmMux::openUrl(QString url, int)
 	return 0;
 }
 
+/**
+ * @brief libavformat tarafindan kullanilir, cagirmayiniz.
+ * @return
+ */
 int BaseLmmMux::closeUrl(URLContext *)
 {
 	/* no need to do anything, stream will be closed later */
