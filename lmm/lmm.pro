@@ -139,6 +139,18 @@ dmai {
 
 }
 
+dvb {
+    SOURCES += \
+        dvb/tsdemux.cpp \
+        dvb/dvbutils.cpp \
+
+    HEADERS  += \
+        dvb/tsdemux.h \
+        dvb/dvbutils.h \
+
+    QT += sql
+}
+
 dm365 {
     include(dm365/tipaths.pri)
     DEFINES += CONFIG_DM365
@@ -167,30 +179,29 @@ dm365 {
         dm365/config.bld
 }
 
-dvb {
-    SOURCES += \
-        dvb/tsdemux.cpp \
-        dvb/dvbutils.cpp \
-
-    HEADERS  += \
-        dvb/tsdemux.h \
-        dvb/dvbutils.h \
-}
-
 dm6446 {
-    include(dm6446/dm6446.pri)
+    include(dm6446/tipaths.pri)
     DEFINES += CONFIG_DM6446
     SOURCES += \
         dm6446/dm6446fboutput.cpp \
         dm6446/platformcommondm6446.cpp \
 
     HEADERS  += \
-        dm6446/blec32fboutput.h \
+        dm6446/dm6446fboutput.h \
         dm6446/platformcommondm6446.h \
 
-    xdc.files += dm6446/xdc_linker.cmd
-    xdc.path = /usr/local/share/lmm
+    xdc.files += dm6446/tipaths.pri
+    xdc.files += dm6446/dm6446.pri
+    xdc.files += dm6446/config.bld
+    xdc.files += dm6446/dm6446.cfg
+    xdc.path = /usr/local/include/lmm/dm6446
     CONFIG += arm
+
+    OTHER_FILES += \
+        dm6446/dm6446.pri \
+        dm6446/dm6446.cfg \
+        dm6446/config.bld \
+
 }
 
 armv5te {

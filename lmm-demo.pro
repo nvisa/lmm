@@ -12,6 +12,3 @@ SUBDIRS = lmm
 
 RESOURCES += \
     art.qrc
-
-OTHER_FILES += \
-    dm6446.pri \
