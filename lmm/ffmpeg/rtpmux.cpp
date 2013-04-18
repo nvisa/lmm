@@ -43,6 +43,7 @@ int RtpMux::stop()
 
 int RtpMux::sendNext()
 {
+	muxNext();
 	RawBuffer buf = nextBuffer();
 	while (buf.size()) {
 		if (streamTime)
