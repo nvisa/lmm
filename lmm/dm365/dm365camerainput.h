@@ -31,6 +31,7 @@ public:
 	};
 
 	explicit DM365CameraInput(QObject *parent = 0);
+	cameraInput getInputType() { return inputType; }
 	void setInputType(cameraInput inp) { inputType = inp; }
 	void setInputFps(float fps);
 	void setOutputFps(float fps);
