@@ -29,6 +29,7 @@
 
 LmmCommon LmmCommon::inst;
 
+static 	bool quitOnSigInt;
 static QList<BaseLmmElement *> registeredElementsForPipe;
 
 void LmmCommon::platformCleanUp()
@@ -54,10 +55,14 @@ static void signalHandler(int signalNumber)
 				 signalNumber, QThread::currentThreadId(), dbgtemp);
 	if (signalNumber == SIGSEGV) {
 		LmmCommon::platformCleanUp();
+		qDebug("console is active, use 'exit' command");
 		exit(0);
 	} else if (signalNumber == SIGINT) {
-		LmmCommon::platformCleanUp();
-		exit(0);
+		if (quitOnSigInt) {
+			LmmCommon::platformCleanUp();
+			exit(0);
+		} else
+			qDebug("console is active, use 'exit' command");
 	} else if (signalNumber == SIGTERM) {
 		LmmCommon::platformCleanUp();
 		exit(0);
@@ -82,8 +87,9 @@ LmmCommon::LmmCommon(QObject *parent) :
 #endif
 }
 
-int LmmCommon::init()
+int LmmCommon::init(bool exitOnSigInt)
 {
+	quitOnSigInt = exitOnSigInt;
 	QThreadPool::globalInstance()->setMaxThreadCount(5);
 	initDebug();
 	platformInit();
