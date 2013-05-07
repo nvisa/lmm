@@ -33,9 +33,9 @@ public:
 		FIELD_AVG_CPU_LOAD,
 	};
 	explicit TextOverlay(overlayType t = CHAR_MAP, QObject *parent = 0);
-	void setFontSize(int size);
-	void setOverlayPosition(QPoint topLeft) { overlayPos = topLeft; }
-	void setOverlayText(QString text);
+	int setFontSize(int size);
+	int setOverlayPosition(QPoint topLeft) { overlayPos = topLeft; return 0; }
+	int setOverlayText(QString text);
 	void addOverlayField(overlayTextFields f, QString val = "");
 	int getFontSize() { return fontSize; }
 	QPoint getOverlayPosition() { return overlayPos; }
@@ -43,6 +43,8 @@ public:
 	int getFieldCount() { return overlayFields.size(); }
 	overlayTextFields getOverlayField(int pos) { return overlayFields[pos]; }
 	QString getOverlayFieldText(int pos) { return overlayFieldTexts[pos]; }
+	int setOverlayField(int pos, overlayTextFields f);
+	int setOverlayFieldText(int pos, QString text);
 	int start();
 	int stop();
 	int addBuffer(RawBuffer buffer);

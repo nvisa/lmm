@@ -57,7 +57,7 @@ TextOverlay::TextOverlay(overlayType t, QObject *parent) :
 	imageBuf = NULL;
 }
 
-void TextOverlay::setFontSize(int size)
+int TextOverlay::setFontSize(int size)
 {
 	fontSize = size;
 	/* refresh maps */
@@ -68,19 +68,38 @@ void TextOverlay::setFontSize(int size)
 	readMapsFromCache();
 	mDebug("new size is %d", size);
 	maplock.unlock();
+	return 0;
 }
 
-void TextOverlay::setOverlayText(QString text)
+int TextOverlay::setOverlayText(QString text)
 {
 	overlayText = text;
 	overlayFields.clear();
 	overlayFieldTexts.clear();
+	return 0;
 }
 
 void TextOverlay::addOverlayField(TextOverlay::overlayTextFields f, QString val)
 {
 	overlayFields << f;
 	overlayFieldTexts << val;
+}
+
+int TextOverlay::setOverlayField(int pos, TextOverlay::overlayTextFields f)
+{
+	if (pos >= overlayFields.size())
+		return -ENOENT;
+	qDebug("setting field %d type to %d", pos, f);
+	overlayFields[pos] = f;
+	return 0;
+}
+
+int TextOverlay::setOverlayFieldText(int pos, QString text)
+{
+	if (pos >= overlayFieldTexts.size())
+		return -ENOENT;
+	overlayFieldTexts[pos] = text;
+	return 0;
 }
 
 int TextOverlay::start()
