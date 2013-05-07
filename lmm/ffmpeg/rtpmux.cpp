@@ -106,6 +106,5 @@ int RtpMux::initMuxer()
 
 qint64 RtpMux::packetTimestamp()
 {
-	AVRational avrat = context->streams[0]->time_base;
-	return streamTime->getCurrentTimeMili() * avrat.den / avrat.num / 1000;
+	return 90000 * muxedBufferCount / 30;
 }
