@@ -15,10 +15,14 @@
 #endif
 #ifndef INFO
 #define INFO
+#define LOG
+#define LOGV
 #endif
 
 extern QStringList __dbg_classes;
 extern QStringList __dbg_classes_info;
+extern QStringList __dbg_classes_log;
+extern QStringList __dbg_classes_logv;
 void initDebug();
 void changeDebug(QString debug, int defaultLevel = 0);
 #ifdef DEBUG_TIMING
@@ -77,6 +81,22 @@ static inline unsigned int __totalTimePassed()
 #define mInfo(mes, arg...) do { if (0) qDebug(mes, ##arg); } while (0)
 #define fInfo(mes, arg...) do { if (0) qDebug(mes, ##arg); } while (0)
 #define infoMessagesAvailable() 0
+#endif
+
+#ifdef LOG
+#define mLog(mes, arg...) __debug("%s: " mes, __dbg_classes_log, this, __PRETTY_FUNCTION__, ##arg)
+#define logMessagesAvailable() 1
+#else
+#define mLog(mes, arg...) do { if (0) qDebug(mes, ##arg); } while (0)
+#define logMessagesAvailable() 0
+#endif
+
+#ifdef LOGV
+#define mLogv(mes, arg...) __debug("%s: " mes, __dbg_classes_logv, this, __PRETTY_FUNCTION__, ##arg)
+#define logvMessagesAvailable() 1
+#else
+#define mLogv(mes, arg...) do { if (0) qDebug(mes, ##arg); } while (0)
+#define logvMessagesAvailable() 0
 #endif
 
 #ifdef DEBUG_TIMING
