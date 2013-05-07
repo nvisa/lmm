@@ -49,6 +49,8 @@ public:
 	int getFps() { return elementFps; }
 	UnitTimeStat * getOutputTimeStat() { return outputTimeStat; }
 	int getAvailableDuration();
+	void setEnabled(bool val);
+	bool isEnabled();
 signals:
 	void needFlushing();
 	void newBufferAvailable();
@@ -60,6 +62,7 @@ protected:
 	qint64 streamDuration;
 	int receivedBufferCount;
 	int sentBufferCount;
+	bool enabled;
 
 	QMutex inputLock;
 	QMutex outputLock;

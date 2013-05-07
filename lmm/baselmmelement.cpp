@@ -136,6 +136,7 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	elementFps = fpsBufferCount = 0;
 	fpsTiming->start();
 	outputTimeStat = new UnitTimeStat;
+	enabled = true;
 
 	bufsem  << new QSemaphore;
 	inbufsem << new QSemaphore;
@@ -209,6 +210,16 @@ int BaseLmmElement::getAvailableDuration()
 	for (int i = 0; i < inputBuffers.size(); i++)
 		availDuration += inputBuffers.at(i).getDuration();
 	return availDuration;
+}
+
+void BaseLmmElement::setEnabled(bool val)
+{
+	enabled = val;
+}
+
+bool BaseLmmElement::isEnabled()
+{
+	return enabled;
 }
 
 void BaseLmmElement::calculateFps()
