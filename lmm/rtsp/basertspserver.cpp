@@ -212,16 +212,16 @@ QString BaseRtspServer::detectLineSeperator(QString mes)
 	QString lsep;
 	if (mes.contains("\r\n")) {
 		lsep = "\r\n";
-		mDebug("detected lsep as \\r\\n");
+		mInfo("detected lsep as \\r\\n");
 	} else if (mes.contains("\n\r")) {
 		lsep = "\n\r";
-		mDebug("detected lsep as \\n\\r");
+		mInfo("detected lsep as \\n\\r");
 	} else if (mes.contains("\n")) {
 		lsep = "\n";
-		mDebug("detected lsep as \\n");
+		mInfo("detected lsep as \\n");
 	} else if (mes.contains("\r")) {
 		lsep = "\r";
-		mDebug("detected lsep as \\r");
+		mInfo("detected lsep as \\r");
 	}
 	return lsep;
 }
@@ -282,7 +282,7 @@ void BaseRtspServer::clientDataReady(QObject *obj)
 	/* end of message is 2 line seperators, by the standard */
 	QString end = lsep + lsep;
 	if (mes.contains(end)) {
-		mDebug("new message from rtsp client: \n%s", qPrintable(mes));
+		mInfo("new message from rtsp client: \n%s", qPrintable(mes));
 		currentPeerIp = sock->peerAddress().toString();
 		QStringList resp = handleRtspMessage(mes, lsep);
 		msgbuffer[sock] = "";
@@ -536,7 +536,7 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 
 void BaseRtspServer::sendRtspMessage(QTcpSocket *sock, const QByteArray &mes)
 {
-	mDebug("sending rtsp message to %s: %s", qPrintable(sock->peerAddress().toString()),
+	mInfo("sending rtsp message to %s: %s", qPrintable(sock->peerAddress().toString()),
 		   mes.constData());
 	sock->write(mes);
 }
