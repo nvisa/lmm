@@ -44,6 +44,8 @@ public:
 	static QString getLibraryVersion();
 	static QString getLiveMediaVersion();
 	static QString getLibVlcVersion();
+	static QString getFFmpegVersion();
+	static QString getGStreamerVersion();
 	static void platformInit();
 	static void platformCleanUp();
 signals:

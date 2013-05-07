@@ -1,3 +1,4 @@
+#define __STDC_CONSTANT_MACROS
 #include "lmmcommon.h"
 #include "version.h"
 #ifdef CONFIG_DM6446
@@ -5,6 +6,13 @@
 #endif
 #ifdef CONFIG_DM365
 #include "dm365/platformcommondm365.h"
+#endif
+#ifdef CONFIG_FFMPEG
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libavdevice/avdevice.h>
+#include <libavfilter/avfilter.h>
+#include <libavutil/avutil.h>
 #endif
 #include "baselmmelement.h"
 #include "hardwareoperations.h"
@@ -117,7 +125,7 @@ QString LmmCommon::getLibraryVersion()
 #ifdef USE_LIVEMEDIA
 	#include <liveMedia_version.hh>
 #else
-#define LIVEMEDIA_LIBRARY_VERSION_STRING "N/A"
+#define LIVEMEDIA_LIBRARY_VERSION_STRING "not used"
 #endif
 QString LmmCommon::getLiveMediaVersion()
 {
@@ -128,9 +136,38 @@ QString LmmCommon::getLiveMediaVersion()
 #ifdef CONFIG_VLC
 	#include <vlc/libvlc.h>
 #else
-	#define libvlc_get_version() "N/A"
+	#define libvlc_get_version() "not used"
 #endif
 QString LmmCommon::getLibVlcVersion()
 {
 	return libvlc_get_version();
+}
+
+QString LmmCommon::getFFmpegVersion()
+{
+#ifdef CONFIG_FFMPEG
+	QString str;
+	//str.append(avformat_configuration()).append("\n");
+	str.append(QString("libavcodec: %1 %2 %3\n").arg(LIBAVCODEC_VERSION_MAJOR)
+			   .arg(LIBAVCODEC_VERSION_MINOR).arg(LIBAVCODEC_VERSION_MICRO));
+	str.append(QString("libavformat: %1 %2 %3\n").arg(LIBAVFORMAT_VERSION_MAJOR)
+			   .arg(LIBAVFORMAT_VERSION_MINOR).arg(LIBAVFORMAT_VERSION_MICRO));
+	str.append(QString("libavdevice: %1 %2 %3\n").arg(LIBAVDEVICE_VERSION_MAJOR)
+			   .arg(LIBAVDEVICE_VERSION_MINOR).arg(LIBAVDEVICE_VERSION_MICRO));
+	str.append(QString("libavfilter: %1 %2 %3\n").arg(LIBAVFILTER_VERSION_MAJOR)
+			   .arg(LIBAVFILTER_VERSION_MINOR).arg(LIBAVFILTER_VERSION_MICRO));
+	str.append(QString("libavutil: %1 %2 %3\n").arg(LIBAVUTIL_VERSION_MAJOR)
+			   .arg(LIBAVUTIL_VERSION_MINOR).arg(LIBAVUTIL_VERSION_MICRO));
+	return str;
+#else
+	return "not used";
+#endif
+}
+
+QString LmmCommon::getGStreamerVersion()
+{
+#if USE_GSTREAMER
+#else
+	return "not used";
+#endif
 }
