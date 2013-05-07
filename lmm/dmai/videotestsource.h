@@ -36,7 +36,7 @@ public:
 
 	explicit VideoTestSource(QObject *parent = 0);
 	explicit VideoTestSource(int nWidth, int nHeight, QObject *parent = 0);
-	void setTestPattern(TestPattern p);
+	int setTestPattern(TestPattern p);
 	TestPattern getPattern() { return pattern; }
 	void setFps(int fps);
 	void setYUVFile(QString filename);

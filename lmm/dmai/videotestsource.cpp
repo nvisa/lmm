@@ -10,6 +10,7 @@
 #include <QTimer>
 #include <QSemaphore>
 
+#include <errno.h>
 #include <linux/videodev2.h>
 
 /**
@@ -93,10 +94,10 @@ VideoTestSource::VideoTestSource(int nWidth, int nHeight, QObject *parent) :
 	if (_x > 255) _x = 255; \
 	if (_x < 0) _x = 0;
 
-void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
+int VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 {
 	if (p == pattern)
-		return;
+		return 0;
 	int w, h;
 	w = getParameter("videoWidth").toInt();
 	h = getParameter("videoHeight").toInt();
@@ -115,7 +116,7 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 
 	if (p == RAW_YUV_FILE || p == RAW_YUV_VIDEO) {
 		/* cache is not used in this mode */
-		return;
+		return 0;
 	}
 	/* we will use cache data if exists */
 	if (!checkCache(p, attr)) {
@@ -182,7 +183,7 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 		if (!randF.open(QIODevice::ReadOnly)) {
 			mDebug("error opening /dev/urandom");
 			noisy = false;
-			return;
+			return -ENODEV;
 		}
 		for (int i = 0; i < 16; i++) {
 			char *nd = new char[noiseHeight * noiseWidth];
@@ -192,6 +193,7 @@ void VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 		randF.close();
 	}
 	mDebug("test pattern created successfully");
+	return 0;
 }
 
 void VideoTestSource::setFps(int fps)
