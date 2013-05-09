@@ -89,9 +89,8 @@ LmmCommon::LmmCommon(QObject *parent) :
 #endif
 }
 
-int LmmCommon::init(bool exitOnSigInt)
+int LmmCommon::init()
 {
-	quitOnSigInt = exitOnSigInt;
 	QThreadPool::globalInstance()->setMaxThreadCount(5);
 	initDebug();
 	platformInit();
@@ -101,8 +100,9 @@ int LmmCommon::init(bool exitOnSigInt)
 	return 0;
 }
 
-int LmmCommon::installSignalHandlers()
+int LmmCommon::installSignalHandlers(bool exitOnSigInt)
 {
+	quitOnSigInt = exitOnSigInt;
 	struct sigaction sigInstaller;
 	sigset_t block_mask;
 

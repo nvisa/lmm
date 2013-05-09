@@ -38,8 +38,8 @@ class LmmCommon : public QObject
 {
 	Q_OBJECT
 public:
-	static int init(bool exitOnSigInt = true);
-	static int installSignalHandlers();
+	static int init();
+	static int installSignalHandlers(bool exitOnSigInt = true);
 	static int registerForPipeSignal(BaseLmmElement *el);
 	static QString getLibraryVersion();
 	static QString getLiveMediaVersion();
