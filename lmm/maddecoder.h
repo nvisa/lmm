@@ -27,6 +27,7 @@ private:
 	struct mad_synth *synth;
 
 	QByteArray madBuffer;
+	int decodeCount;
 
 	int startDecoding();
 	int stopDecoding();

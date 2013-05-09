@@ -62,6 +62,7 @@ int MadDecoder::startDecoding()
 	mad_stream_init(stream);
 	mad_frame_init(frame);
 	mad_synth_init(synth);
+	decodeCount = 0;
 	return 0;
 }
 
@@ -162,6 +163,8 @@ int MadDecoder::decode()
 		*out++ = scale(*rightCh++) & 0xffff;
 	}
 	outbuf.setPts(buf.getPts());
+	outbuf.setDuration(buf.getDuration());
+	outbuf.setStreamBufferNo(decodeCount++);
 	outputLock.lock();
 	outputBuffers << outbuf;
 	bufsem[0]->release();
