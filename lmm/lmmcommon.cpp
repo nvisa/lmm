@@ -7,6 +7,7 @@
 #ifdef CONFIG_DM365
 #include "dm365/platformcommondm365.h"
 #endif
+#include "lmmthread.h"
 #ifdef CONFIG_FFMPEG
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
@@ -29,6 +30,7 @@
 
 LmmCommon LmmCommon::inst;
 
+int dbgtemp = 0;
 static 	bool quitOnSigInt;
 static QList<BaseLmmElement *> registeredElementsForPipe;
 
@@ -46,7 +48,6 @@ void LmmCommon::platformInit()
 		inst.plat->platformInit();
 }
 
-int dbgtemp = 0;
 static void signalHandler(int signalNumber)
 {
 	signalCount[signalNumber] += 1;
@@ -55,11 +56,12 @@ static void signalHandler(int signalNumber)
 				 signalNumber, QThread::currentThreadId(), dbgtemp);
 	if (signalNumber == SIGSEGV) {
 		LmmCommon::platformCleanUp();
-		qDebug("console is active, use 'exit' command");
 		exit(0);
 	} else if (signalNumber == SIGINT) {
 		if (quitOnSigInt) {
+			LmmThread::stopAll();
 			LmmCommon::platformCleanUp();
+			qDebug("sigint clean-up done, exiting");
 			exit(0);
 		} else
 			qDebug("console is active, use 'exit' command");
