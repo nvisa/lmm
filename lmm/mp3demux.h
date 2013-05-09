@@ -10,6 +10,7 @@ public:
 	explicit Mp3Demux(QObject *parent = 0);
 	QString getArtistName() { return artist; }
 	QString getAlbumName() { return album; }
+	QString mimeType();
 signals:
 	
 public slots:
