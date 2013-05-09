@@ -1,7 +1,7 @@
 #include "mp3player.h"
 #include "mp3demux.h"
 #include "maddecoder.h"
-#include "alsaoutput.h"
+#include "alsa/alsaoutput.h"
 
 Mp3Player::Mp3Player(QObject *parent) :
 	BaseLmmPlayer(parent)
