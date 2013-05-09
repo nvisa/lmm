@@ -42,6 +42,7 @@ private:
 	QMutex mutex;
 	bool running;
 	int sampleRate;
+	int driverDelay;
 
 	snd_hctl_t *hctl;
 	snd_hctl_elem_t *mixerVolumeElem;
@@ -54,6 +55,7 @@ private:
 	int setHwParams(int rate);
 	int setSwParams();
 	void initVolumeControl();
+	int readDriverDelay();
 };
 
 #endif // ALSA_H

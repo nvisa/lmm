@@ -128,6 +128,7 @@ int Alsa::write(const void *buf, int length)
 		cptr -= err;
 	}
 
+	driverDelay = readDriverDelay();
 	mutex.unlock();
 	return length - (cptr * bytesPerSample);
 
@@ -138,12 +139,13 @@ write_error:
 	}
 }
 
-int Alsa::delay()
+int Alsa::readDriverDelay()
 {
 	if (!handle)
 		return 0;
 	snd_pcm_sframes_t delay;
-	if (snd_pcm_delay(handle, &delay))
+	int err = snd_pcm_delay(handle, &delay);
+	if (err)
 		return 0;
 	return 1000000ll * delay / sampleRate;
 }
@@ -282,6 +284,11 @@ int Alsa::mute(bool mute)
 		snd_ctl_elem_value_set_integer(mixerSwitchControl, 1, 1);
 	}
 	return snd_hctl_elem_write(mixerSwitchElem, mixerSwitchControl);
+}
+
+int Alsa::delay()
+{
+	return driverDelay;
 }
 
 int Alsa::currentVolumeLevel()
