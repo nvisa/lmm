@@ -15,7 +15,7 @@ class FbOutput : public BaseLmmOutput
 	Q_OBJECT
 public:
 	explicit FbOutput(QObject *parent = 0);
-	virtual int outputBuffer(RawBuffer *buf);
+	virtual int outputBuffer(RawBuffer buf);
 	virtual int start();
 	virtual int stop();
 	virtual int flush();

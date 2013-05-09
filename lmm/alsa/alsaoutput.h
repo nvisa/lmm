@@ -13,7 +13,7 @@ class AlsaOutput : public BaseLmmOutput
 	Q_OBJECT
 public:
 	explicit AlsaOutput(QObject *parent = 0);
-	int outputBuffer(RawBuffer *buf);
+	int outputBuffer(RawBuffer buf);
 	int start();
 	int stop();
 	int flush();

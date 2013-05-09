@@ -15,9 +15,9 @@ DM6446FbOutput::DM6446FbOutput(QObject *parent) :
 	hResize = NULL;
 }
 
-int DM6446FbOutput::outputBuffer(RawBuffer *buf)
+int DM6446FbOutput::outputBuffer(RawBuffer buf)
 {
-	Buffer_Handle dmaiBuf = (Buffer_Handle)buf->getBufferParameter("dmaiBuffer").toInt();
+	Buffer_Handle dmaiBuf = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer").toInt();
 	if (fd > 0) {
 		if (hResize) {
 			if (!resizerConfigured) {
@@ -31,13 +31,12 @@ int DM6446FbOutput::outputBuffer(RawBuffer *buf)
 				mDebug("Failed to execute resizer");
 			}
 		} else {
+			mInfo("using slow fb output");
 			return FbOutput::outputBuffer(buf);
 		}
 	} else
 		mDebug("fb device is not opened");
 
-	if (dmaiBuf)
-		Buffer_freeUseMask(dmaiBuf, DmaiDecoder::OUTPUT_USE);
 	return 0;
 }
 

@@ -12,10 +12,10 @@ AlsaOutput::AlsaOutput(QObject *parent) :
 	unmute = false;
 }
 
-int AlsaOutput::outputBuffer(RawBuffer *buf)
+int AlsaOutput::outputBuffer(RawBuffer buf)
 {
-	const char *data = (const char *)buf->constData();
-	alsaOut->write(data, buf->size());
+	const char *data = (const char *)buf.constData();
+	alsaOut->write(data, buf.size());
 	if (unmute) {
 		alsaOut->mute(false);
 		unmute = false;
