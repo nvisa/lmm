@@ -205,7 +205,7 @@ int BaseLmmDemux::demuxOne()
 			   packet->pts == (int64_t)AV_NOPTS_VALUE ? -1 : packet->pts ,
 			   packet->duration, packet->flags);
 		if (demuxVideo) {
-			RawBuffer buf("video/x-raw-yuv", packet->data, packet->size);
+			RawBuffer buf("video/mpeg", packet->data, packet->size);
 			buf.setDuration(packet->duration * videoTimeBaseN / 1000);
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 				buf.setPts(packet->pts * videoTimeBaseN / 1000);
