@@ -15,6 +15,7 @@ class MadDecoder : public BaseLmmDecoder
 public:
 	explicit MadDecoder(QObject *parent = 0);
 	int decode();
+	int decodeBlocking();
 	int decodeAll();
 	int flush();
 signals:
