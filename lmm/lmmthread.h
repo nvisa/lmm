@@ -9,6 +9,7 @@ public:
 	LmmThread(QString threadName);
 	void stop();
 	virtual void run();
+	static void stopAll();
 protected:
 	bool exit;
 	virtual int operation() = 0;
