@@ -131,6 +131,8 @@ void DmaiBuffer::init(int size, BufferGfx_Attrs *gfxAttrs)
 	if (bufSize != size)
 		qDebug("buffer size doesn't match graphic attributes");*/
 	DmaiBufferData *dd = (DmaiBufferData *)d.data();
+	if (!gfxAttrs)
+		gfxAttrs = (BufferGfx_Attrs *)&BufferGfx_Attrs_DEFAULT;
 	dd->dmaibuf = Buffer_create(size, BufferGfx_getBufferAttrs(gfxAttrs));
 	dd->bufferOwner = true;
 	setRefData(d->mimeType, Buffer_getUserPtr(dd->dmaibuf), size);
