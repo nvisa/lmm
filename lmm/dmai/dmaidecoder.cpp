@@ -203,8 +203,10 @@ int DmaiDecoder::decodeBlocking()
 	}
 	Buffer_setNumBytesUsed(dmai, buf.size());
 
+	buftabLock.lock();
 	Buffer_Handle hBuf = BufTab_getFreeBuf(hBufTab);
-	if (!hBuf) {
+	buftabLock.unlock();
+	while (!hBuf) {
 		/*
 		 * This is not an error, probably buffers are not displayed yet
 		 * and we don't need to decode any more
@@ -263,11 +265,20 @@ int DmaiDecoder::flush()
 void DmaiDecoder::aboutDeleteBuffer(const QMap<QString, QVariant> &parameters)
 {
 	/* free buffer in case it is not used by any dmai class */
-	Buffer_Handle dmaiBuf = (Buffer_Handle)parameters["dmaiBuffer"].toInt();
-	Buffer_freeUseMask(dmaiBuf, OUTPUT_USE);
 	if (decodeWaitCounter.available()) {
+		/*
+		 * no active decode op in progress, safe to clear flag
+		 */
+		Buffer_Handle dmaiBuf = (Buffer_Handle)parameters["dmaiBuffer"].toInt();
+		Buffer_freeUseMask(dmaiBuf, OUTPUT_USE);
+		/* wake waiting decode thread */
 		decodeWaitCounter.acquire();
 		dispWaitSem.release();
+	} else {
+		buftabLock.lock();
+		Buffer_Handle dmaiBuf = (Buffer_Handle)parameters["dmaiBuffer"].toInt();
+		Buffer_freeUseMask(dmaiBuf, OUTPUT_USE);
+		buftabLock.unlock();
 	}
 }
 

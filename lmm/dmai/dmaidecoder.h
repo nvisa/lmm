@@ -60,6 +60,7 @@ private:
 	QHash<int, RawBuffer> bufferMapping;
 	QSemaphore dispWaitSem;
 	QSemaphore decodeWaitCounter;
+	QMutex buftabLock;
 
 	int startCodec();
 	int stopCodec();
