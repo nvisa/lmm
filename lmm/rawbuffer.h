@@ -43,7 +43,7 @@ public:
 		mimeType = other.mimeType;
 	}
 
-	~RawBufferData();
+	virtual ~RawBufferData();
 
 	bool refData;
 	char *rawData;
