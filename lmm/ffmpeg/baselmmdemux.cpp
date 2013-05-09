@@ -108,9 +108,11 @@ qint64 BaseLmmDemux::getTotalDuration()
 int BaseLmmDemux::findStreamInfo()
 {
 	/* context can be allocated by us or libavformat */
-	int err = av_open_input_file(&context, qPrintable(sourceUrlName), av_find_input_format("mpegts"), 0, NULL);
-	if (err)
+	int err = av_open_input_file(&context, qPrintable(sourceUrlName), NULL, 0, NULL);
+	if (err) {
+		mDebug("cannot open input file %s, errorno is %d", qPrintable(sourceUrlName), err);
 		return err;
+	}
 
 	context->max_analyze_duration = libavAnalayzeDuration;
 	err = av_find_stream_info(context);
