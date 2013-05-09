@@ -74,3 +74,22 @@ qint64 StreamTime::getFreeRunningTime()
 {
 	return clock->elapsed() * 1000ll;
 }
+
+qint64 StreamTime::ptsToStreamTime(qint64 pts)
+{
+	if (!startTime) {
+		qint64 now = getCurrentTime();
+		startPts = pts;
+		startTime = now;
+	}
+	return startTime  + (pts - startPts);
+}
+
+qint64 StreamTime::ptsToTimeDiff(qint64 pts)
+{
+	qint64 now = getCurrentTime();
+	qint64 time = ptsToStreamTime(pts);
+	if (time < now)
+		return 0;
+	return time - now;
+}

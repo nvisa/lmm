@@ -21,6 +21,8 @@ public:
 	void start();
 	void stop();
 	qint64 getFreeRunningTime();
+	qint64 ptsToStreamTime(qint64 pts);
+	qint64 ptsToTimeDiff(qint64 pts);
 signals:
 	
 public slots:
