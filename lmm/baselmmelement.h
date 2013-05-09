@@ -42,8 +42,8 @@ public:
 
 	/* stat information */
 	void printStats();
-	int getInputBufferCount() { return inputBuffers.size(); }
-	virtual int getOutputBufferCount() { return outputBuffers.size(); }
+	int getInputBufferCount();
+	virtual int getOutputBufferCount();
 	int getReceivedBufferCount() { return receivedBufferCount; }
 	int getSentBufferCount() { return sentBufferCount; }
 	int getFps() { return elementFps; }

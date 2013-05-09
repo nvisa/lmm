@@ -204,6 +204,22 @@ void BaseLmmElement::printStats()
 	qDebug() << this << receivedBufferCount << sentBufferCount;
 }
 
+int BaseLmmElement::getInputBufferCount()
+{
+	inputLock.lock();
+	int size = inputBuffers.size();
+	inputLock.unlock();
+	return size;
+}
+
+int BaseLmmElement::getOutputBufferCount()
+{
+	outputLock.lock();
+	int size = outputBuffers.size();
+	outputLock.unlock();
+	return size;
+}
+
 int BaseLmmElement::getAvailableDuration()
 {
 	int availDuration = 0;
