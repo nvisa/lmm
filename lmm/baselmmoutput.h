@@ -25,7 +25,6 @@ signals:
 	
 public slots:
 protected:
-	int checkBufferTimeStamp(RawBuffer, int jitter = 1);
 	virtual int outputBuffer(RawBuffer buf);
 	qint64 outputLatency;
 	bool dontDeleteBuffers;
@@ -36,7 +35,6 @@ private:
 	qint64 last_rpts;
 	qint64 last_time;
 
-	virtual int outputFunc();
 	friend class OutputThread;
 	OutputThread *thread;
 };
