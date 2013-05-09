@@ -197,7 +197,9 @@ int BaseLmmDemux::demuxOne()
 			} else {
 				buf.setDts(-1);
 			}
+			outputLock.lock();
 			audioBuffers << buf;
+			outputLock.unlock();
 			bufsem[1]->release();
 		}
 	} else if (packet->stream_index == videoStreamIndex) {
@@ -217,7 +219,9 @@ int BaseLmmDemux::demuxOne()
 			} else {
 				buf.setDts(-1);
 			}
+			outputLock.lock();
 			videoBuffers << buf;
+			outputLock.unlock();
 			bufsem[0]->release();
 		}
 	}
@@ -317,10 +321,14 @@ int BaseLmmDemux::closeUrl(URLContext *h)
 
 RawBuffer BaseLmmDemux::nextAudioBuffer()
 {
+	outputLock.lock();
 	if (audioBuffers.size()) {
 		sentBufferCount++;
-		return audioBuffers.takeFirst();
+		RawBuffer buf = audioBuffers.takeFirst();
+		outputLock.unlock();
+		return buf;
 	}
+	outputLock.unlock();
 
 	return RawBuffer();
 }
@@ -333,10 +341,14 @@ RawBuffer BaseLmmDemux::nextAudioBufferBlocking()
 
 RawBuffer BaseLmmDemux::nextVideoBuffer()
 {
+	outputLock.lock();
 	if (videoBuffers.size()) {
 		sentBufferCount++;
-		return videoBuffers.takeFirst();
+		RawBuffer buf =  videoBuffers.takeFirst();
+		outputLock.unlock();
+		return buf;
 	}
+	outputLock.unlock();
 
 	return RawBuffer();
 }
