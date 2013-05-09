@@ -4,7 +4,6 @@
 #include <lmm/baselmmelement.h>
 
 class QTime;
-class OutputThread;
 
 class BaseLmmOutput : public BaseLmmElement
 {
@@ -27,16 +26,9 @@ public slots:
 protected:
 	virtual int outputBuffer(RawBuffer buf);
 	qint64 outputLatency;
-	bool dontDeleteBuffers;
-private:
 	int outputDelay;
 	bool doSync;
-
-	qint64 last_rpts;
-	qint64 last_time;
-
-	friend class OutputThread;
-	OutputThread *thread;
+private:
 };
 
 #endif // BASELMMOUTPUT_H

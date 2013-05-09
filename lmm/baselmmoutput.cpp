@@ -15,7 +15,6 @@ BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 {
 	outputDelay = 0;
 	doSync = true;
-	dontDeleteBuffers = false;
 }
 
 int BaseLmmOutput::start()
