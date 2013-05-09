@@ -32,6 +32,8 @@ SOURCES += \
     debug.cpp \
     hardwareoperations.cpp \
     v4l2output.cpp \
+    buffersyncer.cpp \
+    lmmbufferpool.cpp
 
 HEADERS  += \
     filesource.h \
@@ -61,6 +63,8 @@ HEADERS  += \
     hardwareoperations.h \
     platform_info.h \
     v4l2output.h \
+    buffersyncer.h \
+    lmmbufferpool.h
 
 alsa {
     HEADERS += \

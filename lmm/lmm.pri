@@ -4,7 +4,7 @@ LIBS += $$INSTALL_PREFIX/usr/local/lib/liblmm.a
 
 dm6446 {
     #LIBS += -Wl,-T,$$INSTALL_PREFIX/usr/local/share/lmm/xdc_linker.cmd
-    #LIBS += -lasound -lavformat -lmad -ltag
+    LIBS += -lasound -lmad -ltag
 }
 
 gstreamer {
