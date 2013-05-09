@@ -1,6 +1,7 @@
 #include "buffersyncer.h"
 
 #include <lmm/streamtime.h>
+#include <lmm/baselmmoutput.h>
 
 #include <QThread>
 
@@ -34,19 +35,36 @@ BufferSyncer::BufferSyncer(QObject *parent) :
 {
 }
 
-int BufferSyncer::addBuffer(BaseLmmElement *target, RawBuffer buffer)
+int BufferSyncer::addBuffer(BaseLmmOutput *target, RawBuffer buffer)
 {
 	if (buffer.size() == 0)
 		return -EINVAL;
 
-	qint64 pts = buffer.getPts();
-	qint64 delay = streamTime->ptsToTimeDiff(pts);
-	BufferSyncThread *th = new BufferSyncThread(target, buffer, delay);
-	th->start(QThread::LowestPriority);
+	/* clear finished threads */
 	inputLock.lock();
-	threads << th;
-	receivedBufferCount++;
+	QList<BufferSyncThread *> finished;
+	foreach(BufferSyncThread *th, threads) {
+		if (th->isFinished())
+			finished << th;
+	}
+	foreach (BufferSyncThread *th, finished) {
+		threads.removeOne(th);
+		th->deleteLater();
+	}
 	inputLock.unlock();
+
+	qint64 pts = buffer.getPts();
+	qint64 delay = streamTime->ptsToTimeDiff(pts) - target->getAvailableBufferTime();
+	if (delay > 0) {
+		BufferSyncThread *th = new BufferSyncThread(target, buffer, delay);
+		th->start(QThread::LowestPriority);
+		inputLock.lock();
+		threads << th;
+		inputLock.unlock();
+	} else {
+		target->addBuffer(buffer);
+		receivedBufferCount++;
+	}
 
 	return 0;
 }

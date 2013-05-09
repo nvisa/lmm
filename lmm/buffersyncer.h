@@ -4,13 +4,14 @@
 #include <lmm/baselmmelement.h>
 
 class BufferSyncThread;
+class BaseLmmOutput;
 
 class BufferSyncer : public BaseLmmElement
 {
 	Q_OBJECT
 public:
 	explicit BufferSyncer(QObject *parent = 0);
-	int addBuffer(BaseLmmElement *target, RawBuffer buffer);
+	int addBuffer(BaseLmmOutput *target, RawBuffer buffer);
 signals:
 	
 public slots:
