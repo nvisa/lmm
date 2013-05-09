@@ -1,5 +1,6 @@
 #include <QThread>
 #include <QVariant>
+#include <QSemaphore>
 
 #include "dmaidecoder.h"
 #include "dmai/dmaibuffer.h"
@@ -71,6 +72,17 @@ int DmaiDecoder::stopDecoding()
 	}
 
 	return err;
+}
+
+void DmaiDecoder::releaseFreeBuffers()
+{
+	mInfo("releasing free buffers");
+	/* Release buffers no longer in use by the codec */
+	Buffer_Handle outbuf = Vdec2_getFreeBuf(hCodec);
+	while (outbuf) {
+		Buffer_freeUseMask(outbuf, CODEC_USE);
+		outbuf = Vdec2_getFreeBuf(hCodec);
+	}
 }
 
 int DmaiDecoder::decodeOne()
@@ -166,17 +178,71 @@ int DmaiDecoder::decodeOne()
 		} else
 			mDebug("unable to find a free display buffer");
 
-		mInfo("releasing free buffers");
-		/* Release buffers no longer in use by the codec */
-		outbuf = Vdec2_getFreeBuf(hCodec);
-		while (outbuf) {
-			Buffer_freeUseMask(outbuf, CODEC_USE);
-			outbuf = Vdec2_getFreeBuf(hCodec);
-		}
+		releaseFreeBuffers();
 		break;
 	}
 
 	mInfo("decode finished");
+	return 0;
+}
+
+int DmaiDecoder::decodeBlocking()
+{
+	inbufsem[0]->acquire();
+	inputLock.lock();
+	RawBuffer bufsrc = inputBuffers.takeFirst();
+	mInfo("decoding one more frame, %d in the queue", inputBuffers.size());
+	inputLock.unlock();
+
+	int duration = bufsrc.getDuration();
+	DmaiBuffer buf = DmaiBuffer("video/mpegdmai", bufsrc.constData(), bufsrc.size(), NULL);
+	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer").toInt();
+	if (!dmai) {
+		mDebug("cannot get dmai buffer");
+		return -ENOENT;
+	}
+	Buffer_setNumBytesUsed(dmai, buf.size());
+
+	Buffer_Handle hBuf = BufTab_getFreeBuf(hBufTab);
+	if (!hBuf) {
+		/*
+		 * This is not an error, probably buffers are not displayed yet
+		 * and we don't need to decode any more
+		 */
+		mInfo("cannot get new buf from buftab, waiting");
+		decodeWaitCounter.release();
+		dispWaitSem.acquire();
+		hBuf = BufTab_getFreeBuf(hBufTab);
+	}
+	int ret = Vdec2_process(hCodec, dmai, hBuf);
+	int consumed = Buffer_getNumBytesUsed(dmai);
+	if (ret != Dmai_EOK) {
+		mDebug("decode error %d", ret);
+		BufTab_freeBuf(hBuf);
+		return 0;
+	}
+
+	mInfo("decoder used %d bytes of %d, new size %d", consumed, buf.size(), (int)Buffer_getNumBytesUsed(hBuf));
+
+	Buffer_Handle outbuf = Vdec2_getDisplayBuf(hCodec);
+	if (outbuf) {
+		BufferGfx_Dimensions dim;
+		BufferGfx_getDimensions(outbuf, &dim);
+		mInfo("decoded frame width=%d height=%d", int(dim.width), (int)dim.height);
+		DmaiBuffer newbuf("video/x-raw-yuv", outbuf, this);
+		newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_UYVY);
+		newbuf.setPts(decodeCount * duration);
+		newbuf.setStreamBufferNo(decodeCount++);
+
+		/* set the resulting buffer in use by video output */
+		Buffer_setUseMask(outbuf, Buffer_getUseMask(outbuf) | OUTPUT_USE);
+		outputLock.lock();
+		outputBuffers << newbuf;
+		bufsem[0]->release();
+		outputLock.unlock();
+	}
+
+	releaseFreeBuffers();
 	return 0;
 }
 
@@ -192,6 +258,17 @@ int DmaiDecoder::flush()
 		BufTab_freeAll(hBufTab);
 	bufferMapping.clear();
 	return BaseLmmDecoder::flush();
+}
+
+void DmaiDecoder::aboutDeleteBuffer(const QMap<QString, QVariant> &parameters)
+{
+	/* free buffer in case it is not used by any dmai class */
+	Buffer_Handle dmaiBuf = (Buffer_Handle)parameters["dmaiBuffer"].toInt();
+	Buffer_freeUseMask(dmaiBuf, OUTPUT_USE);
+	if (decodeWaitCounter.available()) {
+		decodeWaitCounter.acquire();
+		dispWaitSem.release();
+	}
 }
 
 void DmaiDecoder::initCodecEngine()

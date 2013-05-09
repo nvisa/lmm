@@ -5,6 +5,8 @@
 
 #include <QList>
 #include <QHash>
+#include <QMutex>
+#include <QSemaphore>
 
 class CircularBuffer;
 class RawBuffer;
@@ -36,7 +38,10 @@ public:
 
 	int decode() { return decodeOne(); }
 	int decodeOne();
+	int decodeBlocking();
 	int flush();
+
+	void aboutDeleteBuffer(const QMap<QString, QVariant> &);
 
 	static void initCodecEngine();
 	static void cleanUpDsp();
@@ -53,11 +58,14 @@ private:
 	int decodeCount;
 	codecType codec;
 	QHash<int, RawBuffer> bufferMapping;
+	QSemaphore dispWaitSem;
+	QSemaphore decodeWaitCounter;
 
 	int startCodec();
 	int stopCodec();
 	int startDecoding();
 	int stopDecoding();
+	void releaseFreeBuffers();
 };
 
 #endif // DMAIDECODER_H
