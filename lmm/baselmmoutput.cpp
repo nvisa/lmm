@@ -40,6 +40,17 @@ int BaseLmmOutput::getLoopLatency()
 	return 0;
 }
 
+/*
+ * Sync logic:
+ *
+ * outputDelay:
+ *	Used via setOutputDelay() causes delay in this output element.
+ *	Used to adjust latency in different elements, for example audio latency
+ *	is tolerated in video output elements using this variable.
+ *
+ * buf.pts + outputDelay
+ *
+ */
 int BaseLmmOutput::checkBufferTimeStamp(RawBuffer buf, int jitter)
 {
 	if (!streamTime)
@@ -50,13 +61,23 @@ int BaseLmmOutput::checkBufferTimeStamp(RawBuffer buf, int jitter)
 		streamTime->setStartPts(buf.getPts());
 		mDebug("%s: setting stream start point", this->metaObject()->className());
 	}
+	/*
+	 * encdelay represents time diff between global stream time and
+	 * first output buffer's pts
+	 */
 	qint64 encDelay = streamTime->getStartTime() - streamTime->getStartPts();
 	qint64 rpts = buf.getPts();
+	/*
+	 * time corresponds to current time relative to buffer pts
+	 */
 	qint64 time = streamTime->getCurrentTime() - encDelay;
 
 	if (outputDelay)
 		jitter = outputDelay;
 
+	/*
+	 * jitter is to tolerate delay in other elements
+	 */
 	qint64 rpts_j = rpts + jitter;
 	if (rpts > 0) {
 		if ((rpts < streamDuration || streamDuration < 0) && rpts_j >= time) {
@@ -65,6 +86,10 @@ int BaseLmmOutput::checkBufferTimeStamp(RawBuffer buf, int jitter)
 			err = -1;
 		}
 	}
+
+	/*
+	 * Following is for calculation output latency in this element
+	 */
 	last_rpts = rpts;
 	last_time = time;
 	if (!err) {
@@ -90,8 +115,10 @@ int BaseLmmOutput::outputFunc()
 		return -ENOENT;
 	RawBuffer buf = inputBuffers.first();
 	if (checkBufferTimeStamp(buf)) {
-		if (doSync)
+		if (doSync) {
+			inbufsem[0]->release();
 			return -EBUSY;
+		}
 		outputLatency = 0;
 	}
 	sentBufferCount++;
@@ -103,7 +130,13 @@ int BaseLmmOutput::outputFunc()
 
 int BaseLmmOutput::output()
 {
-	return outputFunc();
+	inputLock.lock();
+	RawBuffer buf = inputBuffers.takeFirst();
+	sentBufferCount++;
+	inputLock.unlock();
+	int err = outputBuffer(buf);
+	calculateFps();
+	return err;
 }
 
 int BaseLmmOutput::outputBlocking()
