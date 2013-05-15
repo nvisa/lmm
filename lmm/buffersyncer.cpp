@@ -77,12 +77,15 @@ int BufferSyncer::addBuffer(BaseLmmOutput *target, RawBuffer buffer)
 
 	qint64 pts = buffer.getPts();
 	qint64 delay = streamTime->ptsToTimeDiff(pts) - target->getAvailableBufferTime();
+	mInfo("syncing %s: pts=%lld delay=%lld dur=%d cnt=%d", target->metaObject()->className(), pts, delay, buffer.getDuration(), buffer.streamBufferNo());
 	if (sync && delay > 0) {
+		mutex.lock();
 		BufferSyncThread *th = findEmptyThread();
 		if (th)
 			th->addBuffer(target, buffer, delay);
 		else
 			mDebug("cannot find an empty thread, skipping");
+		mutex.unlock();
 	} else {
 		target->addBuffer(buffer);
 		receivedBufferCount++;

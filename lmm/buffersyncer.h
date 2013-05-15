@@ -19,6 +19,7 @@ signals:
 public slots:
 protected:
 	bool sync;
+	QMutex mutex;
 	QList<BufferSyncThread *> threads;
 	BufferSyncThread * findEmptyThread();
 };
