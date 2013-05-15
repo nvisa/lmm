@@ -39,6 +39,7 @@ StreamTime::StreamTime(QObject *parent) :
 	startTime = 0;
 	drifter = new QTime;
 	clock = new QTime;
+	paused = false;
 }
 
 void StreamTime::setCurrentTime(qint64 val)
@@ -54,7 +55,9 @@ qint64 StreamTime::getCurrentTime()
 
 qint64 StreamTime::getCurrentTimeMili()
 {
-	return currentTime + drifter->elapsed();
+	if (paused)
+		return currentTimePause;
+	return currentTime / 1000 + drifter->elapsed();
 }
 
 void StreamTime::start()
@@ -68,6 +71,20 @@ void StreamTime::start()
 
 void StreamTime::stop()
 {
+}
+
+void StreamTime::pause()
+{
+	currentTimePause = getCurrentTimeMili();
+	paused = true;
+}
+
+void StreamTime::resume()
+{
+	if (!paused)
+		return;
+	setCurrentTime(currentTimePause * 1000);
+	paused = false;
 }
 
 qint64 StreamTime::getFreeRunningTime()

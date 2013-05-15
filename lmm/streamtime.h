@@ -20,6 +20,8 @@ public:
 	qint64 getStartTime() { return startTime; }
 	void start();
 	void stop();
+	void pause();
+	void resume();
 	qint64 getFreeRunningTime();
 	qint64 ptsToStreamTime(qint64 pts);
 	qint64 ptsToTimeDiff(qint64 pts);
@@ -32,6 +34,9 @@ private:
 	qint64 startPts;
 	QTime *drifter;
 	QTime *clock;
+
+	bool paused;
+	int currentTimePause;
 };
 
 #endif // STREAMTIME_H
