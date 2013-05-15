@@ -75,9 +75,5 @@ int DM6446FbOutput::stop()
 
 int DM6446FbOutput::flush()
 {
-	foreach (const RawBuffer &buf, inputBuffers) {
-		Buffer_Handle dmaiBuf = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer").toInt();
-		Buffer_freeUseMask(dmaiBuf, DmaiDecoder::OUTPUT_USE);
-	}
 	return FbOutput::flush();
 }
