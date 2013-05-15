@@ -235,6 +235,7 @@ int DmaiDecoder::decodeBlocking()
 		newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_UYVY);
 		newbuf.setPts(decodeCount * duration);
 		newbuf.setStreamBufferNo(decodeCount++);
+		newbuf.setDuration(duration);
 
 		/* set the resulting buffer in use by video output */
 		Buffer_setUseMask(outbuf, Buffer_getUseMask(outbuf) | OUTPUT_USE);
