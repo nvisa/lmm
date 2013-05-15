@@ -9,6 +9,8 @@
 #include <ti/sdo/dmai/Buffer.h>
 #include <ti/sdo/dmai/BufferGfx.h>
 
+#include <errno.h>
+
 DM6446FbOutput::DM6446FbOutput(QObject *parent) :
 	FbOutput(parent)
 {
@@ -18,6 +20,8 @@ DM6446FbOutput::DM6446FbOutput(QObject *parent) :
 int DM6446FbOutput::outputBuffer(RawBuffer buf)
 {
 	Buffer_Handle dmaiBuf = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer").toInt();
+	if (!dmaiBuf)
+		return -EINVAL;
 	if (fd > 0) {
 		if (hResize) {
 			if (!resizerConfigured) {
