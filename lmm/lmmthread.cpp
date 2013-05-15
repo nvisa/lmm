@@ -21,6 +21,19 @@ void LmmThread::stop()
 	exit = true;
 }
 
+void LmmThread::pause()
+{
+	paused = true;
+}
+
+void LmmThread::resume()
+{
+	if (!paused)
+		return;
+	paused = false;
+	pauser.release();
+}
+
 void LmmThread::run()
 {
 #ifdef Q_WS_QWS
@@ -34,6 +47,8 @@ void LmmThread::run()
 	while (!exit) {
 		if (operation())
 			break;
+		if (paused)
+			pauser.acquire();
 	}
 	mDebug("exiting thread %s(%p)", qPrintable(name)
 		   , QThread::currentThreadId());
