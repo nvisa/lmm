@@ -55,6 +55,7 @@ static void signalHandler(int signalNumber)
 		qWarning("main: Received signal %d, thread id is %p, dbgtemp is %d",
 				 signalNumber, QThread::currentThreadId(), dbgtemp);
 	if (signalNumber == SIGSEGV) {
+		LmmThread::stopAll();
 		LmmCommon::platformCleanUp();
 		exit(0);
 	} else if (signalNumber == SIGINT) {
@@ -66,9 +67,11 @@ static void signalHandler(int signalNumber)
 		} else
 			qDebug("console is active, use 'exit' command");
 	} else if (signalNumber == SIGTERM) {
+		LmmThread::stopAll();
 		LmmCommon::platformCleanUp();
 		exit(0);
 	} else if (signalNumber == SIGABRT) {
+		LmmThread::stopAll();
 		LmmCommon::platformCleanUp();
 		exit(0);
 	} else if (signalNumber == SIGPIPE) {
