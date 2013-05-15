@@ -74,6 +74,31 @@
 	FPS hesaplamasi burada yapilir. O yuzden kendi override edilmis
 	fonksiyonlarinizda baz sinifin fonksiyonunu cagirmaniz kiritiktir.
 
+	\section Threading ve Hiz Kontrolu
+
+	BaseLmmElement icindeki varsayilan davranis bicimi non-blocking operasyondur.
+	Buna gore addBuffer() ve nextBuffer() fonksiyonlari uyumazlar. Eger buffer
+	eklemek icin yeterince yer yoksa(ya da hiz limiti asilmissa) addBuffer()
+	hic bir islem yapmaz, ayni sekilde yeni tampon yoksa nextBuffer() fonksiyonu
+	bos bir RawBuffer dondurur. Bu durum bazi durumlarda istenen davranis olmayabilir.
+	Ornegin bu multi-threaded bir uygulamada kullanilirken arzu edilen davranis bicimi
+	bu fonksiyonlarin bir buffer gelene kadar ya da yer acilana kadar uyumasidir.
+
+	Bunun icin blocking API'yi kullanabilirsiniz. addBufferBlocking() ve
+	nextBufferBlocking() fonksiyonlari karsilik geldikleri fonksiyonlarin uyuyan
+	versiyonlaridir. Eger yeterli yer yoksa addBufferBlocking() fonksiyonu yer acilana
+	kadar uyur, ayni sekilde dondurecek bir tampon yoksa nextBufferBlocking() fonksiyonu
+	uyumaya gecer. Uyuma islemleri semaphore kullanilarak yapilir, hem cok az CPU kullanilir
+	hem de Unix sinyalleri ile uyumlu calisirlar.
+
+	Varsayilan olarak BaseLmmElement sinifi hiz kontrolu yapmaz. Gelen butun tamponlar
+	kuyruga eklenir ve islenir. Bu bazi durumlarda kullanilan hafizanin buyumesine ve
+	sistem hafizasi yetersiz hale gelir ise sistemin calismasinin aksamasina neden olabilir.
+	Bunun onune gecmek icin setTotalInputBufferSize() fonksiyonu ile alinacak bufferlar hakkinda
+	bir ust sinir koyabilirsiniz. Eger belirli bir sinirlama konursa addBuffer() fonksiyonu
+	hata mesaji donrururken, addBufferBlocking() fonksiyonu yer acilana kadar uyumaya
+	gecer.
+
 	\section Istatistik Istatistik Yonetimi
 
 	BaseLmmElement sinifinin en faydali ozelliklerinden birisi de ilgili
@@ -137,6 +162,7 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	fpsTiming->start();
 	outputTimeStat = new UnitTimeStat;
 	enabled = true;
+	totalInputBufferSize = 0;
 
 	bufsem  << new QSemaphore;
 	inbufsem << new QSemaphore;
@@ -147,6 +173,27 @@ int BaseLmmElement::addBuffer(RawBuffer buffer)
 	if (buffer.size() == 0)
 		return -EINVAL;
 	inputLock.lock();
+	int err = checkSizeLimits();
+	if (err) {
+		inputLock.unlock();
+		return err;
+	}
+	inputBuffers << buffer;
+	inputLock.unlock();
+	inbufsem[0]->release();
+	receivedBufferCount++;
+	return 0;
+}
+
+int BaseLmmElement::addBufferBlocking(RawBuffer buffer)
+{
+	if (!buffer.size())
+		return -EINVAL;
+	inputLock.lock();
+	while (checkSizeLimits()) {
+		/* no space left on device, wait */
+		inputWaiter.wait(&inputLock);
+	}
 	inputBuffers << buffer;
 	inputLock.unlock();
 	inbufsem[0]->release();
@@ -165,6 +212,7 @@ RawBuffer BaseLmmElement::nextBuffer()
 		sentBufferCount++;
 		calculateFps();
 		updateOutputTimeStats();
+		checkAndWakeInputWaiters();
 	}
 
 	return buf;
@@ -253,6 +301,39 @@ BaseLmmElement::RunningState BaseLmmElement::getState()
 	return state;
 }
 
+/**
+ * @brief BaseLmmElement::checkSizeLimits
+ * @return Returns -ENOSPC if no space left, 0 otherwise.
+ *
+ * This function doesn't lock mutexes so make sure that mutexes are locked
+ * while calling this function.
+ */
+int BaseLmmElement::checkSizeLimits()
+{
+	if (!totalInputBufferSize)
+		return 0; //no size checking
+	int size = 0;
+	foreach (RawBuffer buf, inputBuffers)
+		size += buf.size();
+	if (size >= totalInputBufferSize)
+		return -ENOSPC;
+	return 0;
+}
+
+void BaseLmmElement::checkAndWakeInputWaiters()
+{
+	if (!totalInputBufferSize)
+		return;
+
+	inputLock.lock();
+	int size = 0;
+	foreach (RawBuffer buf, inputBuffers)
+		size += buf.size();
+	inputLock.unlock();
+	if (size < totalInputBufferSize - inputHysterisisSize)
+		inputWaiter.wakeAll();
+}
+
 int BaseLmmElement::flush()
 {
 	inputLock.lock();
@@ -277,6 +358,15 @@ QVariant BaseLmmElement::getParameter(QString param)
 	if (parameters.contains(param))
 		return parameters[param];
 	return QVariant();
+}
+
+int BaseLmmElement::setTotalInputBufferSize(int size, int hysterisisSize)
+{
+	inputLock.lock();
+	totalInputBufferSize = size;
+	inputHysterisisSize = hysterisisSize;
+	inputLock.unlock();
+	return 0;
 }
 
 void BaseLmmElement::updateOutputTimeStats()

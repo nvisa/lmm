@@ -6,6 +6,7 @@
 #include <QMap>
 #include <QVariant>
 #include <QMutex>
+#include <QWaitCondition>
 
 #include <lmm/rawbuffer.h>
 
@@ -25,6 +26,7 @@ public:
 	};
 	explicit BaseLmmElement(QObject *parent = 0);
 	int addBuffer(RawBuffer buffer);
+	int addBufferBlocking(RawBuffer buffer);
 	virtual RawBuffer nextBuffer();
 	virtual RawBuffer nextBuffer(int ch);
 	virtual RawBuffer nextBufferBlocking(int ch);
@@ -39,6 +41,7 @@ public:
 	virtual QVariant getParameter(QString param);
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &) {}
 	virtual void signalReceived(int) {}
+	virtual int setTotalInputBufferSize(int size, int hysterisisSize = 0);
 
 	/* stat information */
 	void printStats();
@@ -63,12 +66,15 @@ protected:
 	int receivedBufferCount;
 	int sentBufferCount;
 	bool enabled;
-
 	QMutex inputLock;
 	QMutex outputLock;
+	QWaitCondition inputWaiter;
+	int totalInputBufferSize;
+	int inputHysterisisSize;
 
 	QList<QSemaphore *> bufsem;
 	QList<QSemaphore *> inbufsem;
+
 
 	virtual void updateOutputTimeStats();
 	virtual void calculateFps();
@@ -82,6 +88,9 @@ private:
 	UnitTimeStat *outputTimeStat;
 	qint64 lastOutputTimeStat;
 	RunningState state;
+
+	int checkSizeLimits();
+	void checkAndWakeInputWaiters();
 };
 
 #endif // BASELMMELEMENT_H
