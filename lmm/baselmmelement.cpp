@@ -243,8 +243,16 @@ int BaseLmmElement::start()
 
 int BaseLmmElement::stop()
 {
+	if (state == STOPPED) {
+		mDebug("element %s already stopped", metaObject()->className());
+		return 0;
+	}
 	state = STOPPED;
 	flush();
+	for (int i = 0; i < inbufsem.size(); i++)
+		inbufsem[i]->release(50);
+	for (int i = 0; i < bufsem.size(); i++)
+		bufsem[i]->release(50);
 	return 0;
 }
 
@@ -339,12 +347,14 @@ int BaseLmmElement::flush()
 {
 	inputLock.lock();
 	inputBuffers.clear();
+	for (int i = 0; i < inbufsem.size(); i++)
+		inbufsem[i]->acquire(inbufsem[i]->available());
 	inputLock.unlock();
 	outputLock.lock();
 	outputBuffers.clear();
+	for (int i = 0; i < bufsem.size(); i++)
+		bufsem[i]->acquire(bufsem[i]->available());
 	outputLock.unlock();
-	inbufsem[0]->acquire(inbufsem[0]->available());
-	bufsem[0]->acquire(bufsem[0]->available());
 	return 0;
 }
 
