@@ -107,14 +107,17 @@ qint64 BaseLmmDemux::getTotalDuration()
 
 int BaseLmmDemux::findStreamInfo()
 {
+	conlock.lock();
 	/* context can be allocated by us or libavformat */
 	int err = av_open_input_file(&context, qPrintable(sourceUrlName), NULL, 0, NULL);
 	if (err) {
 		mDebug("cannot open input file %s, errorno is %d", qPrintable(sourceUrlName), err);
+		conlock.unlock();
 		return err;
 	}
 
 	context->max_analyze_duration = libavAnalayzeDuration;
+	conlock.unlock();
 	err = av_find_stream_info(context);
 	if (err < 0)
 		return err;
@@ -389,8 +392,10 @@ int BaseLmmDemux::start()
 int BaseLmmDemux::stop()
 {
 	if (context) {
+		conlock.lock();
 		av_close_input_file(context);
 		context = NULL;
+		conlock.unlock();
 	}
 	return BaseLmmElement::stop();
 }
@@ -405,37 +410,48 @@ int BaseLmmDemux::seekTo(qint64 pos)
 	if (pos > streamDuration)
 		return -EINVAL;
 	if (videoStreamIndex != -1) {
+		conlock.lock();
 		int err = av_seek_frame(context, videoStreamIndex,
 								pos * 1000 / videoTimeBaseN, flags);
+		conlock.unlock();
 		if (err < 0) {
 			mDebug("error during seek");
 			return err;
 		}
 	} else if (audioStreamIndex != -1) {
+		conlock.lock();
 		int err = av_seek_frame(context, audioStreamIndex,
 								pos * 1000 / audioTimeBaseN, flags);
+		conlock.unlock();
 		if (err < 0) {
 			mDebug("error during seek");
 			return err;
 		}
 	} else {
+		conlock.lock();
 		int err = av_seek_frame(context, -1, pos, flags);
+		conlock.unlock();
 		if (err < 0) {
 			mDebug("error during seek");
 			return err;
 		}
 	}
+	outputLock.lock();
 	videoBuffers.clear();
 	audioBuffers.clear();
+	outputLock.unlock();
 	return 0;
 }
 
 AVPacket * BaseLmmDemux::nextPacket()
 {
 	AVPacket *packet = new AVPacket;
-	if (av_read_frame(context, packet)) {
+	conlock.lock();
+	if (context && av_read_frame(context, packet)) {
 		deletePacket(packet);
+		conlock.unlock();
 		return NULL;
 	}
+	conlock.unlock();
 	return packet;
 }

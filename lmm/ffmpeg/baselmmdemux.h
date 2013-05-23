@@ -61,6 +61,7 @@ protected:
 	bool demuxVideo;
 	bool foundStreamInfo;
 	int demuxNumber;
+	QMutex conlock;
 
 	/* derived stats */
 	qint64 audioTimeBaseN;		/* in nano secs */
