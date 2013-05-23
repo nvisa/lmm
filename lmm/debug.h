@@ -23,6 +23,7 @@ extern QStringList __dbg_classes;
 extern QStringList __dbg_classes_info;
 extern QStringList __dbg_classes_log;
 extern QStringList __dbg_classes_logv;
+extern int dbgtemp;
 void initDebug();
 void changeDebug(QString debug, int defaultLevel = 0);
 #ifdef DEBUG_TIMING
