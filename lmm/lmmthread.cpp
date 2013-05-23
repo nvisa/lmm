@@ -43,18 +43,27 @@ void LmmThread::run()
 	mDebug("starting thread %s(%lld)", qPrintable(name)
 		   , QThread::currentThreadId());
 #endif
+	time.start();
 	exit = false;
+	paused = false;
 	while (!exit) {
+		st = IN_OPERATION;
 		if (operation())
 			break;
-		if (paused)
+		lock.lock();
+		time.restart();
+		lock.unlock();
+		if (paused) {
+			st = PAUSED;
 			pauser.acquire();
+		}
 	}
 	mDebug("exiting thread %s(%p)", qPrintable(name)
 		   , QThread::currentThreadId());
 	mutex.lock();
 	threads.removeOne(this);
 	mutex.unlock();
+	st = QUIT;
 }
 
 void LmmThread::stopAll()
@@ -67,4 +76,17 @@ void LmmThread::stopAll()
 		qDebug("waiting thread %s", qPrintable(th->name));
 		th->wait(1000);
 	}
+}
+
+LmmThread::Status LmmThread::getStatus()
+{
+	return st;
+}
+
+int LmmThread::elapsed()
+{
+	lock.lock();
+	int elapsed = time.elapsed();
+	lock.unlock();
+	return elapsed;
 }
