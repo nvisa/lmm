@@ -120,7 +120,7 @@ int DmaiEncoder::encodeNext()
 	if (!inputBuffers.isEmpty())
 		inputBuffers.removeFirst();
 	inputLock.unlock();
-	bufsem[0]->release();
+	releaseOutputSem(0);
 	return 0;
 out:
 	return err;
@@ -128,7 +128,8 @@ out:
 
 int DmaiEncoder::encodeNextBlocking()
 {
-	inbufsem[0]->acquire();
+	if (!acquireInputSem(0))
+		return -EINVAL;
 	return encodeNext();
 }
 

@@ -68,6 +68,7 @@ private:
 	QFile videoFile;
 	bool loopVideoFile;
 
+	friend class TimeoutThread;
 	QImage getPatternImage(TestPattern p);
 	DmaiBuffer addNoise(DmaiBuffer imageBuf);
 	bool checkCache(TestPattern p, BufferGfx_Attrs *attr);

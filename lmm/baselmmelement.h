@@ -72,10 +72,11 @@ protected:
 	int totalInputBufferSize;
 	int inputHysterisisSize;
 
-	QList<QSemaphore *> bufsem;
-	QList<QSemaphore *> inbufsem;
-
-
+	void addNewOutputSemaphore();
+	int releaseInputSem(int ch, int count = 1);
+	int releaseOutputSem(int ch, int count = 1);
+	bool acquireInputSem(int ch) __attribute__((warn_unused_result));
+	bool acquireOutputSem(int ch) __attribute__((warn_unused_result));
 	virtual void updateOutputTimeStats();
 	virtual void calculateFps();
 	RunningState getState();
@@ -88,6 +89,9 @@ private:
 	UnitTimeStat *outputTimeStat;
 	qint64 lastOutputTimeStat;
 	RunningState state;
+
+	QList<QSemaphore *> bufsem;
+	QList<QSemaphore *> inbufsem;
 
 	int checkSizeLimits();
 	void checkAndWakeInputWaiters();

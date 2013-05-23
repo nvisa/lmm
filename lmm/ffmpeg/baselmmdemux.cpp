@@ -70,7 +70,7 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	videoStream = NULL;
 	libavAnalayzeDuration = 5000000; /* this is ffmpeg default */
 
-	bufsem << new QSemaphore;
+	addNewOutputSemaphore();
 
 	demuxNumber = demuxPriv.size();
 	/* register one channel for input, we need this to find stream info */
@@ -200,7 +200,7 @@ int BaseLmmDemux::demuxOne()
 			outputLock.lock();
 			audioBuffers << buf;
 			outputLock.unlock();
-			bufsem[1]->release();
+			releaseOutputSem(1);
 		}
 	} else if (packet->stream_index == videoStreamIndex) {
 		mInfo("new video stream: size=%d pts=%lld duration=%d dflags=%d", packet->size,
@@ -222,7 +222,7 @@ int BaseLmmDemux::demuxOne()
 			outputLock.lock();
 			videoBuffers << buf;
 			outputLock.unlock();
-			bufsem[0]->release();
+			releaseOutputSem(0);
 		}
 	}
 	return 0;
@@ -273,14 +273,17 @@ int BaseLmmDemux::readPacket(uint8_t *buffer, int buf_size)
 	}
 	inputLock.unlock();
 	if (!copied) {
-		inbufsem[0]->acquire();
+		if (!acquireInputSem(0))
+			return -EINVAL;
 		return readPacket(buffer, buf_size);
 	}
 	mInfo("read %d bytes into ffmpeg buffer", copied);
 	return copied;
 #else
 	int copied = 0, left = buf_size;
-	inbufsem[0]->acquire();
+	if (!acquireInputSem(0)) {
+		return -EINVAL;
+	}
 	inputLock.lock();
 	RawBuffer buf = inputBuffers.takeFirst();
 	if (buf.size() > left) {
@@ -288,7 +291,10 @@ int BaseLmmDemux::readPacket(uint8_t *buffer, int buf_size)
 		/* some data will left, put back to input buffers */
 		RawBuffer newbuf(mimeType(), (uchar *)buf.constData() + left, buf.size() - left);
 		inputBuffers.prepend(newbuf);
-		inbufsem[0]->release();
+		if (!acquireInputSem(0)) {
+			inputLock.unlock();
+			return -EINVAL;
+		}
 		copied += left;
 		left -= left;
 	} else {
@@ -335,7 +341,8 @@ RawBuffer BaseLmmDemux::nextAudioBuffer()
 
 RawBuffer BaseLmmDemux::nextAudioBufferBlocking()
 {
-	bufsem[1]->acquire();
+	if (!acquireOutputSem(1))
+		return RawBuffer();
 	return nextAudioBuffer();
 }
 
@@ -355,7 +362,8 @@ RawBuffer BaseLmmDemux::nextVideoBuffer()
 
 RawBuffer BaseLmmDemux::nextVideoBufferBlocking()
 {
-	bufsem[0]->acquire();
+	if (!acquireOutputSem(0))
+		return RawBuffer();
 	return nextVideoBuffer();
 }
 

@@ -225,7 +225,8 @@ RawBuffer BaseLmmElement::nextBuffer(int ch)
 
 RawBuffer BaseLmmElement::nextBufferBlocking(int ch)
 {
-	bufsem[ch]->acquire();
+	if (!acquireOutputSem(ch))
+		return RawBuffer();
 	return nextBuffer(ch);
 }
 
@@ -377,4 +378,42 @@ void BaseLmmElement::updateOutputTimeStats()
 		outputTimeStat->addStat(diff);
 	}
 	lastOutputTimeStat = streamTime->getFreeRunningTime();
+}
+
+
+bool BaseLmmElement::acquireInputSem(int ch)
+{
+	if (state == STOPPED)
+		return false;
+	inbufsem[ch]->acquire();
+	if (state == STOPPED)
+		return false;
+	return true;
+}
+
+bool BaseLmmElement::acquireOutputSem(int ch)
+{
+	if (state == STOPPED)
+		return false;
+	bufsem[ch]->acquire();
+	if (state == STOPPED)
+		return false;
+	return true;
+}
+
+int BaseLmmElement::releaseInputSem(int ch, int count)
+{
+	inbufsem[ch]->release(count);
+	return 0;
+}
+
+int BaseLmmElement::releaseOutputSem(int ch, int count)
+{
+	bufsem[ch]->release(count);
+	return 0;
+}
+
+void BaseLmmElement::addNewOutputSemaphore()
+{
+	bufsem << new QSemaphore;
 }

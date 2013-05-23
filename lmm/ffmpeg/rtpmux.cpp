@@ -55,7 +55,8 @@ int RtpMux::sendNext()
 
 int RtpMux::sendNextBlocking()
 {
-	inbufsem[0]->acquire();
+	if (!acquireInputSem(0))
+		return -EINVAL;
 	muxNext();
 	RawBuffer buf = nextBuffer();
 	if (streamTime)

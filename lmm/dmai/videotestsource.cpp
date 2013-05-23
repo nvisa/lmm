@@ -50,20 +50,20 @@
 class TimeoutThread : public LmmThread
 {
 public:
-	TimeoutThread(int sleepTime, QSemaphore *wakeSem) : LmmThread("VideoTestSourceTimeoutThread")
+	TimeoutThread(int sleepTime, VideoTestSource *el) : LmmThread("VideoTestSourceTimeoutThread")
 	{
 		stime = sleepTime;
-		sem = wakeSem;
+		parent = el;
 	}
 protected:
 	int operation()
 	{
 		QThread::msleep(stime);
-		sem->release();
+		parent->releaseOutputSem(0);
 		return 0;
 	}
 	int stime;
-	QSemaphore *sem;
+	VideoTestSource *parent;
 };
 
 VideoTestSource::VideoTestSource(QObject *parent) :
@@ -284,10 +284,12 @@ RawBuffer VideoTestSource::nextBufferBlocking(int ch)
 
 	mInfo("new ch %d requested, buffer time is %d msecs, pattern is %d"
 		  , ch, bufferTime / 1000, pattern);
-	bufsem[0]->acquire();
+	if (!acquireOutputSem(0))
+		return RawBuffer();
 	/* if all buffers are in use, wait till we have one */
 	while (!inputBuffers.size())
-		bufsem[0]->acquire();
+		if (!acquireOutputSem(0))
+			return RawBuffer();
 	inputLock.lock();
 	DmaiBuffer imageBuf = inputBuffers.takeFirst();
 	inputLock.unlock();
@@ -328,7 +330,7 @@ int VideoTestSource::flush()
 
 int VideoTestSource::start()
 {
-	tt = new TimeoutThread(bufferTime / 1000, bufsem[0]);
+	tt = new TimeoutThread(bufferTime / 1000, this);
 	tt->start();
 	return BaseLmmElement::start();
 }

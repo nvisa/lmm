@@ -188,7 +188,9 @@ int DmaiDecoder::decodeOne()
 
 int DmaiDecoder::decodeBlocking()
 {
-	inbufsem[0]->acquire();
+	if (!acquireInputSem(0))
+		return -EINVAL;
+
 	inputLock.lock();
 	RawBuffer bufsrc = inputBuffers.takeFirst();
 	mInfo("decoding one more frame, %d in the queue", inputBuffers.size());
@@ -241,7 +243,7 @@ int DmaiDecoder::decodeBlocking()
 		Buffer_setUseMask(outbuf, Buffer_getUseMask(outbuf) | OUTPUT_USE);
 		outputLock.lock();
 		outputBuffers << newbuf;
-		bufsem[0]->release();
+		releaseOutputSem(0);
 		outputLock.unlock();
 	}
 

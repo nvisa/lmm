@@ -57,6 +57,7 @@ int BaseLmmOutput::output()
 
 int BaseLmmOutput::outputBlocking()
 {
-	inbufsem[0]->acquire();
+	if (!acquireInputSem(0))
+		return -EINVAL;
 	return output();
 }

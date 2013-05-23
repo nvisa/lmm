@@ -146,7 +146,7 @@ int TextOverlay::addBuffer(RawBuffer buffer)
 		yuvSwPixmapOverlay(buffer);
 	inputBuffers.removeFirst();
 	outputBuffers << buffer;
-	bufsem[0]->release();
+	releaseOutputSem(0);
 	return 0;
 }
 

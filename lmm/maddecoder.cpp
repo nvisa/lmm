@@ -167,7 +167,7 @@ int MadDecoder::decode()
 	outbuf.setStreamBufferNo(decodeCount++);
 	outputLock.lock();
 	outputBuffers << outbuf;
-	bufsem[0]->release();
+	releaseOutputSem(0);
 	outputLock.unlock();
 
 	int cons = stream->next_frame - (unsigned char *)madBuffer.constData();
@@ -179,7 +179,8 @@ int MadDecoder::decode()
 
 int MadDecoder::decodeBlocking()
 {
-	inbufsem[0]->acquire();
+	if (!acquireInputSem(0))
+		return -EINVAL;
 	return decode();
 }
 

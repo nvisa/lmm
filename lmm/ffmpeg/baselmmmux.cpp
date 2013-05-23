@@ -382,7 +382,8 @@ int BaseLmmMux::sync()
  */
 int BaseLmmMux::muxNextBlocking()
 {
-	inbufsem[0]->acquire();
+	if (!acquireInputSem(0))
+		return -EINVAL;
 	muxNext();
 	return 0;
 }
@@ -414,7 +415,7 @@ int BaseLmmMux::writePacket(const uint8_t *buffer, int buf_size)
 	outputLock.lock();
 	outputBuffers << buf;
 	outputLock.unlock();
-	bufsem[0]->release();
+	releaseOutputSem(0);
 	return buf_size;
 }
 

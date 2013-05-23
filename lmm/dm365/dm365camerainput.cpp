@@ -79,7 +79,7 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	pixFormat = V4L2_PIX_FMT_NV12;
 	hCapture = NULL;
 	captureBufferCount = 8;
-	bufsem << new QSemaphore;
+	addNewOutputSemaphore();
 
 	ch1HorFlip = false;
 	ch1VerFlip = false;
@@ -458,8 +458,8 @@ bool DM365CameraInput::captureLoop()
 		outputBuffers << newbuf;
 		outputBuffers2 << sbuf;
 		outputLock.unlock();
-		bufsem[0]->release();
-		bufsem[1]->release();
+		releaseOutputSem(0);
+		releaseOutputSem(1);
 
 		if (passed > 35)
 			mInfo("late capture: %d", passed);
