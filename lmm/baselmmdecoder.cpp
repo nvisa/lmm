@@ -26,7 +26,7 @@ int BaseLmmDecoder::stop()
 	int err = stopDecoding();
 	if (err)
 		return err;
-	return BaseLmmElement::start();
+	return BaseLmmElement::stop();
 }
 
 int BaseLmmDecoder::flush()
