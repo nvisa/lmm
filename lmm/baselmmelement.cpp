@@ -218,7 +218,7 @@ RawBuffer BaseLmmElement::nextBuffer()
 	return buf;
 }
 
-RawBuffer BaseLmmElement::nextBuffer(int ch)
+RawBuffer BaseLmmElement::nextBuffer(int)
 {
 	return nextBuffer();
 }
