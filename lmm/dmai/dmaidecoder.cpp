@@ -215,7 +215,12 @@ int DmaiDecoder::decodeBlocking()
 		 */
 		mInfo("cannot get new buf from buftab, waiting");
 		decodeWaitCounter.release();
-		dispWaitSem.acquire();
+		if (!dispWaitSem.tryAcquire(1, 1000)) {
+			/* cannot get resource, may be we are finished ? */
+			if (getState() == STOPPED)
+				return -EINVAL;
+			continue;
+		}
 		hBuf = BufTab_getFreeBuf(hBufTab);
 	}
 	int ret = Vdec2_process(hCodec, dmai, hBuf);
@@ -408,6 +413,8 @@ int DmaiDecoder::startCodec()
 	}
 	Vdec2_setBufTab(hCodec, hBufTab);
 
+	decodeWaitCounter.acquire(decodeWaitCounter.available());
+	dispWaitSem.acquire(dispWaitSem.available());
 	return 0;
 }
 
@@ -427,6 +434,7 @@ int DmaiDecoder::stopCodec()
 		hEngine = NULL;
 	}
 
+	/* TODO: do not clean buftab here, some buffers may be in use */
 	if (hBufTab) {
 		/* buffer tab cleans its buffers */
 		BufTab_delete(hBufTab);
