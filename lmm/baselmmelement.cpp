@@ -310,6 +310,11 @@ BaseLmmElement::RunningState BaseLmmElement::getState()
 	return state;
 }
 
+int BaseLmmElement::setState(BaseLmmElement::RunningState s)
+{
+	state = s;
+}
+
 /**
  * @brief BaseLmmElement::checkSizeLimits
  * @return Returns -ENOSPC if no space left, 0 otherwise.

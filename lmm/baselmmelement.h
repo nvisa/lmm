@@ -23,6 +23,7 @@ public:
 		INIT,
 		STARTED,
 		STOPPED,
+		PAUSED,
 	};
 	explicit BaseLmmElement(QObject *parent = 0);
 	int addBuffer(RawBuffer buffer);
@@ -80,6 +81,7 @@ protected:
 	virtual void updateOutputTimeStats();
 	virtual void calculateFps();
 	RunningState getState();
+	int setState(RunningState s);
 private:
 	QMap<QString, QVariant> parameters;
 
