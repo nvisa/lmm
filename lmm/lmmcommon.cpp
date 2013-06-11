@@ -31,7 +31,7 @@
 LmmCommon LmmCommon::inst;
 
 int dbgtemp = 0;
-static 	bool quitOnSigInt;
+static 	bool quitOnSigInt = true;
 static QList<BaseLmmElement *> registeredElementsForPipe;
 
 void LmmCommon::platformCleanUp()
