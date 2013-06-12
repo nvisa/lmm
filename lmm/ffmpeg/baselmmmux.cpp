@@ -310,12 +310,14 @@ void BaseLmmMux::muxNext()
 		if (findInputStreamInfo()) {
 			mDebug("error in input stream info");
 		} else {
-			foundStreamInfo = true;
 			inputLock.lock();
 			while (inputInfoBuffers.size())
 				inputBuffers.prepend(inputInfoBuffers.takeLast());
-			initMuxer();
+			int err = initMuxer();
 			inputLock.unlock();
+			if (err)
+				return;
+			foundStreamInfo = true;
 			emit inputInfoFound();
 		}
 	} else {
