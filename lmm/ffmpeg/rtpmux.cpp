@@ -30,6 +30,8 @@ QString RtpMux::mimeType()
 
 int RtpMux::start()
 {
+	if (getState() == STARTED)
+		return 0;
 	sourceUrlName = QString("rtp://%1:%2?localrtpport=%3?localrtcpport=%4")
 			.arg(dstIp).arg(dstDataPort).arg(srcDataPort).arg(srcControlPort);
 	mDebug("starting RTP streaming to URL %s", qPrintable(sourceUrlName));
@@ -107,5 +109,5 @@ int RtpMux::initMuxer()
 
 qint64 RtpMux::packetTimestamp()
 {
-	return 90000 * muxedBufferCount / 30;
+	return 90000ll * muxedBufferCount / 30;
 }

@@ -96,7 +96,7 @@ int RtpH264Mux::initMuxer()
 	context->flags |= AVFMT_FLAG_NONBLOCK;
 
 	if (!(fmt->flags & AVFMT_NOFILE) && avio_open(&context->pb, qPrintable(sourceUrlName), URL_WRONLY) < 0) {
-		mDebug("error opening stream file");
+		mDebug("error opening stream file '%s'", qPrintable(sourceUrlName));
 		err = -EACCES;
 		goto err_out1;
 	}
