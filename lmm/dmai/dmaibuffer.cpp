@@ -160,10 +160,6 @@ void DmaiBuffer::init(Buffer_Handle handle)
 
 DmaiBufferData::~DmaiBufferData()
 {
-	if (rawData && !refData)
-		delete [] rawData;
-	if (myParent)
-		myParent->aboutDeleteBuffer(parameters);
 	if (bufferOwner)
 		Buffer_delete(dmaibuf);
 }
