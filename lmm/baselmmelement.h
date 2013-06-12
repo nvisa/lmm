@@ -55,6 +55,7 @@ public:
 	int getAvailableDuration();
 	void setEnabled(bool val);
 	bool isEnabled();
+	bool isRunning();
 signals:
 	void needFlushing();
 	void newBufferAvailable();

@@ -295,6 +295,13 @@ bool BaseLmmElement::isEnabled()
 	return enabled;
 }
 
+bool BaseLmmElement::isRunning()
+{
+	if (getState() == STARTED)
+		return true;
+	return false;
+}
+
 void BaseLmmElement::calculateFps()
 {
 	fpsBufferCount++;
