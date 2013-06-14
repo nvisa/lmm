@@ -11,7 +11,6 @@
 #ifdef CONFIG_FFMPEG
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
-#include <libavdevice/avdevice.h>
 #include <libavfilter/avfilter.h>
 #include <libavutil/avutil.h>
 #endif
@@ -163,8 +162,6 @@ QString LmmCommon::getFFmpegVersion()
 			   .arg(LIBAVCODEC_VERSION_MINOR).arg(LIBAVCODEC_VERSION_MICRO));
 	str.append(QString("libavformat: %1 %2 %3\n").arg(LIBAVFORMAT_VERSION_MAJOR)
 			   .arg(LIBAVFORMAT_VERSION_MINOR).arg(LIBAVFORMAT_VERSION_MICRO));
-	str.append(QString("libavdevice: %1 %2 %3\n").arg(LIBAVDEVICE_VERSION_MAJOR)
-			   .arg(LIBAVDEVICE_VERSION_MINOR).arg(LIBAVDEVICE_VERSION_MICRO));
 	str.append(QString("libavfilter: %1 %2 %3\n").arg(LIBAVFILTER_VERSION_MAJOR)
 			   .arg(LIBAVFILTER_VERSION_MINOR).arg(LIBAVFILTER_VERSION_MICRO));
 	str.append(QString("libavutil: %1 %2 %3\n").arg(LIBAVUTIL_VERSION_MAJOR)
