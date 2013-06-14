@@ -1,3 +1,4 @@
+
 #ifndef FFCOMPAT_H
 #define FFCOMPAT_H
 
@@ -15,4 +16,13 @@ static void avformat_free_context(AVFormatContext *c)
 }
 
 #endif
+
+#ifndef CODEC_TYPE_VIDEO
+#define CODEC_TYPE_VIDEO AVMEDIA_TYPE_VIDEO
+#endif
+
+#ifndef CODEC_TYPE_AUDIO
+#define CODEC_TYPE_AUDIO AVMEDIA_TYPE_AUDIO
+#endif
+
 #endif // FFCOMPAT_H

@@ -13,6 +13,7 @@
 extern "C" {
 	#include "libavformat/avformat.h"
 	#include "libavformat/avio.h" /* for URLContext on x86 */
+	#include "ffcompat.h"
 }
 
 static QList<BaseLmmMux *> muxPriv;
