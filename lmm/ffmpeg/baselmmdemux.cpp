@@ -2,6 +2,7 @@
 
 #include "baselmmdemux.h"
 #include "rawbuffer.h"
+#include "ffmpegbuffer.h"
 #include "streamtime.h"
 #include "debug.h"
 
@@ -179,9 +180,7 @@ int BaseLmmDemux::demuxOne()
 			emit streamInfoFound();
 		}
 	}
-	static AVPacket *packet = NULL;
-	if (packet)
-		deletePacket(packet);
+	AVPacket *packet = NULL;
 	packet = nextPacket();
 	if (!packet)
 		return -ENOENT;
@@ -210,7 +209,7 @@ int BaseLmmDemux::demuxOne()
 			   packet->pts == (int64_t)AV_NOPTS_VALUE ? -1 : packet->pts ,
 			   packet->duration, packet->flags);
 		if (demuxVideo) {
-			RawBuffer buf("video/mpeg", packet->data, packet->size);
+			FFmpegBuffer buf("video/mpeg",packet);
 			buf.setDuration(packet->duration * videoTimeBaseN / 1000);
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 				buf.setPts(packet->pts * videoTimeBaseN / 1000);
