@@ -12,6 +12,7 @@ class RawBuffer;
 class CircularBuffer;
 class StreamTime;
 struct URLContext;
+struct AVCodecContext;
 
 class BaseLmmDemux : public BaseLmmElement
 {
@@ -33,6 +34,7 @@ public:
 	virtual int demuxOne();
 	virtual int demuxOneBlocking();
 	virtual int flush();
+	AVCodecContext * getVideoCodecContext();
 
 	void setAudioDemuxing(bool v) { demuxAudio = v; } /* TODO: clear existing buffers */
 	void setVideoDemuxing(bool v) { demuxVideo = v; } /* TODO: clear existing buffers */

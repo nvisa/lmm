@@ -242,6 +242,11 @@ int BaseLmmDemux::flush()
 	return BaseLmmElement::flush();
 }
 
+AVCodecContext * BaseLmmDemux::getVideoCodecContext()
+{
+	return context->streams[videoStreamIndex]->codec;
+}
+
 int BaseLmmDemux::getAudioSampleRate()
 {
 	if (audioStream)
