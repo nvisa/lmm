@@ -97,6 +97,7 @@ ffmpeg {
         ffmpeg/dvbplayer.h \
         ffmpeg/ffcompat.h \
 		baselmmplayer.h \
+		ffmpeg/ffmpegbuffer.h \
 
     SOURCES += \
         ffmpeg/avidecoder.cpp \
@@ -108,6 +109,7 @@ ffmpeg {
         ffmpeg/avimux.cpp \
         ffmpeg/dvbplayer.cpp \
 		baselmmplayer.cpp \
+		ffmpeg/ffmpegbuffer.cpp \
 
     ffmpeg_rtp {
         HEADERS += \
