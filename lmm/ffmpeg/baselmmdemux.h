@@ -3,6 +3,8 @@
 
 #include <lmm/baselmmelement.h>
 
+#include <stdint.h>
+
 struct AVPacket;
 struct AVFormatContext;
 struct AVStream;
