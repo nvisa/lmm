@@ -25,13 +25,11 @@ private:
 	QFile *file;
 	QString fileName;
 	bool isPipe;
-	QFutureWatcher<int> *watcher;
 	bool pipeClosed;
 	bool incremental;
 
 	int writeBuffer(RawBuffer buf);
-	int fifoOutput();
-	int outputFunc();
+	int outputBuffer(RawBuffer buf);
 };
 
 #endif // FILEOUTPUT_H

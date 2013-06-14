@@ -16,7 +16,6 @@
 FileOutput::FileOutput(QObject *parent) :
 	BaseLmmOutput(parent)
 {
-	watcher = new QFutureWatcher<int>;
 	file = NULL;
 	incremental = false;
 	setFileName("fileout");
@@ -46,22 +45,13 @@ int FileOutput::stop()
 	return BaseLmmElement::stop();
 }
 
-int FileOutput::outputFunc()
+int FileOutput::outputBuffer(RawBuffer buf)
 {
-	if (isPipe)
-		return fifoOutput();
-	mInfo("buffer count: %d", inputBuffers.count());
-	if (!inputBuffers.size())
-		return -ENOENT;
-	RawBuffer buf = inputBuffers.takeFirst();
-	/* We don't do any syncing */
 	int err = writeBuffer(buf);
 	if (incremental) {
 		file->close();
 		file->setFileName(QDateTime::currentDateTime().toString("ddMMyyyy_hhmmss_").append(fileName));
 	}
-	sentBufferCount++;
-	calculateFps();
 	return err;
 }
 
@@ -112,20 +102,5 @@ int FileOutput::writeBuffer(RawBuffer buf)
 		written += err;
 	}
 	mInfo("%d bytes written", buf.size());
-	return 0;
-}
-
-int FileOutput::fifoOutput()
-{
-	if (inputBuffers.size() > 1)
-		mDebug("%d buffers", inputBuffers.size());
-	while (inputBuffers.size()) {
-		if (!watcher->future().isFinished())
-			break;
-		RawBuffer buf = inputBuffers.takeFirst();
-		watcher->setFuture(QtConcurrent::run(this, &FileOutput::writeBuffer, buf));
-		sentBufferCount++;
-		calculateFps();
-	}
 	return 0;
 }
