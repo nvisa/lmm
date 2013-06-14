@@ -28,6 +28,8 @@ public:
 	int enablePictureTimingSei(bool enable);
 	int setProfile(int v) { profileId = v; return 0; }
 	int getProfile() { return profileId; }
+	void setRoiMark(bool mark) { markRoi = mark; }
+	bool getRoiMark() { return markRoi; }
 	int setRoi(QRect rect, bool mark) { roiRect = rect; markRoi = mark; return 0; }
 	QRect getRoi() { return roiRect; }
 	int generateMetadata(bool v);
@@ -39,6 +41,9 @@ public:
 	/* sei information */
 	void setCustomSeiFieldCount(int value);
 	void setSeiField(int field, int value);
+
+	IH264VENC_DynamicParams * getDynamicParams() { return dynH264Params; }
+	int setDynamicParamsNextLoop(bool v) { setDynamicParams = v; return 0; }
 signals:
 	
 public slots:
@@ -46,6 +51,7 @@ private:
 	int seiBufferSize;
 	IH264VENC_DynamicParams *dynH264Params;
 	QList<int> customSeiData;
+	bool setDynamicParams;
 
 	int enableBufSei;
 	int enableVUIParams;

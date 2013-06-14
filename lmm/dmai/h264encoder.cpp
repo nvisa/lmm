@@ -441,6 +441,7 @@ static void printErrorMsg(XDAS_Int32 errorCode)
 H264Encoder::H264Encoder(QObject *parent) :
 	DmaiEncoder(parent)
 {
+	setDynamicParams = false;
 	seiBufferSize = 1024;
 	dirty = false;
 	encodeFps = 30;
@@ -697,6 +698,18 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			printErrorMsg(status.extendedError);
 		} else
 			idrGenerated = true;
+	}
+
+	if (setDynamicParams) {
+		mDebug("updating dynamic params");
+		VIDENC1_Status status;
+		status.size = sizeof(IH264VENC_Status);
+		if (VIDENC1_control(Venc1_getVisaHandle(hCodec), XDM_SETPARAMS,
+							&dynH264Params->videncDynamicParams, &status) != VIDENC1_EOK) {
+			qDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
+			printErrorMsg(status.extendedError);
+		}
+		setDynamicParams = false;
 	}
 
 	mInfo("invoking venc1_process: width=%d height=%d",
