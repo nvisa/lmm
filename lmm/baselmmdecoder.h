@@ -22,6 +22,7 @@ public:
 	int start();
 	int stop();
 	virtual int flush();
+	virtual int decodeBlocking();
 	virtual int decode() = 0;
 
 signals:

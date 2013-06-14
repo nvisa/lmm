@@ -1,7 +1,10 @@
 #include "baselmmdecoder.h"
 #include "rawbuffer.h"
-#define DEBUG
 #include "debug.h"
+
+#include <QSemaphore>
+
+#include <errno.h>
 
 BaseLmmDecoder::BaseLmmDecoder(QObject *parent) :
 	BaseLmmElement(parent)
@@ -37,6 +40,13 @@ int BaseLmmDecoder::flush()
 	}
 	timestamp = NULL;
 	return BaseLmmElement::flush();
+}
+
+int BaseLmmDecoder::decodeBlocking()
+{
+	if (!acquireInputSem(0))
+		return -EINVAL;
+	return decode();
 }
 
 void BaseLmmDecoder::handleInputTimeStamps(RawBuffer *buf)
