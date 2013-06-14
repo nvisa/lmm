@@ -14,7 +14,6 @@ SOURCES += \
     baselmmdecoder.cpp \
     baselmmoutput.cpp \
     streamtime.cpp \
-    baselmmplayer.cpp \
     fileoutput.cpp \
     lmmcommon.cpp \
     cameraplayer.cpp \
@@ -43,7 +42,6 @@ HEADERS  += \
     baselmmdecoder.h \
     baselmmoutput.h \
     streamtime.h \
-    baselmmplayer.h \
     fileoutput.h \
     lmmcommon.h \
     cameraplayer.h \
@@ -98,6 +96,7 @@ ffmpeg {
         ffmpeg/avimux.h \
         ffmpeg/dvbplayer.h \
         ffmpeg/ffcompat.h \
+		baselmmplayer.h \
 
     SOURCES += \
         ffmpeg/avidecoder.cpp \
@@ -108,6 +107,7 @@ ffmpeg {
         ffmpeg/mp4mux.cpp \
         ffmpeg/avimux.cpp \
         ffmpeg/dvbplayer.cpp \
+		baselmmplayer.cpp \
 
     ffmpeg_rtp {
         HEADERS += \
