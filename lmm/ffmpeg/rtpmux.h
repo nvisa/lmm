@@ -15,6 +15,7 @@ public:
 	int stop();
 	int sendNext();
 	int sendNextBlocking();
+	int setFrameRate(float fps);
 
 	virtual Lmm::CodecType codecType() = 0;
 	void setDestinationIpAddress(QString ip) { dstIp = ip; }
@@ -45,6 +46,7 @@ private:
 	int rtpTimestampOffset;
 	int loopLatency;
 	QString dstIp;
+	float frameRate;
 };
 
 #endif // RTPMUX_H

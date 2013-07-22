@@ -14,6 +14,7 @@ extern "C" {
 RtpMux::RtpMux(QObject *parent) :
 	BaseLmmMux(parent)
 {
+	frameRate = 30.0;
 	loopLatency = 0;
 	srcDataPort = 17458;
 	srcControlPort = 17459;
@@ -30,8 +31,10 @@ QString RtpMux::mimeType()
 
 int RtpMux::start()
 {
-	if (getState() == STARTED)
+	if (getState() == STARTED) {
+		mDebug("mux is already started");
 		return 0;
+	}
 	sourceUrlName = QString("rtp://%1:%2?localrtpport=%3?localrtcpport=%4")
 			.arg(dstIp).arg(dstDataPort).arg(srcDataPort).arg(srcControlPort);
 	mDebug("starting RTP streaming to URL %s", qPrintable(sourceUrlName));
@@ -66,10 +69,18 @@ int RtpMux::sendNextBlocking()
 	return 0;
 }
 
+int RtpMux::setFrameRate(float fps)
+{
+	frameRate = fps;
+	return 0;
+}
+
 QString RtpMux::getSdp()
 {
-	if (!foundStreamInfo)
+	if (!foundStreamInfo) {
+		qDebug("no stream info, no sdp");
 		return "";
+	}
 	char *buff = new char[16384];
 	/*
 	 * avf_sdp_create doesn't perform any size checking
@@ -103,11 +114,12 @@ int RtpMux::initMuxer()
 	rtpCtx->base_timestamp = 1578998879;
 	rtpCtx->ssrc = 0x6335D514;
 	mDebug("changed RTP private information");
+	foundStreamInfo = true;
 	emit sdpReady(getSdp());
 	return 0;
 }
 
 qint64 RtpMux::packetTimestamp()
 {
-	return 90000ll * muxedBufferCount / 30;
+	return 90000ll * muxedBufferCount / frameRate;
 }
