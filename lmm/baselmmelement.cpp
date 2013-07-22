@@ -99,6 +99,19 @@
 	hata mesaji donrururken, addBufferBlocking() fonksiyonu yer acilana kadar uyumaya
 	gecer.
 
+	\section Elemanlarin Durdurulup Baslatilmasi
+
+	LMM elememanlari threaded uygulamalarda kullanilabilmektedir. Bunun icin blocking API
+	destegi eklenmistir. Bu sayede threadler icinde elemanlar uyuyup yeni veri hazir olunca
+	uyanmaktadirlar. Bu yapinin sorun cikarabilecegi noktalardan birisi oynaticilarin durdurulup
+	baslatilmasi islemidir. Burada ki sorunlarin onune gecmek icin turetilen elemanlarin uymasi
+	gereken bazi kurallar sunlardir:
+
+		* Kalittiginiz siniflarda acquireInputSem() ve acquireOutputSem() fonksiyonlarini kullanarak
+		  uyumaya geciniz; bu fonksiyonlarin donus degerlerini mutlaka kontrol ediniz.
+		* flush() fonksiyonunu overload ederken en son da mutlaka baz implementasyonu cagirarak
+		  donus yapin.
+
 	\section Istatistik Istatistik Yonetimi
 
 	BaseLmmElement sinifinin en faydali ozelliklerinden birisi de ilgili
