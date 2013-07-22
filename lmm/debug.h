@@ -24,8 +24,12 @@ extern QStringList __dbg_classes_info;
 extern QStringList __dbg_classes_log;
 extern QStringList __dbg_classes_logv;
 extern int dbgtemp;
+extern int __dbg_debugging_mode;
+extern QString __dbg__network_addr;
+extern QString __dbg_file_log_dir;
 void initDebug();
 void changeDebug(QString debug, int defaultLevel = 0);
+void setDebuggingMode(int mode, QString networkAddr);
 #ifdef DEBUG_TIMING
 #include <QTime>
 extern QTime __debugTimer;

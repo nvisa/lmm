@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <QDateTime>
 #include <QTextCodec>
 
 #ifdef DEBUG_TIMING
@@ -51,6 +52,10 @@ void changeDebug(QString debug, int defaultLevel)
 				__dbg_classes.clear();
 			if (level > 1)
 				__dbg_classes_info.clear();
+			if (level > 2)
+				__dbg_classes_log.clear();
+			if (level > 3)
+				__dbg_classes_logv.clear();
 			break;
 		}
 		if (level > 0)
@@ -66,9 +71,9 @@ void changeDebug(QString debug, int defaultLevel)
 		__dbg_classes.removeFirst();
 	if (__dbg_classes_info.size() > 1)
 		__dbg_classes_info.removeFirst();
-	if (__dbg_classes_log.size() > 2)
+	if (__dbg_classes_log.size() > 1)
 		__dbg_classes_log.removeFirst();
-	if (__dbg_classes_logv.size() > 3)
+	if (__dbg_classes_logv.size() > 1)
 		__dbg_classes_logv.removeFirst();
 	if (__dbg_classes.size())
 		qDebug() << "debug classes:" << __dbg_classes << __dbg_classes_info << __dbg_classes_log << __dbg_classes_logv;
@@ -97,4 +102,90 @@ void print_trace(void)
 		printf ("%s\n", strings[i]);
 
 	free (strings);
+}
+
+#include <QFile>
+#include <QMutex>
+#include <QUdpSocket>
+
+static QMutex mutex;
+QString __dbg_file_log_dir = "/www/pages";
+static QFile debugFile;
+static void messageHandlerFile(QtMsgType type, const char *msg)
+{
+	switch (type) {
+	case QtDebugMsg:
+	case QtWarningMsg:
+	case QtCriticalMsg:
+	case QtFatalMsg:
+		mutex.lock();
+		debugFile.write(msg);
+		debugFile.write("\n", 1);
+		mutex.unlock();
+		break;
+	}
+}
+
+QString __dbg__network_addr;
+int __dbg_debugging_mode = 0;
+static QUdpSocket *debugUdpSocket = NULL;
+static void messageHandlerNetwork(QtMsgType type, const char *msg)
+{
+	switch (type) {
+	case QtDebugMsg:
+	case QtWarningMsg:
+	case QtCriticalMsg:
+	case QtFatalMsg:
+		mutex.lock();
+		debugUdpSocket->write(msg);
+		debugUdpSocket->write("\n");
+		mutex.unlock();
+		break;
+	}
+}
+
+void setDebuggingMode(int mode, QString networkAddr)
+{
+	__dbg__network_addr = networkAddr;
+	__dbg_debugging_mode = mode;
+	/*if (mode == 3) {
+		debugWebSockTarget = webserver;
+		webserver->allocateLogBuffer(1024 * 1024);
+	} else {
+		webserver->releaseLogBuffer();
+	}*/
+	if (mode == 2) {
+		if (!debugUdpSocket) {
+			debugUdpSocket = new QUdpSocket;
+			debugUdpSocket->bind(0);
+		}
+		debugUdpSocket->disconnectFromHost();
+		if (networkAddr.contains(":"))
+			debugUdpSocket->connectToHost(QHostAddress(networkAddr.split(":")[0]), networkAddr.split(":")[1].toInt());
+		else
+			debugUdpSocket->connectToHost(QHostAddress(networkAddr), 19999);
+	} else if (mode == 1) {
+		if (!debugFile.isOpen()) {
+			debugFile.setFileName(QString("%1/debug_%2.log").arg(__dbg_file_log_dir)
+								  .arg(QDateTime::currentDateTime().toString("ddMMyy_hhmmss")));
+			debugFile.open(QIODevice::WriteOnly);
+		}
+	} else {
+		/*if (debugUdpSocket) {
+			delete debugUdpSocket;
+			debugUdpSocket = NULL;
+		}*/
+		mutex.lock();
+		if (debugFile.isOpen())
+			debugFile.close();
+		mutex.unlock();
+	}
+	if (mode == 0)
+		qInstallMsgHandler(0);
+	else if (mode == 1)
+		qInstallMsgHandler(messageHandlerFile);
+	else if (mode == 2)
+		qInstallMsgHandler(messageHandlerNetwork);
+	/*else if (mode == 3)
+		qInstallMsgHandler(messageHandlerWebSock);*/
 }
