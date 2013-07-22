@@ -1,7 +1,7 @@
+#define __STDC_CONSTANT_MACROS
 #include "ffmpegbuffer.h"
 
 extern "C" {
-	#define __STDC_CONSTANT_MACROS
 	#include <libavcodec/avcodec.h>
 	#include <libavformat/avformat.h>
 }
