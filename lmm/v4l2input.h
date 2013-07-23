@@ -52,6 +52,7 @@ protected:
 	virtual bool captureLoop();
 
 	int openDeviceNode();
+	int enumStd();
 	int enumInput(v4l2_input *input);
 	int setInput(v4l2_input *input);
 	int setStandard(v4l2_std_id *std_id);

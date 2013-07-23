@@ -346,6 +346,28 @@ int V4l2Input::openDeviceNode()
 	return 0;
 }
 
+int V4l2Input::enumStd()
+{
+	v4l2_standard dstd;
+	for (int i = 0;; i++) {
+		v4l2_standard std;
+		memset(&std, 0, sizeof(v4l2_standard));
+		std.frameperiod.numerator = 1;
+		std.frameperiod.denominator = 0;
+		std.index = i;
+		if (ioctl(fd, VIDIOC_ENUMSTD, &std) == -1) {
+			if (errno == EINVAL || errno == ENOTTY) {
+				dstd = std;
+				break;
+			}
+			mDebug("Unable to enumerate standard");
+			return -EINVAL;
+		}
+	}
+	mDebug("Standard supported: %s fps=%d/%d", dstd.name, dstd.frameperiod.denominator, dstd.frameperiod.numerator);
+	return 0;
+}
+
 int V4l2Input::enumInput(v4l2_input *input)
 {
 	if (ioctl(fd, VIDIOC_ENUMINPUT, input) == -1) {
