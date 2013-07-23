@@ -438,20 +438,19 @@ bool DM365CameraInput::captureLoop()
 		Buffer_Handle dbufb = refBuffersB[buffer->index];
 
 		RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dbufa, this);
-		int fps = 30;
 		newbuf.addBufferParameter("v4l2Buffer",
 								  qVariantFromValue((void *)buffer));
 		newbuf.addBufferParameter("captureTime", streamTime->getCurrentTime()
-								  - (captureBufferCount - 1) * 1000 * 1000 / fps);
+								  - (captureBufferCount - 1) * 1000 * 1000 / outputFps);
 		newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
-		newbuf.addBufferParameter("fps", fps);
+		newbuf.addBufferParameter("fps", outputFps);
 		useCount[buffer->index]++;
 
 		RawBuffer sbuf = DmaiBuffer("video/x-raw-yuv", dbufb, this);
 		sbuf.addBufferParameter("v4l2Buffer", qVariantFromValue((void *)buffer));
 		newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
 		sbuf.addBufferParameter("captureTime", newbuf.getBufferParameter("captureTime"));
-		sbuf.addBufferParameter("fps", fps);
+		sbuf.addBufferParameter("fps", outputFps);
 		useCount[buffer->index]++;
 
 		outputLock.lock();
