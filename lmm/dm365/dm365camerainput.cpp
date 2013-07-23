@@ -208,7 +208,7 @@ int DM365CameraInput::openCamera()
 	if (err)
 		return err;
 
-	setFormat(pixFormat, width, height);
+	setFormat(pixFormat, width, height, inputType == COMPOSITE);
 
 	/* buffer allocation */
 	BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
