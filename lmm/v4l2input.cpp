@@ -2,6 +2,7 @@
 #include "rawbuffer.h"
 #include "lmmthread.h"
 #include "debug.h"
+#include "tools/videoutils.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -419,7 +420,7 @@ int V4l2Input::queryStandard()
 	return 0;
 }
 
-int V4l2Input::setFormat(unsigned int chromaFormat, int width, int height)
+int V4l2Input::setFormat(unsigned int chromaFormat, int width, int height, bool interlaced)
 {
 	struct v4l2_format fmt;
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -429,9 +430,10 @@ int V4l2Input::setFormat(unsigned int chromaFormat, int width, int height)
 	}
 	fmt.fmt.pix.width        = width;
 	fmt.fmt.pix.height       = height;
-	fmt.fmt.pix.bytesperline = width * 2;
+	fmt.fmt.pix.bytesperline = VideoUtils::getLineLength(chromaFormat, width);
+	fmt.fmt.pix.sizeimage = 0;
 	fmt.fmt.pix.pixelformat  = chromaFormat;
-	fmt.fmt.pix.field        = V4L2_FIELD_NONE;
+	fmt.fmt.pix.field        = interlaced ? V4L2_FIELD_INTERLACED : V4L2_FIELD_NONE;
 	if (ioctl(fd, VIDIOC_S_FMT, &fmt) == -1) {
 		mDebug("Unable to set VIDIOC_S_FMT");
 		return -EINVAL;

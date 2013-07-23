@@ -58,7 +58,7 @@ protected:
 	int setStandard(v4l2_std_id *std_id);
 	int queryCapabilities(v4l2_capability *cap);
 	int queryStandard();
-	int setFormat(unsigned int chromaFormat, int width, int height);
+	int setFormat(unsigned int chromaFormat, int width, int height, bool interlaced = false);
 	int startStreaming();
 	int stopStreaming();
 };
