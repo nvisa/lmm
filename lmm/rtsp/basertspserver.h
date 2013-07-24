@@ -35,6 +35,7 @@ public:
 	virtual Lmm::CodecType getSessionCodec(QString streamName) = 0;
 	virtual bool isMulticast(QString streamName) = 0;
 	virtual QString getMulticastAddress(QString streamName);
+	virtual int setEnabled(bool val);
 signals:
 	void sessionSettedUp(QString);
 	void sessionPlayed(QString);
@@ -77,6 +78,7 @@ protected:
 
 	QString lastUserAgent;
 	QMap<QString, QString> currentCmdFields;
+	bool enabled;
 };
 
 #endif // BASERTSPSERVER_H

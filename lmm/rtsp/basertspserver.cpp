@@ -172,6 +172,7 @@ private:
 BaseRtspServer::BaseRtspServer(QObject *parent) :
 	QObject(parent)
 {
+	enabled = true;
 	server = new QTcpServer(this);
 	if (!server->listen(QHostAddress::Any, 554))
 		mDebug("unable to bind to tcp port 554");
@@ -205,6 +206,29 @@ RtspSessionParameters BaseRtspServer::getSessionParameters(QString id)
 QString BaseRtspServer::getMulticastAddress(QString)
 {
 	return "224.1.1.1";
+}
+
+int BaseRtspServer::setEnabled(bool val)
+{
+	enabled = val;
+	if (enabled)
+		return 0;
+	QMapIterator<QString, BaseRtspSession *>i(sessions);
+	while (i.hasNext()) {
+		i.next();
+		BaseRtspSession *ses = i.value();
+		ses->teardown();
+		closeSession(ses->sessionId);
+		/*QStringList resp;
+		resp << "RTSP/1.0 200 OK";
+		resp << QString("Session: %1").arg(ses->sessionId);
+		resp << "Content-Length: 0";
+		resp << "Cache-Control: no-cache";
+		resp << QString("CSeq: %1").arg(cseq);
+		resp << "\n\r";
+		sendRtspMessage(sock, resp, lsep);*/
+	}
+	return 0;
 }
 
 QString BaseRtspServer::detectLineSeperator(QString mes)
@@ -310,6 +334,8 @@ QStringList BaseRtspServer::createRtspErrorResponse(int errcode, QString lsep)
 		errString = "Invalid parameter";
 	else if (errcode == 453)
 		errString = "Not Enough Bandwidth";
+	else if (errcode == 503)
+		errString = "Service Unavailable";
 	resp << QString("RTSP/1.0 %1 %2").arg(errcode).arg(errString);
 	resp << lsep;
 	return resp;
