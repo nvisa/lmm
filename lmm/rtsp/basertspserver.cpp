@@ -420,6 +420,10 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 						}
 					}
 				}
+				if (!dataPort)
+					dataPort = 5000;
+				if (!controlPort)
+					controlPort = dataPort + 1;
 			}
 		}
 		BaseRtspSession *ses = findMulticastSession(stream);
