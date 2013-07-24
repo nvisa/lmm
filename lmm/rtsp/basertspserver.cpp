@@ -343,7 +343,7 @@ QStringList BaseRtspServer::handleCommandOptions(QStringList lines, QString lsep
 	}
 
 	mDebug("handling options directive");
-	int cseq = lines[1].remove("CSeq: ").toInt();
+	int cseq = currentCmdFields["CSeq"].toInt();
 	resp << "RTSP/1.0 200 OK";
 	resp << QString("CSeq: %1").arg(cseq);
 	resp << "Public: DESCRIBE, SETUP, TEARDOWN, PLAY";
@@ -355,8 +355,8 @@ QStringList BaseRtspServer::handleCommandDescribe(QStringList lines, QString lse
 {
 	QStringList resp;
 	mDebug("handling describe directive");
-	QString url = lines[0].split(" ")[1];
-	int cseq = lines[1].remove("CSeq: ").toInt();
+	QString url = currentCmdFields["url"];
+	int cseq = currentCmdFields["CSeq"].toInt();
 	resp << createDescribeResponse(cseq, url, lsep);
 	/* TODO: check URL */
 	return resp;
@@ -370,11 +370,13 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 	if (!cbase.endsWith("/"))
 		cbase.append("/");
 
+	if (!enabled)
+		return createRtspErrorResponse(503, lsep);
 	QStringList fields = cbase.split("/", QString::SkipEmptyParts);
 	QString stream = fields[2];
 	if (fields.size() >= 3) {
 		bool multicast = isMulticast(stream);
-		int cseq = lines[1].remove("CSeq: ").toInt();
+		int cseq = currentCmdFields["CSeq"].toInt();
 		int dataPort = 0, controlPort = 0;
 		foreach(QString line, lines) {
 			if (line.startsWith("Require"))
@@ -440,14 +442,14 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 {
 	QStringList resp;
-	QString url = lines[0].split(" ")[1];
+	QString url = currentCmdFields["url"];
 	if (!url.endsWith("/"))
 		url.append("/");
 	mDebug("handling play directive: %s", qPrintable(url));
 	QString sid = getField(lines, "Session");
 	if (sessions.contains(sid)) {
 		BaseRtspSession *ses = sessions[sid];
-		int cseq = lines[1].remove("CSeq: ").toInt();
+		int cseq = currentCmdFields["CSeq"].toInt();
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("RTP-Info: %1").arg(ses->rtpInfo());
 		resp << QString("Session: %1").arg(ses->sessionId);
@@ -471,8 +473,8 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 {
 	QStringList resp;
 	mDebug("handling teardown directive");
-	int cseq = lines[1].remove("CSeq: ").toInt();
-	QString url = lines[0].split(" ")[1];
+	int cseq = currentCmdFields["CSeq"].toInt();
+	QString url = currentCmdFields["url"];
 	if (!url.endsWith("/"))
 		url.append("/");
 	QString sid = getField(lines, "Session");
@@ -515,6 +517,17 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 	if (!lines.last().isEmpty()) {
 		mDebug("un-espected last line");
 		return resp;
+	}
+	currentCmdFields.clear();
+	QString url = lines[0].split(" ")[1];
+	if (!url.endsWith("/"))
+		url.append("/");
+	currentCmdFields.insert("url", url);
+	foreach (QString line, lines) {
+		if (line.contains("user-agent", Qt::CaseInsensitive))
+			currentCmdFields.insert("user-agent", line.split(":")[1]);
+		if (line.contains("CSeq: ", Qt::CaseInsensitive))
+			currentCmdFields.insert("CSeq", line.remove("CSeq: "));
 	}
 	if (lines.first().startsWith("OPTIONS")) {
 		resp = handleCommandOptions(lines, lsep);

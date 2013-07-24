@@ -76,6 +76,7 @@ protected:
 	void closeSession(QString sessionId);
 
 	QString lastUserAgent;
+	QMap<QString, QString> currentCmdFields;
 };
 
 #endif // BASERTSPSERVER_H
