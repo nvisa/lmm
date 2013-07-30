@@ -369,13 +369,35 @@ int V4l2Input::enumStd()
 	return 0;
 }
 
+#define V4L2_STD_720P_30        ((v4l2_std_id)(0x0100000000000000ULL))
+#define V4L2_STD_720P_60        ((v4l2_std_id)(0x0004000000000000ULL))
+static const QList<QPair<quint64, QString > > getV4L2Standards()
+{
+	QList<QPair<quint64, QString> > list;
+	list << QPair<quint64, QString>(V4L2_STD_NTSC, "NTSC");
+	list << QPair<quint64, QString>(V4L2_STD_SECAM, "SECAM");
+	list << QPair<quint64, QString>(V4L2_STD_PAL, "PAL");
+	list << QPair<quint64, QString>(V4L2_STD_525_60, "525_60");
+	list << QPair<quint64, QString>(V4L2_STD_625_50, "525_50");
+	list << QPair<quint64, QString>(V4L2_STD_ATSC, "ATSC");
+	list << QPair<quint64, QString>(V4L2_STD_720P_30, "720P_30");
+	list << QPair<quint64, QString>(V4L2_STD_720P_60, "720P_60");
+	return list;
+}
+
 int V4l2Input::enumInput(v4l2_input *input)
 {
 	if (ioctl(fd, VIDIOC_ENUMINPUT, input) == -1) {
 		mDebug("Unable to enumerate input");
 		return -EINVAL;
-	} else
-		mDebug("Input supports: 0x%llx", input->std);
+	} else {
+		mDebug("Input %d supports: 0x%llx", input->index, input->std);
+		const QList<QPair<quint64, QString > > list = getV4L2Standards();
+		for(int i = 0; i < list.size(); i++) {
+			if ((list[i].first & input->std) == list[i].first)
+				mDebug("Input %d supports %s", input->index, qPrintable(list[i].second));
+		}
+	}
 	return 0;
 }
 
