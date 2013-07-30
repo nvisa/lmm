@@ -457,8 +457,8 @@ int V4l2Input::setFormat(unsigned int chromaFormat, int width, int height, bool 
 	fmt.fmt.pix.pixelformat  = chromaFormat;
 	fmt.fmt.pix.field        = interlaced ? V4L2_FIELD_INTERLACED : V4L2_FIELD_NONE;
 	if (ioctl(fd, VIDIOC_S_FMT, &fmt) == -1) {
-		mDebug("Unable to set VIDIOC_S_FMT");
-		return -EINVAL;
+		mDebug("Unable to set VIDIOC_S_FMT with error %d", errno);
+		return -errno;
 	}
 	return 0;
 }
