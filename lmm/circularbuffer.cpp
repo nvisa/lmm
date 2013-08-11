@@ -43,6 +43,7 @@ CircularBuffer::CircularBuffer(QObject *parent) :
 {
 	mutex = new QMutex;
 	waitSem = new QSemaphore;
+	waitSemWr = new QSemaphore;
 }
 
 /**
@@ -63,6 +64,7 @@ CircularBuffer::CircularBuffer(void *source, int size, QObject *parent) :
 	mutex = new QMutex;
 	lockThread = 0;
 	waitSem = new QSemaphore;
+	waitSemWr = new QSemaphore;
 	reset();
 }
 
@@ -82,6 +84,8 @@ CircularBuffer::CircularBuffer(int size, QObject *parent) :
 	mutex = new QMutex;
 	lockThread = 0;
 	waitSem = new QSemaphore;
+	waitSemWr = new QSemaphore;
+	waitSemWr = new QSemaphore;
 	reset();
 }
 
@@ -182,6 +186,8 @@ int CircularBuffer::useData(int size)
 	}
 	freeBufLen += size;
 	usedBufLen -= size;
+	waitSem->acquire(size);
+	waitSemWr->release(size);
 
 	return size;
 }
@@ -196,9 +202,10 @@ int CircularBuffer::useData(int size)
  * icindeki hafizaya kopyalanir. Eger tampondan yeteri kadar yer yoksa
  * EINVAL hata kodu dondurur ve hicbir islem yapmaz.
  *
- * Bu fonksiyon tampon icinde kaydirmaya yol acabilir.
+ * Bu fonksiyon tampon icinde kaydirmaya yol acabilir. Kaydirma yapmayan
+ * versiyon icin addDataNoShift() kullanabilirsiniz.
  *
- * \sa useData()
+ * \sa useData(), addDataNoShift()
  */
 int CircularBuffer::addData(const void *data, int size)
 {
@@ -222,6 +229,26 @@ int CircularBuffer::addData(const void *data, int size)
 	freeBufLen -= size;
 	usedBufLen += size;
 	waitSem->release(size);
+	waitSemWr->acquire(size);
+
+	return 0;
+}
+
+int CircularBuffer::addDataNoShift(const void *data, int size)
+{
+	/* do not overwrite */
+	if (size > freeBufLen)
+		return -ENOSPC;
+
+	if (head + size > rawData + rawDataLen)
+		return -EINVAL;
+
+	memcpy(head, data, size);
+	head += size;
+	freeBufLen -= size;
+	usedBufLen += size;
+	waitSem->release(size);
+	waitSemWr->acquire(size);
 
 	return 0;
 }
@@ -241,6 +268,8 @@ int CircularBuffer::reset()
 	head = tail = rawData;
 	usedBufLen = 0;
 	waitSem->acquire(waitSem->available());
+	waitSemWr->acquire(waitSemWr->available());
+	waitSemWr->release(freeBufLen);
 
 	return 0;
 }
@@ -262,6 +291,14 @@ int CircularBuffer::reset()
 int CircularBuffer::wait(int size)
 {
 	waitSem->acquire(size);
+	waitSem->release(size);
+	return 0;
+}
+
+int CircularBuffer::waitWr(int size)
+{
+	waitSemWr->acquire(size);
+	waitSemWr->release(size);
 	return 0;
 }
 

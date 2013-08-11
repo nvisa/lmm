@@ -21,8 +21,10 @@ public:
 	int totalSize();
 	int useData(int size);
 	int addData(const void *data, int size);
+	int addDataNoShift(const void *data, int size);
 	int reset();
 	int wait(int size);
+	int waitWr(int size);
 
 	void lock();
 	void unlock();
@@ -40,6 +42,7 @@ private:
 
 	QMutex *mutex;
 	QSemaphore *waitSem;
+	QSemaphore *waitSemWr;
 	Qt::HANDLE lockThread;
 };
 
