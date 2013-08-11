@@ -36,6 +36,7 @@ void LmmThread::resume()
 
 void LmmThread::run()
 {
+	id = QThread::currentThreadId();
 #ifdef Q_WS_QWS
 	mDebug("starting thread %s(%p)", qPrintable(name)
 		   , QThread::currentThreadId());
@@ -76,6 +77,15 @@ void LmmThread::stopAll()
 		qDebug("waiting thread %s", qPrintable(th->name));
 		th->wait(1000);
 	}
+}
+
+LmmThread * LmmThread::getById(void *id)
+{
+	foreach (LmmThread *th, threads) {
+		if (th->id == id)
+			return th;
+	}
+	return NULL;
 }
 
 LmmThread::Status LmmThread::getStatus()

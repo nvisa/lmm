@@ -21,6 +21,7 @@ public:
 	void resume();
 	virtual void run();
 	static void stopAll();
+	static LmmThread * getById(void *id);
 	QString threadName() { return name; }
 	Status getStatus();
 	int elapsed();
@@ -34,6 +35,7 @@ private:
 	Status st;
 	QTime time;
 	QMutex lock;
+	void *id;
 };
 
 #endif // LMMTHREAD_H
