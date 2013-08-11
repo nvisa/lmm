@@ -79,7 +79,7 @@ void LmmThread::stopAll()
 	}
 }
 
-LmmThread * LmmThread::getById(void *id)
+LmmThread * LmmThread::getById(Qt::HANDLE id)
 {
 	foreach (LmmThread *th, threads) {
 		if (th->id == id)

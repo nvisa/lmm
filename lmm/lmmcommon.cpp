@@ -59,7 +59,7 @@ void notifyRegistrars(int signal)
 static void signalHandler(int signalNumber)
 {
 	signalCount[signalNumber] += 1;
-	void *id = QThread::currentThreadId();
+	Qt::HANDLE id = QThread::currentThreadId();
 	if (signalCount[signalNumber] == 1) {
 		LmmThread *t = LmmThread::getById(id);
 		qWarning("main: Received signal %d, thread id is %p(%s), dbgtemp is %d",

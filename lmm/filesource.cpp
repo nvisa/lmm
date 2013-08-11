@@ -10,7 +10,6 @@
 FileSource::FileSource(QObject *parent) :
 	BaseLmmElement(parent)
 {
-	packState = 0;
 }
 
 int FileSource::read(int size)
