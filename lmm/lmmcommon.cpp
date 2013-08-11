@@ -7,6 +7,9 @@
 #ifdef CONFIG_DM365
 #include "dm365/platformcommondm365.h"
 #endif
+#ifdef CONFIG_DM8168
+#include "dm8168/platformcommondm8168.h"
+#endif
 #include "lmmthread.h"
 #ifdef CONFIG_FFMPEG
 #include <libavformat/avformat.h>
@@ -105,6 +108,9 @@ LmmCommon::LmmCommon(QObject *parent) :
 #endif
 #ifdef CONFIG_DM6446
 	plat = new PlatformCommonDM6446;
+#endif
+#ifdef CONFIG_DM8168
+	plat = new PlatformCommonDM8168;
 #endif
 }
 

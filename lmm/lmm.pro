@@ -32,7 +32,8 @@ SOURCES += \
     hardwareoperations.cpp \
     v4l2output.cpp \
     buffersyncer.cpp \
-    lmmbufferpool.cpp
+    lmmbufferpool.cpp \
+    dm8168/platformcommondm8168.cpp
 
 HEADERS  += \
     filesource.h \
@@ -62,7 +63,8 @@ HEADERS  += \
     platform_info.h \
     v4l2output.h \
     buffersyncer.h \
-    lmmbufferpool.h
+    lmmbufferpool.h \
+    dm8168/platformcommondm8168.h
 
 alsa {
     HEADERS += \
@@ -211,6 +213,19 @@ dm6446 {
 
 }
 
+dm8168 {
+	include(dm8168/tipaths.pri)
+	DEFINES += CONFIG_DM8168
+
+	xdc.files += dm8168/tipaths.pri
+	xdc.files += dm8168/dm8168.pri
+	xdc.path = /usr/local/include/lmm/dm8168
+	CONFIG += arm
+
+	OTHER_FILES += \
+		dm365/dm8168.pri \
+}
+
 armv5te {
     CONFIG += arm
 }
@@ -249,6 +264,8 @@ for(h, HEADERS) {
 OTHER_FILES += \
     build_config.pri \
     lmm.pri \
+    dm8168/tipaths.pri \
+    dm8168/dm8168.pri
 
 #Add make targets for checking version info
 VersionCheck.commands = @$$PWD/checkversion.sh $$PWD
