@@ -333,6 +333,7 @@ BaseLmmElement::RunningState BaseLmmElement::getState()
 int BaseLmmElement::setState(BaseLmmElement::RunningState s)
 {
 	state = s;
+	return 0;
 }
 
 /**
