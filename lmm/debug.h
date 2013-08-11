@@ -47,8 +47,9 @@ static inline unsigned int __totalTimePassed()
 #else
 #define __debug(__mes, __list, __class, __place, arg...) { \
 	if (__list.size() == 0 || \
-		__list.contains(__class->metaObject()->className())) \
-			qDebug(__mes, __place, ##arg); }
+		__list.contains(__class->metaObject()->className())) { \
+			qDebug(__mes, __place, ##arg); } \
+	}
 #define __debug_fast qDebug
 #endif
 
@@ -81,6 +82,7 @@ static inline unsigned int __totalTimePassed()
 #ifdef INFO
 #define mInfo(mes, arg...) __debug("%s: " mes, __dbg_classes_info, this, __PRETTY_FUNCTION__, ##arg)
 #define fInfo(mes, arg...) __debug_fast("%s: " mes, __PRETTY_FUNCTION__, ##arg)
+#define oInfo(_other, mes, arg...) __debug("%s: " mes, __dbg_classes_info, _other, __PRETTY_FUNCTION__, ##arg)
 #define infoMessagesAvailable() 1
 #else
 #define mInfo(mes, arg...) do { if (0) qDebug(mes, ##arg); } while (0)
