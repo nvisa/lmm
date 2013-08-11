@@ -20,6 +20,7 @@
 
 #include <signal.h>
 
+#include <QMap>
 #include <QThread>
 #include <QThreadPool>
 
@@ -32,6 +33,7 @@ LmmCommon LmmCommon::inst;
 int dbgtemp = 0;
 static 	bool quitOnSigInt = true;
 static QList<BaseLmmElement *> registeredElementsForPipe;
+static QMap<int, QList<BaseLmmElement *> > registeredElements;
 
 void LmmCommon::platformCleanUp()
 {
@@ -47,12 +49,22 @@ void LmmCommon::platformInit()
 		inst.plat->platformInit();
 }
 
+void notifyRegistrars(int signal)
+{
+	const QList<BaseLmmElement *> list = registeredElements[signal];
+	foreach (BaseLmmElement *el, list)
+		el->signalReceived(signal);
+}
+
 static void signalHandler(int signalNumber)
 {
 	signalCount[signalNumber] += 1;
-	if (signalCount[signalNumber] == 1)
-		qWarning("main: Received signal %d, thread id is %p, dbgtemp is %d",
-				 signalNumber, QThread::currentThreadId(), dbgtemp);
+	void *id = QThread::currentThreadId();
+	if (signalCount[signalNumber] == 1) {
+		LmmThread *t = LmmThread::getById(id);
+		qWarning("main: Received signal %d, thread id is %p(%s), dbgtemp is %d",
+				 signalNumber, id, t ? qPrintable(t->threadName()) : "main", dbgtemp);
+	}
 	if (signalNumber == SIGSEGV) {
 		LmmThread::stopAll();
 		LmmCommon::platformCleanUp();
@@ -64,7 +76,7 @@ static void signalHandler(int signalNumber)
 			qDebug("sigint clean-up done, exiting");
 			exit(0);
 		} else
-			qDebug("console is active, use 'exit' command");
+			qDebug("%s: sigint is not active", __func__);
 	} else if (signalNumber == SIGTERM) {
 		LmmThread::stopAll();
 		LmmCommon::platformCleanUp();
@@ -76,7 +88,12 @@ static void signalHandler(int signalNumber)
 	} else if (signalNumber == SIGPIPE) {
 		foreach (BaseLmmElement *el, registeredElementsForPipe)
 			el->signalReceived(signalNumber);
+	} else {
+		LmmThread::stopAll();
+		LmmCommon::platformCleanUp();
+		exit(0);
 	}
+	notifyRegistrars(signalNumber);
 }
 
 LmmCommon::LmmCommon(QObject *parent) :
@@ -118,6 +135,14 @@ int LmmCommon::installSignalHandlers(bool exitOnSigInt)
 	sigaction(SIGTERM, &sigInstaller, NULL);
 	sigaction(SIGABRT, &sigInstaller, NULL);
 	sigaction(SIGPIPE, &sigInstaller, NULL);
+	sigaction(SIGBUS, &sigInstaller, NULL);
+	sigaction(SIGFPE, &sigInstaller, NULL);
+	return 0;
+}
+
+int LmmCommon::registerForSignal(int signal, BaseLmmElement *el)
+{
+	registeredElements[signal] << el;
 	return 0;
 }
 
