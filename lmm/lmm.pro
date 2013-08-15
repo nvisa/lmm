@@ -33,7 +33,7 @@ SOURCES += \
     v4l2output.cpp \
     buffersyncer.cpp \
     lmmbufferpool.cpp \
-    dm8168/platformcommondm8168.cpp
+	udpsource.cpp \
 
 HEADERS  += \
     filesource.h \
@@ -64,7 +64,7 @@ HEADERS  += \
     v4l2output.h \
     buffersyncer.h \
     lmmbufferpool.h \
-    dm8168/platformcommondm8168.h
+	udpsource.h \
 
 alsa {
     HEADERS += \
@@ -213,9 +213,43 @@ dm6446 {
 
 }
 
+omx {
+	DEFINES += CONFIG_OMX
+	SOURCES += \
+		omx/baseomxelement.cpp \
+		omx/omxdecoder.cpp \
+		omx/omxdisplayoutput.cpp \
+		omx/omxscaler.cpp \
+
+	HEADERS += \
+		omx/baseomxelement.h \
+		omx/omxdecoder.h \
+		omx/omxdisplayoutput.h \
+		omx/omxscaler.h \
+}
+
+gstreamer {
+	DEFINES += CONFIG_GSTREAMER
+
+	SOURCES += \
+		gstreamer/lmmgstpipeline.cpp\
+
+	HEADERS += \
+		gstreamer/lmmgstpipeline.h \
+
+}
+
 dm8168 {
 	include(dm8168/tipaths.pri)
 	DEFINES += CONFIG_DM8168
+
+	SOURCES += \
+		dm8168/dm8168videocontroller.cpp \
+		dm8168/platformcommondm8168.cpp \
+
+	HEADERS += \
+		dm8168/dm8168videocontroller.h \
+		dm8168/platformcommondm8168.h \
 
 	xdc.files += dm8168/tipaths.pri
 	xdc.files += dm8168/dm8168.pri
