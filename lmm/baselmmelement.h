@@ -26,8 +26,8 @@ public:
 		PAUSED,
 	};
 	explicit BaseLmmElement(QObject *parent = 0);
-	int addBuffer(RawBuffer buffer);
-	int addBufferBlocking(RawBuffer buffer);
+	virtual int addBuffer(RawBuffer buffer);
+	virtual int addBufferBlocking(RawBuffer buffer);
 	virtual RawBuffer nextBuffer();
 	virtual RawBuffer nextBuffer(int ch);
 	virtual RawBuffer nextBufferBlocking(int ch);
@@ -83,6 +83,8 @@ protected:
 	virtual void calculateFps();
 	RunningState getState();
 	int setState(RunningState s);
+	virtual int checkSizeLimits();
+	virtual void checkAndWakeInputWaiters();
 private:
 	QMap<QString, QVariant> parameters;
 
@@ -96,8 +98,6 @@ private:
 	QList<QSemaphore *> bufsem;
 	QList<QSemaphore *> inbufsem;
 
-	int checkSizeLimits();
-	void checkAndWakeInputWaiters();
 };
 
 #endif // BASELMMELEMENT_H

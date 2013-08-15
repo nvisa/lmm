@@ -83,7 +83,6 @@
 	bos bir RawBuffer dondurur. Bu durum bazi durumlarda istenen davranis olmayabilir.
 	Ornegin bu multi-threaded bir uygulamada kullanilirken arzu edilen davranis bicimi
 	bu fonksiyonlarin bir buffer gelene kadar ya da yer acilana kadar uyumasidir.
-
 	Bunun icin blocking API'yi kullanabilirsiniz. addBufferBlocking() ve
 	nextBufferBlocking() fonksiyonlari karsilik geldikleri fonksiyonlarin uyuyan
 	versiyonlaridir. Eger yeterli yer yoksa addBufferBlocking() fonksiyonu yer acilana
@@ -350,6 +349,7 @@ int BaseLmmElement::checkSizeLimits()
 	int size = 0;
 	foreach (RawBuffer buf, inputBuffers)
 		size += buf.size();
+	mInfo("size=%d total=%d", size, totalInputBufferSize);
 	if (size >= totalInputBufferSize)
 		return -ENOSPC;
 	return 0;
