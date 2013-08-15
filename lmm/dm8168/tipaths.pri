@@ -249,6 +249,8 @@ QMAKE_CXXFLAGS += -I"$${EZSDK_INSTALL_DIR}/linux-devkit/arm-none-linux-gnueabi/u
 	-I"$${EZSDK_INSTALL_DIR}/linux-devkit/arm-none-linux-gnueabi/usr/include/glib-2.0/" \
 	-I"$${EZSDK_INSTALL_DIR}/linux-devkit/arm-none-linux-gnueabi/usr/lib/glib-2.0/include" \
 	-I"$${EZSDK_INSTALL_DIR}/component-sources/xdctools_3_23_03_53/packages/" \
+	-I"$${EZSDK_INSTALL_DIR}/board-support/linux-2.6.37-psp04.04.00.01/include" \
+	-I"$${EZSDK_INSTALL_DIR}/board-support/linux-2.6.37-psp04.04.00.01/arch/arm/mach-omap2/include" \
 	-DMULTICHANNEL_OPT=1 -Dxdc_target_name__=GCArmv5T -Dxdc_target_types__=gnu/targets/arm/std.h  -Dxdc_bld__profile_debug  -Dxdc_bld__vers_1_0_4_3_3  -DGlobal_appTerminate=0 -D_VIDEO_M3_DYNAMIC_CONFIG -DGlobal_GrpxDssMsgHeapId=6 -DGlobal_TilerHeapId=7 -D_LOCAL_CORE_a8host_     -D_LOCAL_CORE_a8host_ -D_REMOTE_omxbase_ -D_REMOTE_vdec_ -D_REMOTE_server_ -D_REMOTE_scheduler_ -D_REMOTE_domx_ -D_REMOTE_domx_delegates_shmem_ -D_REMOTE_omxcore_ -D_REMOTE_omxbase_ -D_REMOTE_vfcc_ -D_REMOTE_vfpc_ -D_REMOTE_vfdc_ -D_REMOTE_ctrl_ -D_REMOTE_domx_ -D_REMOTE_domx_delegates_shmem_ -D_REMOTE_omxcore_ -D_BUILD_omxbase_ -D_BUILD_vdec_ -D_BUILD_server_ -D_BUILD_scheduler_ -D_BUILD_domx_ -D_BUILD_domx_delegates_shmem_ -D_BUILD_omxcore_ -D_BUILD_omxbase_ -D_BUILD_vfcc_ -D_BUILD_vfpc_ -D_BUILD_vfdc_ -D_BUILD_ctrl_ -D_BUILD_domx_ -D_BUILD_domx_delegates_shmem_ -D_BUILD_omxcore_  -DMAX_RESOLUTION_HD -DDOMX_CORE_REMOTEDUCATIHOST -DVC_APPS -DCODEC_H264DEC -DTI_816X_BUILD -DPLATFORM_EVM_SI -DADD_FBDEV_SUPPORT
 
 
