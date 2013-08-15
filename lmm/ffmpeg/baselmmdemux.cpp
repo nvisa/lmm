@@ -360,6 +360,7 @@ RawBuffer BaseLmmDemux::nextVideoBuffer()
 		sentBufferCount++;
 		RawBuffer buf =  videoBuffers.takeFirst();
 		outputLock.unlock();
+		calculateFps();
 		return buf;
 	}
 	outputLock.unlock();
