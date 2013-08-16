@@ -34,6 +34,8 @@ SOURCES += \
     buffersyncer.cpp \
     lmmbufferpool.cpp \
 	udpsource.cpp \
+	baselmmparser.cpp \
+	h264parser.cpp \
 
 HEADERS  += \
     filesource.h \
@@ -65,6 +67,8 @@ HEADERS  += \
     buffersyncer.h \
     lmmbufferpool.h \
 	udpsource.h \
+	baselmmparser.h \
+	h264parser.h \
 
 alsa {
     HEADERS += \
