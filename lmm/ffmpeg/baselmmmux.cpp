@@ -334,8 +334,12 @@ void BaseLmmMux::muxNext()
 			pckt.pts = pckt.dts = packetTimestamp();
 			mInfo("writing next frame %d %lld", buf.size(), pckt.dts);
 			av_write_frame(context, &pckt);
-			if (!muxOutputOpened)
+			if (!muxOutputOpened) {
+				outputLock.lock();
 				outputBuffers << buf;
+				releaseOutputSem(0);
+				outputLock.unlock();
+			}
 			muxedBufferCount++;
 		}
 		inputLock.unlock();
