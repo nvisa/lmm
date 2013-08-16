@@ -165,7 +165,7 @@ static void printErrorMsg(XDAS_Int32 errorCode)
 		printf("IH264VENC_ERR_MEALGO\n");
 		break;
 
-	case IH264VENC_ERR_UNRESTRICTEDMV :
+    case IH264VENC_ERR_UNRESTRICTEDMV :
 		printf("IH264VENC_ERR_UNRESTRICTEDMV\n");
 		break;
 
@@ -285,7 +285,7 @@ static void printErrorMsg(XDAS_Int32 errorCode)
 		printf("IH264VENC_ERR_MAXBITRATE_CVBR\n");
 		break;
 
-	case IH264VENC_ERR_MVSADOUTFLAG :
+    case IH264VENC_ERR_MVSADOUTFLAG :
 		printf("IH264VENC_ERR_MVSADOUTFLAG\n");
 		break;
 
@@ -577,9 +577,9 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 
 	outBufSizeArray[0]                  = Buffer_getSize(hOutBuf);
 
-	outBufDesc.numBufs                  = 1;
-	outBufDesc.bufs	                    = outPtr;
-	outBufDesc.bufSizes                 = outBufSizeArray;
+    outBufDesc.numBufs                  = 1;
+    outBufDesc.bufs	                    = outPtr;
+    outBufDesc.bufSizes                 = outBufSizeArray;
 
 	if (genFinf) {
 		outBufSizeArray[1]                  = Buffer_getSize(finfg[0]);
@@ -936,7 +936,7 @@ int H264Encoder::addSeiData(QByteArray *ba, const RawBuffer source)
 	out << (qint32)sentBufferCount;
 	out << (qint32)SystemInfo::getFreeMemory();
 	out << (qint32)getFps();
-	out << (qint32)source.getBufferParameter("latencyId").toInt();
+    out << (qint32)source.getBufferParameter("latencyId").toInt();
 	for (int i = 0; i < customSeiData.size(); i++)
 		out << (qint32)customSeiData[i];
 	return out.device()->pos() - start;
@@ -963,7 +963,7 @@ int H264Encoder::setDefaultParams(IH264VENC_Params *params)
 	params->encQuality = 2;
 	params->enableARM926Tcm = 0;
 	params->enableDDRbuff = 0;
-	params->sliceMode = 0;
+    params->sliceMode = 0;
 	params->numTemporalLayers = 0;
 	params->svcSyntaxEnable = 0;
 	params->EnableLongTermFrame = 0;
