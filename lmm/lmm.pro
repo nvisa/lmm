@@ -36,6 +36,7 @@ SOURCES += \
 	udpsource.cpp \
 	baselmmparser.cpp \
 	h264parser.cpp \
+    rtp/rtppacketizer.cpp
 
 HEADERS  += \
     filesource.h \
@@ -69,6 +70,7 @@ HEADERS  += \
 	udpsource.h \
 	baselmmparser.h \
 	h264parser.h \
+    rtp/rtppacketizer.h
 
 alsa {
     HEADERS += \
