@@ -17,6 +17,9 @@
 #include <libavfilter/avfilter.h>
 #include <libavutil/avutil.h>
 #endif
+#ifdef CONFIG_GSTREAMER
+#include <gst/gst.h>
+#endif
 #include "baselmmelement.h"
 #include "hardwareoperations.h"
 #include "debug.h"
@@ -119,7 +122,7 @@ int LmmCommon::init()
 	QThreadPool::globalInstance()->setMaxThreadCount(5);
 	initDebug();
 	platformInit();
-#ifdef USE_GSTREAMER
+#ifdef CONFIG_GSTREAMER
 	gst_init(NULL, NULL);
 #endif
 	return 0;
