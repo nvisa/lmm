@@ -17,6 +17,7 @@
 #include <ti/sdo/dmai/BufferGfx.h>
 
 #include <errno.h>
+#include <math.h>
 
 #include <QDateTime>
 
@@ -442,13 +443,14 @@ H264Encoder::H264Encoder(QObject *parent) :
 	DmaiEncoder(parent)
 {
 	setDynamicParams = false;
-	seiBufferSize = 1024;
+	seiBufferSize = 4096 * 4;
 	dirty = false;
 	encodeFps = 30;
 	profileId = 0;
 	useMetadata = false;
 	genMetadata = false;
 	frameinfoInterface = NULL;
+	mVecs = MV_NONE;
 	enablePictureTimingSei(true);
 }
 
@@ -522,7 +524,8 @@ typedef struct Venc1_Object {
 #define GETIDX(x) ((x) - 1)
 
 static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle hOutBuf, int seiDataSize, int *seiDataOffset
-						  , int timeStamp, struct ROI_Interface *roi, bool genFinf, void *finf, Buffer_Handle *finfg)
+						  , int timeStamp, struct ROI_Interface *roi, bool genFinf, void *finf, Buffer_Handle *finfg,
+						  bool genMotionVectors)
 {
 	IVIDEO1_BufDescIn       inBufDesc;
 	XDM_BufDesc             outBufDesc;
@@ -584,6 +587,12 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 	if (genFinf) {
 		outBufSizeArray[1]                  = Buffer_getSize(finfg[0]);
 		outPtr[1]							= Buffer_getUserPtr(finfg[0]);
+		outBufDesc.numBufs					+= 1;
+	}
+
+	if (genMotionVectors) {
+		outBufSizeArray[1]                  = Buffer_getSize(finfg[1]);
+		outPtr[1]							= Buffer_getUserPtr(finfg[1]);
 		outBufDesc.numBufs					+= 1;
 	}
 
@@ -718,9 +727,38 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	int seiDataOffset;
 	if (useMetadata)
 		mDebug("multi-channel encoding video height is %d", ((FrameInfo_Interface *)frameinfoInterface)->hight);
+
+	/*
+	 * we overlay previous motion vectors on the next frame if motion
+	 * vector overlay is desired
+	 */
+	if (mVecs == MV_OVERLAY || mVecs == MV_BOTH) {
+		uchar *vdata = (uchar *)source.constData();
+		uchar motVecBuf[80 * 45];
+		uchar *motVectBuf = (uchar *)Buffer_getUserPtr(metadataBuf[1]);
+		qint16 *vbuf16 = (qint16 *)motVectBuf;
+		qint32 *vbuf32 = (qint32 *)motVectBuf;
+		for (int j = 0; j < imageHeight / 16; j++) {
+			int off = j * imageWidth / 16;
+			for (int i = 0; i < imageWidth / 16; i++) {
+				short hd = vbuf16[off * 4 + i * 4];
+				short vd = vbuf16[off * 4 + i * 4 + 1];
+				int sad = vbuf32[off * 2 + i * 2 + 1];
+				motVecBuf[off + i] = sqrt(hd * hd + vd * vd);
+			}
+		}
+		/* show motion vectors */
+		for (int i = 0; i < 80; i++) {
+			for (int j = 0; j < 45; j++) {
+				int tmp = motVecBuf[j * 80 + i];
+				vdata[j * 1280 + i] =  tmp > 16 ? tmp : 0;
+			}
+		}
+	}
 	if (Venc1_processL(hCodec, buffer, hDstBuf, seiBufferSize, &seiDataOffset,
 					   timeStamp, roiParameter((uchar *)Buffer_getUserPtr(buffer)),
-					   genMetadata, useMetadata ? frameinfoInterface : NULL, metadataBuf) < 0) {
+					   genMetadata, useMetadata ? frameinfoInterface : NULL, metadataBuf,
+					   mVecs != MV_NONE) < 0) {
 		mDebug("Failed to encode video buffer");
 		BufferGfx_getDimensions(buffer, &dim);
 		mInfo("colorspace=%d dims: x=%d y=%d width=%d height=%d linelen=%d",
@@ -763,8 +801,34 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		QByteArray ba(seidata + 20, seiBufferSize - 20);
 		QTime t2; t2.start();
 		seiBufferSize = addSeiData(&ba, source) + 20;
+		memcpy(seidata + 20, ba.constData(), seiBufferSize - 20);
+		if ((mVecs == MV_SEI || mVecs == MV_BOTH)) {
+			/*
+			 * There are limits on the MV insertion,
+			 *
+			 *	1.	Putting it on every frame is not possible,
+			 *		bitrate will be too hight
+			 *	2.	One MV doesn't fit on one SEI frame, there is
+			 *		an undocumented limit on encoders maximum seidata
+			 *		size. So we need to split MVs into 2(at least)
+			 *
+			 *	So we send MVs at every 30 frame, first one containing
+			 *	half of the MV buffer and the next frame containing
+			 *	the remaining.
+			 */
+			int fcnt = sentBufferCount % 30;
+			if (fcnt == 0) /* open space for mv on next frame */
+				seiBufferSize += motVectSize / 2;
+			else if (fcnt == 1) { /* write half-of-mv to this frame */
+				uchar *motVectBuf = (uchar *)Buffer_getUserPtr(metadataBuf[1]);
+				memcpy(seidata + 20 + seiBufferSize - 20, motVectBuf, motVectSize / 2);
+				seiBufferSize += motVectSize / 2;
+			} else if (fcnt == 2) { /* write other half-of-mv to this frame */
+				uchar *motVectBuf = (uchar *)Buffer_getUserPtr(metadataBuf[1]);
+				memcpy(seidata + 20 + seiBufferSize - 20, motVectBuf + motVectSize / 2, motVectSize / 2);
+			}
+		}
 		mInfo("sei addition took %d msecs", t2.elapsed());
-		memcpy(seidata + 20, ba.constData(), ba.size());
 	}
 	RawBuffer buf = DmaiBuffer("video/x-h264", hDstBuf, this);
 	buf.addBufferParameters(source.bufferParameters());
@@ -912,7 +976,20 @@ int H264Encoder::startCodec()
 
 	Buffer_Attrs attr = Buffer_Attrs_DEFAULT;
 	frameinfoInterface = new FrameInfo_Interface;
+
 	metadataBuf[0] = Buffer_create(sizeof(FrameInfo_Interface), &attr);
+
+	if (mVecs != MV_NONE) {
+		VIDENC1_Status status;
+		status.size = sizeof(IH264VENC_Status);
+		if (VIDENC1_control(Venc1_getVisaHandle(hCodec), XDM_GETBUFINFO,
+							&dynH264Params->videncDynamicParams, &status) != VIDENC1_EOK) {
+			qDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
+			printErrorMsg(status.extendedError);
+		}
+		metadataBuf[1] = Buffer_create(status.bufInfo.minOutBufSize[1], &attr);
+		motVectSize = status.bufInfo.minOutBufSize[1];
+	}
 
 	return 0;
 }
@@ -959,6 +1036,8 @@ int H264Encoder::setDefaultParams(IH264VENC_Params *params)
 	params->transform8x8FlagInterFrame = 0;
 	params->enableVUIparams = enableVUIParams;
 	params->meAlgo = 0;
+	if (mVecs != MV_NONE)
+		params->meAlgo = 1;
 	params->seqScalingFlag = 0;
 	params->encQuality = 2;
 	params->enableARM926Tcm = 0;
@@ -1018,6 +1097,8 @@ int H264Encoder::setDefaultDynamicParams(IH264VENC_Params *params)
 	dynH264Params->enablePicTimSEI = enablePicTimSei;
 	dynH264Params->perceptualRC = 0;
 	dynH264Params->mvSADoutFlag = 0;
+	if (mVecs != MV_NONE)
+		dynH264Params->mvSADoutFlag = 1;
 	dynH264Params->resetHDVICPeveryFrame = 0;
 	dynH264Params->enableROI = 0;
 	dynH264Params->metaDataGenerateConsume = 0;

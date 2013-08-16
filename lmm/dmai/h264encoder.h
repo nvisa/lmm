@@ -14,6 +14,13 @@ class H264Encoder : public DmaiEncoder
 {
 	Q_OBJECT
 public:
+	enum MotionVectors {
+		MV_NONE,
+		MV_SEI,
+		MV_OVERLAY,
+		MV_BOTH,
+	};
+
 	explicit H264Encoder(QObject *parent = 0);
 	int flush();
 
@@ -37,6 +44,8 @@ public:
 	void * getMetadata() { return frameinfoInterface; }
 	void setMetadata(void * data);
 	virtual void setFrameRate(float fps);
+	void setMotionVectorExtraction(MotionVectors mv) { mVecs = mv; }
+	MotionVectors getMotionVectorExtraction() { return mVecs; }
 
 	/* sei information */
 	void setCustomSeiFieldCount(int value);
@@ -66,6 +75,8 @@ private:
 	bool useMetadata;
 	Buffer_Handle metadataBuf[3];
 	void *frameinfoInterface;
+	MotionVectors mVecs;
+	int motVectSize;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec();
