@@ -16,7 +16,6 @@ SOURCES += \
     streamtime.cpp \
     fileoutput.cpp \
     lmmcommon.cpp \
-    cameraplayer.cpp \
     v4l2input.cpp \
     fboutput.cpp \
     debugserver.cpp \
@@ -48,7 +47,6 @@ HEADERS  += \
     streamtime.h \
     fileoutput.h \
     lmmcommon.h \
-    cameraplayer.h \
     v4l2input.h \
     fboutput.h \
     textoverlay.h \
@@ -84,39 +82,32 @@ alsa {
 
 mad {
     SOURCES += maddecoder.cpp \
-        mp3player.cpp \
         mp3demux.cpp \
 
     HEADERS += maddecoder.h \
-        mp3player.h \
         mp3demux.h \
     DEFINES += CONFIG_MAD
 }
 
 ffmpeg {
     HEADERS += \
-        ffmpeg/avidecoder.h \
         ffmpeg/avidemux.h \
         ffmpeg/mpegtsdemux.h \
         ffmpeg/baselmmdemux.h \
         ffmpeg/baselmmmux.h \
         ffmpeg/mp4mux.h \
         ffmpeg/avimux.h \
-        ffmpeg/dvbplayer.h \
         ffmpeg/ffcompat.h \
-		baselmmplayer.h \
 		ffmpeg/ffmpegbuffer.h \
 
     SOURCES += \
-        ffmpeg/avidecoder.cpp \
+		ffmpeg/avidemux.cpp \
         ffmpeg/baselmmdemux.cpp \
         ffmpeg/mpegtsdemux.cpp \
         ffmpeg/avidemux.cpp \
         ffmpeg/baselmmmux.cpp \
         ffmpeg/mp4mux.cpp \
         ffmpeg/avimux.cpp \
-        ffmpeg/dvbplayer.cpp \
-		baselmmplayer.cpp \
 		ffmpeg/ffmpegbuffer.cpp \
 
     ffmpeg_rtp {
