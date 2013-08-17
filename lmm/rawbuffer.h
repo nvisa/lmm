@@ -93,6 +93,8 @@ public:
 	void setStreamBufferNo(int val);
 	int streamBufferNo() const;
 	friend class RawBufferData;
+
+	virtual bool operator==(const RawBuffer& other);
 signals:
 	
 public slots:

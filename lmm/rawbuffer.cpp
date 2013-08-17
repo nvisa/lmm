@@ -251,6 +251,13 @@ int RawBuffer::streamBufferNo() const
 	return d->bufferNo;
 }
 
+bool RawBuffer::operator ==(const RawBuffer &other)
+{
+	if (other.d->rawData == d->rawData)
+		return true;
+	return false;
+}
+
 RawBufferData::~RawBufferData()
 {
 	if (rawData && !refData)
