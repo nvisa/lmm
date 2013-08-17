@@ -35,7 +35,11 @@ SOURCES += \
 	udpsource.cpp \
 	baselmmparser.cpp \
 	h264parser.cpp \
-    rtp/rtppacketizer.cpp
+    rtp/rtppacketizer.cpp \
+    baseplayer.cpp \
+    tools/remoteconsole.cpp \
+    tools/basesettinghandler.cpp \
+    tools/lmmsettinghandler.cpp
 
 HEADERS  += \
     filesource.h \
@@ -68,7 +72,11 @@ HEADERS  += \
 	udpsource.h \
 	baselmmparser.h \
 	h264parser.h \
-    rtp/rtppacketizer.h
+    rtp/rtppacketizer.h \
+    baseplayer.h \
+    tools/remoteconsole.h \
+    tools/basesettinghandler.h \
+    tools/lmmsettinghandler.h
 
 alsa {
     HEADERS += \
