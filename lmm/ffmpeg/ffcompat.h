@@ -25,4 +25,10 @@ static void avformat_free_context(AVFormatContext *c)
 #define CODEC_TYPE_AUDIO AVMEDIA_TYPE_AUDIO
 #endif
 
+#ifndef URL_RDONLY
+#define dump_format av_dump_format
+#define av_write_header(_x) avformat_write_header(_x, NULL)
+#define URL_WRONLY 0
+#endif
+
 #endif // FFCOMPAT_H

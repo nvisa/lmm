@@ -13,6 +13,7 @@ class CircularBuffer;
 class StreamTime;
 struct URLContext;
 struct AVCodecContext;
+struct AVIOContext;
 
 class BaseLmmDemux : public BaseLmmElement
 {
@@ -66,6 +67,9 @@ protected:
 	bool foundStreamInfo;
 	int demuxNumber;
 	QMutex conlock;
+	int avioBufferSize;
+	uchar *avioBuffer;
+	AVIOContext *avioCtx;
 
 	/* derived stats */
 	qint64 audioTimeBaseN;		/* in nano secs */

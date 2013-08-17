@@ -18,6 +18,7 @@ extern "C" {
 
 static QList<BaseLmmMux *> muxPriv;
 
+#ifdef URL_RDONLY
 static int lmmUrlOpen(URLContext *h, const char *url, int flags)
 {
 	int mux;
@@ -53,6 +54,28 @@ static int lmmUrlClose(URLContext *h)
 {
 	return ((BaseLmmMux *)h->priv_data)->closeUrl(h);
 }
+
+#else
+
+static int lmmUrlRead(void *opaque, uint8_t *buf, int buf_size)
+{
+	return ((BaseLmmMux *)opaque)->readPacket(buf, buf_size);
+}
+
+static int lmmUrlWrite(void *opaque, uint8_t *buf, int buf_size)
+{
+	return ((BaseLmmMux *)opaque)->writePacket(buf, buf_size);
+}
+
+static int64_t lmmUrlSeek(void *opaque, int64_t offset, int whence)
+{
+	Q_UNUSED(opaque);
+	Q_UNUSED(offset);
+	Q_UNUSED(whence);
+	return -EINVAL;
+}
+
+#endif
 
 /**
 	\class BaseLmmMux
@@ -107,6 +130,7 @@ BaseLmmMux::BaseLmmMux(QObject *parent) :
 	}
 
 	muxNumber = muxPriv.size();
+#ifdef URL_RDONLY
 	/* register one channel for input, we need this to find stream info */
 	URLProtocol *lmmUrlProtocol = new URLProtocol;
 	memset(lmmUrlProtocol , 0 , sizeof(URLProtocol));
@@ -134,7 +158,15 @@ BaseLmmMux::BaseLmmMux(QObject *parent) :
 	lmmUrlProtocol->url_seek = lmmUrlSeek;
 	lmmUrlProtocol->url_close = lmmUrlClose;
 	av_register_protocol2(lmmUrlProtocol, sizeof (URLProtocol));
+#else
+	avioBufferSizeIn = 4096;
+	avioBufferIn = (uchar *)av_malloc(avioBufferSizeIn);
+	avioCtxIn = avio_alloc_context(avioBufferIn, avioBufferSizeIn, 0, this, lmmUrlRead, lmmUrlWrite, lmmUrlSeek);
 
+	avioBufferSizeOut = 4096;
+	avioBufferOut = (uchar *)av_malloc(avioBufferSizeOut);
+	avioCtxOut = avio_alloc_context(avioBufferOut, avioBufferSizeOut, 0, this, lmmUrlRead, lmmUrlWrite, lmmUrlSeek);
+#endif
 	/* add us to mux list of static handlers */
 	muxPriv << this;
 
@@ -191,7 +223,12 @@ int BaseLmmMux::findInputStreamInfo()
 			return -ENOMEM;
 		}
 		QString pname = QString("lmmmuxi%1://muxvideoinput").arg(muxNumber);
+#ifdef URL_RDONLY
 		int err = av_open_input_file(&inputContext, qPrintable(pname), inputFmt, 0, NULL);
+#else
+		inputContext->pb = avioCtxIn;
+		int err = avformat_open_input(&inputContext, qPrintable(pname), inputFmt, NULL);
+#endif
 		if (err) {
 			mDebug("error opening input file %s", qPrintable(pname));
 			return err;
@@ -246,6 +283,7 @@ void BaseLmmMux::printInputInfo()
 {
 	if (!inputContext)
 		return;
+#ifdef URL_RDONLY
 	qDebug() << "class" << inputContext->av_class;
 	qDebug() << "iformat" << inputContext->iformat;
 	qDebug() << "oformat" << inputContext->iformat;
@@ -303,6 +341,7 @@ void BaseLmmMux::printInputInfo()
 	PRINFO(videoStream->codec->has_b_frames);
 	PRINFO(videoStream->time_base.num);
 	PRINFO(videoStream->time_base.den);
+#endif
 }
 
 void BaseLmmMux::muxNext()
@@ -549,7 +588,9 @@ int BaseLmmMux::initMuxer()
 	codec->sample_aspect_ratio = st->sample_aspect_ratio = av_d2q(0, 255); //ffmpeg does so
 	codec->time_base.num = timebaseNum();
 	codec->time_base.den = timebaseDenom();
+#ifdef URL_RDONLY
 	st->stream_copy = 1;
+#endif
 	st->pts.num = codec->time_base.num;
 	st->pts.den = codec->time_base.den;
 	st->time_base.num = codec->time_base.num;
@@ -558,11 +599,14 @@ int BaseLmmMux::initMuxer()
 		codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 	mInfo("output codec parameters adjusted");
 
+#ifdef URL_RDONLY
 	context->timestamp = 0;
-
 	context->preload = 0.5 * AV_TIME_BASE; //from ffmpeg source
-	context->max_delay = 0.7 * AV_TIME_BASE; //from ffmpeg source
 	context->loop_output = 0;
+#else
+	context->probesize = 0.5 * AV_TIME_BASE; //from ffmpeg source
+#endif
+	context->max_delay = 0.7 * AV_TIME_BASE; //from ffmpeg source
 	context->flags |= AVFMT_FLAG_NONBLOCK;
 	//av_dump_format(context, 0, qPrintable(sourceUrlName), 1);
 

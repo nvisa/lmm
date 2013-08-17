@@ -11,6 +11,7 @@ struct AVStream;
 struct AVOutputFormat;
 struct AVInputFormat;
 struct URLContext;
+struct AVIOContext;
 
 class BaseLmmMux : public BaseLmmElement
 {
@@ -41,6 +42,12 @@ protected:
 	AVInputFormat *inputFmt;
 	bool foundStreamInfo;
 	int muxedBufferCount;
+	int avioBufferSizeIn;
+	int avioBufferSizeOut;
+	uchar *avioBufferIn;
+	uchar *avioBufferOut;
+	AVIOContext *avioCtxIn;
+	AVIOContext *avioCtxOut;
 
 	int videoStreamIndex;
 	int audioStreamIndex;

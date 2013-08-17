@@ -11,6 +11,7 @@
 extern "C" {
 	#include "libavformat/avformat.h"
 	#include "libavformat/avio.h" /* for URLContext on x86 */
+	#include "ffcompat.h"
 }
 
 static void deletePacket(AVPacket *packet)
@@ -22,6 +23,7 @@ static void deletePacket(AVPacket *packet)
 
 static QList<BaseLmmDemux *> demuxPriv;
 
+#ifdef URL_RDONLY
 static int lmmUrlOpen(URLContext *h, const char *url, int flags)
 {
 	int mux;
@@ -56,6 +58,26 @@ static int lmmUrlClose(URLContext *h)
 	return ((BaseLmmDemux *)h->priv_data)->closeUrl(h);
 }
 
+#else
+static int lmmUrlRead(void *opaque, uint8_t *buf, int buf_size)
+{
+	return ((BaseLmmDemux *)opaque)->readPacket(buf, buf_size);
+}
+
+static int lmmUrlWrite(void *opaque, uint8_t *buf, int buf_size)
+{
+	return ((BaseLmmDemux *)opaque)->writePacket(buf, buf_size);
+}
+
+static int64_t lmmUrlSeek(void *opaque, int64_t offset, int whence)
+{
+	Q_UNUSED(opaque);
+	Q_UNUSED(offset);
+	Q_UNUSED(whence);
+	return -EINVAL;
+}
+#endif
+
 BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	BaseLmmElement(parent)
 {
@@ -74,6 +96,8 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	addNewOutputSemaphore();
 
 	demuxNumber = demuxPriv.size();
+
+#ifdef URL_RDONLY
 	/* register one channel for input, we need this to find stream info */
 	URLProtocol *lmmUrlProtocol = new URLProtocol;
 	memset(lmmUrlProtocol , 0 , sizeof(URLProtocol));
@@ -87,7 +111,11 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	lmmUrlProtocol->url_seek = lmmUrlSeek;
 	lmmUrlProtocol->url_close = lmmUrlClose;
 	av_register_protocol2(lmmUrlProtocol, sizeof (URLProtocol));
-
+#else
+	avioBufferSize = 4096;
+	avioBuffer = (uchar *)av_malloc(avioBufferSize);
+	avioCtx = avio_alloc_context(avioBuffer, avioBufferSize, 0, this, lmmUrlRead, lmmUrlWrite, lmmUrlSeek);
+#endif
 	/* add us to mux list of static handlers */
 	demuxPriv << this;
 }
@@ -110,7 +138,19 @@ int BaseLmmDemux::findStreamInfo()
 {
 	conlock.lock();
 	/* context can be allocated by us or libavformat */
+#ifdef URL_RDONLY
 	int err = av_open_input_file(&context, qPrintable(sourceUrlName), NULL, 0, NULL);
+#else
+	if (sourceUrlName.contains("lmmdemuxi")) {
+		context = avformat_alloc_context();
+		if (!context) {
+			mDebug("error allocating input context");
+			return -ENOMEM;
+		}
+		context->pb = avioCtx;
+	}
+	int err = avformat_open_input(&context, qPrintable(sourceUrlName), NULL, NULL);
+#endif
 	if (err) {
 		mDebug("cannot open input file %s, errorno is %d", qPrintable(sourceUrlName), err);
 		conlock.unlock();
