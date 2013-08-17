@@ -107,6 +107,7 @@ ffmpeg {
         ffmpeg/avimux.h \
         ffmpeg/ffcompat.h \
 		ffmpeg/ffmpegbuffer.h \
+		ffmpeg/ffmpegdecoder.h \
 
     SOURCES += \
 		ffmpeg/avidemux.cpp \
@@ -117,6 +118,7 @@ ffmpeg {
         ffmpeg/mp4mux.cpp \
         ffmpeg/avimux.cpp \
 		ffmpeg/ffmpegbuffer.cpp \
+		ffmpeg/ffmpegdecoder.cpp \
 
     ffmpeg_rtp {
         HEADERS += \
