@@ -45,15 +45,15 @@ int RtpPacketizer::streamBlocking()
 	return stream();
 }
 
-int RtpPacketizer::sendNalUnit(const uint8_t *buf, int size)
+int RtpPacketizer::sendNalUnit(const uchar *buf, int size)
 {
 	uchar rtpbuf[maxPayloadSize + 12];
 	if (size <= maxPayloadSize) {
 		memcpy(rtpbuf + 12, buf, size);
 		sendRtpData(rtpbuf, size, 1);
 	} else {
-		uint8_t type = buf[0] & 0x1F;
-		uint8_t nri = buf[0] & 0x60;
+		uchar type = buf[0] & 0x1F;
+		uchar nri = buf[0] & 0x60;
 		uchar *dstbuf = rtpbuf + 12;
 		dstbuf[0] = 28;        /* FU Indicator; Type = 28 ---> FU-A */
 		dstbuf[0] |= nri;

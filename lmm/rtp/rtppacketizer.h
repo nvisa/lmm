@@ -33,7 +33,7 @@ public:
 	void setFrameRate(float fps) { frameRate = fps; }
 protected:
 	virtual int packetTimestamp();
-	int sendNalUnit(const uint8_t *buf, int size);
+	int sendNalUnit(const uchar *buf, int size);
 	void sendRtpData(uchar *buf, int size, int last);
 	int maxPayloadSize;
 	int seq;
