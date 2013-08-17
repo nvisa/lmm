@@ -314,6 +314,16 @@ bool BaseLmmElement::isRunning()
 	return false;
 }
 
+int BaseLmmElement::getInputSemCount(int ch)
+{
+	return inbufsem[ch]->available();
+}
+
+int BaseLmmElement::getOutputSemCount(int ch)
+{
+	return bufsem[ch]->available();
+}
+
 void BaseLmmElement::calculateFps()
 {
 	fpsBufferCount++;

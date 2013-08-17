@@ -56,6 +56,8 @@ public:
 	void setEnabled(bool val);
 	bool isEnabled();
 	bool isRunning();
+	int getInputSemCount(int ch);
+	int getOutputSemCount(int ch);
 signals:
 	void needFlushing();
 	void newBufferAvailable();
