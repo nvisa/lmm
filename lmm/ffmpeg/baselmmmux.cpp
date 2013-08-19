@@ -4,15 +4,12 @@
 #include "rawbuffer.h"
 #include "streamtime.h"
 #include "debug.h"
-#include "ffcompat.h"
 
 #include <errno.h>
 
-#include <QSemaphore>
-
 extern "C" {
-	#include "libavformat/avformat.h"
-	#include "libavformat/avio.h" /* for URLContext on x86 */
+	#include <libavformat/avformat.h>
+	#include <libavformat/avio.h> /* for URLContext on x86 */
 	#include "ffcompat.h"
 }
 
@@ -191,7 +188,7 @@ int BaseLmmMux::start()
 
 int BaseLmmMux::stop()
 {
-	inputLock.lock();
+	mutex.lock();
 	if (context) {
 		av_write_trailer(context);
 		for(uint i = 0; i < context->nb_streams; i++) {
@@ -208,7 +205,7 @@ int BaseLmmMux::stop()
 		av_close_input_file(inputContext);
 		inputContext = NULL;
 	}
-	inputLock.unlock();
+	mutex.unlock();
 
 	return BaseLmmElement::stop();
 }
@@ -226,7 +223,7 @@ int BaseLmmMux::findInputStreamInfo()
 #ifdef URL_RDONLY
 		int err = av_open_input_file(&inputContext, qPrintable(pname), inputFmt, 0, NULL);
 #else
-		inputContext->pb = avioCtxIn;
+		inputContext->pb = (AVIOContext *)avioCtxIn;
 		int err = avformat_open_input(&inputContext, qPrintable(pname), inputFmt, NULL);
 #endif
 		if (err) {
@@ -344,45 +341,41 @@ void BaseLmmMux::printInputInfo()
 #endif
 }
 
-void BaseLmmMux::muxNext()
+int BaseLmmMux::processBuffer(RawBuffer buf)
 {
 	if (!foundStreamInfo) {
 		if (findInputStreamInfo()) {
 			mDebug("error in input stream info");
 		} else {
-			inputLock.lock();
-			while (inputInfoBuffers.size())
-				inputBuffers.prepend(inputInfoBuffers.takeLast());
+			/* TODO: We lose input info buffers here, prior to BaseLmmElement
+			 * re-work we had this:
+				while (inputInfoBuffers.size())
+					inputBuffers.prepend(inputInfoBuffers.takeLast());
+			*/
+			mutex.lock();
 			int err = initMuxer();
-			inputLock.unlock();
+			mutex.unlock();
 			if (err)
-				return;
+				return err;
 			foundStreamInfo = true;
 			emit inputInfoFound();
 		}
 	} else {
-		inputLock.lock();
-		if (inputBuffers.count() > 0) {
-			mInfo("muxing next packet");
-			RawBuffer buf = inputBuffers.takeFirst();
-			AVPacket pckt;
-			av_init_packet(&pckt);
-			pckt.stream_index = 0;
-			pckt.data = (uint8_t *)buf.constData();
-			pckt.size = buf.size();
-			pckt.pts = pckt.dts = packetTimestamp();
-			mInfo("writing next frame %d %lld", buf.size(), pckt.dts);
-			av_write_frame(context, &pckt);
-			if (!muxOutputOpened) {
-				outputLock.lock();
-				outputBuffers << buf;
-				releaseOutputSem(0);
-				outputLock.unlock();
-			}
-			muxedBufferCount++;
+		mInfo("muxing next packet");
+		AVPacket pckt;
+		av_init_packet(&pckt);
+		pckt.stream_index = 0;
+		pckt.data = (uint8_t *)buf.constData();
+		pckt.size = buf.size();
+		pckt.pts = pckt.dts = packetTimestamp();
+		mInfo("writing next frame %d %lld", buf.size(), pckt.dts);
+		av_write_frame(context, &pckt);
+		if (muxOutputOpened) {
+			newOutputBuffer(0, buf);
 		}
-		inputLock.unlock();
+		muxedBufferCount++;
 	}
+	return 0;
 }
 
 qint64 BaseLmmMux::packetTimestamp()
@@ -416,25 +409,6 @@ int BaseLmmMux::sync()
 }
 
 /**
- * @brief Bir sonraki kareyi kodlar, giris tamponunun hazir olmasini bekler.
- * @return Hata yoksa '0', hata durumunda negatif hata kodu.
- *
- * Bu fonksiyonu is parcaciklari icinden cagirabilirsiniz. Eger hazirda
- * bekleyen giris tamponu yoksa bu fonksiyonu giris tamponu QSemaphore
- * kullanarak bekler. Eger uyumayan versiyonuna ihtiyac duyarsaniz muxNext()
- * fonksiyonunu kullanabilirsiniz.
- *
- * \sa muxNext()
- */
-int BaseLmmMux::muxNextBlocking()
-{
-	if (!acquireInputSem(0))
-		return -EINVAL;
-	muxNext();
-	return 0;
-}
-
-/**
  * @brief Muxer ciktisini secmek icin kullanabilirsiniz.
  * @param filename Dosya ismi.
  * @return Hata yoksa '0', hata durumunda negatif hata kodu.
@@ -458,10 +432,7 @@ int BaseLmmMux::setOutputFilename(QString filename)
 int BaseLmmMux::writePacket(const uint8_t *buffer, int buf_size)
 {
 	RawBuffer buf(mimeType(), (void *)buffer, buf_size);
-	outputLock.lock();
-	outputBuffers << buf;
-	outputLock.unlock();
-	releaseOutputSem(0);
+	newOutputBuffer(0, buf);
 	return buf_size;
 }
 
@@ -476,9 +447,8 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 	mInfo("will read %d bytes into ffmpeg buffer", buf_size);
 	/* This routine may be called before the stream started */
 	int copied = 0, left = buf_size;
-	inputLock.lock();
-	while (inputBuffers.size()) {
-		RawBuffer buf = inputBuffers.takeFirst();
+	RawBuffer buf = takeInputBuffer(0);
+	while (buf.size()) {
 		mInfo("using next input buffer, copied=%d left=%d buf.size()=%d", copied, left, buf.size());
 		if (buf.size() > left) {
 			memcpy(buffer + copied, buf.constData(), left);
@@ -486,7 +456,7 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 			RawBuffer iibuf(mimeType(), (void *)buf.constData(), left);
 			inputInfoBuffers << iibuf;
 			RawBuffer newbuf(mimeType(), (uchar *)buf.constData() + left, buf.size() - left);
-			inputBuffers.prepend(newbuf);
+			prependInputBuffer(0, newbuf);
 			copied += left;
 			left -= left;
 			break;
@@ -496,8 +466,8 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 			left -= buf.size();
 			inputInfoBuffers << buf;
 		}
+		buf = takeInputBuffer(0);
 	}
-	inputLock.unlock();
 	mInfo("read %d bytes into ffmpeg buffer", copied);
 	return copied;
 }

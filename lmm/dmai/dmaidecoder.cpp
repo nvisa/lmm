@@ -1,6 +1,5 @@
 #include <QThread>
 #include <QVariant>
-#include <QSemaphore>
 
 #include "dmaidecoder.h"
 #include "dmai/dmaibuffer.h"
@@ -85,117 +84,8 @@ void DmaiDecoder::releaseFreeBuffers()
 	}
 }
 
-int DmaiDecoder::decodeOne()
+int DmaiDecoder::decode(RawBuffer bufsrc)
 {
-	mInfo("starting decode operation");
-	RawBuffer buf;
-	while (inputBuffers.size()) {
-		bool decodeOk = true;
-		/*
-		 * if too much data is accumulated on the circ buffer
-		 * then do not push more
-		 */
-		Buffer_Handle hBuf = BufTab_getFreeBuf(hBufTab);
-		if (!hBuf) {
-			/*
-			 * This is not an error, probably buffers are not displayed yet
-			 * and we don't need to decode any more
-			 */
-			mInfo("cannot get new buf from buftab");
-			return -ENOENT;
-		}
-		if (circBuf->usedSize() < circBuf->totalSize() / 4) {
-			buf = inputBuffers.takeFirst();
-			if (!buf.size() && circBuf->usedSize() == 0) {
-				BufTab_freeBuf(hBuf);
-				return -ENOENT;
-			}
-			if (buf.size()) {
-				mDebug("adding %d bytes to circular buffer", buf.size());
-				if (circBuf->addData(buf.constData(), buf.size()))
-					mDebug("error adding data to circular buffer");
-			}
-		}
-		if (bufferMapping.contains(Buffer_getId(hBuf)))
-			mDebug("ooppppsss! buffer mapping exists");
-		bufferMapping.insert(Buffer_getId(hBuf), buf);
-		/* Make sure the whole buffer is used for output */
-		BufferGfx_resetDimensions(hBuf);
-
-		/* Create an input buffer for decoder, reference circular buffer data */
-		Buffer_Attrs bAttrs;
-		Buffer_getAttrs(circBufData, &bAttrs);
-		bAttrs.reference = TRUE;
-		Buffer_Handle hCircBufWindow = Buffer_create(circBuf->usedSize(), &bAttrs);
-		Buffer_setUserPtr(hCircBufWindow, (Int8 *)circBuf->getDataPointer());
-		Buffer_setNumBytesUsed(hCircBufWindow, circBuf->usedSize());
-
-		mInfo("invoking the video decoder with data size %d", circBuf->usedSize());
-		int ret = Vdec2_process(hCodec, hCircBufWindow, hBuf);
-		int consumed = Buffer_getNumBytesUsed(hCircBufWindow);
-		if (ret < 0) {
-			if (consumed <= 0)
-				consumed = 1;
-			BufTab_freeBuf(hBuf);
-			mDebug("failed to decode frame");
-			decodeOk = false;
-		} else if (ret > 0) {
-			mDebug("frame decoded with success code %d", ret);
-			if (ret == Dmai_EBITERROR) {
-				BufTab_freeBuf(hBuf);
-				if (consumed == 0)
-					mDebug("fatal dmai bit error");
-			}
-		}
-		Buffer_delete(hCircBufWindow);
-
-		mInfo("decoder used %d bytes out of %d", consumed, circBuf->usedSize());
-		circBuf->useData(circBuf->usedSize());
-		if (!decodeOk)
-			break;
-		Buffer_Handle outbuf = Vdec2_getDisplayBuf(hCodec);
-		if (outbuf) {
-			BufferGfx_Dimensions dim;
-			BufferGfx_getDimensions(outbuf, &dim);
-			mInfo("decoded frame width=%d height=%d", int(dim.width), (int)dim.height);
-			DmaiBuffer newbuf("video/x-raw-yuv", outbuf, this);
-			newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_UYVY);
-			newbuf.setStreamBufferNo(decodeCount++);
-
-			mInfo("handling timestamps");
-			/* handle timestamps */
-			int id = Buffer_getId(outbuf);
-			if (bufferMapping.contains(id)) {
-				RawBuffer refbuf = bufferMapping[id];
-				bufferMapping.remove(id);
-				newbuf.setPts(refbuf.getPts());
-			} else
-				mDebug("oooppppsss no buffer mapping");
-
-			outputBuffers << newbuf;
-			/* set the resulting buffer in use by video output */
-			Buffer_setUseMask(outbuf, Buffer_getUseMask(outbuf) | OUTPUT_USE);
-		} else
-			mDebug("unable to find a free display buffer");
-
-		releaseFreeBuffers();
-		break;
-	}
-
-	mInfo("decode finished");
-	return 0;
-}
-
-int DmaiDecoder::decodeBlocking()
-{
-	if (!acquireInputSem(0))
-		return -EINVAL;
-
-	inputLock.lock();
-	RawBuffer bufsrc = inputBuffers.takeFirst();
-	mInfo("decoding one more frame, %d in the queue", inputBuffers.size());
-	inputLock.unlock();
-
 	int duration = bufsrc.getDuration();
 	DmaiBuffer buf = DmaiBuffer("video/mpegdmai", bufsrc.constData(), bufsrc.size(), NULL);
 	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer").toInt();
@@ -246,10 +136,7 @@ int DmaiDecoder::decodeBlocking()
 
 		/* set the resulting buffer in use by video output */
 		Buffer_setUseMask(outbuf, Buffer_getUseMask(outbuf) | OUTPUT_USE);
-		outputLock.lock();
-		outputBuffers << newbuf;
-		releaseOutputSem(0);
-		outputLock.unlock();
+		newOutputBuffer(0, newbuf);
 	}
 
 	releaseFreeBuffers();

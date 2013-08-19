@@ -39,11 +39,8 @@ int H264Parser::parse(const uchar *data, int size)
 				RawBuffer buf2("video/x-h264", packSize);
 				memcpy(buf2.data(), data, packSize);
 				if (h264Mode == H264_OUTPUT_NALU) {
-					outputLock.lock();
-					outputBuffers << buf2;
+					newOutputBuffer(0, buf2);
 					mInfo("new nal packet with size %d %d", packSize, i);
-					releaseOutputSem(0);
-					outputLock.unlock();
 				} else {
 					nalBuffers << buf2;
 				}

@@ -178,9 +178,12 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 
 	bufsem  << new QSemaphore;
 	inbufsem << new QSemaphore;
+	inBufQueue << QList<RawBuffer>();
+	outBufQueue << QList<RawBuffer>();
+	outWc << new QWaitCondition();
 }
 
-int BaseLmmElement::addBuffer(RawBuffer buffer)
+int BaseLmmElement::addBuffer(int ch, RawBuffer buffer)
 {
 	if (buffer.size() == 0)
 		return -EINVAL;
@@ -190,14 +193,14 @@ int BaseLmmElement::addBuffer(RawBuffer buffer)
 		inputLock.unlock();
 		return err;
 	}
-	inputBuffers << buffer;
+	inBufQueue[ch] << buffer;
 	inputLock.unlock();
-	inbufsem[0]->release();
+	inbufsem[ch]->release();
 	receivedBufferCount++;
 	return 0;
 }
 
-int BaseLmmElement::addBufferBlocking(RawBuffer buffer)
+int BaseLmmElement::addBufferBlocking(int ch, RawBuffer buffer)
 {
 	if (!buffer.size())
 		return -EINVAL;
@@ -206,33 +209,30 @@ int BaseLmmElement::addBufferBlocking(RawBuffer buffer)
 		/* no space left on device, wait */
 		inputWaiter.wait(&inputLock);
 	}
-	inputBuffers << buffer;
+	inBufQueue[ch] << buffer;
 	inputLock.unlock();
-	inbufsem[0]->release();
+	inbufsem[ch]->release();
 	receivedBufferCount++;
 	return 0;
 }
 
-RawBuffer BaseLmmElement::nextBuffer()
+RawBuffer BaseLmmElement::nextBuffer(int ch)
 {
 	RawBuffer buf;
 	outputLock.lock();
-	if (outputBuffers.size() != 0)
-		buf = outputBuffers.takeFirst();
+	if (outBufQueue[ch].size() != 0)
+		buf = outBufQueue[ch].takeFirst();
 	outputLock.unlock();
 	if (buf.size()) {
 		sentBufferCount++;
 		calculateFps();
 		updateOutputTimeStats();
 		checkAndWakeInputWaiters();
+		if (outputWakeThreshold && bufsem[ch]->available() < outputWakeThreshold)
+			outWc[ch]->wakeAll();
 	}
 
 	return buf;
-}
-
-RawBuffer BaseLmmElement::nextBuffer(int)
-{
-	return nextBuffer();
 }
 
 RawBuffer BaseLmmElement::nextBufferBlocking(int ch)
@@ -242,8 +242,36 @@ RawBuffer BaseLmmElement::nextBufferBlocking(int ch)
 	return nextBuffer(ch);
 }
 
+int BaseLmmElement::process()
+{
+	inbufsem[0]->tryAcquire(1);
+	RawBuffer buf = takeInputBuffer(0);
+	if (buf.size())
+		return processBuffer(buf);
+	return 0;
+}
+
+int BaseLmmElement::processBlocking()
+{
+	if (!acquireInputSem(0))
+		return -EINVAL;
+	RawBuffer buf = takeInputBuffer(0);
+	if (!buf.size())
+		return -ENOENT;
+	return processBuffer(buf);
+}
+
+int BaseLmmElement::processBlocking(int ch, RawBuffer buf)
+{
+	int err = addBuffer(ch, buf);
+	if (err)
+		return err;
+	return processBlocking();
+}
+
 int BaseLmmElement::start()
 {
+	outputWakeThreshold = 0;
 	receivedBufferCount = sentBufferCount = 0;
 	elementFps = fpsBufferCount = 0;
 	fpsTiming->start();
@@ -263,8 +291,10 @@ int BaseLmmElement::stop()
 	flush();
 	for (int i = 0; i < inbufsem.size(); i++)
 		inbufsem[i]->release(50);
-	for (int i = 0; i < bufsem.size(); i++)
+	for (int i = 0; i < bufsem.size(); i++) {
 		bufsem[i]->release(50);
+		outWc[i]->wakeAll();
+	}
 	return 0;
 }
 
@@ -276,7 +306,7 @@ void BaseLmmElement::printStats()
 int BaseLmmElement::getInputBufferCount()
 {
 	inputLock.lock();
-	int size = inputBuffers.size();
+	int size = inBufQueue[0].size();
 	inputLock.unlock();
 	return size;
 }
@@ -284,7 +314,7 @@ int BaseLmmElement::getInputBufferCount()
 int BaseLmmElement::getOutputBufferCount()
 {
 	outputLock.lock();
-	int size = outputBuffers.size();
+	int size = outBufQueue[0].size();
 	outputLock.unlock();
 	return size;
 }
@@ -292,8 +322,8 @@ int BaseLmmElement::getOutputBufferCount()
 int BaseLmmElement::getAvailableDuration()
 {
 	int availDuration = 0;
-	for (int i = 0; i < inputBuffers.size(); i++)
-		availDuration += inputBuffers.at(i).getDuration();
+	for (int i = 0; i < inBufQueue[0].size(); i++)
+		availDuration += inBufQueue[0].at(i).getDuration();
 	return availDuration;
 }
 
@@ -357,7 +387,7 @@ int BaseLmmElement::checkSizeLimits()
 	if (!totalInputBufferSize)
 		return 0; //no size checking
 	int size = 0;
-	foreach (RawBuffer buf, inputBuffers)
+	foreach (RawBuffer buf, inBufQueue[0])
 		size += buf.size();
 	mInfo("size=%d total=%d", size, totalInputBufferSize);
 	if (size >= totalInputBufferSize)
@@ -372,24 +402,48 @@ void BaseLmmElement::checkAndWakeInputWaiters()
 
 	inputLock.lock();
 	int size = 0;
-	foreach (RawBuffer buf, inputBuffers)
+	foreach (RawBuffer buf, inBufQueue[0])
 		size += buf.size();
 	inputLock.unlock();
 	if (size < totalInputBufferSize - inputHysterisisSize)
 		inputWaiter.wakeAll();
 }
 
+int BaseLmmElement::newOutputBuffer(int ch, RawBuffer buf)
+{
+	outputLock.lock();
+	outBufQueue[ch] << buf;
+	releaseOutputSem(ch);
+	outputLock.unlock();
+	return 0;
+}
+
+int BaseLmmElement::waitOutputBuffers(int ch, int lessThan)
+{
+	if (getState() == STOPPED)
+		return -EINVAL;
+	outputLock.lock();
+	outputWakeThreshold = lessThan;
+	outWc[ch]->wait(&outputLock);
+	outputLock.unlock();
+	if (getState() == STOPPED)
+		return -EINVAL;
+	return 0;
+}
+
 int BaseLmmElement::flush()
 {
 	inputLock.lock();
-	inputBuffers.clear();
-	for (int i = 0; i < inbufsem.size(); i++)
+	for (int i = 0; i < inbufsem.size(); i++) {
 		inbufsem[i]->acquire(inbufsem[i]->available());
+		inBufQueue[i].clear();
+	}
 	inputLock.unlock();
 	outputLock.lock();
-	outputBuffers.clear();
-	for (int i = 0; i < bufsem.size(); i++)
+	for (int i = 0; i < bufsem.size(); i++) {
 		bufsem[i]->acquire(bufsem[i]->available());
+		outBufQueue[i].clear();
+	}
 	outputLock.unlock();
 	return 0;
 }
@@ -420,7 +474,7 @@ void BaseLmmElement::updateOutputTimeStats()
 {
 	if (lastOutputTimeStat) {
 		int diff = streamTime->getFreeRunningTime() - lastOutputTimeStat;
-		mInfo("time diff in %s: curr=%d ave=%d", metaObject()->className(), diff, outputTimeStat->avg);
+		mLog("time diff in %s: curr=%d ave=%d", metaObject()->className(), diff, outputTimeStat->avg);
 		outputTimeStat->addStat(diff);
 	}
 	lastOutputTimeStat = streamTime->getFreeRunningTime();
@@ -447,6 +501,32 @@ bool BaseLmmElement::acquireOutputSem(int ch)
 	return true;
 }
 
+RawBuffer BaseLmmElement::takeInputBuffer(int ch)
+{
+	inputLock.lock();
+	RawBuffer buf;
+	if (inBufQueue[ch].size())
+		buf = inBufQueue[ch].takeFirst();
+	inputLock.unlock();
+	return buf;
+}
+
+int BaseLmmElement::appendInputBuffer(int ch, RawBuffer buf)
+{
+	inputLock.lock();
+	inBufQueue[ch].append(buf);
+	inputLock.unlock();
+	return 0;
+}
+
+int BaseLmmElement::prependInputBuffer(int ch, RawBuffer buf)
+{
+	inputLock.lock();
+	inBufQueue[ch].prepend(buf);
+	inputLock.unlock();
+	return 0;
+}
+
 int BaseLmmElement::releaseInputSem(int ch, int count)
 {
 	inbufsem[ch]->release(count);
@@ -459,7 +539,15 @@ int BaseLmmElement::releaseOutputSem(int ch, int count)
 	return 0;
 }
 
-void BaseLmmElement::addNewOutputSemaphore()
+void BaseLmmElement::addNewInputChannel()
+{
+	inbufsem << new QSemaphore;
+	inBufQueue << QList<RawBuffer>();
+}
+
+void BaseLmmElement::addNewOutputChannel()
 {
 	bufsem << new QSemaphore;
+	outBufQueue << QList<RawBuffer>();
+	outWc << new QWaitCondition();
 }

@@ -76,14 +76,9 @@ void DM365VideoOutput::setVideoOutput(Lmm::VideoOutput out)
 	 outputType = out;
 	 if (getState() == STARTED) {
 		 /* we already adjusted output, need to re-adjust */
-		 inputLock.lock();
-		 outputLock.lock();
-		 inputBuffers.clear();
-		 outputBuffers.clear();
+		 flush();
 		 stop();
 		 start();
-		 outputLock.unlock();
-		 inputLock.unlock();
 	 }
 }
 

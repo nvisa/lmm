@@ -41,8 +41,6 @@ public:
 	int start();
 	int stop();
 	int flush();
-	int encodeNext();
-	int encodeNextBlocking();
 	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 
 	/* control API */
@@ -80,6 +78,7 @@ protected:
 	virtual int startCodec();
 	virtual int stopCodec();
 	virtual int encode(Buffer_Handle buffer, const RawBuffer source);
+	int processBuffer(RawBuffer buf);
 
 private:
 	IVIDENC1_DynamicParams *dynParams;

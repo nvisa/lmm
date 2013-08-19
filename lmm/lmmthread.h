@@ -4,7 +4,6 @@
 #include <QTime>
 #include <QMutex>
 #include <QThread>
-#include <QSemaphore>
 
 class LmmThread : public QThread
 {
@@ -31,7 +30,6 @@ protected:
 	virtual int operation() = 0;
 private:
 	QString name;
-	QSemaphore pauser;
 	Status st;
 	QTime time;
 	QMutex lock;

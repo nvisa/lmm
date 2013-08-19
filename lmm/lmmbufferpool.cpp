@@ -1,5 +1,7 @@
 #include "lmmbufferpool.h"
 
+#include <errno.h>
+
 /**
 	\class LmmBufferPool
 
@@ -27,6 +29,7 @@
 LmmBufferPool::LmmBufferPool(QObject *parent) :
 	QObject(parent)
 {
+	finalized = false;
 }
 
 LmmBufferPool::LmmBufferPool(int count, int size, QObject *parent) :
@@ -35,11 +38,13 @@ LmmBufferPool::LmmBufferPool(int count, int size, QObject *parent) :
 	for (int i = 0; i < count; i++) {
 		buffersFree << RawBuffer(QString("unknown"), (int)size, (BaseLmmElement *)this);
 	}
+	finalized = false;
 }
 
 int LmmBufferPool::addBuffer(RawBuffer buf)
 {
 	mutex.lock();
+	finalized = false;
 	buffersFree << buf;
 	mutex.unlock();
 	return 0;
@@ -61,23 +66,44 @@ int LmmBufferPool::freeBufferCount()
 	return cnt;
 }
 
-RawBuffer LmmBufferPool::take()
+RawBuffer LmmBufferPool::take(bool keepRef)
 {
+	if (finalized)
+		return RawBuffer();
 	mutex.lock();
-	if (buffersFree.size() == 0)
+	if (buffersFree.size() == 0) {
 		wc.wait(&mutex);
+		if (finalized) {
+			mutex.unlock();
+			return RawBuffer();
+		}
+	}
 	RawBuffer buf = buffersFree.takeFirst();
-	buffersUsed << buf;
+	if (keepRef)
+		buffersUsed << buf;
 	mutex.unlock();
 	return buf;
 }
 
 int LmmBufferPool::give(RawBuffer buf)
 {
+	if (finalized)
+		return -EINVAL;
 	mutex.lock();
 	buffersFree << buf;
 	buffersUsed.removeAll(buf);
 	mutex.unlock();
 	wc.wakeAll();
 	return 0;
+}
+
+void LmmBufferPool::finalize()
+{
+	mutex.lock();
+	finalized = true;
+	buffersFree.clear();
+	buffersUsed.clear();
+	mutex.unlock();
+	wc.wakeAll();
+	return;
 }

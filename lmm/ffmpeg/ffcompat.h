@@ -3,8 +3,8 @@
 #define FFCOMPAT_H
 
 extern "C" {
-	#include "libavformat/avformat.h"
-	#include "libavformat/avio.h"
+	#include <libavformat/avformat.h>
+	#include <libavformat/avio.h>
 }
 
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(52, 102, 0)

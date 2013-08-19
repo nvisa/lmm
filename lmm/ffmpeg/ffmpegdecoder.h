@@ -22,9 +22,11 @@ public:
 	virtual int setStream(AVCodecContext *stream);
 	virtual int startDecoding();
 	virtual int stopDecoding();
-	virtual int decode();
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &pars);
-
+protected:
+	int decode(RawBuffer buf);
+	void printMotionVectors(AVFrame *pict);
+	void print_vector(int x, int y, int dx, int dy);
 private:
 	AVCodec *codec;
 	AVCodecContext* codecCtx;

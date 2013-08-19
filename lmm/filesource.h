@@ -25,6 +25,8 @@ protected:
 	QString filename;
 	QFile *file;
 	QMutex fileLock;
+
+	int processBuffer(RawBuffer buf);
 };
 
 #endif // FILESOURCE_H

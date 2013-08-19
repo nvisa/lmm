@@ -27,10 +27,7 @@ int FileSource::read(int size)
 		memcpy(buf2.data(), buf.data(), len);
 		buf = buf2;
 	}
-	outputLock.lock();
-	outputBuffers << buf;
-	releaseOutputSem(0);
-	outputLock.unlock();
+	newOutputBuffer(0, buf);
 	return len;
 }
 
@@ -49,4 +46,9 @@ int FileSource::stop()
 		file->close();
 	fileLock.unlock();
 	return BaseLmmElement::stop();
+}
+
+int FileSource::processBuffer(RawBuffer)
+{
+	return -EINVAL;
 }

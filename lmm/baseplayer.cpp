@@ -13,11 +13,12 @@ BasePlayer::BasePlayer(QObject *parent) :
 	streamTime = new StreamTime;
 	connect(&timer, SIGNAL(timeout()), SLOT(timeout()));
 	BaseSettingHandler::addTarget(this);
+	timer.start(1000);
 }
 
 int BasePlayer::startElement(BaseLmmElement *el)
 {
-	mInfo("starting element %s", el->metaObject()->className());
+	mDebug("starting element %s", el->metaObject()->className());
 	el->setTotalInputBufferSize(0, 0);
 	el->flush();
 	el->setStreamTime(streamTime);
@@ -57,17 +58,27 @@ int BasePlayer::start()
 
 int BasePlayer::stop()
 {
+	if (getState() != STARTED)
+		return 0;
 	int err;
+
+	foreach (BaseLmmElement *el, elements) {
+		mDebug("stopping element %s", el->metaObject()->className());
+		el->stop();
+	}
+
+	const QList<LmmThread *> threads = getThreads();
+	foreach (LmmThread *th, threads) {
+		mDebug("stopping thread %s", qPrintable(th->threadName()));
+		th->stop();
+		th->wait();
+	}
+
 	err = stopPlayer();
 	if (err) {
 		mDebug("stop error %d", err);
 		return err;
 	}
-
-	/*foreach (BaseLmmElement *el, elements) {
-		mDebug("stopping element %s", el->metaObject()->className());
-		el->stop();
-	}*/
 
 	mDebug("playback stopped");
 	return BaseLmmElement::stop();
@@ -146,4 +157,9 @@ int BasePlayer::elementStarted(BaseLmmElement *el)
 RemoteConsole *BasePlayer::createManagementConsole()
 {
 	return new RemoteConsole(this);
+}
+
+int BasePlayer::processBuffer(RawBuffer)
+{
+	return 0;
 }

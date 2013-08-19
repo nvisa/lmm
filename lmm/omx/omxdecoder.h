@@ -5,7 +5,6 @@
 
 #include <QSize>
 #include <QMutex>
-#include <QSemaphore>
 
 typedef void* OMX_HANDLETYPE;
 struct OMX_CALLBACKTYPE;
@@ -20,11 +19,10 @@ public:
 	int setFrameSize(QSize sz);
 	void setTargetFps(int fps) { targetFps = fps; }
 	int execute();
-	int decodeBlocking();
 	int getVideoStride() { return videoStride; }
 	const QList< QPair<OMX_BUFFERHEADERTYPE *, int> > getDecoderBuffers();
 protected:
-	int decode();
+	int processBuffer(RawBuffer buf);
 	int startComponent();
 	int stopComponent();
 	OMX_HANDLETYPE getCompHandle() { return handleDec; }

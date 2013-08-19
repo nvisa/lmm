@@ -144,9 +144,7 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
-	outputLock.lock();
-	outputBuffers << buf;
-	outputLock.unlock();
+	newOutputBuffer(0, buf);
 
 	return 0;
 }

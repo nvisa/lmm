@@ -36,17 +36,14 @@ public:
 	explicit DmaiDecoder(codecType c,QObject *parent = 0);
 	~DmaiDecoder();
 
-	int decode() { return decodeOne(); }
-	int decodeOne();
-	int decodeBlocking();
 	int flush();
 
 	void aboutDeleteBuffer(const QMap<QString, QVariant> &);
 
 	static void initCodecEngine();
 	static void cleanUpDsp();
-signals:
-	
+protected:
+	int decode(RawBuffer bufsrc);
 public slots:
 private:
 	Engine_Handle hEngine;

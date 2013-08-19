@@ -11,7 +11,6 @@ class BaseLmmParser : public BaseLmmElement
 public:
 	explicit BaseLmmParser(QObject *parent = 0);
 	int parseBlocking();
-	virtual int addBuffer(RawBuffer buf);
 signals:
 	
 public slots:
@@ -19,6 +18,7 @@ protected:
 	CircularBuffer *circBuf;
 	QMutex shiftLock;
 
+	virtual int processBuffer(RawBuffer buf);
 	virtual int parse(const uchar *data, int size) = 0;
 };
 

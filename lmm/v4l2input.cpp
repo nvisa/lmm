@@ -15,7 +15,6 @@
 #include <sys/ioctl.h>
 #include <asm/types.h>
 
-#include <QSemaphore>
 #include <QTimer>
 #include <QTime>
 
@@ -329,9 +328,7 @@ bool V4l2Input::captureLoop()
 		newbuf.addBufferParameter("height", (int)captureHeight);
 		newbuf.addBufferParameter("v4l2Buffer", qVariantFromValue((void *)buffer));
 		newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_UYVY);
-		outputLock.lock();
-		outputBuffers << newbuf;
-		outputLock.unlock();
+		newOutputBuffer(0, newbuf);
 	}
 	return false;
 }

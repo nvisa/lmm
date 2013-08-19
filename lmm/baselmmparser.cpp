@@ -35,7 +35,7 @@ int BaseLmmParser::parseBlocking()
 	return err;
 }
 
-int BaseLmmParser::addBuffer(RawBuffer buf)
+int BaseLmmParser::processBuffer(RawBuffer buf)
 {
 	circBuf->lock();
 	int err = circBuf->addDataNoShift(buf.constData(), buf.size());
@@ -48,9 +48,8 @@ int BaseLmmParser::addBuffer(RawBuffer buf)
 		mDebug("waiting circular buffer for place");
 		circBuf->unlock();
 		circBuf->waitWr(buf.size());
-		return addBuffer(buf);
+		return processBuffer(buf);
 	} else
 		circBuf->unlock();
-	receivedBufferCount++;
 	return err;
 }

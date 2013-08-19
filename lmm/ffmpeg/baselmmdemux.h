@@ -9,11 +9,9 @@ struct AVPacket;
 struct AVFormatContext;
 struct AVStream;
 class RawBuffer;
-class CircularBuffer;
 class StreamTime;
 struct URLContext;
 struct AVCodecContext;
-struct AVIOContext;
 
 class BaseLmmDemux : public BaseLmmElement
 {
@@ -23,18 +21,11 @@ public:
 	virtual int setSource(QString filename);
 	virtual qint64 getTotalDuration();
 	virtual qint64 getCurrentPosition();
-	virtual RawBuffer nextAudioBuffer();
-	virtual RawBuffer nextAudioBufferBlocking();
-	virtual RawBuffer nextVideoBuffer();
-	virtual RawBuffer nextVideoBufferBlocking();
-	virtual int audioBufferCount();
-	virtual int videoBufferCount();
 	virtual int start();
 	virtual int stop();
 	virtual int seekTo(qint64 pos);
 	virtual int demuxOne();
-	virtual int demuxOneBlocking();
-	virtual int flush();
+	virtual int processBuffer(RawBuffer buf);
 	AVCodecContext * getVideoCodecContext();
 
 	void setAudioDemuxing(bool v) { demuxAudio = v; } /* TODO: clear existing buffers */
@@ -60,8 +51,6 @@ protected:
 	AVFormatContext *context;
 	AVStream *audioStream;
 	AVStream *videoStream;
-	QList<RawBuffer> audioBuffers;
-	QList<RawBuffer> videoBuffers;
 	bool demuxAudio;
 	bool demuxVideo;
 	bool foundStreamInfo;
@@ -69,7 +58,14 @@ protected:
 	QMutex conlock;
 	int avioBufferSize;
 	uchar *avioBuffer;
-	AVIOContext *avioCtx;
+	/*
+	 * In older FFmpeg releases AVIOContext is typedef to
+	 * anonymous struct so it is not possible to forward
+	 * declare here. This behaviour is fixed in later releases
+	 * but we define this as 'void *' to be compatiple with
+	 * old releases.
+	 */
+	void *avioCtx;
 
 	/* derived stats */
 	qint64 audioTimeBaseN;		/* in nano secs */

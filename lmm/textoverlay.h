@@ -47,7 +47,8 @@ public:
 	int setOverlayFieldText(int pos, QString text);
 	int start();
 	int stop();
-	int addBuffer(RawBuffer buffer);
+protected:
+	int processBuffer(RawBuffer buffer);
 signals:
 	
 public slots:

@@ -35,11 +35,8 @@ int OmxDecoder::setFrameSize(QSize sz)
 	return 0;
 }
 
-int OmxDecoder::decode()
+int OmxDecoder::processBuffer(RawBuffer buf)
 {
-	inputLock.lock();
-	RawBuffer buf = inputBuffers.takeFirst();
-	inputLock.unlock();
 	bufLock.lock();
 	OMX_BUFFERHEADERTYPE *omxBuf = NULL;
 	if (availBuffers.size()) {
@@ -79,13 +76,6 @@ int OmxDecoder::decode()
 	mInfo("new data with size %d passed to omx component", buf.size());
 
 	return 0;
-}
-
-int OmxDecoder::decodeBlocking()
-{
-	if (!acquireInputSem(0))
-		return -EINVAL;
-	return decode();
 }
 
 const QList<QPair<OMX_BUFFERHEADERTYPE *, int> > OmxDecoder::getDecoderBuffers()
@@ -473,10 +463,7 @@ void OmxDecoder::handleDispBuffer(OMX_BUFFERHEADERTYPE *omxBuf)
 	}
 	bufLock.unlock();
 
-	outputLock.lock();
-	outputBuffers << buf;
-	releaseOutputSem(0);
-	outputLock.unlock();
+	newOutputBuffer(0, buf);
 }
 
 void OmxDecoder::handleInputBufferDone(OMX_BUFFERHEADERTYPE *omxBuf)

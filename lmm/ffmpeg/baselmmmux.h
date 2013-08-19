@@ -11,7 +11,6 @@ struct AVStream;
 struct AVOutputFormat;
 struct AVInputFormat;
 struct URLContext;
-struct AVIOContext;
 
 class BaseLmmMux : public BaseLmmElement
 {
@@ -22,7 +21,6 @@ public:
 	virtual int start();
 	virtual int stop();
 	virtual int sync();
-	virtual int muxNextBlocking();
 	virtual int setOutputFilename(QString filename);
 
 	/* ffmpeg url routines */
@@ -46,8 +44,16 @@ protected:
 	int avioBufferSizeOut;
 	uchar *avioBufferIn;
 	uchar *avioBufferOut;
-	AVIOContext *avioCtxIn;
-	AVIOContext *avioCtxOut;
+	/*
+	 * In older FFmpeg releases AVIOContext is typedef to
+	 * anonymous struct so it is not possible to forward
+	 * declare here. This behaviour is fixed in later releases
+	 * but we define this as 'void *' to be compatiple with
+	 * old releases.
+	 */
+	void *avioCtxIn;
+	void *avioCtxOut;
+	QMutex mutex;
 
 	int videoStreamIndex;
 	int audioStreamIndex;
@@ -63,7 +69,7 @@ protected:
 	virtual int findInputStreamInfo();
 	virtual QString mimeType() = 0;
 	void printInputInfo();
-	void muxNext();
+	int processBuffer(RawBuffer buf);
 	virtual qint64 packetTimestamp();
 	virtual int timebaseNum();
 	virtual int timebaseDenom();

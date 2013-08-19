@@ -36,7 +36,6 @@ public:
 	void setInputFps(float fps);
 	void setOutputFps(float fps);
 	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
-	RawBuffer nextBuffer(int ch);
 
 	int setSize(int ch, QSize sz);
 	QSize getSize(int ch);
@@ -56,6 +55,7 @@ private:
 	virtual int putFrame(struct v4l2_buffer * buffer);
 	virtual v4l2_buffer * getFrame();
 	bool captureLoop();
+	int processBuffer(RawBuffer);
 
 	float inputFps;
 	float outputFps;
@@ -75,8 +75,6 @@ private:
 	bool ch2VerFlip;
 
 	QSemaphore bufsFree;
-	QList<RawBuffer> outputBuffers2;
-
 	Capture_Handle hCapture;
 };
 

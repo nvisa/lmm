@@ -79,7 +79,7 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	pixFormat = V4L2_PIX_FMT_NV12;
 	hCapture = NULL;
 	captureBufferCount = 8;
-	addNewOutputSemaphore();
+	addNewOutputChannel();
 
 	ch1HorFlip = false;
 	ch1VerFlip = false;
@@ -106,19 +106,6 @@ void DM365CameraInput::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 		mInfo("buffer %p use count is zero, giving back to kernel driver", buffer);
 		V4l2Input::aboutDeleteBuffer(params);
 	}
-}
-
-RawBuffer DM365CameraInput::nextBuffer(int ch)
-{
-	if (ch == 0)
-		return BaseLmmElement::nextBuffer();
-
-	RawBuffer buf;
-	outputLock.lock();
-	if (outputBuffers2.size() != 0)
-		buf = outputBuffers2.takeFirst();
-	outputLock.unlock();
-	return buf;
 }
 
 int DM365CameraInput::setSize(int ch, QSize sz)
@@ -283,6 +270,7 @@ int DM365CameraInput::openCamera()
 		return err;
 	}
 
+	mDebug("buffers are allocated, starting streaming");
 	return startStreaming();
 }
 
@@ -453,18 +441,19 @@ bool DM365CameraInput::captureLoop()
 		sbuf.addBufferParameter("fps", outputFps);
 		useCount[buffer->index]++;
 
-		outputLock.lock();
-		outputBuffers << newbuf;
-		outputBuffers2 << sbuf;
-		outputLock.unlock();
-		releaseOutputSem(0);
-		releaseOutputSem(1);
+		newOutputBuffer(0, newbuf);
+		newOutputBuffer(1, sbuf);
 
 		if (passed > 35)
 			mInfo("late capture: %d", passed);
 	}
 
 	return false;
+}
+
+int DM365CameraInput::processBuffer(RawBuffer)
+{
+	return -EINVAL;
 }
 
 int DM365CameraInput::configureResizer(void)

@@ -31,17 +31,7 @@ int OmxDisplayOutput::setFrameSize(QSize sz)
 	return 0;
 }
 
-int OmxDisplayOutput::displayBlocking()
-{
-	if (!acquireInputSem(0))
-		return -EINVAL;
-	inputLock.lock();
-	RawBuffer buf = inputBuffers.takeFirst();
-	inputLock.unlock();
-	return display(buf);
-}
-
-int OmxDisplayOutput::display(RawBuffer buf)
+int OmxDisplayOutput::processBuffer(RawBuffer buf)
 {
 	OMX_BUFFERHEADERTYPE *omxBuf = (OMX_BUFFERHEADERTYPE *)buf.getBufferParameter("omxBuf").toInt();
 	if (!omxBuf) {

@@ -18,13 +18,16 @@ public:
 	int addBuffer(RawBuffer buf);
 	int usedBufferCount();
 	int freeBufferCount();
-	RawBuffer take();
+	RawBuffer take(bool keepRef = true);
 	int give(RawBuffer buf);
+
+	void finalize();
 protected:
 	QList<RawBuffer> buffersFree;
 	QList<RawBuffer> buffersUsed;
 	QMutex mutex;
 	QWaitCondition wc;
+	bool finalized;
 };
 
 #endif // LMMBUFFERPOOL_H

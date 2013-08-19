@@ -65,7 +65,7 @@ int OmxScaler::execute()
 	return 0;
 }
 
-int OmxScaler::scale(RawBuffer buf)
+int OmxScaler::processBuffer(RawBuffer buf)
 {
 	OMX_BUFFERHEADERTYPE *omxBuf = (OMX_BUFFERHEADERTYPE *)buf.getBufferParameter("omxBuf").toInt();
 	if (!omxBuf) {
@@ -92,16 +92,6 @@ int OmxScaler::scale(RawBuffer buf)
 	bufLock.unlock();
 
 	return 0;
-}
-
-int OmxScaler::scaleBlocking()
-{
-	if (!acquireInputSem(0))
-		return -EINVAL;
-	inputLock.lock();
-	RawBuffer buf = inputBuffers.takeFirst();
-	inputLock.unlock();
-	return scale(buf);
 }
 
 int OmxScaler::startComponent()
@@ -282,10 +272,7 @@ void OmxScaler::handleDispBuffer(OMX_BUFFERHEADERTYPE *omxBuf)
 	}
 	bufLock.unlock();
 
-	outputLock.lock();
-	outputBuffers << buf;
-	releaseOutputSem(0);
-	outputLock.unlock();
+	newOutputBuffer(0, buf);
 }
 
 

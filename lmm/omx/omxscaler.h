@@ -19,8 +19,6 @@ public:
 	int setInputFrameSize(QSize sz);
 	int setOutputFrameSize(QSize sz);
 	int execute();
-	int scale(RawBuffer buf);
-	int scaleBlocking();
 	int startComponent();
 	int stopComponent();
 	void setVideoStride(int val) { videoStride = val; }
@@ -47,6 +45,7 @@ protected:
 	int outputBufferSize;
 	int videoStride;
 
+	int processBuffer(RawBuffer buf);
 	int setOmxScalarParams();
 	OMX_HANDLETYPE getCompHandle() { return handleScalar; }
 };

@@ -20,7 +20,6 @@
 #include <QDateTime>
 #include <QTime>
 #include <QFile>
-#include <QSemaphore>
 #include <QDataStream>
 #include <QFontMetrics>
 
@@ -134,19 +133,14 @@ int TextOverlay::stop()
 	return BaseLmmElement::stop();
 }
 
-int TextOverlay::addBuffer(RawBuffer buffer)
+int TextOverlay::processBuffer(RawBuffer buffer)
 {
-	int err = BaseLmmElement::addBuffer(buffer);
-	if (err)
-		return err;
 	/* we modify buffers in-place */
 	if (type == CHAR_MAP)
 		yuvSwMapOverlay(buffer);
 	else if (type == PIXEL_MAP)
 		yuvSwPixmapOverlay(buffer);
-	inputBuffers.removeFirst();
-	outputBuffers << buffer;
-	releaseOutputSem(0);
+	newOutputBuffer(0, buffer);
 	return 0;
 }
 

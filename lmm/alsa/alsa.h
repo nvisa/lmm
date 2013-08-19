@@ -6,7 +6,6 @@ typedef unsigned long snd_pcm_uframes_t;
 
 #include <QObject>
 #include <QThread>
-#include <QSemaphore>
 #include <QMutex>
 #include <QTime>
 

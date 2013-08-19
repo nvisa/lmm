@@ -12,8 +12,6 @@ public:
 	explicit OmxDisplayOutput(QObject *parent = 0);
 	int setFrameSize(QSize sz);
 	int setDisplaySize(QSize sz);
-	int displayBlocking();
-	int display(RawBuffer buf);
 	void setScalarBuffers(QList< QPair<OMX_BUFFERHEADERTYPE *, int> > bufs) { scalarBuffers = bufs; }
 protected:
 	int startComponent();
@@ -25,6 +23,7 @@ protected:
 	int setOmxDisplayParams();
 	int execute();
 	OMX_HANDLETYPE getCompHandle() { return handleDisp; }
+	int processBuffer(RawBuffer buf);
 
 	OMX_HANDLETYPE handleDisp;
 	/* controller handle is to only control display, no buffers and other stuff at all */

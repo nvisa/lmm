@@ -3,7 +3,8 @@
 #include "avimux.h"
 
 extern "C" {
-	#include "libavformat/avformat.h"
+	#include <libavformat/avformat.h>
+	#include <libavformat/avio.h>
 }
 
 AviMux::AviMux(QObject *parent) :

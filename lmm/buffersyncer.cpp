@@ -31,7 +31,7 @@ public:
 			waitsem.release();
 			opsem.acquire();
 			usleep(sleepTime);
-			el->addBuffer(buffer);
+			el->addBuffer(0, buffer);
 			/* release reference to buffer */
 			buffer = RawBuffer();
 		}
@@ -70,11 +70,9 @@ BufferSyncer::BufferSyncer(int threadCount, QObject *parent) :
 	}
 }
 
-int BufferSyncer::addBuffer(BaseLmmOutput *target, RawBuffer buffer)
+int BufferSyncer::processBuffer(RawBuffer buffer)
 {
-	if (buffer.size() == 0)
-		return -EINVAL;
-
+	BaseLmmOutput *target = (BaseLmmOutput *)buffer.getBufferParameter("targetElement").toULongLong();
 	qint64 pts = buffer.getPts();
 	qint64 delay = streamTime->ptsToTimeDiff(pts) - target->getAvailableBufferTime();
 	mInfo("syncing %s: pts=%lld delay=%lld dur=%d cnt=%d", target->metaObject()->className(), pts, delay, buffer.getDuration(), buffer.streamBufferNo());
@@ -87,8 +85,7 @@ int BufferSyncer::addBuffer(BaseLmmOutput *target, RawBuffer buffer)
 			mDebug("cannot find an empty thread, skipping");
 		mutex.unlock();
 	} else {
-		target->addBuffer(buffer);
-		receivedBufferCount++;
+		target->addBuffer(0, buffer);
 	}
 
 	return 0;

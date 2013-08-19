@@ -6,11 +6,9 @@
 #include "streamtime.h"
 #include "debug.h"
 
-#include <QSemaphore>
-
 extern "C" {
-	#include "libavformat/avformat.h"
-	#include "libavformat/avio.h" /* for URLContext on x86 */
+	#include <libavformat/avformat.h>
+	#include <libavformat/avio.h>
 	#include "ffcompat.h"
 }
 
@@ -93,7 +91,7 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	videoStream = NULL;
 	libavAnalayzeDuration = 5000000; /* this is ffmpeg default */
 
-	addNewOutputSemaphore();
+	addNewOutputChannel();
 
 	demuxNumber = demuxPriv.size();
 
@@ -147,7 +145,7 @@ int BaseLmmDemux::findStreamInfo()
 			mDebug("error allocating input context");
 			return -ENOMEM;
 		}
-		context->pb = avioCtx;
+		context->pb = (AVIOContext *)avioCtx;
 	}
 	int err = avformat_open_input(&context, qPrintable(sourceUrlName), NULL, NULL);
 #endif
@@ -221,9 +219,12 @@ int BaseLmmDemux::demuxOne()
 		}
 	}
 	AVPacket *packet = NULL;
+	conlock.lock();
 	packet = nextPacket();
-	if (!packet)
+	if (!packet) {
+		conlock.unlock();
 		return -ENOENT;
+	}
 	if (packet->stream_index == audioStreamIndex) {
 		mInfo("new audio stream: size=%d", packet->size);
 		if (demuxAudio) {
@@ -239,17 +240,14 @@ int BaseLmmDemux::demuxOne()
 			} else {
 				buf.setDts(-1);
 			}
-			outputLock.lock();
-			audioBuffers << buf;
-			outputLock.unlock();
-			releaseOutputSem(1);
+			newOutputBuffer(1, buf);
 		}
 	} else if (packet->stream_index == videoStreamIndex) {
 		mInfo("new video stream: size=%d pts=%lld duration=%d dflags=%d", packet->size,
 			   packet->pts == (int64_t)AV_NOPTS_VALUE ? -1 : packet->pts ,
 			   packet->duration, packet->flags);
 		if (demuxVideo) {
-			FFmpegBuffer buf("video/mpeg",packet);
+			FFmpegBuffer buf("video/mpeg", packet);
 			buf.setDuration(packet->duration * videoTimeBaseN / 1000);
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 				buf.setPts(packet->pts * videoTimeBaseN / 1000);
@@ -261,25 +259,16 @@ int BaseLmmDemux::demuxOne()
 			} else {
 				buf.setDts(-1);
 			}
-			outputLock.lock();
-			videoBuffers << buf;
-			outputLock.unlock();
-			releaseOutputSem(0);
+			newOutputBuffer(0, buf);
 		}
 	}
+	conlock.unlock();
 	return 0;
 }
 
-int BaseLmmDemux::demuxOneBlocking()
+int BaseLmmDemux::processBuffer(RawBuffer buf)
 {
 	return demuxOne();
-}
-
-int BaseLmmDemux::flush()
-{
-	videoBuffers.clear();
-	audioBuffers.clear();
-	return BaseLmmElement::flush();
 }
 
 AVCodecContext * BaseLmmDemux::getVideoCodecContext()
@@ -331,17 +320,12 @@ int BaseLmmDemux::readPacket(uint8_t *buffer, int buf_size)
 	if (!acquireInputSem(0)) {
 		return -EINVAL;
 	}
-	inputLock.lock();
-	RawBuffer buf = inputBuffers.takeFirst();
+	RawBuffer buf = takeInputBuffer(0);
 	if (buf.size() > left) {
 		memcpy(buffer + copied, buf.constData(), left);
 		/* some data will left, put back to input buffers */
 		RawBuffer newbuf(mimeType(), (uchar *)buf.constData() + left, buf.size() - left);
-		inputBuffers.prepend(newbuf);
-		if (!acquireInputSem(0)) {
-			inputLock.unlock();
-			return -EINVAL;
-		}
+		prependInputBuffer(0, newbuf);
 		copied += left;
 		left -= left;
 	} else {
@@ -349,7 +333,6 @@ int BaseLmmDemux::readPacket(uint8_t *buffer, int buf_size)
 		copied += buf.size();
 		left -= buf.size();
 	}
-	inputLock.unlock();
 	return copied;
 #endif
 }
@@ -372,61 +355,15 @@ int BaseLmmDemux::closeUrl(URLContext *h)
 	return 0;
 }
 
-RawBuffer BaseLmmDemux::nextAudioBuffer()
-{
-	outputLock.lock();
-	if (audioBuffers.size()) {
-		sentBufferCount++;
-		RawBuffer buf = audioBuffers.takeFirst();
-		outputLock.unlock();
-		return buf;
-	}
-	outputLock.unlock();
-
-	return RawBuffer();
-}
-
-RawBuffer BaseLmmDemux::nextAudioBufferBlocking()
-{
-	if (!acquireOutputSem(1))
-		return RawBuffer();
-	return nextAudioBuffer();
-}
-
-RawBuffer BaseLmmDemux::nextVideoBuffer()
-{
-	outputLock.lock();
-	if (videoBuffers.size()) {
-		sentBufferCount++;
-		RawBuffer buf =  videoBuffers.takeFirst();
-		outputLock.unlock();
-		calculateFps();
-		return buf;
-	}
-	outputLock.unlock();
-
-	return RawBuffer();
-}
-
-RawBuffer BaseLmmDemux::nextVideoBufferBlocking()
-{
-	if (!acquireOutputSem(0))
-		return RawBuffer();
-	return nextVideoBuffer();
-}
-
-int BaseLmmDemux::audioBufferCount()
-{
-	return audioBuffers.count();
-}
-
-int BaseLmmDemux::videoBufferCount()
-{
-	return videoBuffers.count();
-}
-
 int BaseLmmDemux::start()
 {
+	if (context) {
+		conlock.lock();
+		av_close_input_file(context);
+		context = NULL;
+		mDebug("bye bye to context");
+		conlock.unlock();
+	}
 	streamPosition = 0;
 	videoStreamIndex = audioStreamIndex = -1;
 	audioStream = videoStream = NULL;
@@ -436,12 +373,6 @@ int BaseLmmDemux::start()
 
 int BaseLmmDemux::stop()
 {
-	if (context) {
-		conlock.lock();
-		av_close_input_file(context);
-		context = NULL;
-		conlock.unlock();
-	}
 	return BaseLmmElement::stop();
 }
 
@@ -481,22 +412,19 @@ int BaseLmmDemux::seekTo(qint64 pos)
 			return err;
 		}
 	}
-	outputLock.lock();
-	videoBuffers.clear();
-	audioBuffers.clear();
-	outputLock.unlock();
+	flush();
 	return 0;
 }
 
 AVPacket * BaseLmmDemux::nextPacket()
 {
 	AVPacket *packet = new AVPacket;
-	conlock.lock();
+	//conlock.lock();
 	if (context && av_read_frame(context, packet)) {
 		deletePacket(packet);
-		conlock.unlock();
+		//conlock.unlock();
 		return NULL;
 	}
-	conlock.unlock();
+	//conlock.unlock();
 	return packet;
 }

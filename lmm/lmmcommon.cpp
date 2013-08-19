@@ -120,7 +120,6 @@ LmmCommon::LmmCommon(QObject *parent) :
 
 int LmmCommon::init()
 {
-	QThreadPool::globalInstance()->setMaxThreadCount(5);
 	initDebug();
 	platformInit();
 #ifdef CONFIG_GSTREAMER

@@ -3,8 +3,6 @@
 
 #include <lmm/ffmpeg/baselmmdemux.h>
 
-class CircularBuffer;
-
 class MpegTsDemux : public BaseLmmDemux
 {
 	Q_OBJECT

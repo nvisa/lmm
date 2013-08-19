@@ -9,6 +9,7 @@
 class QFile;
 class DmaiBuffer;
 class TimeoutThread;
+class LmmBufferPool;
 struct BufferGfx_Attrs;
 
 class VideoTestSource : public BaseLmmElement
@@ -42,8 +43,6 @@ public:
 	void setYUVFile(QString filename);
 	void setYUVVideo(QString filename, bool loop = false);
 
-	RawBuffer nextBuffer();
-	RawBuffer nextBufferBlocking(int ch);
 	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 	int flush();
 	int start();
@@ -67,11 +66,13 @@ private:
 	QMap<int, RawBuffer> refBuffers;
 	QFile videoFile;
 	bool loopVideoFile;
+	LmmBufferPool *pool;
 
 	friend class TimeoutThread;
 	QImage getPatternImage(TestPattern p);
 	DmaiBuffer addNoise(DmaiBuffer imageBuf);
 	bool checkCache(TestPattern p, BufferGfx_Attrs *attr);
+	int processBuffer(RawBuffer buf);
 };
 
 #endif // VIDEOTESTSOURCE_H

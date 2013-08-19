@@ -9,8 +9,6 @@
 #include <taglib/id3v2header.h>
 #include <taglib/id3v2tag.h>
 
-#include <QSemaphore>
-
 MadDecoder::MadDecoder(QObject *parent) :
 	BaseLmmDecoder(parent)
 {

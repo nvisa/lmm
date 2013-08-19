@@ -37,10 +37,12 @@ int FileOutput::start()
 
 int FileOutput::stop()
 {
+	mutex.lock();
 	if (file) {
 		file->close();
 		delete file;
 	}
+	mutex.unlock();
 
 	return BaseLmmElement::stop();
 }
@@ -49,8 +51,10 @@ int FileOutput::outputBuffer(RawBuffer buf)
 {
 	int err = writeBuffer(buf);
 	if (incremental) {
+		mutex.lock();
 		file->close();
 		file->setFileName(QDateTime::currentDateTime().toString("ddMMyyyy_hhmmss_").append(fileName));
+		mutex.unlock();
 	}
 	return err;
 }
@@ -63,9 +67,9 @@ void FileOutput::setFileName(QString name)
 	isPipe = S_ISFIFO(stats.st_mode);
 	pipeClosed = false;
 	if (getState() == STARTED) {
-		inputLock.lock();
+		mutex.lock();
 		file->close();
-		inputLock.unlock();
+		mutex.unlock();
 	}
 }
 
@@ -76,6 +80,7 @@ void FileOutput::signalReceived(int)
 
 int FileOutput::writeBuffer(RawBuffer buf)
 {
+	mutex.lock();
 	if (pipeClosed) {
 		file->close();
 		pipeClosed = false;
@@ -83,6 +88,7 @@ int FileOutput::writeBuffer(RawBuffer buf)
 	if (!file->isOpen()) {
 		if (!file->open(QIODevice::WriteOnly | QIODevice::Unbuffered)) {
 			mDebug("error opening output file %s", qPrintable(file->fileName()));
+			mutex.unlock();
 			return -EINVAL;
 		}
 	}
@@ -90,6 +96,7 @@ int FileOutput::writeBuffer(RawBuffer buf)
 	int written = file->write(data, buf.size());
 	if (written < 0) {
 		mDebug("error writing to output file %s", qPrintable(file->fileName()));
+		mutex.unlock();
 		return -EIO;
 	}
 	while (written < buf.size()) {
@@ -97,10 +104,12 @@ int FileOutput::writeBuffer(RawBuffer buf)
 		if (err < 0) {
 			mDebug("error writing to output file %s, %d bytes written",
 				   qPrintable(file->fileName()), written);
+			mutex.unlock();
 			return -EIO;
 		}
 		written += err;
 	}
+	mutex.unlock();
 	mInfo("%d bytes written", buf.size());
 	return 0;
 }

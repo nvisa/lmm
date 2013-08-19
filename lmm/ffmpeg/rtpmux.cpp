@@ -4,8 +4,6 @@
 
 #include "debug.h"
 
-#include <QSemaphore>
-
 extern "C" {
 	#include <libavformat/avformat.h>
 	#include <libavformat/rtpenc.h>
@@ -44,29 +42,6 @@ int RtpMux::start()
 int RtpMux::stop()
 {
 	return BaseLmmMux::stop();
-}
-
-int RtpMux::sendNext()
-{
-	muxNext();
-	RawBuffer buf = nextBuffer();
-	while (buf.size()) {
-		if (streamTime)
-			loopLatency = streamTime->getCurrentTime() - buf.getBufferParameter("captureTime").toInt();
-		buf = nextBuffer();
-	}
-	return 0;
-}
-
-int RtpMux::sendNextBlocking()
-{
-	if (!acquireInputSem(0))
-		return -EINVAL;
-	muxNext();
-	RawBuffer buf = nextBuffer();
-	if (streamTime)
-		loopLatency = streamTime->getCurrentTime() - buf.getBufferParameter("captureTime").toInt();
-	return 0;
 }
 
 int RtpMux::setFrameRate(float fps)

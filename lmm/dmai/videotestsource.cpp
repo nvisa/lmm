@@ -2,6 +2,7 @@
 #include "streamtime.h"
 #include "dmai/dmaibuffer.h"
 #include "lmmthread.h"
+#include "lmmbufferpool.h"
 
 #include "debug.h"
 
@@ -126,7 +127,7 @@ int VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 		refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 		DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
 		tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-		inputBuffers << tmp;
+		appendInputBuffer(0, tmp);
 
 		uchar *ydata = (uchar *)imageBuf.constData();
 		uchar *cdata = ydata + imageBuf.size() / 3 * 2;
@@ -173,7 +174,7 @@ int VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 			refBuffers.insert((int)imageBuf2.getDmaiBuffer(), imageBuf2);
 			DmaiBuffer tmp2("video/x-raw-yuv", imageBuf2.getDmaiBuffer(), this);
 			tmp2.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-			inputBuffers << tmp2;
+			appendInputBuffer(0, tmp);
 		}
 	}
 
@@ -217,7 +218,7 @@ void VideoTestSource::setYUVFile(QString filename)
 			refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 			DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
 			tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-			inputBuffers << tmp;
+			appendInputBuffer(0, tmp);
 		}
 
 		f.close();
@@ -242,60 +243,16 @@ void VideoTestSource::setYUVVideo(QString filename, bool loop)
 		refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 		DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
 		tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-		inputBuffers << tmp;
+		appendInputBuffer(0, tmp);
 	}
 }
 
-RawBuffer VideoTestSource::nextBuffer()
+int VideoTestSource::processBuffer(RawBuffer buf)
 {
-	/* TODO: Some clever tolerance decision algorithm is needed */
-	int tolerance = 3000;
-	inputLock.lock();
-	if (!inputBuffers.size()) {
-		inputLock.unlock();
-		return RawBuffer();
-	}
-	qint64 time = streamTime->getFreeRunningTime();
-
-	if (time > lastBufferTime + bufferTime - tolerance) {
-		lastBufferTime = time;
-		/*
-		 * creating a new buffer with software copy is so slow,
-		 * don't event think about it. But dma may work
-		 */
-		DmaiBuffer imageBuf = inputBuffers.takeFirst();
-		if (noisy)
-			imageBuf = addNoise(imageBuf);
-		imageBuf.addBufferParameter("captureTime", streamTime->getCurrentTime());
-		imageBuf.addBufferParameter("fps", targetFps);
-		outputBuffers.append(imageBuf);
-		mInfo("time: %lld - %d, buffer count %d", time / 1000, bufferTime, inputBuffers.size());
-	}
-
-	inputLock.unlock();
-	return BaseLmmElement::nextBuffer();
-}
-
-RawBuffer VideoTestSource::nextBufferBlocking(int ch)
-{
-	/* only single channel is supported */
-	if (ch)
-		return RawBuffer();
-
-	mInfo("new ch %d requested, buffer time is %d msecs, pattern is %d"
-		  , ch, bufferTime / 1000, pattern);
-	if (!acquireOutputSem(0))
-		return RawBuffer();
-	/* if all buffers are in use, wait till we have one */
-	while (!inputBuffers.size())
-		if (!acquireOutputSem(0))
-			return RawBuffer();
-	inputLock.lock();
-	DmaiBuffer imageBuf = inputBuffers.takeFirst();
-	inputLock.unlock();
+	RawBuffer imageBuf = pool->take(false);
 	if (pattern == RAW_YUV_VIDEO) {
 		if (videoFile.isOpen() == false)
-			return RawBuffer();
+			return -EINVAL;
 		videoFile.read((char *)imageBuf.data(), width * height * 3 / 2);
 		if (videoFile.atEnd()) {
 			videoFile.close();
@@ -307,10 +264,7 @@ RawBuffer VideoTestSource::nextBufferBlocking(int ch)
 		imageBuf = addNoise(imageBuf);
 	imageBuf.addBufferParameter("captureTime", streamTime->getCurrentTime());
 	imageBuf.addBufferParameter("fps", targetFps);
-	outputLock.lock();
-	outputBuffers.append(imageBuf);
-	outputLock.unlock();
-	return BaseLmmElement::nextBuffer();
+	return newOutputBuffer(0, imageBuf);
 }
 
 void VideoTestSource::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
@@ -318,9 +272,7 @@ void VideoTestSource::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 	int key = params["dmaiBuffer"].toInt();
 	DmaiBuffer tmp("video/x-raw-yuv", (Buffer_Handle)key, this);
 	tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-	inputLock.lock();
-	inputBuffers << tmp;
-	inputLock.unlock();
+	appendInputBuffer(0, tmp);
 }
 
 int VideoTestSource::flush()
@@ -330,6 +282,7 @@ int VideoTestSource::flush()
 
 int VideoTestSource::start()
 {
+	pool = new LmmBufferPool;
 	tt = new TimeoutThread(bufferTime / 1000, this);
 	tt->start();
 	return BaseLmmElement::start();
@@ -337,6 +290,8 @@ int VideoTestSource::start()
 
 int VideoTestSource::stop()
 {
+	pool->finalize();
+	pool->deleteLater();
 	tt->stop();
 	tt->deleteLater();
 	return BaseLmmElement::stop();
@@ -403,7 +358,7 @@ bool VideoTestSource::checkCache(TestPattern p, BufferGfx_Attrs *attr)
 				refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 				DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
 				tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-				inputBuffers << tmp;
+				appendInputBuffer(0, tmp);
 			}
 			valid = true;
 		}

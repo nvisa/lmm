@@ -22,9 +22,6 @@ public:
 	int start();
 	int stop();
 	virtual int flush();
-	virtual int decodeBlocking();
-	virtual int decode() = 0;
-
 signals:
 	
 public slots:
@@ -36,6 +33,8 @@ protected:
 	void setOutputTimeStamp(RawBuffer *buf, int minDuration = 2000);
 	virtual int startDecoding() { return 0; }
 	virtual int stopDecoding() { return 0; }
+	virtual int processBuffer(RawBuffer buf);
+	virtual int decode(RawBuffer) = 0;
 };
 
 #endif // BASELMMDECODER_H

@@ -13,8 +13,6 @@ public:
 
 	int start();
 	int stop();
-	int sendNext();
-	int sendNextBlocking();
 	int setFrameRate(float fps);
 
 	virtual Lmm::CodecType codecType() = 0;

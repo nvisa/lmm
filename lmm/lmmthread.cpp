@@ -31,7 +31,6 @@ void LmmThread::resume()
 	if (!paused)
 		return;
 	paused = false;
-	pauser.release();
 }
 
 void LmmThread::run()
@@ -56,7 +55,6 @@ void LmmThread::run()
 		lock.unlock();
 		if (paused) {
 			st = PAUSED;
-			pauser.acquire();
 		}
 	}
 	mDebug("exiting thread %s(%p)", qPrintable(name)

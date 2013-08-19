@@ -16,14 +16,13 @@ public:
 	void syncOnClock(bool val) { doSync = val; }
 	virtual int start();
 	virtual int stop();
-	virtual int output();
-	virtual int outputBlocking();
 	virtual qint64 getLatency();
 	virtual int getLoopLatency();
 signals:
 	
 public slots:
 protected:
+	virtual int processBuffer(RawBuffer buf);
 	virtual int outputBuffer(RawBuffer buf);
 	qint64 outputLatency;
 	int outputDelay;

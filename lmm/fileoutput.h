@@ -22,6 +22,7 @@ signals:
 	
 public slots:
 private:
+	QMutex mutex;
 	QFile *file;
 	QString fileName;
 	bool isPipe;

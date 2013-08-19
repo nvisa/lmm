@@ -4,6 +4,8 @@
 
 #include <lmm/debug.h>
 
+#include <errno.h>
+
 UdpSource::UdpSource(QObject *parent) :
 	BaseLmmElement(parent)
 {
@@ -64,8 +66,10 @@ void UdpSource::processTheDatagram(const QByteArray &ba)
 {
 	RawBuffer buf("application/x-rtp", ba.constData(), ba.size());
 	mInfo("new packet received with size %d", buf.size());
-	outputLock.lock();
-	outputBuffers << buf;
-	releaseOutputSem(0);
-	outputLock.unlock();
+	newOutputBuffer(0, buf);
+}
+
+int UdpSource::processBuffer(RawBuffer)
+{
+	return -EINVAL;
 }

@@ -86,7 +86,7 @@ int LmmGstPipeline::stop()
 	return BaseLmmElement::stop();
 }
 
-int LmmGstPipeline::addBuffer(RawBuffer buffer)
+int LmmGstPipeline::processBuffer(RawBuffer buffer)
 {
 	if (!appSrc) {
 		mDebug("error: pipeline has no appsrc element");
@@ -108,8 +108,6 @@ int LmmGstPipeline::addBuffer(RawBuffer buffer)
 		return -EINVAL;
 	}
 	mInfo("buffer pushed to gst pipeline");
-	receivedBufferCount++;
-	releaseInputSem(0);
 	return 0;
 }
 
@@ -192,9 +190,6 @@ int LmmGstPipeline::newGstBuffer(GstBuffer *buffer)
 	buf.addBufferParameter("width", w);
 	buf.addBufferParameter("height", h);
 	gst_buffer_unref(buffer);
-	outputLock.lock();
-	outputBuffers << buf;
-	releaseOutputSem(0);
-	outputLock.unlock();
+	newOutputBuffer(0, buf);
 	return GST_FLOW_OK;
 }

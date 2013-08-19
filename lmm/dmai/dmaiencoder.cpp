@@ -10,7 +10,6 @@
 #include <errno.h>
 
 #include <QTime>
-#include <QSemaphore>
 
 DmaiEncoder::DmaiEncoder(QObject *parent) :
 	BaseLmmElement(parent)
@@ -89,17 +88,10 @@ int DmaiEncoder::flush()
 	return BaseLmmElement::flush();
 }
 
-int DmaiEncoder::encodeNext()
+int DmaiEncoder::processBuffer(RawBuffer buf)
 {
 	QTime t;
 	int err = 0;
-	inputLock.lock();
-	if (inputBuffers.size() == 0) {
-		inputLock.unlock();
-		return -ENOENT;
-	}
-	RawBuffer buf = inputBuffers.first();
-	inputLock.unlock();
 	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer")
 			.toInt();
 	if (!dmai) {
@@ -116,21 +108,9 @@ int DmaiEncoder::encodeNext()
 		mInfo("late encode: %d", encodeTimeStat->last);
 	if (err)
 		goto out;
-	inputLock.lock();
-	if (!inputBuffers.isEmpty())
-		inputBuffers.removeFirst();
-	inputLock.unlock();
-	releaseOutputSem(0);
 	return 0;
 out:
 	return err;
-}
-
-int DmaiEncoder::encodeNextBlocking()
-{
-	if (!acquireInputSem(0))
-		return -EINVAL;
-	return encodeNext();
 }
 
 void DmaiEncoder::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
@@ -271,7 +251,6 @@ int DmaiEncoder::startCodec()
 	return 0;
 }
 
-
 int DmaiEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 {
 	bool idrGenerated = false;
@@ -347,13 +326,10 @@ int DmaiEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
-	outputLock.lock();
-	outputBuffers << buf;
-	outputLock.unlock();
+	newOutputBuffer(0, buf);
 
 	return 0;
 }
-
 
 int DmaiEncoder::stopCodec()
 {

@@ -14,8 +14,6 @@ public:
 	Lmm::CodecType codecType();
 	virtual int start();
 	virtual int stop();
-	virtual int streamBlocking();
-	int stream();
 
 	void setDestinationIpAddress(QString ip) { dstIp = ip; }
 	void setRtpSequenceOffset(int value) { rtpSequenceOffset = value; }
@@ -32,6 +30,7 @@ public:
 	QString getSdp();
 	void setFrameRate(float fps) { frameRate = fps; }
 protected:
+	virtual int processBuffer(RawBuffer buf);
 	virtual int packetTimestamp();
 	int sendNalUnit(const uchar *buf, int size);
 	void sendRtpData(uchar *buf, int size, int last);

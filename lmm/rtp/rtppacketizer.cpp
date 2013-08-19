@@ -38,13 +38,6 @@ int RtpPacketizer::stop()
 	return BaseLmmElement::stop();
 }
 
-int RtpPacketizer::streamBlocking()
-{
-	if (!acquireInputSem(0))
-		return -EINVAL;
-	return stream();
-}
-
 int RtpPacketizer::sendNalUnit(const uchar *buf, int size)
 {
 	uchar rtpbuf[maxPayloadSize + 12];
@@ -94,17 +87,10 @@ void RtpPacketizer::sendRtpData(uchar *buf, int size, int last)
 	seq++;
 }
 
-int RtpPacketizer::stream()
+int RtpPacketizer::processBuffer(RawBuffer buf)
 {
-	inputLock.lock();
-	if (inputBuffers.count() == 0) {
-		inputLock.unlock();
-		return -ENOENT;
-	}
-	RawBuffer buf = inputBuffers.takeFirst();
-	inputLock.unlock();
 	streamedBufferCount++;
-	mDebug("streaming next packet");
+	mInfo("streaming next packet");
 	return sendNalUnit((const uchar *)buf.constData(), buf.size());
 }
 

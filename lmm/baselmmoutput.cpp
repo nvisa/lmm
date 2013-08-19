@@ -6,7 +6,6 @@
 
 #include <QTime>
 #include <QThread>
-#include <QSemaphore>
 
 #include <errno.h>
 
@@ -39,25 +38,14 @@ int BaseLmmOutput::getLoopLatency()
 	return 0;
 }
 
-int BaseLmmOutput::outputBuffer(RawBuffer)
+int BaseLmmOutput::processBuffer(RawBuffer buf)
 {
-	return 0;
-}
-
-int BaseLmmOutput::output()
-{
-	inputLock.lock();
-	RawBuffer buf = inputBuffers.takeFirst();
-	sentBufferCount++;
-	inputLock.unlock();
 	int err = outputBuffer(buf);
 	calculateFps();
 	return err;
 }
 
-int BaseLmmOutput::outputBlocking()
+int BaseLmmOutput::outputBuffer(RawBuffer)
 {
-	if (!acquireInputSem(0))
-		return -EINVAL;
-	return output();
+	return 0;
 }

@@ -26,11 +26,13 @@ public:
 		PAUSED,
 	};
 	explicit BaseLmmElement(QObject *parent = 0);
-	virtual int addBuffer(RawBuffer buffer);
-	virtual int addBufferBlocking(RawBuffer buffer);
-	virtual RawBuffer nextBuffer();
-	virtual RawBuffer nextBuffer(int ch);
-	virtual RawBuffer nextBufferBlocking(int ch);
+	int addBuffer(int ch, RawBuffer buffer);
+	int addBufferBlocking(int ch, RawBuffer buffer);
+	RawBuffer nextBuffer(int ch);
+	RawBuffer nextBufferBlocking(int ch);
+	virtual int process();
+	virtual int processBlocking();
+	virtual int processBlocking(int ch, RawBuffer buf);
 	void setStreamTime(StreamTime *t) { streamTime = t; }
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
 	virtual CircularBuffer * getCircularBuffer() { return NULL; }
@@ -43,6 +45,7 @@ public:
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &) {}
 	virtual void signalReceived(int) {}
 	virtual int setTotalInputBufferSize(int size, int hysterisisSize = 0);
+	int waitOutputBuffers(int ch, int lessThan);
 
 	/* stat information */
 	void printStats();
@@ -63,31 +66,40 @@ signals:
 	void newBufferAvailable();
 public slots:
 protected:
-	QList<RawBuffer> inputBuffers;
-	QList<RawBuffer> outputBuffers;
-	StreamTime *streamTime;
-	qint64 streamDuration;
-	int receivedBufferCount;
-	int sentBufferCount;
-	bool enabled;
-	QMutex inputLock;
-	QMutex outputLock;
-	QWaitCondition inputWaiter;
-	int totalInputBufferSize;
-	int inputHysterisisSize;
-
-	void addNewOutputSemaphore();
+	void addNewInputChannel();
+	void addNewOutputChannel();
 	int releaseInputSem(int ch, int count = 1);
 	int releaseOutputSem(int ch, int count = 1);
 	bool acquireInputSem(int ch) __attribute__((warn_unused_result));
 	bool acquireOutputSem(int ch) __attribute__((warn_unused_result));
+	RawBuffer takeInputBuffer(int ch);
+	int appendInputBuffer(int ch, RawBuffer buf);
+	int prependInputBuffer(int ch, RawBuffer buf);
+	virtual int processBuffer(RawBuffer buf) = 0;
 	virtual void updateOutputTimeStats();
 	virtual void calculateFps();
 	RunningState getState();
 	int setState(RunningState s);
 	virtual int checkSizeLimits();
 	virtual void checkAndWakeInputWaiters();
+	virtual int newOutputBuffer(int ch, RawBuffer buf);
+
+	StreamTime *streamTime;
+	qint64 streamDuration;
+	int receivedBufferCount;
+	int sentBufferCount;
 private:
+	QList< QList<RawBuffer> > inBufQueue;
+	QList< QList<RawBuffer> > outBufQueue;
+	bool enabled;
+	QMutex inputLock;
+	QMutex outputLock;
+	QWaitCondition inputWaiter;
+	QList<QWaitCondition *> outWc;
+	int totalInputBufferSize;
+	int inputHysterisisSize;
+	int outputWakeThreshold;
+
 	QMap<QString, QVariant> parameters;
 
 	int elementFps;

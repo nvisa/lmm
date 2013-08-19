@@ -10,6 +10,12 @@
 
 class RemoteConsole;
 
+#define createOpThread(__func, __name, __class) { \
+	LmmThread *th = new OpThread<__class>(this, __func, __name); \
+	threads.insert(__name, th); \
+	th->start(); \
+	}
+
 template <class T>
 class OpThread : public LmmThread
 {
@@ -65,6 +71,7 @@ protected:
 	virtual int stopPlayer() = 0;
 	virtual int elementStarted(BaseLmmElement *el);
 	virtual RemoteConsole * createManagementConsole();
+	int processBuffer(RawBuffer);
 
 	friend class LmmSettingHandler;
 	virtual const QList<LmmThread *> getThreads() = 0;

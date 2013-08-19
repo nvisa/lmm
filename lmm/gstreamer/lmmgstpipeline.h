@@ -22,7 +22,6 @@ public:
 	void setPipelineDescription(QString desc) { pipelineDesc = desc; }
 	int start();
 	int stop();
-	int addBuffer(RawBuffer buffer);
 	bool gstBusFunction(GstMessage *msg);
 	int newGstBuffer(GstBuffer *buffer);
 	void setInputMimeType(QString mime) { inputMime = mime; }
@@ -38,6 +37,7 @@ protected:
 	QString inputMime;
 	QString outputMime;
 
+	int processBuffer(RawBuffer buf);
 };
 
 #endif // LMMGSTPIPELINE_H
