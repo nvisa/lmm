@@ -3,9 +3,8 @@
 
 #include <QObject>
 
+class QFile;
 class QTimer;
-
-struct Cpu_Object;
 
 class CpuLoad : public QObject
 {
@@ -13,6 +12,7 @@ class CpuLoad : public QObject
 public:
 	static int getAverageCpuLoad();
 	static int getCpuLoad();
+	static int setAverageT0();
 signals:
 	
 private slots:
@@ -23,10 +23,19 @@ private:
 	int count;
 	int avg;
 	int load;
-	struct Cpu_Object *handle;
+	int userTime;
+	int prevTotal;
+	int t0Idle;
+	int t0NonIdle;
+	int lastNonIdle;
+	int lastIdle;
+	QFile *proc;
 
 	CpuLoad();
 	static CpuLoad *instance;
+	int getAvgLoadFromProc();
+	int getInstLoadFromProc();
+	int getLoadFromProcDmai();
 };
 
 #endif // CPULOAD_H
