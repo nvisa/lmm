@@ -39,7 +39,8 @@ SOURCES += \
     baseplayer.cpp \
     tools/remoteconsole.cpp \
     tools/basesettinghandler.cpp \
-    tools/lmmsettinghandler.cpp
+	tools/lmmsettinghandler.cpp \
+	tools/cpuload.cpp \
 
 HEADERS  += \
     filesource.h \
@@ -76,7 +77,8 @@ HEADERS  += \
     baseplayer.h \
     tools/remoteconsole.h \
     tools/basesettinghandler.h \
-    tools/lmmsettinghandler.h
+	tools/lmmsettinghandler.h \
+	tools/cpuload.h \
 
 alsa {
     HEADERS += \
@@ -145,7 +147,6 @@ ffmpeg {
 dmai {
     SOURCES += dmai/dmaiencoder.cpp \
         dmai/dmaibuffer.cpp \
-        dmai/cpuload.cpp \
         dmai/jpegencoder.cpp \
         dmai/h264encoder.cpp \
         dmai/dmaidecoder.cpp \
@@ -153,7 +154,6 @@ dmai {
 
     HEADERS += dmai/dmaiencoder.h \
         dmai/dmaibuffer.h \
-        dmai/cpuload.h \
         dmai/jpegencoder.h \
         dmai/h264encoder.h \
         dmai/dmaidecoder.h \
