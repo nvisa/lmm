@@ -24,6 +24,7 @@
 #include "hardwareoperations.h"
 #include "debug.h"
 #include "tools/lmmsettinghandler.h"
+#include "dmai/cpuload.h"
 
 #include <signal.h>
 
@@ -126,6 +127,7 @@ int LmmCommon::init()
 	gst_init(NULL, NULL);
 #endif
 	new LmmSettingHandler;
+	CpuLoad::getCpuLoad();
 	return 0;
 }
 
