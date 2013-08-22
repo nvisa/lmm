@@ -354,6 +354,11 @@ int BaseLmmElement::getOutputSemCount(int ch)
 	return bufsem[ch]->available();
 }
 
+QList<QVariant> BaseLmmElement::extraDebugInfo()
+{
+	return QList<QVariant>();
+}
+
 void BaseLmmElement::calculateFps()
 {
 	fpsBufferCount++;

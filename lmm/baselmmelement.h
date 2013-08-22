@@ -61,6 +61,7 @@ public:
 	bool isRunning();
 	int getInputSemCount(int ch);
 	int getOutputSemCount(int ch);
+	virtual QList<QVariant> extraDebugInfo();
 signals:
 	void needFlushing();
 	void newBufferAvailable();
