@@ -27,6 +27,8 @@ public:
 	virtual int outputBufferDone(OMX_BUFFERHEADERTYPE *omxBuf);
 
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &);
+
+	virtual QList<QVariant> extraDebugInfo();
 signals:
 	void newOutputBufferDone();
 	void newInputBufferDone();

@@ -143,6 +143,18 @@ void BaseOmxElement::aboutDeleteBuffer(const QMap<QString, QVariant> &pars)
 	handleLock.unlock();
 }
 
+QList<QVariant> BaseOmxElement::extraDebugInfo()
+{
+	QList<QVariant> list;
+	bufLock.lock();
+	list << availBuffers.size();
+	list << availOutBuffers.size();
+	list << busyBuffers.size();
+	list << busyOutBuffers.size();
+	bufLock.unlock();
+	return list;
+}
+
 const char * BaseOmxElement::omxError(OMX_ERRORTYPE error)
 {
 	/* used for printing purpose */
