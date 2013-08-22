@@ -24,7 +24,7 @@
 #include "hardwareoperations.h"
 #include "debug.h"
 #include "tools/lmmsettinghandler.h"
-#include "dmai/cpuload.h"
+#include "tools/cpuload.h"
 
 #include <signal.h>
 

@@ -4,7 +4,7 @@
 #include "debug.h"
 #include "dm365/ih264venc.h"
 #include "streamtime.h"
-#include "cpuload.h"
+#include "tools/cpuload.h"
 #include "tools/systeminfo.h"
 
 #include <xdc/std.h>

@@ -3,7 +3,7 @@
 #include "baseplayer.h"
 
 #include <lmm/debug.h>
-#include <lmm/dmai/cpuload.h>
+#include <lmm/tools/cpuload.h>
 #include <lmm/tools/systeminfo.h>
 
 LmmSettingHandler::LmmSettingHandler(QObject *parent) :
