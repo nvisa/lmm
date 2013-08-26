@@ -6,7 +6,74 @@
 #include <QStringList>
 #include <QTime>
 
+#include <errno.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <unistd.h>
+#ifdef TARGET_ARM
+#include <linux/i2c-dev.h>
+#endif
+#include <linux/i2c.h>
+
 SystemInfo SystemInfo::inst;
+
+#ifdef TARGET_ARM
+
+static inline __s32 i2c_smbus_access(int file, char read_write, __u8 command,
+									 int size, union i2c_smbus_data *data)
+{
+	struct i2c_smbus_ioctl_data args;
+
+	args.read_write = read_write;
+	args.command = command;
+	args.size = size;
+	args.data = data;
+	return ioctl(file,I2C_SMBUS,&args);
+}
+
+static inline __s32 i2c_smbus_write_byte_data(int file, __u8 command,
+											  __u8 value)
+{
+	union i2c_smbus_data data;
+	data.byte = value;
+	return i2c_smbus_access(file,I2C_SMBUS_WRITE,command,
+							I2C_SMBUS_BYTE_DATA, &data);
+}
+
+static inline __s32 i2c_smbus_read_byte_data(int file, __u8 command)
+{
+	union i2c_smbus_data data;
+	int status;
+	status = i2c_smbus_access(file, I2C_SMBUS_READ, command, I2C_SMBUS_BYTE_DATA,&data);
+	return (status < 0) ? status : data.byte;
+}
+
+int SystemInfo::getTVPVersion()
+{
+	int fd = open("/dev/i2c-1", O_RDWR);
+
+	/* With force, let the user read from/write to the registers
+		 even when a driver is also running */
+	if (ioctl(fd, I2C_SLAVE_FORCE, 0x5d) < 0) {
+		fprintf(stderr,
+				"Error: Could not set address to 0x%02x: %s\n",
+				0x5f, strerror(errno));
+		return -errno;
+	}
+
+	int ver = i2c_smbus_read_byte_data(fd, 0x80) << 8;
+	ver |= i2c_smbus_read_byte_data(fd, 0x81);
+	::close(fd);
+	return ver;
+}
+#else
+
+int SystemInfo::getTVPVersion()
+{
+	return -ENOENT;
+}
+
+#endif
 
 SystemInfo::SystemInfo(QObject *parent) :
 	QObject(parent)
