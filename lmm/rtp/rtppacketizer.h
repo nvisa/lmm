@@ -29,11 +29,14 @@ public:
 	int getDestinationControlPort() { return dstControlPort; }
 	QString getSdp();
 	void setFrameRate(float fps) { frameRate = fps; }
+signals:
+	void sdpReady(QString sdp);
 protected:
 	virtual int processBuffer(RawBuffer buf);
 	virtual int packetTimestamp();
 	int sendNalUnit(const uchar *buf, int size);
 	void sendRtpData(uchar *buf, int size, int last);
+	void createSdp();
 	int maxPayloadSize;
 	int seq;
 	uint ssrc;
