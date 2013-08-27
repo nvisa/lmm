@@ -77,11 +77,13 @@ private:
 	void *frameinfoInterface;
 	MotionVectors mVecs;
 	int motVectSize;
+	bool packetized;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec();
 	int stopCodec();
-	int addSeiData(QByteArray *ba, const RawBuffer source);
+	int createSeiData(QByteArray *ba, const RawBuffer source);
+	int insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuffer source);
 	/* codec parameters api */
 	int setDefaultParams(IH264VENC_Params *params);
 	int setParamsProfile1(IH264VENC_Params *params);

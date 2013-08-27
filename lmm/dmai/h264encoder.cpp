@@ -785,50 +785,10 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			qDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
 		generateIdrFrame = false;
 	}
-	mInfo("inserting %d bytes sei user data at offset %d, total size is %d",
-		   seiBufferSize, seiDataOffset, (int)Buffer_getNumBytesUsed(hDstBuf));
+
 	/* insert SEI data */
 	if (seiDataOffset) {
-		char *seidata = (char *)Buffer_getUserPtr(hDstBuf) + seiDataOffset;
-		/* add IEC 11578 uuid */
-		for (int i = 0; i < 16; i++)
-			seidata[i] = 0xAA;
-		seidata[16] = seiBufferSize & 0xff;
-		seidata[17] = seiBufferSize >> 8;
-		/* NOTE: vlc doesn't like '0' at byte 18 */
-		seidata[18] = 0x1; //version
-		seidata[19] = 0x1; //version
-		QByteArray ba(seidata + 20, seiBufferSize - 20);
-		QTime t2; t2.start();
-		seiBufferSize = addSeiData(&ba, source) + 20;
-		memcpy(seidata + 20, ba.constData(), seiBufferSize - 20);
-		if ((mVecs == MV_SEI || mVecs == MV_BOTH)) {
-			/*
-			 * There are limits on the MV insertion,
-			 *
-			 *	1.	Putting it on every frame is not possible,
-			 *		bitrate will be too hight
-			 *	2.	One MV doesn't fit on one SEI frame, there is
-			 *		an undocumented limit on encoders maximum seidata
-			 *		size. So we need to split MVs into 2(at least)
-			 *
-			 *	So we send MVs at every 30 frame, first one containing
-			 *	half of the MV buffer and the next frame containing
-			 *	the remaining.
-			 */
-			int fcnt = sentBufferCount % 30;
-			if (fcnt == 0) /* open space for mv on next frame */
-				seiBufferSize += motVectSize / 2;
-			else if (fcnt == 1) { /* write half-of-mv to this frame */
-				uchar *motVectBuf = (uchar *)Buffer_getUserPtr(metadataBuf[1]);
-				memcpy(seidata + 20 + seiBufferSize - 20, motVectBuf, motVectSize / 2);
-				seiBufferSize += motVectSize / 2;
-			} else if (fcnt == 2) { /* write other half-of-mv to this frame */
-				uchar *motVectBuf = (uchar *)Buffer_getUserPtr(metadataBuf[1]);
-				memcpy(seidata + 20 + seiBufferSize - 20, motVectBuf + motVectSize / 2, motVectSize / 2);
-			}
-		}
-		mInfo("sei addition took %d msecs", t2.elapsed());
+		insertSeiData(seiDataOffset, hDstBuf, source);
 	}
 	RawBuffer buf = DmaiBuffer("video/x-h264", hDstBuf, this);
 	buf.addBufferParameters(source.bufferParameters());
@@ -841,6 +801,54 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	BufferGfx_resetDimensions(buffer);
 	newOutputBuffer(0, buf);
 
+	return 0;
+}
+
+int H264Encoder::insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuffer source)
+{
+	mInfo("inserting %d bytes sei user data at offset %d, total size is %d",
+		   seiBufferSize, seiDataOffset, (int)Buffer_getNumBytesUsed(hDstBuf));
+	char *seidata = (char *)Buffer_getUserPtr(hDstBuf) + seiDataOffset;
+	/* add IEC 11578 uuid */
+	for (int i = 0; i < 16; i++)
+		seidata[i] = 0xAA;
+	seidata[16] = seiBufferSize & 0xff;
+	seidata[17] = seiBufferSize >> 8;
+	/* NOTE: vlc doesn't like '0' at byte 18 */
+	seidata[18] = 0x1; //version
+	seidata[19] = 0x1; //version
+	QByteArray ba(seidata + 20, seiBufferSize - 20);
+	QTime t2; t2.start();
+	int seiAllocSize = seiBufferSize;
+	seiBufferSize = createSeiData(&ba, source) + 20;
+	memcpy(seidata + 20, ba.constData(), seiAllocSize - 20);
+	if ((mVecs == MV_SEI || mVecs == MV_BOTH)) {
+		/*
+		 * There are limits on the MV insertion,
+		 *
+		 *	1.	Putting it on every frame is not possible,
+		 *		bitrate will be too hight
+		 *	2.	One MV doesn't fit on one SEI frame, there is
+		 *		an undocumented limit on encoders maximum seidata
+		 *		size. So we need to split MVs into 2(at least)
+		 *
+		 *	So we send MVs at every 30 frame, first one containing
+		 *	half of the MV buffer and the next frame containing
+		 *	the remaining.
+		 */
+		int fcnt = sentBufferCount % 30;
+		if (fcnt == 0) /* open space for mv on next frame */
+			seiBufferSize += motVectSize / 2;
+		else if (fcnt == 1) { /* write half-of-mv to this frame */
+			uchar *motVectBuf = (uchar *)Buffer_getUserPtr(metadataBuf[1]);
+			memcpy(seidata + 20 + seiBufferSize - 20, motVectBuf, motVectSize / 2);
+			seiBufferSize += motVectSize / 2;
+		} else if (fcnt == 2) { /* write other half-of-mv to this frame */
+			uchar *motVectBuf = (uchar *)Buffer_getUserPtr(metadataBuf[1]);
+			memcpy(seidata + 20 + seiBufferSize - 20, motVectBuf + motVectSize / 2, motVectSize / 2);
+		}
+	}
+	mInfo("sei addition took %d msecs", t2.elapsed());
 	return 0;
 }
 
@@ -997,7 +1005,7 @@ int H264Encoder::stopCodec()
 	return DmaiEncoder::stop();
 }
 
-int H264Encoder::addSeiData(QByteArray *ba, const RawBuffer source)
+int H264Encoder::createSeiData(QByteArray *ba, const RawBuffer source)
 {
 	QDataStream out(ba, QIODevice::WriteOnly);
 	int start = out.device()->pos();
@@ -1011,7 +1019,7 @@ int H264Encoder::addSeiData(QByteArray *ba, const RawBuffer source)
 	out << (qint32)sentBufferCount;
 	out << (qint32)SystemInfo::getFreeMemory();
 	out << (qint32)getFps();
-    out << (qint32)source.getBufferParameter("latencyId").toInt();
+	out << (qint32)source.getBufferParameter("latencyId").toInt();
 	for (int i = 0; i < customSeiData.size(); i++)
 		out << (qint32)customSeiData[i];
 	return out.device()->pos() - start;
