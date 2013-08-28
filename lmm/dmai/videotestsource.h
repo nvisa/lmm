@@ -73,6 +73,7 @@ private:
 	DmaiBuffer addNoise(DmaiBuffer imageBuf);
 	bool checkCache(TestPattern p, BufferGfx_Attrs *attr);
 	int processBuffer(RawBuffer buf);
+	void addBufferToPool(RawBuffer buf);
 };
 
 #endif // VIDEOTESTSOURCE_H

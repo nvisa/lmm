@@ -60,7 +60,9 @@ protected:
 	int operation()
 	{
 		QThread::msleep(stime);
-		parent->releaseOutputSem(0);
+		RawBuffer buf("unknown", 1);
+		parent->addBuffer(0, buf);
+		parent->process();
 		return 0;
 	}
 	int stime;
@@ -76,6 +78,7 @@ VideoTestSource::VideoTestSource(QObject *parent) :
 	setFps(30);
 	pattern = PATTERN_COUNT;
 	noisy = false;
+	pool = new LmmBufferPool;
 }
 
 VideoTestSource::VideoTestSource(int nWidth, int nHeight, QObject *parent) :
@@ -89,6 +92,7 @@ VideoTestSource::VideoTestSource(int nWidth, int nHeight, QObject *parent) :
 	noisy = true;
 	noiseWidth = nWidth;
 	noiseHeight = nHeight;
+	pool = new LmmBufferPool;
 }
 
 #define bound(_x) \
@@ -127,7 +131,7 @@ int VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 		refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 		DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
 		tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-		appendInputBuffer(0, tmp);
+		addBufferToPool(tmp);
 
 		uchar *ydata = (uchar *)imageBuf.constData();
 		uchar *cdata = ydata + imageBuf.size() / 3 * 2;
@@ -174,7 +178,7 @@ int VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 			refBuffers.insert((int)imageBuf2.getDmaiBuffer(), imageBuf2);
 			DmaiBuffer tmp2("video/x-raw-yuv", imageBuf2.getDmaiBuffer(), this);
 			tmp2.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-			appendInputBuffer(0, tmp);
+			addBufferToPool(tmp);
 		}
 	}
 
@@ -218,7 +222,7 @@ void VideoTestSource::setYUVFile(QString filename)
 			refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 			DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
 			tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-			appendInputBuffer(0, tmp);
+			addBufferToPool(tmp);
 		}
 
 		f.close();
@@ -243,12 +247,13 @@ void VideoTestSource::setYUVVideo(QString filename, bool loop)
 		refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 		DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
 		tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-		appendInputBuffer(0, tmp);
+		addBufferToPool(tmp);
 	}
 }
 
 int VideoTestSource::processBuffer(RawBuffer buf)
 {
+	mInfo("creating next frame");
 	RawBuffer imageBuf = pool->take(false);
 	if (pattern == RAW_YUV_VIDEO) {
 		if (videoFile.isOpen() == false)
@@ -267,12 +272,17 @@ int VideoTestSource::processBuffer(RawBuffer buf)
 	return newOutputBuffer(0, imageBuf);
 }
 
+void VideoTestSource::addBufferToPool(RawBuffer buf)
+{
+	pool->addBuffer(buf);
+}
+
 void VideoTestSource::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
 	int key = params["dmaiBuffer"].toInt();
 	DmaiBuffer tmp("video/x-raw-yuv", (Buffer_Handle)key, this);
 	tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-	appendInputBuffer(0, tmp);
+	pool->give(tmp);
 }
 
 int VideoTestSource::flush()
@@ -282,7 +292,6 @@ int VideoTestSource::flush()
 
 int VideoTestSource::start()
 {
-	pool = new LmmBufferPool;
 	tt = new TimeoutThread(bufferTime / 1000, this);
 	tt->start();
 	return BaseLmmElement::start();
@@ -291,7 +300,6 @@ int VideoTestSource::start()
 int VideoTestSource::stop()
 {
 	pool->finalize();
-	pool->deleteLater();
 	tt->stop();
 	tt->deleteLater();
 	return BaseLmmElement::stop();
@@ -358,7 +366,7 @@ bool VideoTestSource::checkCache(TestPattern p, BufferGfx_Attrs *attr)
 				refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 				DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
 				tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
-				appendInputBuffer(0, tmp);
+				addBufferToPool(tmp);
 			}
 			valid = true;
 		}
