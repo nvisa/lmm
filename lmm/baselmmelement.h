@@ -28,8 +28,11 @@ public:
 	explicit BaseLmmElement(QObject *parent = 0);
 	int addBuffer(int ch, RawBuffer buffer);
 	int addBufferBlocking(int ch, RawBuffer buffer);
+	int addBuffersBlocking(int ch, const QList<RawBuffer> list);
 	RawBuffer nextBuffer(int ch);
 	RawBuffer nextBufferBlocking(int ch);
+	QList<RawBuffer> nextBuffers(int ch);
+	QList<RawBuffer> nextBuffersBlocking(int ch);
 	virtual int process();
 	virtual int processBlocking();
 	virtual int processBlocking(int ch, RawBuffer buf);
@@ -84,6 +87,7 @@ protected:
 	virtual int checkSizeLimits();
 	virtual void checkAndWakeInputWaiters();
 	virtual int newOutputBuffer(int ch, RawBuffer buf);
+	virtual int newOutputBuffer(int ch, QList<RawBuffer> list);
 
 	StreamTime *streamTime;
 	qint64 streamDuration;
