@@ -29,6 +29,9 @@ public:
 	int getDestinationControlPort() { return dstControlPort; }
 	QString getSdp();
 	void setFrameRate(float fps) { frameRate = fps; }
+
+	bool isPacketized() { return packetized; }
+	void setPacketized(bool v) { packetized = v; }
 signals:
 	void sdpReady(QString sdp);
 protected:
@@ -42,6 +45,7 @@ protected:
 	uint ssrc;
 	uint baseTs;
 	QUdpSocket *sock;
+	bool packetized;
 
 	int dstDataPort;
 	int dstControlPort;
