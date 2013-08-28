@@ -24,6 +24,8 @@ public:
 	explicit H264Encoder(QObject *parent = 0);
 	int flush();
 
+	bool isPacketized();
+	void setPacketized(bool value);
 	int getMaxFrameRate() { return maxFrameRate / 1000; }
 	int setMaxFrameRate(int v) { maxFrameRate = v * 1000; dirty = true; return 0; }
 	RateControl getBitrateControlMethod() { return rateControl; }

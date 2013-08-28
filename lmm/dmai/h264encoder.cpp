@@ -6,6 +6,7 @@
 #include "streamtime.h"
 #include "tools/cpuload.h"
 #include "tools/systeminfo.h"
+#include "h264parser.h"
 
 #include <xdc/std.h>
 #include <ti/sdo/ce/Engine.h>
@@ -459,6 +460,44 @@ int H264Encoder::flush()
 	return DmaiEncoder::flush();
 }
 
+/**
+ * @brief H264Encoder::isPacketized
+ * @return
+ *
+ * \sa setPacketized()
+ */
+bool H264Encoder::isPacketized()
+{
+	return packetized;
+}
+
+/**
+ * @brief H264Encoder::setPacketized
+ * @param value
+ *
+ * This function can be used to adjust encoder to generate packetized
+ * output buffers. When encoder is packetized, it outputs a new buffer
+ * for each NAL unit created. Otherwise, it outputs one buffer for each
+ * incoming video frame. Packetized output is necessary for proper
+ * SEI insertion, SEI user data may contain byte sequence of '00000001'
+ * which will be interpreted as a new NAL unit by upstream packetizers
+ * (for instance RTP packetizers) which will produce wrong results.
+ *
+ * If SEI insertion is not used then packetized mode can be switched-off
+ * for performance reasons because there is a little performance overhead
+ * in the encoder due to packetization.
+ *
+ * Note that when you receive packetized output, you don't need to copy
+ * buffers in upstream elements because encoder copies them. But when
+ * you are not using packetized output you need to copy buffers(or use
+ * them as soon as possible) so that encoders can re-use buffers when
+ * more frames arrive.
+ */
+void H264Encoder::setPacketized(bool value)
+{
+	packetized = value;
+}
+
 int H264Encoder::enablePictureTimingSei(bool enable)
 {
 	if (enable) {
@@ -786,20 +825,58 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		generateIdrFrame = false;
 	}
 
-	/* insert SEI data */
-	if (seiDataOffset) {
-		insertSeiData(seiDataOffset, hDstBuf, source);
+	packetized = true;
+	if (packetized) {
+		QList<int> offsets;
+		uchar *encdata = (uchar *)Buffer_getUserPtr(hDstBuf);
+		uchar *encend = (uchar *)Buffer_getUserPtr(hDstBuf) + Buffer_getNumBytesUsed(hDstBuf);
+		const uchar *nal = H264Parser::findNextStartCode(encdata, encend);
+		while (1) {
+			offsets << nal - encdata;
+			nal = H264Parser::findNextStartCode(nal + 4, encend);
+			if (nal >= encend - 4)
+				break;
+		}
+		qint64 ctime = streamTime->getCurrentTime();
+		uint duration = 1000 / source.getBufferParameter("fps").toFloat();
+		QList<RawBuffer> list;
+		for (int i = 0; i < offsets.size(); i++) {
+			int start = offsets[i];
+			int end = encend - encdata;
+			if (i < offsets.size() - 1)
+				end = offsets[i + 1];
+			RawBuffer buf = RawBuffer("video/x-h264", end - start);
+			buf.addBufferParameters(source.bufferParameters());
+			buf.addBufferParameter("frameType", (int)BufferGfx_getFrameType(buffer));
+			buf.addBufferParameter("encodeTime", ctime);
+			buf.setStreamBufferNo(encodeCount);
+			buf.setDuration(duration);
+			if (seiDataOffset < end && seiDataOffset > start)
+				insertSeiData(seiDataOffset, hDstBuf, source);
+			memcpy(buf.data(), encdata + start, end - start);
+			list << buf;
+		}
+		newOutputBuffer(0, list);
+		/* Reset the dimensions to what they were originally */
+		BufferGfx_resetDimensions(buffer);
+		encodeCount++;
+		BufTab_freeBuf(hDstBuf);
+	} else {
+		/* insert SEI data */
+		if (seiDataOffset) {
+			insertSeiData(seiDataOffset, hDstBuf, source);
+		}
+		RawBuffer buf = DmaiBuffer("video/x-h264", hDstBuf, this);
+		buf.addBufferParameters(source.bufferParameters());
+		buf.addBufferParameter("frameType", (int)BufferGfx_getFrameType(buffer));
+		buf.addBufferParameter("encodeTime", streamTime->getCurrentTime());
+		buf.setStreamBufferNo(encodeCount++);
+		buf.setDuration(1000 / buf.getBufferParameter("fps").toFloat());
+		Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
+		/* Reset the dimensions to what they were originally */
+		BufferGfx_resetDimensions(buffer);
+		newOutputBuffer(0, buf);
 	}
-	RawBuffer buf = DmaiBuffer("video/x-h264", hDstBuf, this);
-	buf.addBufferParameters(source.bufferParameters());
-	buf.addBufferParameter("frameType", (int)BufferGfx_getFrameType(buffer));
-	buf.addBufferParameter("encodeTime", streamTime->getCurrentTime());
-	buf.setStreamBufferNo(encodeCount++);
-	buf.setDuration(1000 / buf.getBufferParameter("fps").toFloat());
-	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
-	/* Reset the dimensions to what they were originally */
-	BufferGfx_resetDimensions(buffer);
-	newOutputBuffer(0, buf);
 
 	return 0;
 }
