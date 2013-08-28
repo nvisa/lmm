@@ -45,6 +45,17 @@ QVariant LmmSettingHandler::get(QString setting)
 		}
 		return list;
 	}
+	if (equals("lmm_settings.stats.elements.fps")) {
+		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer");
+		QList<BaseLmmElement *> elements = pl->getElements();
+		QStringList list;
+		for (int i = 0; i < elements.size(); i++) {
+			BaseLmmElement *el = elements[i];
+			QString s = QString("%1: %2: \n").arg(el->metaObject()->className()).arg(el->getFps());
+			list.append(s);
+		}
+		return list;
+	}
 	if (equals("lmm_settings.stats.extra_debug_info")) {
 		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer");
 		QList<BaseLmmElement *> elements = pl->getElements();
