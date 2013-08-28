@@ -23,6 +23,7 @@ class H264Parser : public BaseLmmParser
 	Q_OBJECT
 public:
 	explicit H264Parser(QObject *parent = 0);
+	static const uchar * findNextStartCode(const uchar *p, const uchar *end);
 	
 signals:
 	

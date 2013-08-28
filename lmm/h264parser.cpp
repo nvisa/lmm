@@ -27,6 +27,60 @@ H264Parser::H264Parser(QObject *parent) :
 	packState = 0;
 }
 
+static const uint8_t * findNextStartCodeIn(const uint8_t *p, const uint8_t *end)
+{
+	const uint8_t *a = p + 4 - ((intptr_t)p & 3);
+
+	for (end -= 3; p < a && p < end; p++) {
+		if (p[0] == 0 && p[1] == 0 && p[2] == 1)
+			return p;
+	}
+
+	for (end -= 3; p < end; p += 4) {
+		uint32_t x = *(const uint32_t*)p;
+		//      if ((x - 0x01000100) & (~x) & 0x80008000) // little endian
+		//      if ((x - 0x00010001) & (~x) & 0x00800080) // big endian
+		if ((x - 0x01010101) & (~x) & 0x80808080) { // generic
+			if (p[1] == 0) {
+				if (p[0] == 0 && p[2] == 1)
+					return p;
+				if (p[2] == 0 && p[3] == 1)
+					return p+1;
+			}
+			if (p[3] == 0) {
+				if (p[2] == 0 && p[4] == 1)
+					return p+2;
+				if (p[4] == 0 && p[5] == 1)
+					return p+3;
+			}
+		}
+	}
+
+	for (end += 3; p < end; p++) {
+		if (p[0] == 0 && p[1] == 0 && p[2] == 1)
+			return p;
+	}
+
+	return end + 3;
+}
+
+/**
+ * @brief H264Parser::findNextStartCode
+ * @param p
+ * @param end
+ * @return
+ *
+ * This function is taken from FFmpeg libraries, it detects next H.264
+ * nal start code in the given buffer and returns the beginning of the buffer.
+ * Return pointer contains the start code as well. If it cannot find start
+ * code it returns the end of the given buffer minus 4.
+ */
+const uchar * H264Parser::findNextStartCode(const uchar *p, const uchar *end){
+	const uint8_t *out= findNextStartCodeIn(p, end);
+	if(p<out && out<end && !out[-1]) out--;
+	return out;
+}
+
 int H264Parser::parse(const uchar *data, int size)
 {
 	if (packState == 0)
