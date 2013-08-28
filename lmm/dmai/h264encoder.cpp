@@ -452,6 +452,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	genMetadata = false;
 	frameinfoInterface = NULL;
 	mVecs = MV_NONE;
+	packetized = true;
 	enablePictureTimingSei(true);
 }
 
@@ -825,7 +826,6 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		generateIdrFrame = false;
 	}
 
-	packetized = true;
 	if (packetized) {
 		QList<int> offsets;
 		uchar *encdata = (uchar *)Buffer_getUserPtr(hDstBuf);
