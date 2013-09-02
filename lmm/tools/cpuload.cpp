@@ -137,5 +137,6 @@ int CpuLoad::getAverageCpuLoad()
 {
 	if (!instance)
 		instance = new CpuLoad;
+	return instance->avg;
 	return instance->getAvgLoadFromProc();
 }
