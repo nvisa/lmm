@@ -2,6 +2,7 @@
 #define STREAMTIME_H
 
 #include <QObject>
+#include <QDateTime>
 
 class QTime;
 
@@ -25,6 +26,7 @@ public:
 	qint64 getFreeRunningTime();
 	qint64 ptsToStreamTime(qint64 pts);
 	qint64 ptsToTimeDiff(qint64 pts);
+	int getElapsedWallTime();
 signals:
 	
 public slots:
@@ -34,6 +36,7 @@ private:
 	qint64 startPts;
 	QTime *drifter;
 	QTime *clock;
+	QDateTime wallStartTime;
 
 	bool paused;
 	int currentTimePause;

@@ -62,6 +62,7 @@ qint64 StreamTime::getCurrentTimeMili()
 
 void StreamTime::start()
 {
+	wallStartTime = QDateTime::currentDateTime();
 	currentTime = 0;
 	clock->restart();
 	drifter->restart();
@@ -109,4 +110,9 @@ qint64 StreamTime::ptsToTimeDiff(qint64 pts)
 	if (time < now)
 		return 0;
 	return time - now;
+}
+
+int StreamTime::getElapsedWallTime()
+{
+	return  wallStartTime.secsTo(QDateTime::currentDateTime());
 }
