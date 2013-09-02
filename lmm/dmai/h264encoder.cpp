@@ -1082,23 +1082,25 @@ int H264Encoder::stopCodec()
 	return DmaiEncoder::stop();
 }
 
+#define append(__x) out << __x;
 int H264Encoder::createSeiData(QByteArray *ba, const RawBuffer source)
 {
 	QDataStream out(ba, QIODevice::WriteOnly);
 	int start = out.device()->pos();
 	out.setByteOrder(QDataStream::LittleEndian);
-	out << (qint32)0x11223344; //version
-	out << (qint64)streamTime->getCurrentTime();
-	out << (qint64)source.getBufferParameter("captureTime").toLongLong();
-	out << (qint32)QDateTime::currentDateTime().toTime_t();
-	out << (qint32)CpuLoad::getCpuLoad();
-	out << (qint32)CpuLoad::getAverageCpuLoad();
-	out << (qint32)sentBufferCount;
-	out << (qint32)SystemInfo::getFreeMemory();
-	out << (qint32)getFps();
-	out << (qint32)source.getBufferParameter("latencyId").toInt();
-	for (int i = 0; i < customSeiData.size(); i++)
-		out << (qint32)customSeiData[i];
+	append((qint32)0x11223344); //version
+	append((qint64)streamTime->getCurrentTime());
+	append((qint64)source.getBufferParameter("captureTime").toLongLong());
+	append((qint32)QDateTime::currentDateTime().toTime_t());
+	append((qint32)CpuLoad::getCpuLoad());
+	append((qint32)CpuLoad::getAverageCpuLoad());
+	append((qint32)sentBufferCount);
+	append((qint32)SystemInfo::getFreeMemory());
+	append((qint32)getFps());
+	append((qint32)source.getBufferParameter("latencyId").toInt());
+	for (int i = 0; i < customSeiData.size(); i++) {
+		append((qint32)customSeiData[i]);
+	}
 	return out.device()->pos() - start;
 }
 
