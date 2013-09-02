@@ -25,7 +25,8 @@ void RemoteConsole::readPendingDatagrams()
 								&sender, &senderPort);
 		QByteArray ba = processMessage(datagram);
 		if (ba.size())
-			sock->writeDatagram(ba.append("\n>"), sender, senderPort);
+			sock->writeDatagram(ba, sender, senderPort);
+			//sock->writeDatagram(ba.append("\n>"), sender, senderPort);
 	}
 }
 
@@ -36,7 +37,7 @@ QByteArray RemoteConsole::processMessage(QByteArray mes)
 
 static QString cerror(int code = 0)
 {
-	return ">";
+	return "";
 }
 
 QString RemoteConsole::processMessage(QString mes)
