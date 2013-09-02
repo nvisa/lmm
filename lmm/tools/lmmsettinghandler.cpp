@@ -3,6 +3,7 @@
 #include "baseplayer.h"
 
 #include <lmm/debug.h>
+#include <lmm/streamtime.h>
 #include <lmm/tools/cpuload.h>
 #include <lmm/tools/systeminfo.h>
 
@@ -83,6 +84,13 @@ QVariant LmmSettingHandler::get(QString setting)
 	}
 	if (equals("lmm_settings.stats.free_memory")) {
 		return SystemInfo::getFreeMemory();
+	}
+	if (equals("lmm_settings.stats.system_uptime")) {
+		return SystemInfo::getUptime();
+	}
+	if (equals("lmm_settings.stats.prog_uptime")) {
+		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer");
+		return pl->getStreamTime()->getElapsedWallTime();
 	}
 	return QVariant();
 }
