@@ -56,6 +56,7 @@ public:
 	virtual bool isEOF();
 	virtual int setSourceUrl(QUrl url);
 	virtual int setFilename(QString filename);
+	StreamTime * getStreamTime() { return streamTime; }
 signals:
 	
 public slots:
