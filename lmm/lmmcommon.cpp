@@ -64,6 +64,7 @@ void notifyRegistrars(int signal)
 		el->signalReceived(signal);
 }
 
+static void __attribute__ ((no_instrument_function)) signalHandler(int);
 static void signalHandler(int signalNumber)
 {
 	signalCount[signalNumber] += 1;
@@ -72,6 +73,9 @@ static void signalHandler(int signalNumber)
 		LmmThread *t = LmmThread::getById(id);
 		qWarning("main: Received signal %d, thread id is %p(%s), dbgtemp is %d",
 				 signalNumber, id, t ? qPrintable(t->threadName()) : "main", dbgtemp);
+		if (t)
+			t->printStack();
+		print_trace();
 	}
 	if (signalNumber == SIGSEGV) {
 		LmmThread::stopAll();
