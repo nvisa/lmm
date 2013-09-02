@@ -35,6 +35,10 @@ void LmmThread::resume()
 
 void LmmThread::run()
 {
+	instStack1 = (int *)&_trstack;
+	instStack2 = (int *)&_trstack2;
+	instPos = &_trpos;
+
 	id = QThread::currentThreadId();
 #ifdef Q_WS_QWS
 	mDebug("starting thread %s(%p)", qPrintable(name)
@@ -97,4 +101,22 @@ int LmmThread::elapsed()
 	int elapsed = time.elapsed();
 	lock.unlock();
 	return elapsed;
+}
+
+void LmmThread::printStack()
+{
+	qDebug("%s has %d entries at %p:", qPrintable(name), *instPos, instPos);
+	for (int i = 0; i < *instPos; i++) {
+#if 1
+		int *s1 = instStack1;
+		int *s2 = instStack2;
+		//if (s1[i] < 0 || s1[i] > 0x100000)
+			//continue;
+		qDebug("\t0x%x 0x%x", s1[i], s2[i]);
+#else
+		int *es = instStack1;
+		int e = es[i];
+		qDebug("\tfile=%d line=%d", e & 0xffff, e >> 16);
+#endif
+	}
 }

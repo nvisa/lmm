@@ -24,6 +24,7 @@ public:
 	QString threadName() { return name; }
 	Status getStatus();
 	int elapsed();
+	void printStack();
 protected:
 	bool exit;
 	bool paused;
@@ -34,6 +35,9 @@ private:
 	QTime time;
 	QMutex lock;
 	Qt::HANDLE id;
+	int *instStack1;
+	int *instStack2;
+	int *instPos;
 };
 
 #endif // LMMTHREAD_H
