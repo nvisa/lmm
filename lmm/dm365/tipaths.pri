@@ -59,3 +59,9 @@ QMAKE_CXXFLAGS += -march=armv5t -I"$${DVSDK_INSTALL_DIR}/dmai_2_20_00_15/package
     -I"$${LINUXKERNEL_INSTALL_DIR}/include" \
     -I"$${LINUXKERNEL_INSTALL_DIR}/arch/arm/mach-davinci/include" \
     -Dxdc_target_types__="gnu/targets/arm/std.h" -Dxdc_target_name__=GCArmv5T
+
+QMAKE_CXXFLAGS += -O3
+QMAKE_CXXFLAGS += -fno-omit-frame-pointer -rdynamic
+function_instrument {
+	QMAKE_CXXFLAGS += -finstrument-functions -finstrument-functions-exclude-function-list=QList,QMap,QStringList
+}
