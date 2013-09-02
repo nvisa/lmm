@@ -82,6 +82,15 @@ SystemInfo::SystemInfo(QObject *parent) :
 	memtime.start();
 }
 
+int SystemInfo::getUptime()
+{
+	QFile f("/proc/uptime");
+	if (!f.open(QIODevice::ReadOnly | QIODevice::Unbuffered))
+		return -EPERM;
+	QList<QByteArray> list = f.readLine().split(' ');
+	return list[0].toDouble();
+}
+
 int SystemInfo::getProcFreeMemInfo()
 {
 	if (memtime.elapsed() < 1000)

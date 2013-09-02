@@ -12,6 +12,7 @@ class SystemInfo : public QObject
 public:
 	static int getFreeMemory();
 	static int getTVPVersion();
+	static int getUptime();
 signals:
 	
 public slots:
