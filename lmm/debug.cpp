@@ -189,3 +189,34 @@ void setDebuggingMode(int mode, QString networkAddr)
 	/*else if (mode == 3)
 		qInstallMsgHandler(messageHandlerWebSock);*/
 }
+
+extern "C" {
+
+int __thread _trstack[1024];
+int __thread _trstack2[1024];
+int __thread _trpos = 0;
+
+void __attribute__ ((no_instrument_function)) __cyg_profile_func_enter  (void *this_fn, void *call_site);
+void __attribute__ ((no_instrument_function)) __cyg_profile_func_exit  (void *this_fn, void *call_site);
+void __attribute__ ((no_instrument_function)) init_instrument();
+int __attribute__ ((no_instrument_function)) main(int argc, char *argv[]);
+
+static int inst = 0;
+static QFile fInst;
+static int iHandle;
+static int iBuf1[3];
+static int iBuf2[3];
+
+void __cyg_profile_func_enter(void *this_fn, void *call_site)
+{
+	_trstack[_trpos] = (int)this_fn;
+	_trstack2[_trpos++] = (int)call_site;
+	_trpos &= 0x3ff;
+}
+
+void __cyg_profile_func_exit(void *this_fn, void *call_site)
+{
+	_trpos--;
+}
+
+}

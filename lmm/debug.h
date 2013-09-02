@@ -24,6 +24,7 @@ extern QStringList __dbg_classes_info;
 extern QStringList __dbg_classes_log;
 extern QStringList __dbg_classes_logv;
 extern int dbgtemp;
+extern const char *dbgfile;
 extern int __dbg_debugging_mode;
 extern QString __dbg__network_addr;
 extern QString __dbg_file_log_dir;
@@ -112,6 +113,30 @@ static inline unsigned int __totalTimePassed()
 #define mTime(mes, arg...) do { if (0) qDebug(mes, ##arg); } while (0)
 #endif
 
-extern void print_trace (void);
+extern void __attribute__ ((no_instrument_function)) print_trace (void);
+
+extern "C" {
+
+/*#ifndef __thread
+#define __thread
+#endif*/
+
+extern __thread int _trstack[];
+extern __thread int _trstack2[];
+extern __thread int _trpos;
+
+static inline void __attribute__((always_inline)) _trace_in(int file, int line)
+{
+	_trstack[_trpos++] = line << 16 | file;
+	_trpos &= 0x3ff;
+}
+/*
+static inline void __attribute__((always_inline)) _trace_out(int file, int line)
+{
+	_trstack[_trpos] = 0x1000000 | file;
+	_trstack2[_trpos++] = 0x1000000 | line;
+}*/
+
+}
 
 #endif // DEBUG_H
