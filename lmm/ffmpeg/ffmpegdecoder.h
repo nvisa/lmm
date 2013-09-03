@@ -23,6 +23,7 @@ public:
 	virtual int startDecoding();
 	virtual int stopDecoding();
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &pars);
+	void setRgbOutput(bool val) { rgbOut = val; }
 protected:
 	int decode(RawBuffer buf);
 	void printMotionVectors(AVFrame *pict);
@@ -36,6 +37,7 @@ private:
 	int decodeCount;
 	LmmBufferPool *pool;
 	QMap<int, RawBuffer> poolBuffers;
+	bool rgbOut;
 };
 
 #endif // FFMPEGDECODER_H

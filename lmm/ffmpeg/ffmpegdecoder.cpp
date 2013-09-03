@@ -15,6 +15,7 @@ extern "C" {
 FFmpegDecoder::FFmpegDecoder(QObject *parent) :
 	BaseLmmDecoder(parent)
 {
+	rgbOut = true;
 	codecCtx = NULL;
 	pool = new LmmBufferPool(this);
 }
@@ -53,7 +54,7 @@ int FFmpegDecoder::stopDecoding()
 	pool->finalize();
 	return 0;
 }
-
+#include <stdint.h>
 int FFmpegDecoder::decode(RawBuffer buf)
 {
 	mInfo("decoding %d bytes", buf.size());
@@ -73,9 +74,12 @@ int FFmpegDecoder::decode(RawBuffer buf)
 				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<PixelFormat>(codecCtx->pix_fmt),
 										codecCtx->width, codecCtx->height, PIX_FMT_RGB24, SWS_BICUBIC
 										, NULL, NULL, NULL);
+				QString mime = "video/x-raw-rgb";
+				if (!rgbOut)
+					mime = "video/x-raw-gray";
 				for (int i = 0; i < 15; i++) {
 					mDebug("allocating sw scale buffer %d", i);
-					FFmpegBuffer buf("video/x-raw-rgb", codecCtx->width, codecCtx->height, this);
+					FFmpegBuffer buf(mime, codecCtx->width, codecCtx->height, this);
 					buf.addBufferParameter("poolIndex", i);
 					pool->addBuffer(buf);
 					poolBuffers.insert(i, buf);
@@ -86,12 +90,24 @@ int FFmpegDecoder::decode(RawBuffer buf)
 			if (poolbuf.size() == 0)
 				return -ENOENT;
 			AVFrame *frame = (AVFrame *)poolbuf.getBufferParameter("AVFrame").toULongLong();
-			sws_scale(swsCtx, avFrame->data, avFrame->linesize, 0, codecCtx->height,
-					  frame->data, frame->linesize);
-			RawBuffer outbuf(QString("video/x-raw-rgb"),
-						  (const void *)poolbuf.data(), poolbuf.size(), this);
+			RawBuffer outbuf;
+			if (rgbOut) {
+				sws_scale(swsCtx, avFrame->data, avFrame->linesize, 0, codecCtx->height,
+						  frame->data, frame->linesize);
+				outbuf = RawBuffer(QString("video/x-raw-rgb"),
+								 (const void *)poolbuf.data(), poolbuf.size(), this);
+			} else {
+				int lsz = avFrame->linesize[0];
+				for (int i = 0; i < codecCtx->height; i++)
+					memcpy(frame->data[0] + i * codecCtx->width, avFrame->data[0] + i * lsz, codecCtx->width);
+				outbuf = RawBuffer(QString("video/x-raw-gray"), (const void *)poolbuf.data(), poolbuf.size(), this);
+			}
 			outbuf.addBufferParameter("width", codecCtx->width);
 			outbuf.addBufferParameter("height", codecCtx->height);
+			if (rgbOut)
+				outbuf.addBufferParameter("avPixelFmt", AV_PIX_FMT_RGB24);
+			else
+				outbuf.addBufferParameter("avPixelFmt", AV_PIX_FMT_GRAY8);
 			outbuf.addBufferParameter("avFrame", (quintptr)frame);
 			outbuf.addBufferParameter("poolIndex", poolbuf.getBufferParameter("poolIndex"));
 			if (avFrame->key_frame)

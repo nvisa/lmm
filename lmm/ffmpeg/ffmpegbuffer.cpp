@@ -36,10 +36,17 @@ FFmpegBuffer::FFmpegBuffer(QString mimeType, int width, int height, BaseLmmEleme
 	dd->packet = NULL;
 
 	// for rgb 24
-	dd->frameData = new uchar[width * height * 3];
-	avpicture_fill((AVPicture *)dd->frame, dd->frameData, PIX_FMT_RGB24,
-				   width, height);
-	dd->frameSize = width * height * 3;
+	if (mimeType == "video/x-raw-rgb") {
+		dd->frameData = new uchar[width * height * 3];
+		avpicture_fill((AVPicture *)dd->frame, dd->frameData, PIX_FMT_RGB24,
+					   width, height);
+		dd->frameSize = width * height * 3;
+	} else if (mimeType == "video/x-raw-gray") {
+		dd->frameData = new uchar[width * height * 1];
+		avpicture_fill((AVPicture *)dd->frame, dd->frameData, AV_PIX_FMT_GRAY8,
+					   width, height);
+		dd->frameSize = width * height * 1;
+	}
 
 	setRefData(d->mimeType, dd->frameData, dd->frameSize);
 	addBufferParameter("AVFrame", (quintptr)dd->frame);
