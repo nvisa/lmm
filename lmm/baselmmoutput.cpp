@@ -41,7 +41,6 @@ int BaseLmmOutput::getLoopLatency()
 int BaseLmmOutput::processBuffer(RawBuffer buf)
 {
 	int err = outputBuffer(buf);
-	calculateFps();
 	return err;
 }
 
