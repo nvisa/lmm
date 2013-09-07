@@ -569,6 +569,7 @@ int BaseLmmElement::appendInputBuffer(int ch, RawBuffer buf)
 {
 	inputLock.lock();
 	inBufQueue[ch].append(buf);
+	inbufsem[ch]->release();
 	inputLock.unlock();
 	return 0;
 }
@@ -577,6 +578,7 @@ int BaseLmmElement::prependInputBuffer(int ch, RawBuffer buf)
 {
 	inputLock.lock();
 	inBufQueue[ch].prepend(buf);
+	inbufsem[ch]->release();
 	inputLock.unlock();
 	return 0;
 }
