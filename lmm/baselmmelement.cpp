@@ -289,14 +289,16 @@ int BaseLmmElement::process()
 	return 0;
 }
 
-int BaseLmmElement::processBlocking()
+int BaseLmmElement::processBlocking(int ch)
 {
-	if (!acquireInputSem(0))
+	if (!acquireInputSem(ch))
 		return -EINVAL;
-	RawBuffer buf = takeInputBuffer(0);
+	RawBuffer buf = takeInputBuffer(ch);
 	if (!buf.size())
 		return -ENOENT;
-	return processBuffer(buf);
+	if (!ch)
+		return processBuffer(buf);
+	return processBuffer(ch, buf);
 }
 
 int BaseLmmElement::processBlocking(int ch, RawBuffer buf)
@@ -304,7 +306,7 @@ int BaseLmmElement::processBlocking(int ch, RawBuffer buf)
 	int err = addBuffer(ch, buf);
 	if (err)
 		return err;
-	return processBlocking();
+	return processBlocking(ch);
 }
 
 int BaseLmmElement::start()
@@ -576,6 +578,13 @@ int BaseLmmElement::prependInputBuffer(int ch, RawBuffer buf)
 	inputLock.lock();
 	inBufQueue[ch].prepend(buf);
 	inputLock.unlock();
+	return 0;
+}
+
+int BaseLmmElement::processBuffer(int ch, RawBuffer buf)
+{
+	Q_UNUSED(ch);
+	Q_UNUSED(buf);
 	return 0;
 }
 

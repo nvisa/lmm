@@ -34,7 +34,7 @@ public:
 	QList<RawBuffer> nextBuffers(int ch);
 	QList<RawBuffer> nextBuffersBlocking(int ch);
 	virtual int process();
-	virtual int processBlocking();
+	virtual int processBlocking(int ch = 0);
 	virtual int processBlocking(int ch, RawBuffer buf);
 	void setStreamTime(StreamTime *t) { streamTime = t; }
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
@@ -80,6 +80,7 @@ protected:
 	int appendInputBuffer(int ch, RawBuffer buf);
 	int prependInputBuffer(int ch, RawBuffer buf);
 	virtual int processBuffer(RawBuffer buf) = 0;
+	virtual int processBuffer(int ch, RawBuffer buf);
 	virtual void updateOutputTimeStats();
 	virtual void calculateFps();
 	RunningState getState();
