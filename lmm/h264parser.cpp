@@ -25,6 +25,7 @@ H264Parser::H264Parser(QObject *parent) :
 {
 	h264Mode = H264_OUTPUT_NALU;
 	packState = 0;
+	insertSpsPps = false;
 }
 
 static const uint8_t * findNextStartCodeIn(const uint8_t *p, const uint8_t *end)
@@ -181,6 +182,46 @@ H264SeiInfo H264Parser::parseNoStart(const uchar *data)
 		}
 	}
 	return sinfo;
+}
+
+int H264Parser::processBuffer(RawBuffer buf)
+{
+	if (insertSpsPps && spsBuf.size() == 0) {
+		const uchar *d = (const uchar *)buf.constData();
+		while (d) {
+			int nal = d[4] & 0x1f;
+			int next = findNextStartCode(&d[4], d + buf.size()) - d;
+			if (nal != NAL_SLICE)
+				mInfo("nal %d", nal);
+			if (nal == NAL_SLICE_IDR) {
+				idrBuf = RawBuffer("video/x-h264", d, next);
+			} else if (nal == NAL_SPS) {
+				spsBuf = RawBuffer("video/x-h264", d, next);
+			} else if (nal == NAL_PPS) {
+				ppsBuf = RawBuffer("video/x-h264", d, next);
+			}
+			if (next < buf.size())
+				d = d + next;
+			else
+				break;
+		}
+	}
+
+	if (insertSpsPps && buf.getBufferParameter("frameType").toInt() == 0) {
+		mInfo("inserting SPS and PPS");
+		RawBuffer buf2("video/x-h264", buf.size() + spsBuf.size() + ppsBuf.size());
+		buf2.addBufferParameters(buf.bufferParameters());
+		char *d = (char *)buf2.data();
+		memcpy(d, spsBuf.constData(), spsBuf.size());
+		d += spsBuf.size();
+		memcpy(d, ppsBuf.constData(), ppsBuf.size());
+		d += ppsBuf.size();
+		memcpy(d, buf.constData(), buf.size());
+		return newOutputBuffer(0, buf2);
+	}
+
+	newOutputBuffer(0, buf);
+	return 0;
 }
 
 int H264Parser::findNextStartCode(const uchar *data, int size)

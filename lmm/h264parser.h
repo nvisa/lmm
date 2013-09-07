@@ -24,7 +24,7 @@ class H264Parser : public BaseLmmParser
 public:
 	explicit H264Parser(QObject *parent = 0);
 	static const uchar * findNextStartCode(const uchar *p, const uchar *end);
-	
+	void setSpsPpsInsertion(bool v) { insertSpsPps = v; }
 signals:
 	
 public slots:
@@ -36,12 +36,17 @@ protected:
 	int findNextStartCode(const uchar *data, int size);
 	int parse(const uchar *data, int size);
 	H264SeiInfo parseNoStart(const uchar *data);
+	int processBuffer(RawBuffer buf);
 
 	int packState;
 	int packSize;
 	h264_output h264Mode;
 	QList<RawBuffer> nalBuffers;
 	QList<RawBuffer> au;
+	RawBuffer idrBuf;
+	RawBuffer spsBuf;
+	RawBuffer ppsBuf;
+	bool insertSpsPps;
 };
 
 #endif // H264PARSER_H
