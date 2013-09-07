@@ -46,15 +46,18 @@ DmaiBuffer::DmaiBuffer(QString mimeType, Buffer_Handle handle, BaseLmmElement *p
 	init(handle);
 }
 
-DmaiBuffer::DmaiBuffer(QString mimeType, const void *data, int size, BufferGfx_Attrs *gfxAttrs, BaseLmmElement *parent)
+DmaiBuffer::DmaiBuffer(QString mimeType, const void *data, int size, BufferGfx_Attrs *gfxAttrs, bool ref, BaseLmmElement *parent)
 {
 	d = new DmaiBufferData();
 	d->myParent = parent;
 	d->rawData = NULL;
 	d->refData = false;
 	d->mimeType = mimeType;
-	init(size, gfxAttrs);
-	memcpy(this->data(), data, size);
+	if (!ref) {
+		init(size, gfxAttrs);
+		memcpy(this->data(), data, size);
+	} else
+		init(data, size, gfxAttrs);
 }
 
 DmaiBuffer::DmaiBuffer(QString mimeType, int size, BufferGfx_Attrs *gfxAttrs, BaseLmmElement *parent)
@@ -107,6 +110,22 @@ int DmaiBuffer::getBufferSizeFor(BufferGfx_Attrs *attrs)
 	if (attrs->colorSpace == ColorSpace_YUV420PSEMI)
 		return attrs->dim.width * attrs->dim.height * 3 / 2;
 	return 0;
+}
+
+void DmaiBuffer::init(const void *data, int size, BufferGfx_Attrs *gfxAttrs)
+{
+	DmaiBufferData *dd = (DmaiBufferData *)d.data();
+	if (!gfxAttrs)
+		gfxAttrs = (BufferGfx_Attrs *)&BufferGfx_Attrs_DEFAULT;
+	gfxAttrs->bAttrs.reference = true;
+	dd->dmaibuf = Buffer_create(0, BufferGfx_getBufferAttrs(gfxAttrs));
+	dd->bufferOwner = true;
+	Buffer_setSize(dd->dmaibuf, size);
+	Buffer_setUserPtr(dd->dmaibuf, (Int8 *)data);
+	setRefData(d->mimeType, Buffer_getUserPtr(dd->dmaibuf), size);
+	addBufferParameter("width", (int)gfxAttrs->dim.width);
+	addBufferParameter("height", (int)gfxAttrs->dim.height);
+	addBufferParameter("dmaiBuffer", (int)dd->dmaibuf);
 }
 
 void DmaiBuffer::init(int size, BufferGfx_Attrs *gfxAttrs)

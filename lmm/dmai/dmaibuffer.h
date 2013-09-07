@@ -30,7 +30,7 @@ class DmaiBuffer : public RawBuffer
 {
 public:
 	explicit DmaiBuffer(QString mimeType, Buffer_Handle handle, BaseLmmElement *parent = 0);
-	explicit DmaiBuffer(QString mimeType, const void *data, int size, BufferGfx_Attrs *gfxAttrs, BaseLmmElement *parent = 0);
+	explicit DmaiBuffer(QString mimeType, const void *data, int size, BufferGfx_Attrs *gfxAttrs, bool ref = false, BaseLmmElement *parent = 0);
 	explicit DmaiBuffer(QString mimeType, int size, BufferGfx_Attrs *gfxAttrs, BaseLmmElement *parent = 0);
 	DmaiBuffer(const RawBuffer &other);
 	~DmaiBuffer();
@@ -46,6 +46,7 @@ protected:
 private:
 	int pixFormat;
 
+	void init(const void *data, int size, BufferGfx_Attrs *gfxAttrs);
 	void init(int size, BufferGfx_Attrs *gfxAttrs);
 	void init(Buffer_Handle handle);
 };
