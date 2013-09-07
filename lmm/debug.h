@@ -116,13 +116,11 @@ extern void __attribute__ ((no_instrument_function)) print_trace (void);
 
 extern "C" {
 
-/*#ifndef __thread
-#define __thread
-#endif*/
+#include <stdint.h>
 
-extern __thread int _trstack[];
-extern __thread int _trstack2[];
-extern __thread int _trpos;
+extern __thread intptr_t _trstack[];
+extern __thread intptr_t _trstack2[];
+extern __thread intptr_t _trpos;
 
 static inline void __attribute__((always_inline)) _trace_in(int file, int line)
 {
