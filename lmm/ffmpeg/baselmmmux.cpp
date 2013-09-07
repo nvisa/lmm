@@ -44,7 +44,7 @@ static int64_t lmmUrlSeek(URLContext *h, int64_t pos, int whence)
 	(void)h;
 	(void)pos;
 	(void)whence;
-	return -EINVAL;
+	return ((BaseLmmMux *)h->priv_data)->seekUrl(pos, whence);
 }
 
 static int lmmUrlClose(URLContext *h)
@@ -227,7 +227,7 @@ int BaseLmmMux::findInputStreamInfo()
 		int err = avformat_open_input(&inputContext, qPrintable(pname), inputFmt, NULL);
 #endif
 		if (err) {
-			mDebug("error opening input file %s", qPrintable(pname));
+			mDebug("error %d opening input file %s", err, qPrintable(pname));
 			return err;
 		}
 	}
@@ -415,8 +415,10 @@ int BaseLmmMux::timebaseDenom()
  */
 int BaseLmmMux::sync()
 {
+	mutex.lock();
 	av_write_trailer(context);
 	av_write_header(context);
+	mutex.unlock();
 	return 0;
 }
 
@@ -445,6 +447,7 @@ int BaseLmmMux::writePacket(const uint8_t *buffer, int buf_size)
 {
 	RawBuffer buf(mimeType(), (void *)buffer, buf_size);
 	newOutputBuffer(0, buf);
+	currUrlPos += buf_size;
 	return buf_size;
 }
 
@@ -494,6 +497,7 @@ int BaseLmmMux::openUrl(QString url, int)
 	mDebug("opening %s", qPrintable(url));
 	if (url.contains("lmmmuxo"))
 		muxOutputOpened = true;
+	currUrlPos = 0;
 	return 0;
 }
 
@@ -505,6 +509,13 @@ int BaseLmmMux::closeUrl(URLContext *)
 {
 	/* no need to do anything, stream will be closed later */
 	return 0;
+}
+
+int64_t BaseLmmMux::seekUrl(int64_t pos, int whence)
+{
+	Q_UNUSED(pos);
+	Q_UNUSED(whence);
+	return -EINVAL;
 }
 
 int BaseLmmMux::initMuxer()

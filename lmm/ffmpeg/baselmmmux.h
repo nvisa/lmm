@@ -28,6 +28,7 @@ public:
 	int writePacket(const uint8_t *buffer, int buf_size);
 	int openUrl(QString url, int flags);
 	int closeUrl(URLContext *h);
+	virtual int64_t seekUrl(int64_t pos, int whence);
 signals:
 	void inputInfoFound();
 public slots:
@@ -44,6 +45,7 @@ protected:
 	int avioBufferSizeOut;
 	uchar *avioBufferIn;
 	uchar *avioBufferOut;
+	int currUrlPos;
 	/*
 	 * In older FFmpeg releases AVIOContext is typedef to
 	 * anonymous struct so it is not possible to forward
