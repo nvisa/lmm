@@ -39,7 +39,7 @@ protected:
 	AVOutputFormat *fmt;
 	AVInputFormat *inputFmt;
 	bool foundStreamInfo;
-	int muxedBufferCount;
+	int muxedBufferCount[256]; //256 is more than enough
 	int avioBufferSizeIn;
 	int avioBufferSizeOut;
 	uchar *avioBufferIn;
@@ -70,7 +70,8 @@ protected:
 	virtual QString mimeType() = 0;
 	void printInputInfo();
 	int processBuffer(RawBuffer buf);
-	virtual qint64 packetTimestamp();
+	virtual int processBuffer(int ch, RawBuffer buf);
+	virtual qint64 packetTimestamp(int stream);
 	virtual int timebaseNum();
 	virtual int timebaseDenom();
 };

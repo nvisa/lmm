@@ -343,6 +343,11 @@ void BaseLmmMux::printInputInfo()
 
 int BaseLmmMux::processBuffer(RawBuffer buf)
 {
+	return processBuffer(0, buf);
+}
+
+int BaseLmmMux::processBuffer(int ch, RawBuffer buf)
+{
 	if (!foundStreamInfo) {
 		if (findInputStreamInfo()) {
 			mDebug("error in input stream info");
@@ -353,7 +358,9 @@ int BaseLmmMux::processBuffer(RawBuffer buf)
 					inputBuffers.prepend(inputInfoBuffers.takeLast());
 			*/
 			mutex.lock();
-			int err = initMuxer();
+			int err = 0;
+			if (!context)
+				err = initMuxer();
 			mutex.unlock();
 			if (err)
 				return err;
@@ -364,23 +371,28 @@ int BaseLmmMux::processBuffer(RawBuffer buf)
 		mInfo("muxing next packet");
 		AVPacket pckt;
 		av_init_packet(&pckt);
-		pckt.stream_index = 0;
+		pckt.stream_index = ch;
 		pckt.data = (uint8_t *)buf.constData();
 		pckt.size = buf.size();
-		pckt.pts = pckt.dts = packetTimestamp();
-		mInfo("writing next frame %d %lld", buf.size(), pckt.dts);
-		av_write_frame(context, &pckt);
-		if (muxOutputOpened) {
-			newOutputBuffer(0, buf);
+		if (ch == 0) {
+			int ft = buf.getBufferParameter("frameType").toInt();
+			if (!ft) {
+				pckt.flags |= AV_PKT_FLAG_KEY;
+			}
 		}
-		muxedBufferCount++;
+		pckt.pts = pckt.dts = packetTimestamp(ch);
+		mInfo("writing next frame %d %lld", buf.size(), pckt.dts);
+		mutex.lock();
+		av_write_frame(context, &pckt);
+		muxedBufferCount[ch]++;
+		mutex.unlock();
 	}
 	return 0;
 }
 
-qint64 BaseLmmMux::packetTimestamp()
+qint64 BaseLmmMux::packetTimestamp(int stream)
 {
-	return muxedBufferCount;
+	return muxedBufferCount[stream];
 }
 
 int BaseLmmMux::timebaseNum()
