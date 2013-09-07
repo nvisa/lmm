@@ -25,6 +25,10 @@ static void avformat_free_context(AVFormatContext *c)
 #define CODEC_TYPE_AUDIO AVMEDIA_TYPE_AUDIO
 #endif
 
+#ifndef AV_PIX_FMT_GRAY8
+#define AV_PIX_FMT_GRAY8 PIX_FMT_GRAY8
+#endif
+
 #ifndef URL_RDONLY
 #define dump_format av_dump_format
 #define av_write_header(_x) avformat_write_header(_x, NULL)

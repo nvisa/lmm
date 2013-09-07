@@ -462,16 +462,13 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 	mInfo("will read %d bytes into ffmpeg buffer", buf_size);
 	/* This routine may be called before the stream started */
 	int copied = 0, left = buf_size;
+	if (!acquireInputSem(0))
+		return -EINVAL;
 	RawBuffer buf = takeInputBuffer(0);
 	while (buf.size()) {
 		mInfo("using next input buffer, copied=%d left=%d buf.size()=%d", copied, left, buf.size());
 		if (buf.size() > left) {
 			memcpy(buffer + copied, buf.constData(), left);
-			/* some data will left, put back to input buffers */
-			RawBuffer iibuf(mimeType(), (void *)buf.constData(), left);
-			inputInfoBuffers << iibuf;
-			RawBuffer newbuf(mimeType(), (uchar *)buf.constData() + left, buf.size() - left);
-			prependInputBuffer(0, newbuf);
 			copied += left;
 			left -= left;
 			break;
@@ -479,8 +476,9 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 			memcpy(buffer + copied, buf.constData(), buf.size());
 			copied += buf.size();
 			left -= buf.size();
-			inputInfoBuffers << buf;
 		}
+		if (!acquireInputSem(0))
+			return -EINVAL;
 		buf = takeInputBuffer(0);
 	}
 	mInfo("read %d bytes into ffmpeg buffer", copied);

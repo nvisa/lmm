@@ -4,6 +4,7 @@
 extern "C" {
 	#include <libavcodec/avcodec.h>
 	#include <libavformat/avformat.h>
+	#include "ffcompat.h"
 }
 
 FFmpegBuffer::FFmpegBuffer(QString mimeType, AVPacket *packet, BaseLmmElement *parent)

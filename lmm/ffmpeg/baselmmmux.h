@@ -62,8 +62,6 @@ protected:
 	AVStream *audioStream;
 	AVStream *videoStream;
 
-	QList<RawBuffer> inputInfoBuffers;
-
 	int muxNumber; /* global mux number of this instance, needed for UrlProtocol */
 	bool muxOutputOpened;
 
