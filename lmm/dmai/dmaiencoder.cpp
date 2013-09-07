@@ -7,9 +7,12 @@
 
 #include <ti/sdo/ce/CERuntime.h>
 
+#include <linux/videodev2.h>
 #include <errno.h>
 
 #include <QTime>
+
+static DmaiEncoder *instance = NULL;
 
 DmaiEncoder::DmaiEncoder(QObject *parent) :
 	BaseLmmElement(parent)
@@ -23,6 +26,15 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 	codec = CODEC_H264;
 	encodeTimeStat = new UnitTimeStat;
 	encodeTiming = new QTime;
+	instance = this;
+	generateIdrFrame = false;
+	inputPixFormat = V4L2_PIX_FMT_NV12;
+}
+
+DmaiEncoder::~DmaiEncoder()
+{
+	stopCodec();
+	instance = NULL;
 }
 
 int DmaiEncoder::setCodecType(DmaiEncoder::CodecType type)
@@ -37,6 +49,7 @@ void DmaiEncoder::setFrameRate(float fps)
 {
 	frameRate = fps;
 	maxFrameRate = frameRate * 1000;
+	intraFrameInterval = fps;
 }
 
 float DmaiEncoder::getFrameRate()
@@ -76,16 +89,25 @@ int DmaiEncoder::stop()
 
 int DmaiEncoder::flush()
 {
-	if (codec == CODEC_H264 && encodeCount) {
-		mDebug("flusing encoder, will generate IDR frame");
-		generateIdrFrame = true;
-		if (dirty) {
-			stopCodec();
-			startCodec();
-			dirty = false;
-		}
+	mDebug("flusing encoder");
+	if (dirty) {
+		stopCodec();
+		startCodec();
+		dirty = false;
 	}
 	return BaseLmmElement::flush();
+}
+
+int DmaiEncoder::genIdr()
+{
+	if (codec == CODEC_H264 && encodeCount) {
+		mDebug("will generate IDR frame");
+		dspl.lock();
+		generateIdrFrame = true;
+		dspl.unlock();
+		return 0;
+	}
+	return -EINVAL;
 }
 
 int DmaiEncoder::processBuffer(RawBuffer buf)
@@ -101,7 +123,9 @@ int DmaiEncoder::processBuffer(RawBuffer buf)
 	}
 	t.start();
 	Buffer_setNumBytesUsed(dmai, buf.size());
+	dspl.lock();
 	err = encode(dmai, buf);
+	dspl.unlock();
 	mInfo("encode took %d msecs", t.elapsed());
 	encodeTimeStat->addStat(encodeTiming->restart());
 	if (encodeTimeStat->last > 75)
@@ -110,6 +134,7 @@ int DmaiEncoder::processBuffer(RawBuffer buf)
 		goto out;
 	return 0;
 out:
+	mDebug("error %d", err);
 	return err;
 }
 
@@ -128,6 +153,12 @@ void DmaiEncoder::initCodecEngine()
 	Dmai_init();
 }
 
+void DmaiEncoder::cleanUpDsp()
+{
+	if (instance)
+		delete instance;
+}
+
 int DmaiEncoder::startCodec()
 {
 	IVIDENC1_DynamicParams defaultDynParams = Venc1_DynamicParams_DEFAULT;
@@ -137,6 +168,10 @@ int DmaiEncoder::startCodec()
 
 	/* DM365 only supports YUV420P semi planar chroma format */
 	ColorSpace_Type         colorSpace = ColorSpace_YUV420PSEMI;
+	if (inputPixFormat == V4L2_PIX_FMT_NV12)
+		colorSpace = ColorSpace_YUV420PSEMI;
+	else if (inputPixFormat == V4L2_PIX_FMT_UYVY)
+		colorSpace = ColorSpace_UYVY;
 	Bool                    localBufferAlloc = TRUE;
 	Int32                   bufSize;
 	int outBufSize;
@@ -168,10 +203,10 @@ int DmaiEncoder::startCodec()
 	params->encodingPreset  = XDM_HIGH_SPEED;
 	if (colorSpace ==  ColorSpace_YUV420PSEMI) {
 		params->inputChromaFormat = XDM_YUV_420SP;
+		params->reconChromaFormat = XDM_YUV_420SP;
 	} else {
 		params->inputChromaFormat = XDM_YUV_422ILE;
 	}
-	params->reconChromaFormat = XDM_YUV_420SP;
 	params->maxFrameRate      = maxFrameRate;
 
 	if (rateControl == RATE_CBR) {
@@ -200,6 +235,7 @@ int DmaiEncoder::startCodec()
 		codecName = "mpeg4enc";
 	else
 		return -EINVAL;
+
 	/* Create the video encoder */
 	hCodec = Venc1_create(hEngine, (Char *)qPrintable(codecName), params, dynParams);
 
@@ -209,14 +245,6 @@ int DmaiEncoder::startCodec()
 	}
 
 	/* Allocate output buffers */
-	Buffer_Attrs bAttrs = Buffer_Attrs_DEFAULT;
-	outBufSize = Venc1_getOutBufSize(hCodec);
-	outputBufTab = BufTab_create(3, outBufSize, &bAttrs);
-	if (outputBufTab == NULL) {
-		mDebug("unable to allocate output buffer tab of size %d for %d buffers", outBufSize, 3);
-		return -ENOMEM;
-	}
-
 	if (localBufferAlloc == TRUE) {
 		gfxAttrs.colorSpace = colorSpace;
 		gfxAttrs.dim.width  = imageWidth;
@@ -234,7 +262,7 @@ int DmaiEncoder::startCodec()
 		if (colorSpace ==  ColorSpace_YUV420PSEMI) {
 			bufSize = gfxAttrs.dim.lineLength * gfxAttrs.dim.height * 3 / 2;
 		} else {
-			bufSize = gfxAttrs.dim.lineLength * gfxAttrs.dim.height * 2;
+			bufSize = gfxAttrs.dim.lineLength * gfxAttrs.dim.height;
 		}
 
 		/* Create a table of buffers with size based on rounded LineLength */
@@ -277,13 +305,13 @@ int DmaiEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	BufferGfx_setDimensions(buffer, &dim);
 
 	if (generateIdrFrame) {
-		mDebug("generating IDR");
+		mInfo("generating IDR");
 		VIDENC1_Status status;
 		status.size = sizeof(VIDENC1_Status);
 		dynParams->forceFrame = IVIDEO_IDR_FRAME;
 		if (VIDENC1_control(Venc1_getVisaHandle(hCodec), XDM_SETPARAMS,
 							dynParams, &status) != VIDENC1_EOK) {
-			qDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
+			mDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
 		} else
 			idrGenerated = true;
 	}
@@ -310,11 +338,11 @@ int DmaiEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		dynParams->forceFrame = IVIDEO_NA_FRAME;
 		if (VIDENC1_control(Venc1_getVisaHandle(hCodec), XDM_SETPARAMS,
 							dynParams, &status) != VIDENC1_EOK)
-			qDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
+			mDebug("error setting normal frame encoder: 0x%x", (int)status.extendedError);
 		generateIdrFrame = false;
 	}
 
-	RawBuffer buf = DmaiBuffer("video/x-h264", hDstBuf, this);
+	RawBuffer buf = RawBuffer("video/x-h264", Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
 	int frameType = BufferGfx_getFrameType(buffer);
 	if (frameType == IVIDEO_IDR_FRAME)
 		qDebug("IDR frame generated");
@@ -323,7 +351,7 @@ int DmaiEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	buf.addBufferParameter("encodeTime", streamTime->getCurrentTime());
 	buf.setStreamBufferNo(encodeCount++);
 	buf.setDuration(1000 / buf.getBufferParameter("fps").toFloat());
-	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
+	BufTab_freeBuf(hDstBuf);
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
 	newOutputBuffer(0, buf);
@@ -334,14 +362,18 @@ int DmaiEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 int DmaiEncoder::stopCodec()
 {
 	/* Shut down remaining items */
+	dspl.lock();
 	if (hCodec) {
 		mDebug("closing video encoder");
 		Venc1_delete(hCodec);
 		hCodec = NULL;
 	}
+	dspl.unlock();
 
-	BufTab_delete(hBufTab);
-	BufTab_delete(outputBufTab);
-
+	if (hBufTab) {
+		mDebug("deleting buffer tab 1");
+		BufTab_delete(hBufTab);
+		hBufTab = NULL;
+	}
 	return 0;
 }

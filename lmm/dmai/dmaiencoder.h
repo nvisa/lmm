@@ -38,9 +38,11 @@ public:
 		RATE_NONE
 	};
 	explicit DmaiEncoder(QObject *parent = 0);
+	virtual ~DmaiEncoder();
 	int start();
 	int stop();
 	int flush();
+	int genIdr();
 	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
 
 	/* control API */
@@ -48,15 +50,24 @@ public:
 	CodecType getCodecType() { return codec; }
 	virtual void setFrameRate(float fps);
 	virtual float getFrameRate();
+	int getMaxFrameRate() { return maxFrameRate / 1000; }
+	int setMaxFrameRate(int v) { maxFrameRate = v * 1000; dirty = true; return 0; }
+	RateControl getBitrateControlMethod() { return rateControl; }
+	int getBitrate() { return videoBitRate; }
+	int setBitrateControl(RateControl v) { rateControl = v; dirty = true; return 0; }
+	int setBitrate(int v) { videoBitRate = v; dirty = true; return 0; }
+	int getIntraFrameInterval() { return intraFrameInterval; }
+	int setIntraFrameInterval(int v) { intraFrameInterval = v; dirty = true; return 0; }
 
 	static void initCodecEngine();
+	static void cleanUpDsp();
 signals:
 	
 public slots:
 protected:
+	QMutex dspl;
 	Engine_Handle hEngine;
 	BufTab_Handle hBufTab;
-	BufTab_Handle outputBufTab;
 	int numOutputBufs;
 	int imageWidth;
 	int imageHeight;
@@ -74,6 +85,7 @@ protected:
 	int intraFrameInterval;
 	bool generateIdrFrame;
 	bool dirty;
+	int inputPixFormat;
 
 	virtual int startCodec();
 	virtual int stopCodec();
