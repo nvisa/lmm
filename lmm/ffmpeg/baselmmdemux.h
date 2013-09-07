@@ -73,7 +73,7 @@ protected:
 
 	virtual AVPacket * nextPacket();
 	virtual int findStreamInfo();
-	virtual QString mimeType() = 0;
+	virtual QString mimeType();
 };
 
 #endif // BASELMMDEMUX_H

@@ -198,6 +198,11 @@ int BaseLmmDemux::findStreamInfo()
 	return 0;
 }
 
+QString BaseLmmDemux::mimeType()
+{
+	return "unknown";
+}
+
 int BaseLmmDemux::setSource(QString filename)
 {
 	sourceUrlName = filename;
@@ -223,6 +228,10 @@ int BaseLmmDemux::demuxOne()
 	packet = nextPacket();
 	if (!packet) {
 		conlock.unlock();
+		if (demuxVideo)
+			newOutputBuffer(0, RawBuffer());
+		if (demuxAudio)
+			newOutputBuffer(1, RawBuffer());
 		return -ENOENT;
 	}
 	if (packet->stream_index == audioStreamIndex) {
