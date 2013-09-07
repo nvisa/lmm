@@ -76,7 +76,7 @@ int RtpPacketizer::sendNalUnit(const uchar *buf, int size)
 
 void RtpPacketizer::sendRtpData(uchar *buf, int size, int last)
 {
-	uint ts = baseTs + packetTimestamp();
+	uint ts = baseTs + packetTimestamp(0);
 	buf[0] = RTP_VERSION << 6;
 	buf[1] = last << 7 | 96;
 	buf[2] = seq >> 8;
@@ -152,7 +152,7 @@ int RtpPacketizer::processBuffer(RawBuffer buf)
 	return 0;
 }
 
-int RtpPacketizer::packetTimestamp()
+int RtpPacketizer::packetTimestamp(int stream)
 {
 	return 90000ll * streamedBufferCount / frameRate;
 }

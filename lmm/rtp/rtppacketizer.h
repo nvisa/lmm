@@ -36,7 +36,7 @@ signals:
 	void sdpReady(QString sdp);
 protected:
 	virtual int processBuffer(RawBuffer buf);
-	virtual int packetTimestamp();
+	virtual int packetTimestamp(int stream);
 	int sendNalUnit(const uchar *buf, int size);
 	void sendRtpData(uchar *buf, int size, int last);
 	void createSdp();
