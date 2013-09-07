@@ -126,7 +126,16 @@ ffmpeg {
 
 		HEADERS += \
 			ffmpeg/ffmpegdecoder.h \
+	}
 
+	dm6446 {
+		SOURCES += \
+			ffmpeg/mpegtsmux.cpp \
+			ffmpeg/audioencoder.cpp \
+
+		HEADERS += \
+			ffmpeg/mpegtsmux.h \
+			ffmpeg/audioencoder.h \
 	}
 
     ffmpeg_rtp {
