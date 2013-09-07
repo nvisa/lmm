@@ -5,6 +5,8 @@
 #include <QMutex>
 #include <QThread>
 
+#include <stdint.h>
+
 class LmmThread : public QThread
 {
 public:
@@ -35,9 +37,9 @@ private:
 	QTime time;
 	QMutex lock;
 	Qt::HANDLE id;
-	int *instStack1;
-	int *instStack2;
-	int *instPos;
+	intptr_t *instStack1;
+	intptr_t *instStack2;
+	intptr_t *instPos;
 };
 
 #endif // LMMTHREAD_H

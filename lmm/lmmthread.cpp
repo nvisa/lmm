@@ -35,8 +35,8 @@ void LmmThread::resume()
 
 void LmmThread::run()
 {
-	instStack1 = (int *)&_trstack;
-	instStack2 = (int *)&_trstack2;
+	instStack1 = (intptr_t *)&_trstack;
+	instStack2 = (intptr_t *)&_trstack2;
 	instPos = &_trpos;
 
 	id = QThread::currentThreadId();
@@ -108,8 +108,8 @@ void LmmThread::printStack()
 	qDebug("%s has %d entries at %p:", qPrintable(name), *instPos, instPos);
 	for (int i = 0; i < *instPos; i++) {
 #if 1
-		int *s1 = instStack1;
-		int *s2 = instStack2;
+		intptr_t *s1 = instStack1;
+		intptr_t *s2 = instStack2;
 		//if (s1[i] < 0 || s1[i] > 0x100000)
 			//continue;
 		qDebug("\t0x%x 0x%x", s1[i], s2[i]);
