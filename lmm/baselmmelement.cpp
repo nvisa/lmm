@@ -194,9 +194,9 @@ int BaseLmmElement::addBuffer(int ch, RawBuffer buffer)
 		return err;
 	}
 	inBufQueue[ch] << buffer;
+	receivedBufferCount++;
 	inputLock.unlock();
 	inbufsem[ch]->release();
-	receivedBufferCount++;
 	return 0;
 }
 
