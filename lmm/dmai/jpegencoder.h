@@ -4,6 +4,8 @@
 #include <lmm/dmai/dmaiencoder.h>
 
 #include <ti/sdo/dmai/ce/Ienc1.h>
+#include <ti/sdo/dmai/BufTab.h>
+#include <ti/sdo/dmai/BufferGfx.h>
 
 class JpegEncoder : public DmaiEncoder
 {
@@ -18,6 +20,7 @@ private:
 	IMGENC1_DynamicParams   defaultDynParams;
 	Ienc1_Handle hCodec;
 	int qFact;
+	BufTab_Handle outputBufTab;
 
 	virtual int startCodec();
 	virtual int stopCodec();

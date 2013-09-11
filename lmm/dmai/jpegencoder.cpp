@@ -93,8 +93,6 @@ int JpegEncoder::stopCodec()
 		hCodec = NULL;
 	}
 
-	BufTab_delete(outputBufTab);
-
 	return 0;
 }
 
