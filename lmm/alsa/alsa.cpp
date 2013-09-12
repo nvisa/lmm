@@ -28,11 +28,15 @@ Alsa::Alsa(QObject *parent) :
 	hctl = NULL;
 }
 
-int Alsa::open(int rate)
+int Alsa::open(int rate, bool capture)
 {
 	if (!hctl)
 		initVolumeControl();
-	int err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+	int err = 0;
+	if (!capture)
+		snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+	else
+		snd_pcm_open(&handle, "default", SND_PCM_STREAM_CAPTURE, 0);
 	if (err)
 		return err;
 	mDebug("pcm device opened");
@@ -137,6 +141,22 @@ write_error:
 		mutex.unlock();
 		return length; /* skip one period */
 	}
+}
+
+int Alsa::read(void *buf, int length)
+{
+	int ch = 2;
+	mutex.lock();
+	int err = snd_pcm_readi(handle, buf, length);// / bytesPerSample / ch);
+	mutex.unlock();
+	if (err == -EPIPE) {
+
+	}
+	if (err < 0) {
+		mDebug("read error %d: %s", err, snd_strerror(err));
+		return err;
+	}
+	return err;
 }
 
 int Alsa::readDriverDelay()

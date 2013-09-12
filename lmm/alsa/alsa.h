@@ -20,11 +20,12 @@ class Alsa : public QObject
 	Q_OBJECT
 public:
 	Alsa(QObject *parent = NULL);
-	int open(int rate = 48000);
+	int open(int rate = 48000, bool capture = false);
 	int close();
 	int pause();
 	int resume();
 	int write(const void *buf, int length);
+	int read(void *buf, int length);
 	int mute(bool mute);
 	/* return os delay in microseconds */
 	int delay();
