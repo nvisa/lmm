@@ -12,6 +12,7 @@ class QXmlStreamWriter;
 
 #define equals(__str) !setting.compare(__str, Qt::CaseInsensitive)
 #define starts(__str) setting.startsWith(__str, Qt::CaseInsensitive)
+#define ends(__str) setting.endsWith(__str, Qt::CaseInsensitive)
 
 class BaseSettingHandler : public QObject
 {
