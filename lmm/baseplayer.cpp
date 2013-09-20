@@ -153,6 +153,7 @@ int BasePlayer::setFilename(QString filename)
 
 void BasePlayer::timeout()
 {
+	timeoutHandler();
 }
 
 int BasePlayer::elementStarted(BaseLmmElement *el)

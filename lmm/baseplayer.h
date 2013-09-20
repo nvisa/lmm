@@ -55,10 +55,11 @@ public:
 	virtual int getVolumeLevel();
 	virtual bool isEOF();
 	virtual int setSourceUrl(QUrl url);
+	virtual QUrl getSourceUrl() { return sourceUrl; }
 	virtual int setFilename(QString filename);
 	StreamTime * getStreamTime() { return streamTime; }
 signals:
-	
+	void playbackFinished(int err);
 public slots:
 	virtual void timeout();
 protected:
@@ -73,6 +74,7 @@ protected:
 	virtual int elementStarted(BaseLmmElement *el);
 	virtual RemoteConsole * createManagementConsole();
 	int processBuffer(RawBuffer);
+	virtual void timeoutHandler() {}
 
 	friend class LmmSettingHandler;
 	virtual const QList<LmmThread *> getThreads() = 0;
