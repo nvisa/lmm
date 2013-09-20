@@ -263,6 +263,8 @@ int BaseLmmDemux::demuxOne()
 			}
 			newOutputBuffer(1, buf);
 		}
+		av_free_packet(packet);
+		delete packet;
 	} else if (packet->stream_index == videoStreamIndex) {
 		mInfo("new video stream: size=%d pts=%lld duration=%d dflags=%d", packet->size,
 			   packet->pts == (int64_t)AV_NOPTS_VALUE ? -1 : packet->pts ,
@@ -441,6 +443,9 @@ AVPacket * BaseLmmDemux::nextPacket()
 {
 	AVPacket *packet = new AVPacket;
 	//conlock.lock();
+	av_init_packet(packet);
+	packet->data = NULL;
+	packet->size = 0;
 	if (context && av_read_frame(context, packet)) {
 		deletePacket(packet);
 		//conlock.unlock();
