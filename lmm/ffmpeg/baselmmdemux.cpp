@@ -125,11 +125,16 @@ qint64 BaseLmmDemux::getCurrentPosition()
 
 qint64 BaseLmmDemux::getTotalDuration()
 {
-	if (videoStream)
-		return videoStream->duration * videoTimeBaseN / 1000;
-	if (audioStream)
-		return audioStream->duration * audioTimeBaseN / 1000;
-	return 0;
+	qint64 val = -1;
+	conlock.lock();
+	if (context && context->duration)
+		val = context->duration;
+	else if (videoStream)
+		val = videoStream->duration * videoTimeBaseN / 1000;
+	else if (audioStream)
+		val = audioStream->duration * audioTimeBaseN / 1000;
+	conlock.unlock();
+	return val;
 }
 
 int BaseLmmDemux::findStreamInfo()
@@ -208,6 +213,13 @@ int BaseLmmDemux::setSource(QString filename)
 	sourceUrlName = filename;
 	if (sourceUrlName.contains("lmmdemuxi"))
 		sourceUrlName = QString("lmmdemuxi%1://demuxvideoinput").arg(demuxNumber);
+	return 0;
+}
+
+int BaseLmmDemux::getFrameDuration(int st)
+{
+	if (!context || context->nb_streams <= (uint)st)
+		return 0;
 	return 0;
 }
 

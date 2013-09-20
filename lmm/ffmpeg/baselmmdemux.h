@@ -19,6 +19,7 @@ class BaseLmmDemux : public BaseLmmElement
 public:
 	explicit BaseLmmDemux(QObject *parent = 0);
 	virtual int setSource(QString filename);
+	virtual int getFrameDuration(int st);
 	virtual qint64 getTotalDuration();
 	virtual qint64 getCurrentPosition();
 	virtual int start();
