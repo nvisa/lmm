@@ -58,6 +58,8 @@ public:
 	int setBitrate(int v) { videoBitRate = v; dirty = true; return 0; }
 	int getIntraFrameInterval() { return intraFrameInterval; }
 	int setIntraFrameInterval(int v) { intraFrameInterval = v; dirty = true; return 0; }
+	int setInputPixelFormat(int v) { inputPixFormat = v; return 0; }
+	int getInputPixelFormat() { return inputPixFormat; }
 
 	static void initCodecEngine();
 	static void cleanUpDsp();

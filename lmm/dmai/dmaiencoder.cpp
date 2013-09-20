@@ -29,6 +29,8 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 	instance = this;
 	generateIdrFrame = false;
 	inputPixFormat = V4L2_PIX_FMT_NV12;
+	dirty = false;
+	hCodec = NULL;
 }
 
 DmaiEncoder::~DmaiEncoder()
@@ -90,7 +92,7 @@ int DmaiEncoder::stop()
 int DmaiEncoder::flush()
 {
 	mDebug("flusing encoder");
-	if (dirty) {
+	if (dirty && hCodec) {
 		stopCodec();
 		startCodec();
 		dirty = false;
@@ -174,7 +176,6 @@ int DmaiEncoder::startCodec()
 		colorSpace = ColorSpace_UYVY;
 	Bool                    localBufferAlloc = TRUE;
 	Int32                   bufSize;
-	int outBufSize;
 
 	const char *engineName = "encode";
 	/* Open the codec engine */
@@ -225,7 +226,6 @@ int DmaiEncoder::startCodec()
 	dynParams->inputHeight     = imageHeight;
 	dynParams->refFrameRate    = params->maxFrameRate;
 	dynParams->targetFrameRate = params->maxFrameRate;
-	dynParams->interFrameInterval = 0;
 	dynParams->intraFrameInterval = intraFrameInterval;
 
 	QString codecName;
