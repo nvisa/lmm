@@ -96,5 +96,5 @@ int RtpMux::initMuxer()
 
 qint64 RtpMux::packetTimestamp(int stream)
 {
-	return 90000ll * muxedBufferCount / frameRate;
+	return 90000ll * muxedBufferCount[stream] / frameRate;
 }
