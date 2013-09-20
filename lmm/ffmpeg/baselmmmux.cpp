@@ -171,10 +171,13 @@ BaseLmmMux::BaseLmmMux(QObject *parent) :
 	libavAnalayzeDuration = 5000000; /* this is ffmpeg default */
 	muxOutputOpened = false;
 	inputFmt = NULL;
+	audioCtx = NULL;
 }
 
 int BaseLmmMux::start()
 {
+	for (int i = 0; i < 256; i++)
+		muxedBufferCount[i] = 0;
 	context = NULL;
 	inputContext = NULL;
 	videoStreamIndex = audioStreamIndex = -1;
@@ -381,7 +384,7 @@ int BaseLmmMux::processBuffer(int ch, RawBuffer buf)
 			}
 		}
 		pckt.pts = pckt.dts = packetTimestamp(ch);
-		mInfo("writing next frame %d %lld", buf.size(), pckt.dts);
+		mInfo("writing next frame ch=%d size=%d pts=%lld", ch, buf.size(), pckt.dts);
 		mutex.lock();
 		av_write_frame(context, &pckt);
 		muxedBufferCount[ch]++;

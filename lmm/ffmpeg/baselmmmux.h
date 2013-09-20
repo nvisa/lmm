@@ -11,6 +11,7 @@ struct AVStream;
 struct AVOutputFormat;
 struct AVInputFormat;
 struct URLContext;
+struct AVCodecContext;
 
 class BaseLmmMux : public BaseLmmElement
 {
@@ -22,6 +23,7 @@ public:
 	virtual int stop();
 	virtual int sync();
 	virtual int setOutputFilename(QString filename);
+	virtual void setAudioCodecContext(AVCodecContext *c) { audioCtx = c; }
 
 	/* ffmpeg url routines */
 	int readPacket(uint8_t *buffer, int buf_size);
@@ -56,6 +58,7 @@ protected:
 	void *avioCtxIn;
 	void *avioCtxOut;
 	QMutex mutex;
+	AVCodecContext *audioCtx;
 
 	int videoStreamIndex;
 	int audioStreamIndex;
