@@ -14,8 +14,6 @@ signals:
 public slots:
 protected:
 	QString mimeType();
-	int initMuxer();
-	int findInputStreamInfo();
 };
 
 #endif // MP4MUX_H
