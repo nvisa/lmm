@@ -486,8 +486,11 @@ int BaseLmmElement::waitOutputBuffers(int ch, int lessThan)
 	if (getState() == STOPPED)
 		return -EINVAL;
 	outputLock.lock();
-	outputWakeThreshold = lessThan;
-	outWc[ch]->wait(&outputLock);
+	int size = outBufQueue[0].size();
+	if (size >= lessThan) {
+		outputWakeThreshold = lessThan;
+		outWc[ch]->wait(&outputLock);
+	}
 	outputLock.unlock();
 	if (getState() == STOPPED)
 		return -EINVAL;
