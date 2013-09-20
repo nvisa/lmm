@@ -13,6 +13,7 @@ public:
 	explicit AudioEncoder(QObject *parent = 0);
 	virtual int start();
 	virtual int stop();
+	AVCodecContext * getCodecContext() { return c; }
 protected:
 	virtual int startCodec();
 	virtual int stopCodec();

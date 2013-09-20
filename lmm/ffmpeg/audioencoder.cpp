@@ -48,10 +48,12 @@ int AudioEncoder::startCodec()
 		return -ENOENT;
 	}
 	c = avcodec_alloc_context();
-	c->bit_rate = 64000;
-	c->sample_rate = 44100;
+	c->bit_rate = 128000;
+	c->sample_rate = 16000;
 	c->channels = 2;
 	c->sample_fmt = AV_SAMPLE_FMT_S16;
+	c->time_base.num = 1;
+	c->time_base.den = 90000;
 
 	if (avcodec_open(c, codec) < 0) {
 		mDebug("cannot open codec");
@@ -80,15 +82,20 @@ int AudioEncoder::processBuffer(RawBuffer buf)
 {
 	int insize = sbuf.size();
 	short *samples = (short *)sbuf.data();
-	if (buf.size() <= insize - avail) {
+	int needed = insize - avail;
+	if (buf.size() <= needed) {
+		memcpy(((char *)samples) + avail, buf.constData(), buf.size());
 		avail += buf.size();
 		if (avail == insize) {
 			encode(samples);
 			avail = 0;
 		}
 	} else {
+		memcpy(((char *)samples) + avail, buf.constData(), needed);
 		encode(samples);
-		avail = insize - avail;
+		avail = 0; return processBuffer(RawBuffer(buf.getMimeType(), (char *)buf.constData() + needed, buf.size() - needed));
+		memcpy((char *)samples, (const char *)buf.constData() + needed, buf.size() - needed);
+		avail = buf.size() - needed;
 	}
 	return 0;
 }
@@ -97,7 +104,7 @@ int AudioEncoder::encode(const short *samples)
 {
 	mInfo("encoding new audio buffer");
 	int size = avcodec_encode_audio(c, outbuf, outSize, samples);
-	if (size) {
+	if (size > 0) {
 		RawBuffer buf("audio/mpeg2", outbuf, size);
 		return newOutputBuffer(0, buf);
 	}
