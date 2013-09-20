@@ -7,11 +7,17 @@
 
 #include <errno.h>
 
+static QMutex lock;
+static int instCount = 0;
+
 BasePlayer::BasePlayer(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	streamTime = new StreamTime;
 	connect(&timer, SIGNAL(timeout()), SLOT(timeout()));
+	lock.lock();
+	setObjectName(QString("BasePlayer%1").arg(instCount++));
+	lock.unlock();
 	BaseSettingHandler::addTarget(this);
 	timer.start(1000);
 }
@@ -156,7 +162,7 @@ int BasePlayer::elementStarted(BaseLmmElement *el)
 
 RemoteConsole *BasePlayer::createManagementConsole()
 {
-	return new RemoteConsole(this);
+	return new RemoteConsole(8944 + instCount, this);
 }
 
 int BasePlayer::processBuffer(RawBuffer)
