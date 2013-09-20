@@ -33,7 +33,8 @@ public:
 	RawBuffer nextBufferBlocking(int ch);
 	QList<RawBuffer> nextBuffers(int ch);
 	QList<RawBuffer> nextBuffersBlocking(int ch);
-	virtual int process();
+	virtual int process(int ch = 0);
+	virtual int process(int ch, RawBuffer buf);
 	virtual int processBlocking(int ch = 0);
 	virtual int processBlocking(int ch, RawBuffer buf);
 	void setStreamTime(StreamTime *t) { streamTime = t; }

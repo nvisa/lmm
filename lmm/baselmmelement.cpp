@@ -280,13 +280,22 @@ QList<RawBuffer> BaseLmmElement::nextBuffersBlocking(int ch)
 	return list;
 }
 
-int BaseLmmElement::process()
+int BaseLmmElement::process(int ch)
 {
-	inbufsem[0]->tryAcquire(1);
-	RawBuffer buf = takeInputBuffer(0);
-	if (buf.size())
-		return processBuffer(buf);
+	if (inbufsem[ch]->tryAcquire(1)) {
+		RawBuffer buf = takeInputBuffer(ch);
+		if (buf.size())
+			return processBuffer(buf);
+	}
 	return 0;
+}
+
+int BaseLmmElement::process(int ch, RawBuffer buf)
+{
+	int err = addBuffer(ch, buf);
+	if (err)
+		return err;
+	return process(ch);
 }
 
 int BaseLmmElement::processBlocking(int ch)
