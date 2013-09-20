@@ -1,14 +1,15 @@
 #include "remoteconsole.h"
 #include "basesettinghandler.h"
+#include "debug.h"
 
 #include <QUdpSocket>
 #include <QStringList>
 
-RemoteConsole::RemoteConsole(QObject *parent) :
+RemoteConsole::RemoteConsole(int port, QObject *parent) :
 	QObject(parent)
 {
 	sock = new QUdpSocket(this);
-	sock->bind(QHostAddress::Any, 8945);
+	sock->bind(QHostAddress::Any, port);
 
 	connect(sock, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
 }

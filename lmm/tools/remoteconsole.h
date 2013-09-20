@@ -9,7 +9,7 @@ class RemoteConsole : public QObject
 {
 	Q_OBJECT
 public:
-	explicit RemoteConsole(QObject *parent = 0);
+	explicit RemoteConsole(int port = 8945, QObject *parent = 0);
 signals:
 	
 private slots:
