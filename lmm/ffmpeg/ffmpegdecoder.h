@@ -24,6 +24,8 @@ public:
 	virtual int stopDecoding();
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &pars);
 	void setRgbOutput(bool val) { rgbOut = val; }
+	void setOutputScale(int w, int h, bool keepAspect) { outWidth = w; outHeight = h; keepAspectRatio = keepAspect; }
+	void decodeOnlyKeyframe(bool v) { onlyKeyframe = v; }
 protected:
 	int decode(RawBuffer buf);
 	void printMotionVectors(AVFrame *pict);
@@ -38,6 +40,10 @@ private:
 	LmmBufferPool *pool;
 	QMap<int, RawBuffer> poolBuffers;
 	bool rgbOut;
+	int outWidth;
+	int outHeight;
+	int keepAspectRatio;
+	bool onlyKeyframe;
 };
 
 #endif // FFMPEGDECODER_H

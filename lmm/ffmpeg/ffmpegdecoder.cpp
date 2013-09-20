@@ -6,10 +6,25 @@
 
 #include <lmm/debug.h>
 
+#include <stdint.h>
+
 extern "C" {
 	#include <libavformat/avformat.h>
 	#include <libavcodec/avcodec.h>
 	#include <libswscale/swscale.h>
+}
+
+static int decLockOp(void **mutex, enum AVLockOp op)
+{
+	if (op == AV_LOCK_CREATE)
+		*mutex = new QMutex();
+	else if (op == AV_LOCK_OBTAIN)
+		((QMutex *)(*mutex))->lock();
+	else if (op == AV_LOCK_RELEASE)
+		((QMutex *)(*mutex))->unlock();
+	else if (op == AV_LOCK_DESTROY)
+		delete ((QMutex *)(*mutex));
+	return 0;
 }
 
 FFmpegDecoder::FFmpegDecoder(QObject *parent) :
@@ -17,7 +32,13 @@ FFmpegDecoder::FFmpegDecoder(QObject *parent) :
 {
 	rgbOut = true;
 	codecCtx = NULL;
+	outWidth = 0;
+	outHeight = 0;
+	codec = NULL;
+	onlyKeyframe = false;
 	pool = new LmmBufferPool(this);
+	avFrame = NULL;
+	av_lockmgr_register(decLockOp);
 }
 
 int FFmpegDecoder::setStream(AVCodecContext *stream)
@@ -42,6 +63,10 @@ int FFmpegDecoder::startDecoding()
 		codecCtx = NULL;
 		sws_freeContext(swsCtx);
 	}
+	if (avFrame) {
+		avcodec_free_frame(&avFrame);
+		avFrame = NULL;
+	}
 	avFrame = avcodec_alloc_frame();
 	swsCtx = NULL;
 	decodeCount = 0;
@@ -50,16 +75,19 @@ int FFmpegDecoder::startDecoding()
 
 int FFmpegDecoder::stopDecoding()
 {
+	avcodec_close(codecCtx);
 	poolBuffers.clear();
 	pool->finalize();
 	return 0;
 }
-#include <stdint.h>
+
 int FFmpegDecoder::decode(RawBuffer buf)
 {
 	mInfo("decoding %d bytes", buf.size());
 	FFmpegBuffer *ffbuf = (FFmpegBuffer *)&buf;
 	AVPacket *packet = ffbuf->getAVPacket();
+	if (onlyKeyframe && (packet->flags & AV_PKT_FLAG_KEY) == 0)
+		return 0;
 	int finished;
 	int bytes = avcodec_decode_video2(codecCtx, avFrame, &finished, packet);
 	if (bytes < 0) {
@@ -71,15 +99,28 @@ int FFmpegDecoder::decode(RawBuffer buf)
 			mInfo("decoded video frame");
 			if (!swsCtx) {
 				mDebug("getting sw scale context");
-				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<PixelFormat>(codecCtx->pix_fmt),
-										codecCtx->width, codecCtx->height, PIX_FMT_RGB24, SWS_BICUBIC
+				if (!outWidth || !outHeight) {
+					outWidth = codecCtx->width;
+					outHeight = codecCtx->height;
+					if (keepAspectRatio)
+						outWidth = codecCtx->width * outHeight / codecCtx->height;
+					else
+						outWidth = codecCtx->width;
+				}
+				if (rgbOut)
+					swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<PixelFormat>(codecCtx->pix_fmt),
+										outWidth, outHeight, AV_PIX_FMT_RGB24, SWS_BICUBIC
+										, NULL, NULL, NULL);
+				else
+					swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<PixelFormat>(codecCtx->pix_fmt),
+										outWidth, outHeight, AV_PIX_FMT_GRAY8, SWS_BICUBIC
 										, NULL, NULL, NULL);
 				QString mime = "video/x-raw-rgb";
 				if (!rgbOut)
 					mime = "video/x-raw-gray";
 				for (int i = 0; i < 15; i++) {
-					mDebug("allocating sw scale buffer %d", i);
-					FFmpegBuffer buf(mime, codecCtx->width, codecCtx->height, this);
+					mInfo("allocating sw scale buffer %d with size %dx%d", i, outWidth, outHeight);
+					FFmpegBuffer buf(mime, outWidth, outHeight, this);
 					buf.addBufferParameter("poolIndex", i);
 					pool->addBuffer(buf);
 					poolBuffers.insert(i, buf);
@@ -91,19 +132,19 @@ int FFmpegDecoder::decode(RawBuffer buf)
 				return -ENOENT;
 			AVFrame *frame = (AVFrame *)poolbuf.getBufferParameter("AVFrame").toULongLong();
 			RawBuffer outbuf;
+			sws_scale(swsCtx, avFrame->data, avFrame->linesize, 0, codecCtx->height,
+					  frame->data, frame->linesize);
 			if (rgbOut) {
-				sws_scale(swsCtx, avFrame->data, avFrame->linesize, 0, codecCtx->height,
-						  frame->data, frame->linesize);
 				outbuf = RawBuffer(QString("video/x-raw-rgb"),
 								 (const void *)poolbuf.data(), poolbuf.size(), this);
 			} else {
-				int lsz = avFrame->linesize[0];
+				/*int lsz = avFrame->linesize[0];
 				for (int i = 0; i < codecCtx->height; i++)
-					memcpy(frame->data[0] + i * codecCtx->width, avFrame->data[0] + i * lsz, codecCtx->width);
+					memcpy(frame->data[0] + i * codecCtx->width, avFrame->data[0] + i * lsz, codecCtx->width);*/
 				outbuf = RawBuffer(QString("video/x-raw-gray"), (const void *)poolbuf.data(), poolbuf.size(), this);
 			}
-			outbuf.addBufferParameter("width", codecCtx->width);
-			outbuf.addBufferParameter("height", codecCtx->height);
+			outbuf.addBufferParameter("width", outWidth);
+			outbuf.addBufferParameter("height", outHeight);
 			if (rgbOut)
 				outbuf.addBufferParameter("avPixelFmt", AV_PIX_FMT_RGB24);
 			else
