@@ -20,6 +20,7 @@ BasePlayer::BasePlayer(QObject *parent) :
 	lock.unlock();
 	BaseSettingHandler::addTarget(this);
 	timer.start(1000);
+	manCons = createManagementConsole();
 }
 
 int BasePlayer::startElement(BaseLmmElement *el)
@@ -58,7 +59,6 @@ int BasePlayer::start()
 		return err;
 	}
 
-	manCons = createManagementConsole();
 	return BaseLmmElement::start();
 }
 
