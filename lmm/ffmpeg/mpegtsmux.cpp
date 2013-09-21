@@ -95,14 +95,14 @@ int MpegTsMux::initMuxer()
 		codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 	mInfo("output codec parameters adjusted");
 
-	addAudioStream();
 
 	context->timestamp = 0;
-
-	context->preload = 0.5 * AV_TIME_BASE; //from ffmpeg source
-	context->max_delay = 0.7 * AV_TIME_BASE; //from ffmpeg source
+	context->max_delay = 0;//0.7 * AV_TIME_BASE; //from ffmpeg source
 	context->loop_output = 0;
 	context->flags |= AVFMT_FLAG_NONBLOCK;
+
+	if (audioCtx)
+		addAudioStream();
 
 	if (!(fmt->flags & AVFMT_NOFILE) && avio_open(&context->pb, qPrintable(sourceUrlName), URL_WRONLY) < 0) {
 		mDebug("error opening stream file '%s'", qPrintable(sourceUrlName));
@@ -126,10 +126,30 @@ qint64 MpegTsMux::packetTimestamp(int stream)
 		return 0;
 	if (!streamTime)
 		return 0;
-	return 90ll * streamTime->getFreeRunningTime() / 1000;
-	if (stream == 0)
+	static int spv = -1;
+	static int spa = 0;
+	static qint64 lapts = 0;
+	if (stream == 0) {
+		spv = muxedBufferCount[0];
 		return 90000ll * muxedBufferCount[0] / 25.0;
-	return 90000ll * muxedBufferCount[1] * 1152 * 2 / 44100;
+	}
+	qint64 pts = 90000ll * muxedBufferCount[0] / 25.0;
+	if (pts > lapts) {
+		spa = 0;
+		lapts = pts;
+		return pts;
+	}
+
+	lapts = pts + 90000 * (++spa) / 17;
+	return lapts;
+	if (spv < muxedBufferCount[0]) {
+		spa = 0;//muxedBufferCount[1];
+		return 0;
+	} else {
+		qDebug() << "here";
+		return (90000ll * spv / 25.0) + 90000 * (++spa) / 17;
+	}
+	return 90000ll * muxedBufferCount[1] / 16;//* 1152 * 2 / 44100;
 }
 
 int MpegTsMux::addAudioStream()
@@ -139,17 +159,9 @@ int MpegTsMux::addAudioStream()
 		mDebug("cannot create audio stream");
 		return -ENOENT;
 	}
-	AVCodecContext *codec = st->codec;
-	codec->bit_rate = 64000;
-	codec->sample_rate = 44100;
-	codec->channels = 2;
-	codec->sample_fmt = AV_SAMPLE_FMT_S16;
-	codec->frame_size = 1152;
-	codec->flags = 0;
+	st->codec = audioCtx;
 	st->stream_copy = 1;
-	st->pts.num = 0;
-	st->pts.den = 1;
-	st->time_base.num = codec->time_base.num = 1;
-	st->time_base.den = codec->time_base.den = 90000;
+	st->pts.num = st->time_base.num = st->codec->time_base.num;
+	st->pts.den = st->time_base.den = st->codec->time_base.den;
 	return 0;
 }
