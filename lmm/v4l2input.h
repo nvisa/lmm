@@ -21,6 +21,7 @@ public:
 	virtual int stop();
 	virtual int flush();
 	virtual void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
+	virtual int processBlocking(int ch = 0);
 
 	void setBufferCount(int v) { captureBufferCount = v; }
 	int getBufferCount() { return captureBufferCount; }
@@ -37,11 +38,8 @@ protected:
 	int fd;
 	int inputIndex;
 	QList<struct v4l2_buffer *> v4l2buf;
-	QList<struct v4l2_buffer *> finishedBuffers;
 	QList<char *> userptr;
-	captureThread *cThread;
 	QTime timing;
-	QMutex finishedLock;
 
 	virtual int openCamera();
 	virtual int closeCamera();
@@ -49,7 +47,6 @@ protected:
 	virtual int allocBuffers(unsigned int buf_cnt, enum v4l2_buf_type type);
 	virtual int putFrame(struct v4l2_buffer *);
 	virtual v4l2_buffer * getFrame();
-	virtual bool captureLoop();
 
 	int openDeviceNode();
 	int enumStd();
@@ -61,6 +58,9 @@ protected:
 	int setFormat(unsigned int chromaFormat, int width, int height, bool interlaced = false);
 	int startStreaming();
 	int stopStreaming();
+private:
+	int processBuffer(RawBuffer) { return 0; }
+	virtual int processBuffer(v4l2_buffer *buffer);
 };
 
 #endif // V4L2INPUT_H

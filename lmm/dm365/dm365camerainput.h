@@ -54,8 +54,7 @@ private:
 	int configureResizer();
 	virtual int putFrame(struct v4l2_buffer * buffer);
 	virtual v4l2_buffer * getFrame();
-	bool captureLoop();
-	int processBuffer(RawBuffer);
+	int processBuffer(v4l2_buffer *buffer);
 
 	float inputFps;
 	float outputFps;

@@ -22,35 +22,6 @@ extern "C" {
 	#include <linux/videodev2.h>
 }
 
-class captureThread : public LmmThread
-{
-public:
-	captureThread(V4l2Input *parent)
-		: LmmThread("CaptureThread")
-	{
-		v4l2 = parent;
-	}
-	struct v4l2_buffer * getNextBuffer()
-	{
-		if (buffers.size())
-			return buffers.takeFirst();
-		return NULL;
-	}
-	void releaseBuffer(struct v4l2_buffer *)
-	{
-	}
-	int operation()
-	{
-		if (v4l2->captureLoop())
-			return -1;
-		return 0;
-	}
-
-private:
-	V4l2Input *v4l2;
-	QList<v4l2_buffer *> buffers;
-};
-
 V4l2Input::V4l2Input(QObject *parent) :
 	BaseLmmElement(parent)
 {
@@ -75,9 +46,6 @@ int V4l2Input::start()
 		int err = openCamera();
 		if (err)
 			return err;
-		mInfo("starting capture thread");
-		cThread = new captureThread(this);
-		cThread->start();
 		timing.start();
 		return BaseLmmElement::start();
 	}
@@ -86,18 +54,13 @@ int V4l2Input::start()
 
 int V4l2Input::stop()
 {
-	cThread->stop();
-	cThread->wait();
-	cThread->deleteLater();
+	int err = BaseLmmElement::stop();
 	closeCamera();
-	return BaseLmmElement::stop();
+	return err;
 }
 
 int V4l2Input::flush()
 {
-	finishedLock.lock();
-	finishedBuffers.clear();
-	finishedLock.unlock();
 	return BaseLmmElement::flush();
 }
 
@@ -296,7 +259,8 @@ v4l2_buffer *V4l2Input::getFrame()
 
 	/* Get a frame buffer with captured data */
 	if (ioctl(fd, VIDIOC_DQBUF, &buffer) < 0) {
-		mDebug("VIDIOC_DQBUF failed with err %d", errno);
+		if (errno != EAGAIN)
+			mDebug("VIDIOC_DQBUF failed with err %d", errno);
 		return NULL;
 	}
 
@@ -307,36 +271,43 @@ void V4l2Input::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
 {
 	v4l2_buffer *buffer = (v4l2_buffer *)params["v4l2Buffer"].value<void *>();
 	mInfo("buffer %p", buffer);
-	finishedLock.lock();
-	finishedBuffers << buffer;
-	finishedLock.unlock();
+	putFrame(buffer);
 }
 
-bool V4l2Input::captureLoop()
+int V4l2Input::processBlocking(int ch)
 {
-	while (finishedBuffers.size())
-		putFrame(finishedBuffers.takeFirst());
+	if (getState() == STOPPED)
+		return -EINVAL;
 	struct v4l2_buffer *buffer = getFrame();
-	if (buffer) {
-		mInfo("new frame %p", buffer);
-		unsigned char *data = (unsigned char *)userptr[buffer->index];
-		RawBuffer newbuf = RawBuffer();
-		newbuf.setParentElement(this);
+	if (getState() == STOPPED)
+		return -EINVAL;
+	if (buffer)
+		return processBuffer(buffer);
+	usleep(10000);
+	return 0;
+}
 
-		newbuf.setRefData("video/x-raw-yuv", data, buffer->length);
-		newbuf.addBufferParameter("width", (int)captureWidth);
-		newbuf.addBufferParameter("height", (int)captureHeight);
-		newbuf.addBufferParameter("v4l2Buffer", qVariantFromValue((void *)buffer));
-		newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_UYVY);
-		newOutputBuffer(0, newbuf);
-	}
-	return false;
+int V4l2Input::processBuffer(v4l2_buffer *buffer)
+{
+	mInfo("new frame %p", buffer);
+	unsigned char *data = (unsigned char *)userptr[buffer->index];
+	RawBuffer newbuf = RawBuffer();
+	newbuf.setParentElement(this);
+
+	newbuf.setRefData("video/x-raw-yuv", data, buffer->length);
+	newbuf.addBufferParameter("width", (int)captureWidth);
+	newbuf.addBufferParameter("height", (int)captureHeight);
+	newbuf.addBufferParameter("v4l2Buffer", qVariantFromValue((void *)buffer));
+	newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_UYVY);
+	newOutputBuffer(0, newbuf);
+
+	return 0;
 }
 
 int V4l2Input::openDeviceNode()
 {
 	/* Open video capture device */
-	fd = open(qPrintable(deviceName), O_RDWR, 0);
+	fd = open(qPrintable(deviceName), O_RDWR | O_NONBLOCK, 0);
 	if (fd == -1) {
 		mDebug("Cannot open capture device %s", qPrintable(deviceName));
 		return -ENODEV;

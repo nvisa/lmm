@@ -391,69 +391,44 @@ v4l2_buffer * DM365CameraInput::getFrame()
 
 	/* Get a frame buffer with captured data */
 	if (ioctl(fd, VIDIOC_DQBUF, &buffer) < 0) {
-		mDebug("VIDIOC_DQBUF failed with err %d", -errno);
+		if (errno != EAGAIN)
+			mDebug("VIDIOC_DQBUF failed with err %d", -errno);
 		return NULL;
 	}
 
 	return v4l2buf[buffer.index];
 }
 
-bool DM365CameraInput::captureLoop()
+int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
 {
-	finishedLock.lock();
-	while (finishedBuffers.size()) {
-		putFrame(finishedBuffers.takeFirst());
-		bufsFree.release(1);
-	}
-	finishedLock.unlock();
-	if (!bufsFree.tryAcquire(1, 20)) {
-		mDebug("no kernel buffers available");
-		return false;
-	}
+	int passed = timing.restart();
+	mInfo("captured %p, time is %lld, passed %d", buffer, streamTime->getFreeRunningTime(), passed);
+	Buffer_Handle dbufa = refBuffersA[buffer->index];
+	Buffer_Handle dbufb = refBuffersB[buffer->index];
 
-	struct v4l2_buffer *buffer = getFrame();
-	finishedLock.lock();
-	while (finishedBuffers.size()) {
-		putFrame(finishedBuffers.takeFirst());
-		bufsFree.release(1);
-	}
-	finishedLock.unlock();
-	if (buffer) {
-		//bufsTaken.release(1);
-		int passed = timing.restart();
-		mInfo("captured %p, time is %lld, passed %d", buffer, streamTime->getFreeRunningTime(), passed);
-		Buffer_Handle dbufa = refBuffersA[buffer->index];
-		Buffer_Handle dbufb = refBuffersB[buffer->index];
+	RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dbufa, this);
+	newbuf.addBufferParameter("v4l2Buffer",
+							  qVariantFromValue((void *)buffer));
+	newbuf.addBufferParameter("captureTime", streamTime->getCurrentTime()
+							  - (captureBufferCount - 1) * 1000 * 1000 / outputFps);
+	newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
+	newbuf.addBufferParameter("fps", outputFps);
+	useCount[buffer->index]++;
 
-		RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dbufa, this);
-		newbuf.addBufferParameter("v4l2Buffer",
-								  qVariantFromValue((void *)buffer));
-		newbuf.addBufferParameter("captureTime", streamTime->getCurrentTime()
-								  - (captureBufferCount - 1) * 1000 * 1000 / outputFps);
-		newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
-		newbuf.addBufferParameter("fps", outputFps);
-		useCount[buffer->index]++;
+	RawBuffer sbuf = DmaiBuffer("video/x-raw-yuv", dbufb, this);
+	sbuf.addBufferParameter("v4l2Buffer", qVariantFromValue((void *)buffer));
+	newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
+	sbuf.addBufferParameter("captureTime", newbuf.getBufferParameter("captureTime"));
+	sbuf.addBufferParameter("fps", outputFps);
+	useCount[buffer->index]++;
 
-		RawBuffer sbuf = DmaiBuffer("video/x-raw-yuv", dbufb, this);
-		sbuf.addBufferParameter("v4l2Buffer", qVariantFromValue((void *)buffer));
-		newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
-		sbuf.addBufferParameter("captureTime", newbuf.getBufferParameter("captureTime"));
-		sbuf.addBufferParameter("fps", outputFps);
-		useCount[buffer->index]++;
+	newOutputBuffer(0, newbuf);
+	newOutputBuffer(1, sbuf);
 
-		newOutputBuffer(0, newbuf);
-		newOutputBuffer(1, sbuf);
+	if (passed > 35)
+		mInfo("late capture: %d", passed);
 
-		if (passed > 35)
-			mInfo("late capture: %d", passed);
-	}
-
-	return false;
-}
-
-int DM365CameraInput::processBuffer(RawBuffer)
-{
-	return -EINVAL;
+	return 0;
 }
 
 int DM365CameraInput::configureResizer(void)
