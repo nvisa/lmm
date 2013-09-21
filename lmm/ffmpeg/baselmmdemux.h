@@ -59,6 +59,7 @@ protected:
 	QMutex conlock;
 	int avioBufferSize;
 	uchar *avioBuffer;
+	int demuxedCount;
 	/*
 	 * In older FFmpeg releases AVIOContext is typedef to
 	 * anonymous struct so it is not possible to forward

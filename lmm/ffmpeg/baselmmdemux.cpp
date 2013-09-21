@@ -261,6 +261,7 @@ int BaseLmmDemux::demuxOne()
 			} else {
 				buf.setDts(-1);
 			}
+			buf.setStreamBufferNo(demuxedCount++);
 			newOutputBuffer(1, buf);
 		}
 		av_free_packet(packet);
@@ -282,6 +283,7 @@ int BaseLmmDemux::demuxOne()
 			} else {
 				buf.setDts(-1);
 			}
+			buf.setStreamBufferNo(demuxedCount++);
 			newOutputBuffer(0, buf);
 		}
 	}
@@ -387,6 +389,7 @@ int BaseLmmDemux::start()
 		mDebug("bye bye to context");
 		conlock.unlock();
 	}
+	demuxedCount = 0;
 	streamPosition = 0;
 	videoStreamIndex = audioStreamIndex = -1;
 	audioStream = videoStream = NULL;
