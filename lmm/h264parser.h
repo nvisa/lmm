@@ -25,6 +25,9 @@ public:
 	explicit H264Parser(QObject *parent = 0);
 	static const uchar * findNextStartCode(const uchar *p, const uchar *end);
 	void setSpsPpsInsertion(bool v) { insertSpsPps = v; }
+	void setInputPacketized(bool v) { inputPacketized = v; }
+	void setExtractSei();
+	H264SeiInfo getSeiData(int bufferNo);
 signals:
 	
 public slots:
@@ -37,6 +40,7 @@ protected:
 	int parse(const uchar *data, int size);
 	H264SeiInfo parseNoStart(const uchar *data);
 	int processBuffer(RawBuffer buf);
+	void extractSeiData(RawBuffer buf);
 
 	int packState;
 	int packSize;
@@ -47,6 +51,9 @@ protected:
 	RawBuffer spsBuf;
 	RawBuffer ppsBuf;
 	bool insertSpsPps;
+	bool inputPacketized;
+	bool extractSei;
+	QMap<int, H264SeiInfo> seiData;
 };
 
 #endif // H264PARSER_H

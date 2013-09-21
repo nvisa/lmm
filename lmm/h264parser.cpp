@@ -20,12 +20,35 @@ enum h264_nal_type
 	NAL_FILTER_DATA = 12
 };
 
+enum h264_nal_sei_type
+{
+	NAL_SEI_BUFFERING_PERIOD,
+	NAL_SEI_PIC_TIMING,
+	NAL_SEI_PAN_SCAN_RECT,
+	NAL_SEI_FILLER_PAYLOAD,
+	NAL_SEI_USER_DATA_ITU_T_35,
+	NAL_SEI_USER_DATA_UNREGISTERED,
+	NAL_SEI_RECOVERY_POINT,
+	NAL_SEI_DEC_REF_PIC_MARKING_REPETION,
+	NAL_SEI_SPARE_PIC,
+	NAL_SEI_SCENE_INFO,
+	NAL_SEI_SUB_SEQ_INFO,
+	NAL_SEI_FULL_FRAME_FREEZE,
+	NAL_SEI_FULL_FRAME_FREEZE_RELEASE,
+	NAL_SEI_FULL_FRAME_FREEZE_SNAPSHOT,
+	NAL_SEI_FULL_PROGRESSIVE_REFINEMENT_SEGMENT_START,
+	NAL_SEI_FULL_PROGRESSIVE_REFINEMENT_SEGMENT_END,
+	NAL_SEI_FULL_MOTION_CONSTRAINED_SLICE_GROUP_SET
+};
+
 H264Parser::H264Parser(QObject *parent) :
 	BaseLmmParser(parent)
 {
 	h264Mode = H264_OUTPUT_NALU;
 	packState = 0;
 	insertSpsPps = false;
+	inputPacketized = true;
+	extractSei = false;
 }
 
 static const uint8_t * findNextStartCodeIn(const uint8_t *p, const uint8_t *end)
@@ -80,6 +103,18 @@ const uchar * H264Parser::findNextStartCode(const uchar *p, const uchar *end){
 	const uint8_t *out= findNextStartCodeIn(p, end);
 	if(p<out && out<end && !out[-1]) out--;
 	return out;
+}
+
+void H264Parser::setExtractSei()
+{
+	extractSei = true;
+}
+
+H264SeiInfo H264Parser::getSeiData(int bufferNo)
+{
+	if (seiData.contains(bufferNo))
+		return seiData.take(bufferNo);
+	return H264SeiInfo();
 }
 
 int H264Parser::parse(const uchar *data, int size)
@@ -220,8 +255,59 @@ int H264Parser::processBuffer(RawBuffer buf)
 		return newOutputBuffer(0, buf2);
 	}
 
-	newOutputBuffer(0, buf);
+	if (extractSei)
+		extractSeiData(buf);
+
+	if (inputPacketized)
+		return newOutputBuffer(0, buf);
+
+	const uchar *d = (const uchar *)buf.constData();
+	const uchar *start = (const uchar *)buf.constData();
+	int out = 0;
+	while (d) {
+		int nal = d[4] & 0x1f;
+		int next = findNextStartCode(&d[4], d + buf.size()) - d;
+		if (nal != NAL_SLICE)
+			qDebug("nal %d", nal);
+		if (d + next < start + buf.size()) {
+			RawBuffer buf2 = RawBuffer("video/x-h264", d, next);
+			buf2.addBufferParameter("h264.nal.type", nal);
+			newOutputBuffer(0, buf2);
+			d = d + next;
+			out += next;
+		} else {
+			RawBuffer buf2 = RawBuffer("video/x-h264", d, start - d + buf.size());
+			buf2.addBufferParameter("h264.nal.type", nal);
+			newOutputBuffer(0, buf2);
+			out += start - d + buf.size();
+			break;
+		}
+	}
+	if (out != buf.size()) {
+		mDebug("there was an error in parsing, in %d bytes, out %d bytes", buf.size(), out);
+	}
+	//newOutputBuffer(0, buf);
 	return 0;
+}
+
+void H264Parser::extractSeiData(RawBuffer buf)
+{
+	const uchar *start = (const uchar *)buf.constData();
+	const uchar *d = start;
+	while (d) {
+		int nal = d[4] & 0x1f;
+		int next = findNextStartCode(&d[4], d + buf.size()) - d;
+		if (nal == NAL_SEI) {
+			H264SeiInfo si = parseNoStart(d + 4);
+			if (h264_nal_sei_type(si.type) == NAL_SEI_USER_DATA_UNREGISTERED)
+				seiData.insert(buf.streamBufferNo(), si);
+		}
+		if (d + next < start + buf.size()) {
+			d = d + next;
+		} else {
+			break;
+		}
+	}
 }
 
 int H264Parser::findNextStartCode(const uchar *data, int size)
