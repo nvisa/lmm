@@ -26,7 +26,7 @@ V4l2Input::V4l2Input(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	captureWidth = 720;
-	captureHeight = 480;
+	captureHeight = 576;
 	deviceName = "/dev/video0";
 	fd = -1;
 	inputIndex = 0;
@@ -69,18 +69,18 @@ int V4l2Input::closeCamera()
 	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	int i;
 
+	stopStreaming();
+
 	struct v4l2_requestbuffers req;
 	req.count = 0;
 	req.type = type;
 	req.memory = V4L2_MEMORY_MMAP;
 	/* Release buffers in the capture device driver */
 	if (ioctl(fd, VIDIOC_REQBUFS, &req) == -1) {
-		mDebug("error in ioctl VIDIOC_REQBUFS");
+		mDebug("error %d in ioctl VIDIOC_REQBUFS", errno);
 	}
 	for (i = 0; i < 3; i++)
 		munmap(userptr[i], v4l2buf[i]->length);
-
-	stopStreaming();
 
 	qDeleteAll(v4l2buf);
 	v4l2buf.clear();
@@ -93,7 +93,7 @@ int V4l2Input::closeCamera()
 
 int V4l2Input::openCamera()
 {
-	v4l2_std_id std_id = V4L2_STD_PAL_B;
+	v4l2_std_id std_id = V4L2_STD_PAL;
 	struct v4l2_capability cap;
 	struct v4l2_format fmt;
 	struct v4l2_input input;
@@ -127,9 +127,9 @@ int V4l2Input::openCamera()
 	fmt.fmt.pix.height       = height;
 	fmt.fmt.pix.bytesperline = width * 2;
 	fmt.fmt.pix.pixelformat  = V4L2_PIX_FMT_UYVY;
-	fmt.fmt.pix.field        = V4L2_FIELD_NONE;
+	fmt.fmt.pix.field        = V4L2_FIELD_INTERLACED;
 
-	adjustCropping(width, height);
+	//adjustCropping(width, height);
 
 	if (ioctl(fd, VIDIOC_S_FMT, &fmt) == -1) {
 		mDebug("Unable to set VIDIOC_S_FMT");
@@ -137,7 +137,7 @@ int V4l2Input::openCamera()
 		goto cleanup_devnode;
 	}
 
-	if (allocBuffers(3, V4L2_BUF_TYPE_VIDEO_CAPTURE) < 0) {
+	if (allocBuffers(5, V4L2_BUF_TYPE_VIDEO_CAPTURE) < 0) {
 		mDebug("Unable to allocate capture driver buffers");
 		err = ENOMEM;
 		goto cleanup_devnode;
@@ -446,7 +446,7 @@ int V4l2Input::stopStreaming()
 	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	/* Stop the video streaming */
 	if (ioctl(fd, VIDIOC_STREAMOFF, &type) == -1) {
-		mDebug("VIDIOC_STREAMOFF failed on device");
+		mDebug("VIDIOC_STREAMOFF failed on device with err %d", errno);
 		return -errno;
 	}
 	return 0;
