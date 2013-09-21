@@ -50,9 +50,11 @@ void LmmThread::run()
 	time.start();
 	exit = false;
 	paused = false;
+	int opstat = 0;
 	while (!exit) {
 		st = IN_OPERATION;
-		if (operation())
+		opstat = operation();
+		if (opstat)
 			break;
 		lock.lock();
 		time.restart();
@@ -61,8 +63,8 @@ void LmmThread::run()
 			st = PAUSED;
 		}
 	}
-	mDebug("exiting thread %s(%p)", qPrintable(name)
-		   , QThread::currentThreadId());
+	mDebug("exiting thread %s(%p), status is %d", qPrintable(name)
+		   , QThread::currentThreadId(), opstat);
 	mutex.lock();
 	threads.removeOne(this);
 	mutex.unlock();
