@@ -41,6 +41,7 @@ SOURCES += \
     tools/basesettinghandler.cpp \
 	tools/lmmsettinghandler.cpp \
 	tools/cpuload.cpp \
+    players/simplevideoplayer.cpp \
 
 HEADERS  += \
     filesource.h \
@@ -79,14 +80,19 @@ HEADERS  += \
     tools/basesettinghandler.h \
 	tools/lmmsettinghandler.h \
 	tools/cpuload.h \
+    players/simplevideoplayer.h \
 
 alsa {
     HEADERS += \
         alsa/alsa.h \
-        alsa/alsaoutput.h
+		alsa/alsaoutput.h \
+		alsa/alsainput.h \
+
     SOURCES += \
         alsa/alsa.cpp \
-        alsa/alsaoutput.cpp
+		alsa/alsaoutput.cpp \
+		alsa/alsainput.cpp \
+
     DEFINES += CONFIG_ALSA
 }
 
@@ -158,15 +164,15 @@ dmai {
         dmai/dmaibuffer.cpp \
         dmai/jpegencoder.cpp \
         dmai/h264encoder.cpp \
-        dmai/dmaidecoder.cpp \
-        dmai/videotestsource.cpp \
+		dmai/dmaidecoder.cpp \
+		dmai/videotestsource.cpp \
 
     HEADERS += dmai/dmaiencoder.h \
         dmai/dmaibuffer.h \
         dmai/jpegencoder.h \
         dmai/h264encoder.h \
-        dmai/dmaidecoder.h \
-        dmai/videotestsource.h \
+		dmai/dmaidecoder.h \
+		dmai/videotestsource.h \
 
 }
 
