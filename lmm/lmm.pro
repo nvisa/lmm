@@ -334,3 +334,5 @@ OTHER_FILES += \
 VersionCheck.commands = @$$PWD/checkversion.sh $$PWD
 QMAKE_EXTRA_TARGETS += VersionCheck
 PRE_TARGETDEPS += VersionCheck
+
+DEPENDPATH += $$INCLUDEPATH
