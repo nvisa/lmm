@@ -16,6 +16,12 @@ class RemoteConsole;
 	th->start(); \
 	}
 
+#define createOpThreadPri(__func, __name, __class, __pri) { \
+	LmmThread *th = new OpThread<__class>(this, __func, __name); \
+	threads.insert(__name, th); \
+	th->start(__pri); \
+	}
+
 template <class T>
 class OpThread : public LmmThread
 {
