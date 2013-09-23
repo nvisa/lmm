@@ -14,6 +14,7 @@ RtpPacketizer::RtpPacketizer(QObject *parent) :
 	maxPayloadSize = 1460;
 	frameRate = 30.0;
 	packetized = true;
+	passThru = false;
 }
 
 Lmm::CodecType RtpPacketizer::codecType()
@@ -38,6 +39,11 @@ int RtpPacketizer::stop()
 	sock->deleteLater();
 	sock = NULL;
 	return BaseLmmElement::stop();
+}
+
+QString RtpPacketizer::getSdp()
+{
+	return sdp;
 }
 
 int RtpPacketizer::sendNalUnit(const uchar *buf, int size)
@@ -107,7 +113,8 @@ void RtpPacketizer::createSdp()
 	lines << QString("m=video %1 RTP/AVP 96").arg(dstDataPort);
 	lines << "a=rtpmap:96 H264/90000";
 	lines << "a=fmtp:96 packetization-mode=1";
-	emit sdpReady(lines.join("\n"));
+	sdp = lines.join("\n");
+	emit sdpReady(sdp);
 }
 
 static void dump(const char *var, const uchar *d)
@@ -148,7 +155,9 @@ int RtpPacketizer::processBuffer(RawBuffer buf)
 				break;
 		}
 	}
-	newOutputBuffer(0, buf);
+
+	if (passThru)
+		newOutputBuffer(0, buf);
 	return 0;
 }
 

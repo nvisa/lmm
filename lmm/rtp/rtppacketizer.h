@@ -15,6 +15,7 @@ public:
 	virtual int start();
 	virtual int stop();
 
+	void setPassThru(bool v) { passThru = v; }
 	void setDestinationIpAddress(QString ip) { dstIp = ip; }
 	void setRtpSequenceOffset(int value) { rtpSequenceOffset = value; }
 	void setRtpTimestampOffset(int value) { rtpTimestampOffset = value; }
@@ -56,6 +57,8 @@ protected:
 	QString dstIp;
 	float frameRate;
 	int streamedBufferCount;
+	QString sdp;
+	bool passThru;
 };
 
 #endif // RTPPACKETIZER_H
