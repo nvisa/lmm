@@ -1071,7 +1071,7 @@ int H264Encoder::startCodec()
 
 int H264Encoder::stopCodec()
 {
-	return DmaiEncoder::stop();
+	return DmaiEncoder::stopCodec();
 }
 
 #define append(__x) out << __x;
