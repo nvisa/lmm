@@ -83,7 +83,7 @@ protected:
 	virtual int processBuffer(RawBuffer buf) = 0;
 	virtual int processBuffer(int ch, RawBuffer buf);
 	virtual void updateOutputTimeStats();
-	virtual void calculateFps();
+	virtual void calculateFps(const RawBuffer buf);
 	RunningState getState();
 	int setState(RunningState s);
 	virtual int checkSizeLimits();

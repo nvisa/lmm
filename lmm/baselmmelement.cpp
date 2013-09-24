@@ -239,7 +239,7 @@ RawBuffer BaseLmmElement::nextBuffer(int ch)
 	outputLock.unlock();
 	if (buf.size()) {
 		sentBufferCount++;
-		calculateFps();
+		calculateFps(buf);
 		updateOutputTimeStats();
 		checkAndWakeInputWaiters();
 		if (outputWakeThreshold && bufsem[ch]->available() < outputWakeThreshold)
@@ -277,7 +277,8 @@ QList<RawBuffer> BaseLmmElement::nextBuffersBlocking(int ch)
 	bufsem[ch]->acquire(bufsem[ch]->available());
 	sentBufferCount += list.size();
 	outputLock.unlock();
-	calculateFps();
+	foreach (RawBuffer buf, list)
+		calculateFps(buf);
 	updateOutputTimeStats();
 	checkAndWakeInputWaiters();
 	if (outputWakeThreshold && bufsem[ch]->available() < outputWakeThreshold)
@@ -413,8 +414,9 @@ QList<QVariant> BaseLmmElement::extraDebugInfo()
 	return QList<QVariant>();
 }
 
-void BaseLmmElement::calculateFps()
+void BaseLmmElement::calculateFps(const RawBuffer buf)
 {
+	Q_UNUSED(buf);
 	fpsBufferCount++;
 	if (fpsTiming->elapsed() > 1000) {
 		int elapsed = fpsTiming->restart();
