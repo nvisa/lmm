@@ -46,6 +46,7 @@ protected:
 	uint ssrc;
 	uint baseTs;
 	QUdpSocket *sock;
+	QMutex streamLock;
 	bool packetized;
 
 	int dstDataPort;

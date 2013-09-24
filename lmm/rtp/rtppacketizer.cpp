@@ -36,8 +36,10 @@ int RtpPacketizer::start()
 
 int RtpPacketizer::stop()
 {
+	streamLock.lock();
 	sock->deleteLater();
 	sock = NULL;
+	streamLock.unlock();
 	return BaseLmmElement::stop();
 }
 
@@ -117,15 +119,15 @@ void RtpPacketizer::createSdp()
 	emit sdpReady(sdp);
 }
 
-static void dump(const char *var, const uchar *d)
-{
-	qDebug() << var << d[0] << d[1] << d[2] << d[3];
-}
-
 int RtpPacketizer::processBuffer(RawBuffer buf)
 {
 	mInfo("streaming next packet: %d bytes", buf.size());
 
+	streamLock.lock();
+	if (!sock) {
+		streamLock.unlock();
+		return -EINVAL;
+	}
 	const uchar *data = (const uchar *)buf.constData();
 	int size = buf.size();
 	const uchar *end = data + size;
@@ -158,6 +160,8 @@ int RtpPacketizer::processBuffer(RawBuffer buf)
 
 	if (passThru)
 		newOutputBuffer(0, buf);
+
+	streamLock.unlock();
 	return 0;
 }
 
