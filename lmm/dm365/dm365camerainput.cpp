@@ -143,6 +143,13 @@ void DM365CameraInput::setHorizontalFlip(int ch, bool flip)
 		ch1HorFlip = flip;
 }
 
+void DM365CameraInput::calculateFps(const RawBuffer buf)
+{
+	if (buf.getBufferParameter("videoWidth").toInt() == captureWidth &&
+			buf.getBufferParameter("videoHeight").toInt() == captureHeight)
+		return BaseLmmElement::calculateFps(buf);
+}
+
 int DM365CameraInput::openCamera()
 {
 	struct v4l2_capability cap;
@@ -413,6 +420,8 @@ int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
 							  - (captureBufferCount - 1) * 1000 * 1000 / outputFps);
 	newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
 	newbuf.addBufferParameter("fps", outputFps);
+	newbuf.addBufferParameter("videoWidth", captureWidth);
+	newbuf.addBufferParameter("videoHeight", captureHeight);
 	useCount[buffer->index]++;
 
 	RawBuffer sbuf = DmaiBuffer("video/x-raw-yuv", dbufb, this);
@@ -420,6 +429,8 @@ int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
 	newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
 	sbuf.addBufferParameter("captureTime", newbuf.getBufferParameter("captureTime"));
 	sbuf.addBufferParameter("fps", outputFps);
+	sbuf.addBufferParameter("videoWidth", captureWidth2);
+	sbuf.addBufferParameter("videoHeight", captureHeight2);
 	useCount[buffer->index]++;
 
 	newOutputBuffer(0, newbuf);

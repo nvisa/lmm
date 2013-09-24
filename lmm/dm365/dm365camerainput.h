@@ -44,6 +44,8 @@ public:
 signals:
 	
 public slots:
+protected:
+	void calculateFps(const RawBuffer buf);
 private:
 	int openCamera();
 	int closeCamera();
