@@ -26,7 +26,6 @@ BasePlayer::BasePlayer(QObject *parent) :
 int BasePlayer::startElement(BaseLmmElement *el)
 {
 	mDebug("starting element %s", el->metaObject()->className());
-	el->setTotalInputBufferSize(0, 0);
 	el->flush();
 	el->setStreamTime(streamTime);
 	el->setStreamDuration(-1);
