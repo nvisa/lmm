@@ -548,6 +548,13 @@ void H264Encoder::setSeiField(int field, int value)
 	customSeiData[field] = value;
 }
 
+void H264Encoder::calculateFps(const RawBuffer buf)
+{
+	if (buf.getBufferParameter("nalType").toInt() == 1 ||
+			buf.getBufferParameter("nalType").toInt() == 5)
+		BaseLmmElement::calculateFps(buf);
+}
+
 typedef struct Venc1_Object {
 	VIDENC1_Handle          hEncode;
 	IVIDEO1_BufDesc         reconBufs;
@@ -828,11 +835,13 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 
 	if (packetized) {
 		QList<int> offsets;
+		QList<int> nals;
 		uchar *encdata = (uchar *)Buffer_getUserPtr(hDstBuf);
 		uchar *encend = (uchar *)Buffer_getUserPtr(hDstBuf) + Buffer_getNumBytesUsed(hDstBuf);
 		const uchar *nal = H264Parser::findNextStartCode(encdata, encend);
 		while (1) {
 			offsets << nal - encdata;
+			nals << H264Parser::getNalType(nal);
 			nal = H264Parser::findNextStartCode(nal + 4, encend);
 			if (nal >= encend - 4)
 				break;
@@ -854,6 +863,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			if (seiDataOffset < end && seiDataOffset > start)
 				insertSeiData(seiDataOffset, hDstBuf, source);
 			memcpy(buf.data(), encdata + start, end - start);
+			buf.addBufferParameter("nalType", nals[i]);
 			list << buf;
 		}
 		newOutputBuffer(0, list);
