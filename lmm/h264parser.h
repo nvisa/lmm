@@ -24,6 +24,7 @@ class H264Parser : public BaseLmmParser
 public:
 	explicit H264Parser(QObject *parent = 0);
 	static const uchar * findNextStartCode(const uchar *p, const uchar *end);
+	static int getNalType(const uchar *data);
 	void setSpsPpsInsertion(bool v) { insertSpsPps = v; }
 	void setInputPacketized(bool v) { inputPacketized = v; }
 	void setExtractSei();

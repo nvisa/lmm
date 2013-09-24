@@ -325,3 +325,8 @@ int H264Parser::findNextStartCode(const uchar *data, int size)
 	}
 	return 0;
 }
+
+int H264Parser::getNalType(const uchar *data)
+{
+	return data[4] & 0x1f;
+}
