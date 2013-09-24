@@ -181,6 +181,7 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	inBufQueue << QList<RawBuffer>();
 	outBufQueue << QList<RawBuffer>();
 	outWc << new QWaitCondition();
+	inBufSize << 0;
 }
 
 int BaseLmmElement::addBuffer(int ch, RawBuffer buffer)
@@ -194,6 +195,7 @@ int BaseLmmElement::addBuffer(int ch, RawBuffer buffer)
 		return err;
 	}
 	inBufQueue[ch] << buffer;
+	inBufSize[ch] += buffer.size();
 	receivedBufferCount++;
 	inputLock.unlock();
 	inbufsem[ch]->release();
@@ -210,6 +212,7 @@ int BaseLmmElement::addBufferBlocking(int ch, RawBuffer buffer)
 		inputWaiter.wait(&inputLock);
 	}
 	inBufQueue[ch] << buffer;
+	inBufSize[ch] += buffer.size();
 	inputLock.unlock();
 	inbufsem[ch]->release();
 	receivedBufferCount++;
@@ -220,6 +223,8 @@ int BaseLmmElement::addBuffersBlocking(int ch, const QList<RawBuffer> list)
 {
 	inputLock.lock();
 	inBufQueue[ch] << list;
+	foreach (const RawBuffer buf, list)
+		inBufSize[ch] += buf.size();
 	inbufsem[ch]->release(list.size());
 	inputLock.unlock();
 	return 0;
@@ -440,9 +445,7 @@ int BaseLmmElement::checkSizeLimits()
 {
 	if (!totalInputBufferSize)
 		return 0; //no size checking
-	int size = 0;
-	foreach (RawBuffer buf, inBufQueue[0])
-		size += buf.size();
+	int size = inBufSize[0];
 	mInfo("size=%d total=%d", size, totalInputBufferSize);
 	if (size >= totalInputBufferSize)
 		return -ENOSPC;
@@ -503,6 +506,7 @@ int BaseLmmElement::flush()
 	for (int i = 0; i < inbufsem.size(); i++) {
 		inbufsem[i]->acquire(inbufsem[i]->available());
 		inBufQueue[i].clear();
+		inBufSize[i] = 0;
 	}
 	inputLock.unlock();
 	outputLock.lock();
@@ -571,8 +575,10 @@ RawBuffer BaseLmmElement::takeInputBuffer(int ch)
 {
 	inputLock.lock();
 	RawBuffer buf;
-	if (inBufQueue[ch].size())
+	if (inBufQueue[ch].size()) {
 		buf = inBufQueue[ch].takeFirst();
+		inBufSize[ch] -= buf.size();
+	}
 	inputLock.unlock();
 	return buf;
 }
@@ -581,6 +587,7 @@ int BaseLmmElement::appendInputBuffer(int ch, RawBuffer buf)
 {
 	inputLock.lock();
 	inBufQueue[ch].append(buf);
+	inBufSize[ch] += buf.size();
 	inbufsem[ch]->release();
 	inputLock.unlock();
 	return 0;
@@ -590,6 +597,7 @@ int BaseLmmElement::prependInputBuffer(int ch, RawBuffer buf)
 {
 	inputLock.lock();
 	inBufQueue[ch].prepend(buf);
+	inBufSize[ch] += buf.size();
 	inbufsem[ch]->release();
 	inputLock.unlock();
 	return 0;
@@ -618,6 +626,7 @@ void BaseLmmElement::addNewInputChannel()
 {
 	inbufsem << new QSemaphore;
 	inBufQueue << QList<RawBuffer>();
+	inBufSize << 0;
 }
 
 void BaseLmmElement::addNewOutputChannel()

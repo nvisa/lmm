@@ -98,6 +98,7 @@ protected:
 private:
 	QList< QList<RawBuffer> > inBufQueue;
 	QList< QList<RawBuffer> > outBufQueue;
+	QList<int> inBufSize;
 	bool enabled;
 	QMutex inputLock;
 	QMutex outputLock;
