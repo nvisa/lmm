@@ -22,7 +22,7 @@ private:
 	int qFact;
 	BufTab_Handle outputBufTab;
 
-	virtual int startCodec();
+	virtual int startCodec(bool alloc = true);
 	virtual int stopCodec();
 	virtual int encode(Buffer_Handle buffer, const RawBuffer source);
 };

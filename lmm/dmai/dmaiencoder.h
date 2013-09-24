@@ -89,7 +89,8 @@ protected:
 	bool dirty;
 	int inputPixFormat;
 
-	virtual int startCodec();
+	virtual int restartCodec();
+	virtual int startCodec(bool alloc = true);
 	virtual int stopCodec();
 	virtual int encode(Buffer_Handle buffer, const RawBuffer source);
 	int processBuffer(RawBuffer buf);

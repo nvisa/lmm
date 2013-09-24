@@ -74,7 +74,7 @@ private:
 	bool packetized;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
-	int startCodec();
+	int startCodec(bool alloc = true);
 	int stopCodec();
 	int createSeiData(QByteArray *ba, const RawBuffer source);
 	int insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuffer source);

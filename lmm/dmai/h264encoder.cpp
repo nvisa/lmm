@@ -929,7 +929,7 @@ int H264Encoder::insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuff
 	return 0;
 }
 
-int H264Encoder::startCodec()
+int H264Encoder::startCodec(bool alloc)
 {
 	mDebug("starting codec, parameters:\n\tMax frame rate: %d\n\t"
 		   "Rate control: %d\n\t"
@@ -946,7 +946,6 @@ int H264Encoder::startCodec()
 
 	/* DM365 only supports YUV420P semi planar chroma format */
 	ColorSpace_Type         colorSpace = ColorSpace_YUV420PSEMI;
-	Bool                    localBufferAlloc = TRUE;
 	Int32                   bufSize;
 	int outBufSize;
 
@@ -1018,7 +1017,7 @@ int H264Encoder::startCodec()
 	}
 
 	/* Allocate output buffers */
-	if (localBufferAlloc == TRUE) {
+	if (alloc) {
 		gfxAttrs.colorSpace = colorSpace;
 		gfxAttrs.dim.width  = imageWidth;
 		gfxAttrs.dim.height = imageHeight;
@@ -1047,23 +1046,23 @@ int H264Encoder::startCodec()
 			return -ENOMEM;
 		}
 
-	}
+		Buffer_Attrs attr = Buffer_Attrs_DEFAULT;
+		frameinfoInterface = new FrameInfo_Interface;
 
-	Buffer_Attrs attr = Buffer_Attrs_DEFAULT;
-	frameinfoInterface = new FrameInfo_Interface;
+		metadataBuf[0] = Buffer_create(sizeof(FrameInfo_Interface), &attr);
 
-	metadataBuf[0] = Buffer_create(sizeof(FrameInfo_Interface), &attr);
-
-	if (mVecs != MV_NONE) {
-		VIDENC1_Status status;
-		status.size = sizeof(IH264VENC_Status);
-		if (VIDENC1_control(Venc1_getVisaHandle(hCodec), XDM_GETBUFINFO,
-							&dynH264Params->videncDynamicParams, &status) != VIDENC1_EOK) {
-			qDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
-			printErrorMsg(status.extendedError);
+		if (mVecs != MV_NONE) {
+			VIDENC1_Status status;
+			status.size = sizeof(IH264VENC_Status);
+			if (VIDENC1_control(Venc1_getVisaHandle(hCodec), XDM_GETBUFINFO,
+								&dynH264Params->videncDynamicParams, &status) != VIDENC1_EOK) {
+				qDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
+				printErrorMsg(status.extendedError);
+			}
+			metadataBuf[1] = Buffer_create(status.bufInfo.minOutBufSize[1], &attr);
+			motVectSize = status.bufInfo.minOutBufSize[1];
 		}
-		metadataBuf[1] = Buffer_create(status.bufInfo.minOutBufSize[1], &attr);
-		motVectSize = status.bufInfo.minOutBufSize[1];
+
 	}
 
 	return 0;

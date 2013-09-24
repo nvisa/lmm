@@ -35,7 +35,9 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 
 DmaiEncoder::~DmaiEncoder()
 {
+	dspl.lock();
 	stopCodec();
+	dspl.unlock();
 	instance = NULL;
 }
 
@@ -78,7 +80,9 @@ int DmaiEncoder::start()
 
 int DmaiEncoder::stop()
 {
+	dspl.lock();
 	int err = stopCodec();
+	dspl.unlock();
 	if (err)
 		return err;
 	if (hEngine) {
@@ -93,8 +97,9 @@ int DmaiEncoder::flush()
 {
 	mDebug("flusing encoder");
 	if (dirty && hCodec) {
-		stopCodec();
-		startCodec();
+		dspl.lock();
+		restartCodec();
+		dspl.unlock();
 		dirty = false;
 	}
 	return BaseLmmElement::flush();
@@ -161,7 +166,18 @@ void DmaiEncoder::cleanUpDsp()
 		delete instance;
 }
 
-int DmaiEncoder::startCodec()
+int DmaiEncoder::restartCodec()
+{
+	/* Shut down remaining items */
+	if (hCodec) {
+		mDebug("closing video encoder");
+		Venc1_delete(hCodec);
+		hCodec = NULL;
+	}
+	return startCodec(false);
+}
+
+int DmaiEncoder::startCodec(bool alloc)
 {
 	IVIDENC1_DynamicParams defaultDynParams = Venc1_DynamicParams_DEFAULT;
 	VIDENC1_Params          defaultParams       = Venc1_Params_DEFAULT;
@@ -174,7 +190,6 @@ int DmaiEncoder::startCodec()
 		colorSpace = ColorSpace_YUV420PSEMI;
 	else if (inputPixFormat == V4L2_PIX_FMT_UYVY)
 		colorSpace = ColorSpace_UYVY;
-	Bool                    localBufferAlloc = TRUE;
 	Int32                   bufSize;
 
 	const char *engineName = "encode";
@@ -245,7 +260,7 @@ int DmaiEncoder::startCodec()
 	}
 
 	/* Allocate output buffers */
-	if (localBufferAlloc == TRUE) {
+	if (alloc == TRUE) {
 		gfxAttrs.colorSpace = colorSpace;
 		gfxAttrs.dim.width  = imageWidth;
 		gfxAttrs.dim.height = imageHeight;
@@ -362,13 +377,11 @@ int DmaiEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 int DmaiEncoder::stopCodec()
 {
 	/* Shut down remaining items */
-	dspl.lock();
 	if (hCodec) {
 		mDebug("closing video encoder");
 		Venc1_delete(hCodec);
 		hCodec = NULL;
 	}
-	dspl.unlock();
 
 	if (hBufTab) {
 		mDebug("deleting buffer tab 1");

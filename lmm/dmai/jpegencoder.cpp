@@ -22,7 +22,7 @@ JpegEncoder::JpegEncoder(QObject *parent) :
 	qFact = 90;
 }
 
-int JpegEncoder::startCodec()
+int JpegEncoder::startCodec(bool alloc)
 {
 	defaultDynParams = Ienc1_DynamicParams_DEFAULT;
 	IMGENC1_Params          defaultParams       = Ienc1_Params_DEFAULT;
@@ -72,13 +72,15 @@ int JpegEncoder::startCodec()
 		return -EINVAL;
 	}
 
-	/* Allocate output buffers */
-	Buffer_Attrs bAttrs = Buffer_Attrs_DEFAULT;
-	outBufSize = Ienc1_getOutBufSize(hCodec);
-	outputBufTab = BufTab_create(3, outBufSize, &bAttrs);
-	if (outputBufTab == NULL) {
-		mDebug("unable to allocate output buffer tab of size %d for %d buffers", outBufSize, 3);
-		return -ENOMEM;
+	if (alloc) {
+		/* Allocate output buffers */
+		Buffer_Attrs bAttrs = Buffer_Attrs_DEFAULT;
+		outBufSize = Ienc1_getOutBufSize(hCodec);
+		outputBufTab = BufTab_create(3, outBufSize, &bAttrs);
+		if (outputBufTab == NULL) {
+			mDebug("unable to allocate output buffer tab of size %d for %d buffers", outBufSize, 3);
+			return -ENOMEM;
+		}
 	}
 
 	return 0;
