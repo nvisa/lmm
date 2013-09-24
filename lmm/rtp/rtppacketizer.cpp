@@ -160,6 +160,10 @@ int RtpPacketizer::processBuffer(RawBuffer buf)
 
 	if (passThru)
 		newOutputBuffer(0, buf);
+	else {
+		sentBufferCount++;
+		calculateFps(buf);
+	}
 
 	streamLock.unlock();
 	return 0;
