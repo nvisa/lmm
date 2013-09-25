@@ -58,7 +58,7 @@ QVariant LmmSettingHandler::get(QString setting)
 		QStringList list;
 		for (int i = 0; i < elements.size(); i++) {
 			BaseLmmElement *el = elements[i];
-			QString s = QString("%1: %2: \n").arg(el->metaObject()->className()).arg(el->getFps());
+			QString s = QString("%1: %2").arg(el->metaObject()->className()).arg(el->getFps());
 			list.append(s);
 		}
 		return list;
