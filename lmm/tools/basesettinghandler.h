@@ -22,7 +22,7 @@ public:
 	static QString getSettingString(QString setting);
 	static int setSetting(QString setting, QVariant value);
 	static int addTargets(QList<BaseLmmElement *> elements);
-	static int addTarget(BaseLmmElement * element);
+	static int addTarget(QObject * element);
 	static QByteArray getAllInXml();
 	static QStringList getKeyList();
 	static bool isKeyReadable(QString key);

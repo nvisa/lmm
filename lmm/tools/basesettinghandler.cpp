@@ -95,7 +95,7 @@ int BaseSettingHandler::addTargets(QList<BaseLmmElement *> elements)
 	return 0;
 }
 
-int BaseSettingHandler::addTarget(BaseLmmElement *element)
+int BaseSettingHandler::addTarget(QObject *element)
 {
 	fDebug("adding '%s':'%s'", qPrintable(element->objectName()), element->metaObject()->className());
 	if (element->objectName().isEmpty())
