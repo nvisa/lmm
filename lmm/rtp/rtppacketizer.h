@@ -30,12 +30,14 @@ public:
 	int getDestinationControlPort() { return dstControlPort; }
 	QString getSdp();
 	void setFrameRate(float fps) { frameRate = fps; }
+	int getBitrate() { return bitrate; }
 
 	bool isPacketized() { return packetized; }
 	void setPacketized(bool v) { packetized = v; }
 signals:
 	void sdpReady(QString sdp);
 protected:
+	virtual void calculateFps(const RawBuffer buf);
 	virtual int processBuffer(RawBuffer buf);
 	virtual int packetTimestamp(int stream);
 	int sendNalUnit(const uchar *buf, int size);
@@ -60,6 +62,8 @@ protected:
 	int streamedBufferCount;
 	QString sdp;
 	bool passThru;
+	int bitrateBufSize;
+	int bitrate;
 };
 
 #endif // RTPPACKETIZER_H

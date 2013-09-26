@@ -2,6 +2,7 @@
 #include "h264parser.h"
 #include "debug.h"
 
+#include <QTime>
 #include <QUdpSocket>
 
 #include <errno.h>
@@ -29,6 +30,8 @@ int RtpPacketizer::start()
 	ssrc = 0x6335D514;
 	baseTs = 1578998879;
 	sock = new QUdpSocket;
+	bitrateBufSize = 0;
+	bitrate = 0;
 	sock->bind(srcDataPort);
 	createSdp();
 	flush();
@@ -37,6 +40,7 @@ int RtpPacketizer::start()
 
 int RtpPacketizer::stop()
 {
+	bitrate = 0;
 	streamLock.lock();
 	sock->deleteLater();
 	sock = NULL;
@@ -173,4 +177,17 @@ int RtpPacketizer::processBuffer(RawBuffer buf)
 int RtpPacketizer::packetTimestamp(int stream)
 {
 	return 90000ll * streamedBufferCount / frameRate;
+}
+
+void RtpPacketizer::calculateFps(const RawBuffer buf)
+{
+	fpsBufferCount++;
+	bitrateBufSize += buf.size();
+	if (fpsTiming->elapsed() > 1000) {
+		bitrate = bitrateBufSize * 8 / 1000;
+		int elapsed = fpsTiming->restart();
+		elementFps = fpsBufferCount * 1000 / elapsed;
+		fpsBufferCount = 0;
+		bitrateBufSize = 0;
+	}
 }
