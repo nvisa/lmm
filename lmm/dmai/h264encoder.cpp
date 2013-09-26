@@ -537,6 +537,14 @@ void H264Encoder::setFrameRate(float fps)
 	encodeFps = fps;
 }
 
+void H264Encoder::setSeiEnabled(bool value)
+{
+	if (value)
+		seiBufferSize = 4096 * 4;
+	else
+		seiBufferSize = 0;
+}
+
 void H264Encoder::setCustomSeiFieldCount(int value)
 {
 	for (int i = customSeiData.size(); i < value; i++)

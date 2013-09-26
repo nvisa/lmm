@@ -40,6 +40,7 @@ public:
 	virtual void setFrameRate(float fps);
 	void setMotionVectorExtraction(MotionVectors mv) { mVecs = mv; }
 	MotionVectors getMotionVectorExtraction() { return mVecs; }
+	void setSeiEnabled(bool value);
 
 	/* sei information */
 	void setCustomSeiFieldCount(int value);
