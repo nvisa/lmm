@@ -31,6 +31,7 @@ int RtpPacketizer::start()
 	sock = new QUdpSocket;
 	sock->bind(srcDataPort);
 	createSdp();
+	flush();
 	return BaseLmmElement::start();
 }
 
