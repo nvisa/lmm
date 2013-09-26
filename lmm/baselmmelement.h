@@ -95,6 +95,10 @@ protected:
 	qint64 streamDuration;
 	int receivedBufferCount;
 	int sentBufferCount;
+
+	int elementFps;
+	int fpsBufferCount;
+	QTime *fpsTiming;
 private:
 	QList< QList<RawBuffer> > inBufQueue;
 	QList< QList<RawBuffer> > outBufQueue;
@@ -110,9 +114,6 @@ private:
 
 	QMap<QString, QVariant> parameters;
 
-	int elementFps;
-	int fpsBufferCount;
-	QTime *fpsTiming;
 	UnitTimeStat *outputTimeStat;
 	qint64 lastOutputTimeStat;
 	RunningState state;
