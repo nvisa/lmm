@@ -199,6 +199,8 @@ int BaseLmmElement::addBuffer(int ch, RawBuffer buffer)
 	receivedBufferCount++;
 	inputLock.unlock();
 	inbufsem[ch]->release();
+	if (buffer.isEOF())
+		return -ENODATA;
 	return 0;
 }
 
@@ -309,6 +311,10 @@ int BaseLmmElement::processBlocking(int ch)
 	if (!acquireInputSem(ch))
 		return -EINVAL;
 	RawBuffer buf = takeInputBuffer(ch);
+	if (buf.isEOF()) {
+		newOutputBuffer(ch, buf);
+		return -ENODATA;
+	}
 	if (!buf.size())
 		return -ENOENT;
 	if (!ch)
