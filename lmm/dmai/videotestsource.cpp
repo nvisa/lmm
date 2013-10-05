@@ -277,7 +277,7 @@ void VideoTestSource::addBufferToPool(RawBuffer buf)
 	pool->addBuffer(buf);
 }
 
-void VideoTestSource::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
+void VideoTestSource::aboutDeleteBuffer(const QHash<QString, QVariant> &params)
 {
 	int key = params["dmaiBuffer"].toInt();
 	DmaiBuffer tmp("video/x-raw-yuv", (Buffer_Handle)key, this);

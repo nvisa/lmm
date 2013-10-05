@@ -267,7 +267,7 @@ v4l2_buffer *V4l2Input::getFrame()
 	return v4l2buf[buffer.index];
 }
 
-void V4l2Input::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
+void V4l2Input::aboutDeleteBuffer(const QHash<QString, QVariant> &params)
 {
 	v4l2_buffer *buffer = (v4l2_buffer *)params["v4l2Buffer"].value<void *>();
 	mInfo("buffer %p", buffer);

@@ -99,7 +99,7 @@ void DM365CameraInput::setOutputFps(float fps)
 	outputFps = fps;
 }
 
-void DM365CameraInput::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
+void DM365CameraInput::aboutDeleteBuffer(const QHash<QString, QVariant> &params)
 {
 	v4l2_buffer *buffer = (v4l2_buffer *)params["v4l2Buffer"].value<void *>();
 	if (--useCount[buffer->index] == 0) {

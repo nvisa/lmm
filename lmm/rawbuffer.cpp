@@ -131,25 +131,20 @@ void RawBuffer::addBufferParameter(QString par, QVariant val)
 	d->parameters.insert(par, val);
 }
 
-void RawBuffer::addBufferParameters(const QMap<QString, QVariant> &other)
+void RawBuffer::addBufferParameters(const QHash<QString, QVariant> &other)
 {
-	QMapIterator<QString, QVariant> i(other);
-	while (i.hasNext()) {
-		i.next();
-		d->parameters.insert(i.key(), i.value());
-	}
+	d->parameters = other;
+	d->parameters.detach();
 }
 
-const QMap<QString, QVariant> RawBuffer::bufferParameters() const
+const QHash<QString, QVariant> RawBuffer::bufferParameters() const
 {
-	QMap<QString, QVariant> map;//d->parameters;
-	QMapIterator<QString, QVariant> i(d->parameters);
-	while (i.hasNext()) {
-		i.next();
-		if (i.key() == "dmaiBuffer" || i.key() == "v4l2Buffer")
-			continue;
-		map.insert(i.key(), i.value());
-	}
+	QHash<QString, QVariant> map;//d->parameters;
+	map = d->parameters;
+	if (map.contains("dmaiBuffer"))
+		map.remove("dmaiBuffer");
+	if (map.contains("v4l2Buffer"))
+		map.remove("v4l2Buffer");
 	return map;
 }
 

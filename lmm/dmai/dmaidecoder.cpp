@@ -157,7 +157,7 @@ int DmaiDecoder::flush()
 	return BaseLmmDecoder::flush();
 }
 
-void DmaiDecoder::aboutDeleteBuffer(const QMap<QString, QVariant> &parameters)
+void DmaiDecoder::aboutDeleteBuffer(const QHash<QString, QVariant> &parameters)
 {
 	/* free buffer in case it is not used by any dmai class */
 	if (decodeWaitCounter.available()) {

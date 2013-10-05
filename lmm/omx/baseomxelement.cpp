@@ -129,7 +129,7 @@ int BaseOmxElement::outputBufferDone(OMX_BUFFERHEADERTYPE *omxBuf)
 	return 0;
 }
 
-void BaseOmxElement::aboutDeleteBuffer(const QMap<QString, QVariant> &pars)
+void BaseOmxElement::aboutDeleteBuffer(const QHash<QString, QVariant> &pars)
 {
 	OMX_BUFFERHEADERTYPE *omxBuf = (OMX_BUFFERHEADERTYPE *)pars["omxBuf"].toInt();
 	mInfo("giving buffer %p back to omx component", omxBuf);

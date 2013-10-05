@@ -43,7 +43,7 @@ public:
 	int stop();
 	int flush();
 	int genIdr();
-	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
+	void aboutDeleteBuffer(const QHash<QString, QVariant> &params);
 
 	/* control API */
 	int setCodecType(CodecType type);

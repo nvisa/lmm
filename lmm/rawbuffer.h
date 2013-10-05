@@ -55,7 +55,7 @@ public:
 	unsigned int duration;
 	qint64 pts;
 	qint64 dts;
-	QMap<QString, QVariant> parameters;
+	QHash<QString, QVariant> parameters;
 	int bufferNo;
 	BaseLmmElement* myParent;
 	QString mimeType;
@@ -69,12 +69,13 @@ public:
 	explicit RawBuffer(QString mimeType, int size, BaseLmmElement *parent = 0);
 	RawBuffer(const RawBuffer &other);
 	virtual ~RawBuffer();
+	static RawBuffer eof(BaseLmmElement *parent = 0);
 
 	void setParentElement(BaseLmmElement *el);
 	void setRefData(QString mimeType, void *data, int size);
 	void addBufferParameter(QString, QVariant);
-	void addBufferParameters(const QMap<QString, QVariant> &other);
-	const QMap<QString, QVariant> bufferParameters() const;
+	void addBufferParameters(const QHash<QString, QVariant> &other);
+	const QHash<QString, QVariant> bufferParameters() const;
 	QVariant getBufferParameter(QString) const;
 	void setSize(int size);
 	int prepend(const void *data, int size);

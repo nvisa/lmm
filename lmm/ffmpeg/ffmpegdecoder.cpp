@@ -291,7 +291,7 @@ void FFmpegDecoder::printMotionVectors(AVFrame *pict)
 	}
 }
 
-void FFmpegDecoder::aboutDeleteBuffer(const QMap<QString, QVariant> & pars)
+void FFmpegDecoder::aboutDeleteBuffer(const QHash<QString, QVariant> &pars)
 {
 	int ind = pars["poolIndex"].toInt();
 	pool->give(poolBuffers[ind]);

@@ -145,7 +145,7 @@ out:
 	return err;
 }
 
-void DmaiEncoder::aboutDeleteBuffer(const QMap<QString, QVariant> &params)
+void DmaiEncoder::aboutDeleteBuffer(const QHash<QString, QVariant> &params)
 {
 	Buffer_Handle dmai = (Buffer_Handle)params["dmaiBuffer"].toInt();
 	bufferLock.lock();

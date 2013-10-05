@@ -43,7 +43,7 @@ public:
 	void setYUVFile(QString filename);
 	void setYUVVideo(QString filename, bool loop = false);
 
-	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
+	void aboutDeleteBuffer(const QHash<QString, QVariant> &params);
 	int flush();
 	int start();
 	int stop();

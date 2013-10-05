@@ -35,7 +35,7 @@ public:
 	void setInputType(cameraInput inp) { inputType = inp; }
 	void setInputFps(float fps);
 	void setOutputFps(float fps);
-	void aboutDeleteBuffer(const QMap<QString, QVariant> &params);
+	void aboutDeleteBuffer(const QHash<QString, QVariant> &params);
 
 	int setSize(int ch, QSize sz);
 	QSize getSize(int ch);
