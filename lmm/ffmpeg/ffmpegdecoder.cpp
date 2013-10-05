@@ -155,8 +155,8 @@ int FFmpegDecoder::decode(RawBuffer buf)
 				outbuf.addBufferParameter("frameType", 0);
 			else
 				outbuf.addBufferParameter("frameType", 1);
-			outbuf.setPts(decodeCount++ * buf.getDuration());
-			outbuf.setStreamBufferNo(decodeCount);
+			outbuf.setPts(buf.getPts());
+			outbuf.setStreamBufferNo(buf.streamBufferNo());
 			outbuf.setDuration(buf.getDuration());
 			newOutputBuffer(0, outbuf);
 		}
