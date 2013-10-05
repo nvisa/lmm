@@ -1,6 +1,7 @@
 #include "lmmthread.h"
 #include "platform_info.h"
 #include "debug.h"
+#include "baselmmelement.h"
 
 #include <QList>
 #include <QMutex>
@@ -8,8 +9,9 @@
 static QMutex mutex;
 static QList<LmmThread *> threads;
 
-LmmThread::LmmThread(QString threadName)
+LmmThread::LmmThread(QString threadName, BaseLmmElement *parent)
 {
+	this->parent = parent;
 	name = threadName;
 	mutex.lock();
 	threads << this;
@@ -69,6 +71,8 @@ void LmmThread::run()
 	threads.removeOne(this);
 	mutex.unlock();
 	st = QUIT;
+	if (parent)
+		parent->threadFinished(this);
 }
 
 void LmmThread::stopAll()

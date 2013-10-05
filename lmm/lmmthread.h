@@ -7,6 +7,8 @@
 
 #include <stdint.h>
 
+class BaseLmmElement;
+
 class LmmThread : public QThread
 {
 public:
@@ -16,7 +18,7 @@ public:
 		QUIT
 	};
 
-	LmmThread(QString threadName);
+	LmmThread(QString threadName, BaseLmmElement *parent = 0);
 	void stop();
 	void pause();
 	void resume();
@@ -40,6 +42,7 @@ private:
 	intptr_t *instStack1;
 	intptr_t *instStack2;
 	intptr_t *instPos;
+	BaseLmmElement *parent;
 };
 
 #endif // LMMTHREAD_H
