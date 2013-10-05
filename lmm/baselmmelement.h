@@ -14,6 +14,7 @@ class StreamTime;
 class CircularBuffer;
 class UnitTimeStat;
 class QSemaphore;
+class LmmThread;
 
 class BaseLmmElement : public QObject
 {
@@ -50,6 +51,7 @@ public:
 	virtual void signalReceived(int) {}
 	virtual int setTotalInputBufferSize(int size, int hysterisisSize = 0);
 	int waitOutputBuffers(int ch, int lessThan);
+	virtual void threadFinished(LmmThread *) {}
 
 	/* stat information */
 	void printStats();
