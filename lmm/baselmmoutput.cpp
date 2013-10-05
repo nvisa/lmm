@@ -14,6 +14,7 @@ BaseLmmOutput::BaseLmmOutput(QObject *parent) :
 {
 	outputDelay = 0;
 	doSync = true;
+	lastOutputPts = 0;
 }
 
 int BaseLmmOutput::start()
@@ -41,6 +42,7 @@ int BaseLmmOutput::getLoopLatency()
 int BaseLmmOutput::processBuffer(RawBuffer buf)
 {
 	int err = outputBuffer(buf);
+	lastOutputPts = buf.getPts();
 	return err;
 }
 

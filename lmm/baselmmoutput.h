@@ -18,6 +18,7 @@ public:
 	virtual int stop();
 	virtual qint64 getLatency();
 	virtual int getLoopLatency();
+	qint64 getLastOutputPts() { return lastOutputPts; }
 signals:
 	
 public slots:
@@ -27,6 +28,7 @@ protected:
 	qint64 outputLatency;
 	int outputDelay;
 	bool doSync;
+	qint64 lastOutputPts;
 private:
 };
 
