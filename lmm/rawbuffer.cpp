@@ -114,6 +114,12 @@ RawBuffer::~RawBuffer()
 {
 }
 
+RawBuffer RawBuffer::eof(BaseLmmElement *parent)
+{
+	RawBuffer buf("application/eof", 1, parent);
+	return buf;
+}
+
 void RawBuffer::setRefData(QString mimeType, void *data, int size)
 {
 	if (d->rawData && !d->refData)
@@ -234,6 +240,11 @@ qint64 RawBuffer::getDts() const
 QString RawBuffer::getMimeType() const
 {
 	return d->mimeType;
+}
+
+bool RawBuffer::isEOF()
+{
+	return d->mimeType == "application/eof";
 }
 
 void RawBuffer::setStreamBufferNo(int val)

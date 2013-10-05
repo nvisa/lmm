@@ -90,6 +90,7 @@ public:
 	void setDts(qint64 val);
 	qint64 getDts() const;
 	QString getMimeType() const;
+	bool isEOF();
 
 	void setStreamBufferNo(int val);
 	int streamBufferNo() const;
