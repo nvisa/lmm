@@ -28,7 +28,13 @@ class OpThread : public LmmThread
 public:
 	typedef int (T::*threadOp)();
 	OpThread(T *parent, threadOp op, QString name)
-		: LmmThread(name)
+		: LmmThread(name, parent)
+	{
+		enc = parent;
+		mfunc = op;
+	}
+	OpThread(T *parent, threadOp op, QString name, BaseLmmElement *parElement)
+		: LmmThread(name, parElement)
 	{
 		enc = parent;
 		mfunc = op;
