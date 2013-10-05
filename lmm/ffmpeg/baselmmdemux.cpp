@@ -241,9 +241,9 @@ int BaseLmmDemux::demuxOne()
 	if (!packet) {
 		conlock.unlock();
 		if (demuxVideo)
-			newOutputBuffer(0, RawBuffer());
+			newOutputBuffer(0, RawBuffer::eof());
 		if (demuxAudio)
-			newOutputBuffer(1, RawBuffer());
+			newOutputBuffer(1, RawBuffer::eof());
 		return -ENOENT;
 	}
 	if (packet->stream_index == audioStreamIndex) {
