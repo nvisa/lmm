@@ -40,17 +40,7 @@ QList<QVariant> SimpleVideoPlayer::extraDebugInfo()
 
 void SimpleVideoPlayer::timeoutHandler()
 {
-	if (waitingEOF) {
-		int cnt = 0;
-		foreach (BaseLmmElement *el, elements)
-			cnt += el->getInputSemCount(0);
-		if (!cnt) {
-			waitingEOF = false;
-			eof = true;
-			lastPts = demuxer->getTotalDuration();
-			emit playbackFinished(0);
-		}
-	}
+	checkEOF();
 }
 
 int SimpleVideoPlayer::startPlayer()
@@ -68,6 +58,7 @@ int SimpleVideoPlayer::startPlayer()
 		startElement(vout);
 	}
 
+	finishedThreadCount = 0;
 	demuxer->setSource(sourceUrl.path());
 	createOpThreadPri(&SimpleVideoPlayer::demux, "SimplePlayerDemuxThread", SimpleVideoPlayer, QThread::LowestPriority);
 	createOpThreadPri(&SimpleVideoPlayer::queueForVideoDecode, "SimplePlayerQueueVideoDecodeThread", SimpleVideoPlayer, QThread::LowestPriority);
@@ -112,13 +103,12 @@ int SimpleVideoPlayer::demux()
 int SimpleVideoPlayer::queueForVideoDecode()
 {
 	RawBuffer buf = demuxer->nextBufferBlocking(0);
+
 	if (buf.size()) {
 		if (!decoder->getStream()) {
 			decoder->setStream(demuxer->getVideoCodecContext());
 		}
 		return decoder->addBuffer(0, buf);
-		lastPts = buf.getPts();
-		return 0;
 	}
 
 	return -ENOENT;
@@ -133,21 +123,50 @@ int SimpleVideoPlayer::decodeVideo()
 			return 0;
 		return err;
 	}
-	return err;
+	return 0;
 }
 
 int SimpleVideoPlayer::queueForVideoDisplay()
 {
 	RawBuffer buf = decoder->nextBufferBlocking(0);
 	if (buf.size()) {
-		lastPts = buf.getPts();
 		mInfo("display %d", buf.size());
 		return vout->addBuffer(0, buf);
 	}
+
 	return -ENOENT;
 }
 
 int SimpleVideoPlayer::display()
 {
-	return vout->processBlocking();
+	int err = vout->processBlocking();
+	lastPts = vout->getLastOutputPts();
+	return err;
+}
+
+void SimpleVideoPlayer::checkEOF()
+{
+	if (waitingEOF) {
+#if 0
+		int cnt = 0;
+		foreach (BaseLmmElement *el, elements)
+			cnt += el->getInputSemCount(0);
+		if (!cnt) {
+			waitingEOF = false;
+			eof = true;
+			lastPts = demuxer->getTotalDuration();
+			emit playbackFinished(0);
+		}
+#else
+#endif
+	}
+}
+
+void SimpleVideoPlayer::threadFinished(LmmThread *)
+{
+	if (++finishedThreadCount == threads.size()) {
+		eof = true;
+		lastPts = demuxer->getTotalDuration();
+		emit playbackFinished(0);
+	}
 }

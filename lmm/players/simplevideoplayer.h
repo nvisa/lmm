@@ -30,15 +30,18 @@ protected:
 	virtual int decodeVideo();
 	virtual int queueForVideoDisplay();
 	virtual int display();
+	void checkEOF();
+	void threadFinished(LmmThread *thr);
 
 	/* abstract members */
-	virtual BaseLmmElement * createVideoOutput() = 0;
+	virtual BaseLmmOutput * createVideoOutput() = 0;
 
 	QMap<QString, LmmThread *> threads;
+	int finishedThreadCount;
 
 	BaseLmmDemux *demuxer;
 	FFmpegDecoder *decoder;
-	BaseLmmElement *vout;
+	BaseLmmOutput *vout;
 	bool waitingEOF;
 	bool eof;
 	bool waitingDemux;
