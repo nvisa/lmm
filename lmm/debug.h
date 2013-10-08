@@ -10,15 +10,6 @@
 #include <QDebug>
 #include <QStringList>
 
-#ifndef DEBUG
-#define DEBUG
-#endif
-#ifndef INFO
-#define INFO
-#define LOG
-#define LOGV
-#endif
-
 extern QStringList __dbg_classes;
 extern QStringList __dbg_classes_info;
 extern QStringList __dbg_classes_log;
