@@ -164,9 +164,11 @@ void SimpleVideoPlayer::checkEOF()
 
 void SimpleVideoPlayer::threadFinished(LmmThread *)
 {
+	thLock.lock();
 	if (++finishedThreadCount == threads.size()) {
 		eof = true;
 		lastPts = demuxer->getTotalDuration();
 		emit playbackFinished(0);
 	}
+	thLock.unlock();
 }

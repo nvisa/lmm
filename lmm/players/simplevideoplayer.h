@@ -36,6 +36,7 @@ protected:
 	/* abstract members */
 	virtual BaseLmmOutput * createVideoOutput() = 0;
 
+	QMutex thLock;
 	QMap<QString, LmmThread *> threads;
 	int finishedThreadCount;
 
