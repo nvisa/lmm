@@ -2,7 +2,6 @@
 
 #include "avidemux.h"
 #include "rawbuffer.h"
-#define DEBUG
 #include "debug.h"
 
 extern "C" {
