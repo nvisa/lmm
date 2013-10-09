@@ -849,7 +849,10 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		const uchar *nal = H264Parser::findNextStartCode(encdata, encend);
 		while (1) {
 			offsets << nal - encdata;
-			nals << H264Parser::getNalType(nal);
+			int naltype = H264Parser::getNalType(nal);
+			nals << naltype;
+			if (naltype <= 5)
+				break;
 			nal = H264Parser::findNextStartCode(nal + 4, encend);
 			if (nal >= encend - 4)
 				break;
