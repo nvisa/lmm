@@ -998,6 +998,8 @@ int H264Encoder::startCodec(bool alloc)
 	params->videncParams.maxFrameRate      = maxFrameRate;
 
 	if (rateControl == RATE_CBR) {
+		if (videoBitRate <= 0)
+			videoBitRate = 4000000;
 		params->videncParams.rateControlPreset = IVIDEO_LOW_DELAY;
 		params->videncParams.maxBitRate = videoBitRate;
 	} else if (rateControl == RATE_VBR) {
