@@ -185,7 +185,7 @@ int DM365CameraInput::openCamera()
 	}
 	inputIndex = input.index;
 	err = setInput(&input);
-	if (err)
+	if (err && inputType != COMPOSITE)
 		return err;
 
 	v4l2_std_id std_id = V4L2_STD_720P_60;
