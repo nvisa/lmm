@@ -399,6 +399,12 @@ int BaseLmmDemux::start()
 
 int BaseLmmDemux::stop()
 {
+	if (sourceUrlName.contains("rtsp")) {
+		conlock.lock();
+		av_close_input_file(context);
+		context = NULL;
+		conlock.unlock();
+	}
 	return BaseLmmElement::stop();
 }
 
