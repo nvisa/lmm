@@ -17,10 +17,9 @@ static DmaiEncoder *instance = NULL;
 DmaiEncoder::DmaiEncoder(QObject *parent) :
 	BaseLmmElement(parent)
 {
-	maxFrameRate = 30000;
+	setFrameRate(30.0);
 	rateControl = RATE_NONE;
 	videoBitRate = -1;
-	intraFrameInterval = 30;
 	imageWidth = 1280;
 	imageHeight = 720;
 	codec = CODEC_H264;
@@ -75,6 +74,7 @@ int DmaiEncoder::start()
 	int err = startCodec();
 	if (err)
 		return err;
+	dirty = false;
 	return BaseLmmElement::start();
 }
 

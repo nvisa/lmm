@@ -533,7 +533,7 @@ void H264Encoder::setMetadata(void *data)
 
 void H264Encoder::setFrameRate(float fps)
 {
-	maxFrameRate = fps * 1000;
+	DmaiEncoder::setFrameRate(fps);
 	encodeFps = fps;
 }
 
