@@ -10,11 +10,16 @@
 SimpleVideoPlayer::SimpleVideoPlayer(QObject *parent) :
 	BasePlayer(parent)
 {
-	demuxer = new BaseLmmDemux;
-	elements << demuxer;
-
+	/*
+	 * we create decoder first because it
+	 * needs to stopped before demux element.
+	 * It uses demux context.
+	 */
 	decoder = new FFmpegDecoder;
 	elements << decoder;
+
+	demuxer = new BaseLmmDemux;
+	elements << demuxer;
 
 	vout = NULL;
 }
