@@ -4,6 +4,8 @@
 #include <lmm/lmmcommon.h>
 #include <lmm/baselmmelement.h>
 
+#include <QTime>
+
 class QUdpSocket;
 
 class RtpPacketizer : public BaseLmmElement
@@ -15,6 +17,7 @@ public:
 	virtual int start();
 	virtual int stop();
 
+	void sampleNtpTime();
 	void setPassThru(bool v) { passThru = v; }
 	void setDestinationIpAddress(QString ip) { dstIp = ip; }
 	void setRtpSequenceOffset(int value) { rtpSequenceOffset = value; }
@@ -23,6 +26,7 @@ public:
 	void setDestinationControlPort(int port) { dstControlPort = port; }
 	void setSourceDataPort(int port) { srcDataPort = port; }
 	void setSourceControlPort(int port) { srcControlPort = port; }
+	void setSsrc(uint val) { ssrc = val; }
 	int getSourceDataPort() { return srcDataPort; }
 	int getSourceControlPort() { return srcControlPort; }
 	QString getDestinationIpAddress() { return dstIp; }
@@ -39,17 +43,22 @@ signals:
 protected:
 	virtual void calculateFps(const RawBuffer buf);
 	virtual int processBuffer(RawBuffer buf);
-	virtual int packetTimestamp(int stream);
+	virtual quint64 packetTimestamp(int stream);
 	int sendNalUnit(const uchar *buf, int size);
 	void sendRtpData(uchar *buf, int size, int last);
 	void createSdp();
+	void sendSR();
+
 	int maxPayloadSize;
 	int seq;
 	uint ssrc;
 	uint baseTs;
 	QUdpSocket *sock;
+	QUdpSocket *sock2; //rtcp socket
 	QMutex streamLock;
 	bool packetized;
+	QPair<qint64, uint> ntpRtpPair;
+	QTime rtcpTime;
 
 	int dstDataPort;
 	int dstControlPort;
@@ -64,6 +73,9 @@ protected:
 	bool passThru;
 	int bitrateBufSize;
 	int bitrate;
+	uint totalPacketCount;
+	uint totalOctetCount;
+	bool sampleNtpRtp;
 };
 
 #endif // RTPPACKETIZER_H
