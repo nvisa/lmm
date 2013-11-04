@@ -64,7 +64,10 @@ int SimpleVideoPlayer::startPlayer()
 	}
 
 	finishedThreadCount = 0;
-	demuxer->setSource(sourceUrl.path());
+	if (sourceUrl.scheme() == "rtsp")
+		demuxer->setSource(sourceUrl.toString());
+	else
+		demuxer->setSource(sourceUrl.path());
 	createOpThreadPri(&SimpleVideoPlayer::demux, "SimplePlayerDemuxThread", SimpleVideoPlayer, QThread::LowestPriority);
 	createOpThreadPri(&SimpleVideoPlayer::queueForVideoDecode, "SimplePlayerQueueVideoDecodeThread", SimpleVideoPlayer, QThread::LowestPriority);
 	createOpThreadPri(&SimpleVideoPlayer::decodeVideo, "SimplePlayerDecodeThread", SimpleVideoPlayer, QThread::LowestPriority);
