@@ -22,6 +22,8 @@ QVariant LmmSettingHandler::get(QString setting)
 	}
 	if (equals("lmm_settings.stats.thread_status")) {
 		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer0");
+		if (!pl)
+			return QVariant();
 		QList<LmmThread *> threads = pl->getThreads();
 		QStringList list;
 		foreach(LmmThread *t, threads) {
@@ -31,6 +33,8 @@ QVariant LmmSettingHandler::get(QString setting)
 	}
 	if (equals("lmm_settings.stats.buffer_status")) {
 		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer0");
+		if (!pl)
+			return QVariant();
 		QList<BaseLmmElement *> elements = pl->getElements();
 		QStringList list;
 		for (int i = 0; i < elements.size(); i++) {
@@ -54,6 +58,8 @@ QVariant LmmSettingHandler::get(QString setting)
 	}
 	if (equals("lmm_settings.stats.elements.fps")) {
 		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer0");
+		if (!pl)
+			return QVariant();
 		QList<BaseLmmElement *> elements = pl->getElements();
 		QStringList list;
 		for (int i = 0; i < elements.size(); i++) {
@@ -65,6 +71,8 @@ QVariant LmmSettingHandler::get(QString setting)
 	}
 	if (equals("lmm_settings.stats.extra_debug_info")) {
 		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer0");
+		if (!pl)
+			return QVariant();
 		QList<BaseLmmElement *> elements = pl->getElements();
 		QStringList list;
 		for (int i = 0; i < elements.size(); i++) {
@@ -96,6 +104,8 @@ QVariant LmmSettingHandler::get(QString setting)
 	}
 	if (equals("lmm_settings.stats.prog_uptime")) {
 		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer");
+		if (!pl)
+			return QVariant();
 		return pl->getStreamTime()->getElapsedWallTime();
 	}
 	return QVariant();

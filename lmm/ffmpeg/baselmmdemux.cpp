@@ -155,7 +155,7 @@ int BaseLmmDemux::findStreamInfo()
 	int err = avformat_open_input(&context, qPrintable(sourceUrlName), NULL, NULL);
 #endif
 	if (err) {
-		mDebug("cannot open input file %s, errorno is %d", qPrintable(sourceUrlName), err);
+		mDebug("cannot open input file '%s', errorno is %d", qPrintable(sourceUrlName), err);
 		conlock.unlock();
 		return err;
 	}

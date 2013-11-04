@@ -44,6 +44,10 @@ QObject * BaseSettingHandler::getTarget(int target)
 
 QObject *BaseSettingHandler::getTarget(QString name)
 {
+	if (!targetIndex.contains(name)) {
+		mDebug("no such target '%s'", qPrintable(name));
+		return NULL;
+	}
 	return targetIndex[name];
 }
 
@@ -81,6 +85,7 @@ int BaseSettingHandler::setSetting(QString setting, QVariant value)
 	if (!handlers.contains(l.first()))
 		return -ENOENT;
 	BaseSettingHandler *h = handlers[l.first()];
+	fDebug("setting '%s'", qPrintable(setting));
 	int err = h->set(setting, value);
 	if (err)
 		return err;

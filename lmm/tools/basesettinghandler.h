@@ -10,6 +10,7 @@
 class BaseLmmElement;
 class QXmlStreamWriter;
 
+#define strcontains(__str) setting.contains(__str, Qt::CaseInsensitive)
 #define equals(__str) !setting.compare(__str, Qt::CaseInsensitive)
 #define starts(__str) setting.startsWith(__str, Qt::CaseInsensitive)
 #define ends(__str) setting.endsWith(__str, Qt::CaseInsensitive)
