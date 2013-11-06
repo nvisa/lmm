@@ -331,13 +331,13 @@ Int DM365CameraInput::allocBuffers()
 	req.memory = V4L2_MEMORY_USERPTR;
 	if (ioctl(fd, VIDIOC_REQBUFS, &req) == -1) {
 		mDebug("Could not allocate video display buffers");
-		return -ENOMEM;
+		return -errno;
 	}
 
 	/* The driver may return less buffers than requested */
 	if (req.count < NUM_CAPTURE_BUFS || !req.count) {
 		mDebug("Insufficient device driver buffer memory");
-		return -ENOMEM;
+		return -errno;
 	}
 
 	for (int i = 0; i < (int)req.count; i++) {
