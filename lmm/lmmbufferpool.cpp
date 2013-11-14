@@ -69,13 +69,13 @@ int LmmBufferPool::freeBufferCount()
 RawBuffer LmmBufferPool::take(bool keepRef)
 {
 	if (finalized)
-		return RawBuffer();
+		return RawBuffer::eof();
 	mutex.lock();
 	if (buffersFree.size() == 0) {
 		wc.wait(&mutex);
 		if (finalized) {
 			mutex.unlock();
-			return RawBuffer();
+			return RawBuffer::eof();
 		}
 	}
 	RawBuffer buf = buffersFree.takeFirst();
