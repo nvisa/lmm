@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QString>
 #include <QVariant>
+#include <QSettings>
 #include <QStringList>
 
 class BaseLmmElement;
@@ -31,6 +32,7 @@ public:
 	static int importKeyList(QString filename);
 	static int saveAllToDisk(QString filename);
 	static int readAllFromDisk(QString filename);
+	static int readIncrementalSettings();
 protected:
 	explicit BaseSettingHandler(QString key, QObject *parent = NULL);
 	virtual QVariant get(QString setting) = 0;
@@ -46,6 +48,7 @@ protected:
 	static QMap<QString, int> settingKeys;
 	static QMap<QString, QObject *> targetIndex;
 	static QMap<QString, BaseSettingHandler *> handlers;
+	static QSettings changed;
 	QStringList targets;
 	QMap<QString, QVariant> cache;
 };

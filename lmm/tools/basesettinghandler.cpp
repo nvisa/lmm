@@ -12,6 +12,7 @@
 QMap<QString, int> BaseSettingHandler::settingKeys;
 QMap<QString, BaseSettingHandler *> BaseSettingHandler::handlers;
 QMap<QString, QObject *> BaseSettingHandler::targetIndex;
+QSettings BaseSettingHandler::changed("/etc/vksystem/settings_incr.ini", QSettings::IniFormat);
 
 BaseSettingHandler::BaseSettingHandler(QString key, QObject *parent) :
 	QObject(parent)
@@ -89,6 +90,7 @@ int BaseSettingHandler::setSetting(QString setting, QVariant value)
 	int err = h->set(setting, value);
 	if (err)
 		return err;
+	changed.setValue(setting, value);
 	h->cache.insert(setting, value);
 	return 0;
 }
@@ -242,5 +244,14 @@ int BaseSettingHandler::readAllFromDisk(QString filename)
 	}
 	f.close();
 
+	return 0;
+}
+
+int BaseSettingHandler::readIncrementalSettings()
+{
+	QStringList keys = changed.allKeys();
+	foreach (const QString key, keys) {
+		setSetting(key, changed.value(key));
+	}
 	return 0;
 }
