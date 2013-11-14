@@ -62,7 +62,9 @@ protected:
 		QThread::msleep(stime);
 		RawBuffer buf("unknown", 1);
 		parent->addBuffer(0, buf);
-		parent->process();
+		int err = parent->process();
+		if (err)
+			return err;
 		return 0;
 	}
 	int stime;
@@ -255,6 +257,8 @@ int VideoTestSource::processBuffer(RawBuffer buf)
 {
 	mInfo("creating next frame");
 	RawBuffer imageBuf = pool->take(false);
+	if (imageBuf.isEOF())
+		return -ENODATA;
 	if (pattern == RAW_YUV_VIDEO) {
 		if (videoFile.isOpen() == false)
 			return -EINVAL;
