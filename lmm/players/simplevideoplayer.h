@@ -3,6 +3,8 @@
 
 #include <lmm/baseplayer.h>
 
+#include <QSemaphore>
+
 class BaseLmmDemux;
 class BaseLmmOutput;
 class FFmpegDecoder;
@@ -16,6 +18,8 @@ public:
 	virtual qint64 getDuration();
 	virtual qint64 getPosition();
 	virtual QList<QVariant> extraDebugInfo();
+	void setSingleStep(bool v) { singleStep = v; }
+	int nextStep();
 signals:
 	
 public slots:
@@ -47,6 +51,8 @@ protected:
 	bool eof;
 	bool waitingDemux;
 	int64_t lastPts;
+	QSemaphore singleStepWaiter;
+	bool singleStep;
 };
 
 #endif // SIMPLEVIDEOPLAYER_H

@@ -22,6 +22,7 @@ SimpleVideoPlayer::SimpleVideoPlayer(QObject *parent) :
 	elements << demuxer;
 
 	vout = NULL;
+	singleStep = false;
 }
 
 qint64 SimpleVideoPlayer::getDuration()
@@ -41,6 +42,12 @@ QList<QVariant> SimpleVideoPlayer::extraDebugInfo()
 	list << eof;
 	list << waitingDemux;
 	return list;
+}
+
+int SimpleVideoPlayer::nextStep()
+{
+	singleStepWaiter.release();
+	return 0;
 }
 
 void SimpleVideoPlayer::timeoutHandler()
@@ -116,7 +123,12 @@ int SimpleVideoPlayer::queueForVideoDecode()
 		if (!decoder->getStream()) {
 			decoder->setStream(demuxer->getVideoCodecContext());
 		}
-		return decoder->addBuffer(0, buf);
+		int err = decoder->addBuffer(0, buf);
+		if (err)
+			return err;
+		if (singleStep)
+			singleStepWaiter.acquire();
+		return 0;
 	}
 
 	return -ENOENT;
@@ -173,6 +185,7 @@ void SimpleVideoPlayer::checkEOF()
 void SimpleVideoPlayer::threadFinished(LmmThread *)
 {
 	thLock.lock();
+	mDebug("thread finished: %d %d", finishedThreadCount, threads.size());
 	if (++finishedThreadCount == threads.size()) {
 		eof = true;
 		lastPts = demuxer->getTotalDuration();
