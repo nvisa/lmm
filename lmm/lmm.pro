@@ -42,6 +42,7 @@ SOURCES += \
 	tools/lmmsettinghandler.cpp \
 	tools/cpuload.cpp \
     players/simplevideoplayer.cpp \
+    ffmpeg/ffmpegcolorspace.cpp
 
 HEADERS  += \
     filesource.h \
@@ -81,6 +82,7 @@ HEADERS  += \
 	tools/lmmsettinghandler.h \
 	tools/cpuload.h \
     players/simplevideoplayer.h \
+    ffmpeg/ffmpegcolorspace.h
 
 alsa {
     HEADERS += \
