@@ -28,6 +28,7 @@ public:
 	void decodeOnlyKeyframe(bool v) { onlyKeyframe = v; }
 protected:
 	int decode(RawBuffer buf);
+	int convertColorSpace(RawBuffer buf);
 	void printMotionVectors(AVFrame *pict);
 	void print_vector(int x, int y, int dx, int dy);
 private:
@@ -44,6 +45,7 @@ private:
 	int outHeight;
 	int keepAspectRatio;
 	bool onlyKeyframe;
+	bool convert;
 };
 
 #endif // FFMPEGDECODER_H

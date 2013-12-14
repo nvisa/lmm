@@ -39,6 +39,7 @@ FFmpegDecoder::FFmpegDecoder(QObject *parent) :
 	pool = new LmmBufferPool(this);
 	avFrame = NULL;
 	av_lockmgr_register(decLockOp);
+	convert = true;
 }
 
 int FFmpegDecoder::setStream(AVCodecContext *stream)
@@ -95,73 +96,80 @@ int FFmpegDecoder::decode(RawBuffer buf)
 		return bytes;
 	}
 	if (finished) {
-		if (codecCtx->pix_fmt == PIX_FMT_YUV420P || codecCtx->pix_fmt == PIX_FMT_YUVJ420P) {
-			mInfo("decoded video frame");
-			if (!swsCtx) {
-				mDebug("getting sw scale context");
-				if (!outWidth || !outHeight) {
-					outWidth = codecCtx->width;
-					outHeight = codecCtx->height;
-					if (keepAspectRatio)
-						outWidth = codecCtx->width * outHeight / codecCtx->height;
-					else
-						outWidth = codecCtx->width;
-				}
-				if (rgbOut)
-					swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<PixelFormat>(codecCtx->pix_fmt),
-										outWidth, outHeight, AV_PIX_FMT_RGB24, SWS_BICUBIC
-										, NULL, NULL, NULL);
-				else
-					swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<PixelFormat>(codecCtx->pix_fmt),
-										outWidth, outHeight, AV_PIX_FMT_GRAY8, SWS_BICUBIC
-										, NULL, NULL, NULL);
-				QString mime = "video/x-raw-rgb";
-				if (!rgbOut)
-					mime = "video/x-raw-gray";
-				for (int i = 0; i < 15; i++) {
-					mInfo("allocating sw scale buffer %d with size %dx%d", i, outWidth, outHeight);
-					FFmpegBuffer buf(mime, outWidth, outHeight, this);
-					buf.addBufferParameter("poolIndex", i);
-					pool->addBuffer(buf);
-					poolBuffers.insert(i, buf);
-				}
-			}
-			mInfo("taking output buffer from buffer pool");
-			RawBuffer poolbuf = pool->take();
-			if (poolbuf.size() == 0)
-				return -ENOENT;
-			AVFrame *frame = (AVFrame *)poolbuf.getBufferParameter("AVFrame").toULongLong();
-			RawBuffer outbuf;
-			sws_scale(swsCtx, avFrame->data, avFrame->linesize, 0, codecCtx->height,
-					  frame->data, frame->linesize);
-			if (rgbOut) {
-				outbuf = RawBuffer(QString("video/x-raw-rgb"),
-								 (const void *)poolbuf.data(), poolbuf.size(), this);
-			} else {
-				/*int lsz = avFrame->linesize[0];
-				for (int i = 0; i < codecCtx->height; i++)
-					memcpy(frame->data[0] + i * codecCtx->width, avFrame->data[0] + i * lsz, codecCtx->width);*/
-				outbuf = RawBuffer(QString("video/x-raw-gray"), (const void *)poolbuf.data(), poolbuf.size(), this);
-			}
-			outbuf.addBufferParameter("width", outWidth);
-			outbuf.addBufferParameter("height", outHeight);
-			if (rgbOut)
-				outbuf.addBufferParameter("avPixelFmt", AV_PIX_FMT_RGB24);
-			else
-				outbuf.addBufferParameter("avPixelFmt", AV_PIX_FMT_GRAY8);
-			outbuf.addBufferParameter("avFrame", (quintptr)frame);
-			outbuf.addBufferParameter("poolIndex", poolbuf.getBufferParameter("poolIndex"));
-			if (avFrame->key_frame)
-				outbuf.addBufferParameter("frameType", 0);
-			else
-				outbuf.addBufferParameter("frameType", 1);
-			outbuf.setPts(buf.getPts());
-			outbuf.setStreamBufferNo(buf.streamBufferNo());
-			outbuf.setDuration(buf.getDuration());
-			newOutputBuffer(0, outbuf);
-		}
+		if (convert)
+			return convertColorSpace(buf);
 	}
 	return 0;
+}
+
+int FFmpegDecoder::convertColorSpace(RawBuffer buf)
+{
+	if (codecCtx->pix_fmt == PIX_FMT_YUV420P || codecCtx->pix_fmt == PIX_FMT_YUVJ420P) {
+		mInfo("decoded video frame");
+		if (!swsCtx) {
+			mDebug("getting sw scale context");
+			if (!outWidth || !outHeight) {
+				outWidth = codecCtx->width;
+				outHeight = codecCtx->height;
+				if (keepAspectRatio)
+					outWidth = codecCtx->width * outHeight / codecCtx->height;
+				else
+					outWidth = codecCtx->width;
+			}
+			if (rgbOut)
+				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<PixelFormat>(codecCtx->pix_fmt),
+									outWidth, outHeight, AV_PIX_FMT_RGB24, SWS_BICUBIC
+									, NULL, NULL, NULL);
+			else
+				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<PixelFormat>(codecCtx->pix_fmt),
+									outWidth, outHeight, AV_PIX_FMT_GRAY8, SWS_BICUBIC
+									, NULL, NULL, NULL);
+			QString mime = "video/x-raw-rgb";
+			if (!rgbOut)
+				mime = "video/x-raw-gray";
+			for (int i = 0; i < 15; i++) {
+				mInfo("allocating sw scale buffer %d with size %dx%d", i, outWidth, outHeight);
+				FFmpegBuffer buf(mime, outWidth, outHeight, this);
+				buf.addBufferParameter("poolIndex", i);
+				pool->addBuffer(buf);
+				poolBuffers.insert(i, buf);
+			}
+		}
+		mInfo("taking output buffer from buffer pool");
+		RawBuffer poolbuf = pool->take();
+		if (poolbuf.size() == 0)
+			return -ENOENT;
+		AVFrame *frame = (AVFrame *)poolbuf.getBufferParameter("AVFrame").toULongLong();
+		RawBuffer outbuf;
+		sws_scale(swsCtx, avFrame->data, avFrame->linesize, 0, codecCtx->height,
+				  frame->data, frame->linesize);
+		if (rgbOut) {
+			outbuf = RawBuffer(QString("video/x-raw-rgb"),
+							 (const void *)poolbuf.data(), poolbuf.size(), this);
+		} else {
+			/*int lsz = avFrame->linesize[0];
+			for (int i = 0; i < codecCtx->height; i++)
+				memcpy(frame->data[0] + i * codecCtx->width, avFrame->data[0] + i * lsz, codecCtx->width);*/
+			outbuf = RawBuffer(QString("video/x-raw-gray"), (const void *)poolbuf.data(), poolbuf.size(), this);
+		}
+		outbuf.addBufferParameter("width", outWidth);
+		outbuf.addBufferParameter("height", outHeight);
+		if (rgbOut)
+			outbuf.addBufferParameter("avPixelFmt", AV_PIX_FMT_RGB24);
+		else
+			outbuf.addBufferParameter("avPixelFmt", AV_PIX_FMT_GRAY8);
+		outbuf.addBufferParameter("avFrame", (quintptr)frame);
+		outbuf.addBufferParameter("poolIndex", poolbuf.getBufferParameter("poolIndex"));
+		if (avFrame->key_frame)
+			outbuf.addBufferParameter("frameType", 0);
+		else
+			outbuf.addBufferParameter("frameType", 1);
+		outbuf.setPts(buf.getPts());
+		outbuf.setStreamBufferNo(buf.streamBufferNo());
+		outbuf.setDuration(buf.getDuration());
+		return newOutputBuffer(0, outbuf);
+	}
+	return -EINVAL;
 }
 
 #define IS_INTERLACED(a) ((a)&MB_TYPE_INTERLACED)
