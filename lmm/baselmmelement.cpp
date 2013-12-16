@@ -550,6 +550,8 @@ int BaseLmmElement::setTotalInputBufferSize(int size, int hysterisisSize)
 
 void BaseLmmElement::updateOutputTimeStats()
 {
+	if (!streamTime)
+		return;
 	if (lastOutputTimeStat) {
 		int diff = streamTime->getFreeRunningTime() - lastOutputTimeStat;
 		mLog("time diff in %s: curr=%d ave=%d", metaObject()->className(), diff, outputTimeStat->avg);
