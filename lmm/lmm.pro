@@ -42,7 +42,6 @@ SOURCES += \
 	tools/lmmsettinghandler.cpp \
 	tools/cpuload.cpp \
     players/simplevideoplayer.cpp \
-    ffmpeg/ffmpegcolorspace.cpp
 
 HEADERS  += \
     filesource.h \
@@ -81,8 +80,7 @@ HEADERS  += \
     tools/basesettinghandler.h \
 	tools/lmmsettinghandler.h \
 	tools/cpuload.h \
-    players/simplevideoplayer.h \
-    ffmpeg/ffmpegcolorspace.h
+	players/simplevideoplayer.h \
 
 alsa {
     HEADERS += \
@@ -117,6 +115,7 @@ ffmpeg {
         ffmpeg/avimux.h \
         ffmpeg/ffcompat.h \
 		ffmpeg/ffmpegbuffer.h \
+		ffmpeg/ffmpegcolorspace.h \
 
     SOURCES += \
 		ffmpeg/avidemux.cpp \
@@ -127,6 +126,7 @@ ffmpeg {
         ffmpeg/mp4mux.cpp \
         ffmpeg/avimux.cpp \
 		ffmpeg/ffmpegbuffer.cpp \
+		ffmpeg/ffmpegcolorspace.cpp \
 
 	x86 {
 		SOURCES += \
