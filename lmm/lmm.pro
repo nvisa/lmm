@@ -42,7 +42,10 @@ SOURCES += \
 	tools/lmmsettinghandler.cpp \
 	tools/cpuload.cpp \
     players/simplevideoplayer.cpp \
-    tools/rawnetworksocket.cpp
+    tools/rawnetworksocket.cpp \
+    baselmmpipeline.cpp \
+    pipeline/basepipeelement.cpp \
+    pipeline/functionpipeelement.cpp
 
 HEADERS  += \
     filesource.h \
@@ -81,7 +84,10 @@ HEADERS  += \
 	tools/lmmsettinghandler.h \
 	tools/cpuload.h \
 	players/simplevideoplayer.h \
-    tools/rawnetworksocket.h
+    tools/rawnetworksocket.h \
+    baselmmpipeline.h \
+    pipeline/basepipeelement.h \
+    pipeline/functionpipeelement.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
