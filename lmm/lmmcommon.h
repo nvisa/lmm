@@ -17,6 +17,12 @@ namespace Lmm {
 		CODEC_H264,
 		CODEC_JPEG
 	};
+	enum AspectRatio {
+		ASPECT_RATIO_4_3,
+		ASPECT_RATIO_5_4,
+		ASPECT_RATIO_16_9,
+		ASPECT_RATIO_16_10,
+	};
 }
 
 class PlatformCommon
