@@ -14,6 +14,10 @@ class HardwareOperations : public QObject
     Q_OBJECT
 public:
     explicit HardwareOperations(QObject *parent = 0);
+	int map(unsigned int addr);
+	int unmap();
+	int write(unsigned int off, unsigned int value);
+	uint read(unsigned int off);
     static bool SetOsdTransparency(unsigned char trans, unsigned int x,
                     unsigned int y, unsigned int width, unsigned int height);
     static bool SetOsdTransparency(unsigned char trans);
@@ -25,7 +29,8 @@ public:
 signals:
 
 public slots:
-
+private:
+	unsigned int * mmapBase;
 };
 
 #endif // HARDWAREOPERATIONS_H

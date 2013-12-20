@@ -74,6 +74,42 @@ HardwareOperations::HardwareOperations(QObject *parent) :
 {
 }
 
+int HardwareOperations::map(unsigned int addr)
+{
+	void *map_base;
+
+	int fd;
+	if((fd = open("/dev/mem", O_RDWR | O_SYNC)) == -1) FATAL;
+
+	/* Map one page */
+	map_base = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, addr & ~MAP_MASK);
+
+	if(map_base == (void *) -1) {
+		::close(fd);
+		return -EINVAL;
+	}
+
+	::close(fd);
+	mmapBase = (unsigned int *)map_base + (addr & MAP_MASK);
+	return 0;
+}
+
+int HardwareOperations::unmap()
+{
+	return munmap(mmapBase, MAP_SIZE);
+}
+
+int HardwareOperations::write(unsigned int off, unsigned int value)
+{
+	mmapBase[off] = value;
+	return 0;
+}
+
+uint HardwareOperations::read(unsigned int off)
+{
+	return mmapBase[off];
+}
+
 bool HardwareOperations::SetOsdTransparency(unsigned char trans)
 {
 	return SetOsdTransparency(trans, 0, 0, 800, 480);
