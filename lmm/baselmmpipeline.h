@@ -4,6 +4,7 @@
 #include <lmm/baselmmelement.h>
 
 class BasePipe;
+class QEventLoop;
 class BasePipeElement;
 
 /*template <class T>
@@ -33,6 +34,10 @@ public:
 	/* */
 	int processPipeline();
 	int checkPipelineOutput();
+
+	void waitToFinish();
+
+	virtual void threadFinished(LmmThread *);
 protected:
 	virtual int processBuffer(RawBuffer buf);
 	virtual int processBuffer(int ch, RawBuffer buf);
@@ -40,6 +45,9 @@ protected:
 	QMap<QString, LmmThread *> threads;
 	QList<BaseLmmElement *> pipelineElements;
 	QList<BasePipeElement *> pipes;
+	QMutex thLock;
+	QEventLoop *el;
+	int finishedThreadCount;
 };
 
 #endif // BASELMMPIPELINE_H

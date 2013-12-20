@@ -3,6 +3,8 @@
 #include "debug.h"
 #include "pipeline/basepipeelement.h"
 
+#include <QEventLoop>
+
 #include <errno.h>
 
 /*class BasePipe : public BaseLmmElement
@@ -56,6 +58,7 @@ BaseLmmPipeline::BaseLmmPipeline(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	addNewInputChannel();
+	el = new QEventLoop(this);
 }
 
 int BaseLmmPipeline::addPipe(BaseLmmElement *el)
@@ -66,6 +69,7 @@ int BaseLmmPipeline::addPipe(BaseLmmElement *el)
 
 int BaseLmmPipeline::start()
 {
+	finishedThreadCount = 0;
 	/*for (int i = 0; i < pipelineElements.size(); i++) {
 		BaseLmmElement *next = this;
 		if (i < pipelineElements.size() - 1)
@@ -115,12 +119,36 @@ int BaseLmmPipeline::stop()
 
 int BaseLmmPipeline::processPipeline()
 {
-	return processBlocking();
+	int err = processBlocking();
+	if (err == -ENODATA)
+		processBuffer(RawBuffer::eof());
+	return err;
 }
 
 int BaseLmmPipeline::checkPipelineOutput()
 {
 	return processBlocking(1);
+}
+
+void BaseLmmPipeline::waitToFinish()
+{
+	thLock.lock();
+	if (finishedThreadCount != threads.size()) {
+		thLock.unlock();
+		el->exec();
+		return;
+	}
+	thLock.unlock();
+}
+
+void BaseLmmPipeline::threadFinished(LmmThread *)
+{
+	thLock.lock();
+	mDebug("thread finished: %d %d", finishedThreadCount, threads.size());
+	if (++finishedThreadCount == threads.size()) {
+		el->quit();
+	}
+	thLock.unlock();
 }
 
 int BaseLmmPipeline::processBuffer(RawBuffer buf)
@@ -131,6 +159,8 @@ int BaseLmmPipeline::processBuffer(RawBuffer buf)
 
 int BaseLmmPipeline::processBuffer(int ch, RawBuffer buf)
 {
+	if (buf.isEOF())
+		return -ENODATA;
 	/* we have new buffer output from pipeline */
 	return 0;
 }

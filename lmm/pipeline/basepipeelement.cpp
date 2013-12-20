@@ -1,10 +1,12 @@
 #include "basepipeelement.h"
 #include "debug.h"
+#include "baselmmpipeline.h"
 
 #include <errno.h>
 
-BasePipeElement::BasePipeElement(QObject *parent) :
-	BaseLmmElement(parent)
+BasePipeElement::BasePipeElement(BaseLmmPipeline *parent) :
+	BaseLmmElement(parent),
+	pipeline(parent)
 {
 	pipe = NULL;
 	target = NULL;
@@ -25,12 +27,6 @@ int BasePipeElement::operationBuffer()
 		buf = target->nextBufferBlocking(targetCh);
 	else if (pipe)
 		buf = nextBufferBlocking(targetCh);
-	if (!buf.size()) {
-		return -ENOENT;
-	}
-	if (buf.isEOF()) {
-		return -ENODATA;
-	}
 	return next->addBuffer(nextCh, buf);
 }
 
@@ -51,7 +47,14 @@ int BasePipeElement::setPipe(BasePipe *pipe)
 	return 0;
 }
 
+void BasePipeElement::threadFinished(LmmThread *thread)
+{
+	pipeline->threadFinished(thread);
+}
+
 int BasePipeElement::processBuffer(RawBuffer buf)
 {
-	return newOutputBuffer(0, pipe->process(buf));
+	if (!buf.isEOF())
+		buf = pipe->process(buf);
+	return newOutputBuffer(0, buf);
 }

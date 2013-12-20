@@ -3,6 +3,8 @@
 
 #include <lmm/baselmmelement.h>
 
+class BaseLmmPipeline;
+
 class BasePipe
 {
 public:
@@ -41,7 +43,7 @@ class BasePipeElement : public BaseLmmElement
 {
 	Q_OBJECT
 public:
-	explicit BasePipeElement(QObject *parent = 0);
+	explicit BasePipeElement(BaseLmmPipeline *parent = 0);
 
 	int operationProcess();
 	int operationBuffer();
@@ -51,9 +53,11 @@ public:
 	void setNextChannel(int ch) { nextCh = ch; }
 	void setNext(BaseLmmElement *el) { next = el; }
 
+	virtual void threadFinished(LmmThread *);
 protected:
 	int processBuffer(RawBuffer buf);
 
+	BaseLmmPipeline *pipeline;
 	BaseLmmElement *target;
 	BaseLmmElement *next;
 	int targetCh;
