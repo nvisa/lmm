@@ -153,7 +153,7 @@ cleanup_devnode:
 	return -err;
 }
 
-int V4l2Input::adjustCropping(int width, int height)
+int V4l2Input::adjustCropping(int width, int height, int left, int top)
 {
 	struct v4l2_cropcap cropcap;
 	struct v4l2_crop crop;
@@ -173,8 +173,8 @@ int V4l2Input::adjustCropping(int width, int height)
 
 	crop.c.width = width;
 	crop.c.height = height;
-	crop.c.left = 0;
-	crop.c.top = 0;
+	crop.c.left = left;
+	crop.c.top = top;
 
 	/* Ignore if cropping is not supported (EINVAL). */
 	if (-1 == ioctl (fd, VIDIOC_S_CROP, &crop)
@@ -278,6 +278,8 @@ int V4l2Input::processBlocking(int ch)
 {
 	if (getState() == STOPPED)
 		return -EINVAL;
+	if (eofSent)
+		return -ENODATA;
 	struct v4l2_buffer *buffer = getFrame();
 	if (getState() == STOPPED)
 		return -EINVAL;

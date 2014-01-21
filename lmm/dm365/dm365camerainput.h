@@ -35,6 +35,9 @@ public:
 	void setInputType(cameraInput inp) { inputType = inp; }
 	void setInputFps(float fps);
 	void setOutputFps(float fps);
+	int setInputSize(QSize sz);
+	int setOutputSize(int ch, QSize sz);
+	void setNonStdOffsets(int vbp, int hbp);
 	void aboutDeleteBuffer(const QHash<QString, QVariant> &params);
 
 	int setSize(int ch, QSize sz);
@@ -68,6 +71,8 @@ private:
 	int pixFormat;
 	int rszFd;
 	int preFd;
+	int inputCaptureWidth;
+	int inputCaptureHeight;
 	int captureWidth2;
 	int captureHeight2;
 	bool ch1HorFlip;
@@ -77,6 +82,40 @@ private:
 
 	QSemaphore bufsFree;
 	Capture_Handle hCapture;
+
+	/* non-std mode items */
+	struct ISIFMode {
+		uint hdw;
+		uint vdw;
+		uint ppln;
+		uint lpfr;
+		uint sph;
+		uint lnh;
+		uint slv0;
+		uint slv1;
+		uint culh;
+		uint culv;
+		uint hsize;
+		uint sdofst;
+		uint cadu;
+		uint cadl;
+	};
+	struct IPIPEMode {
+		uint vps;
+		uint vsz;
+		uint hps;
+		uint hsz;
+	};
+	struct UseNonStdInput {
+		int vbp;
+		int hbp;
+		bool enabled;
+	};
+	UseNonStdInput nonStdInput;
+
+	int setupISIF(ISIFMode mode);
+	int setupIPIPE(IPIPEMode mode);
+	int setupNonStdMode();
 };
 
 #endif // DM365CAMERAINPUT_H

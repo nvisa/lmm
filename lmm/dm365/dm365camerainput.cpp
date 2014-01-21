@@ -2,6 +2,7 @@
 #include "dmai/dmaibuffer.h"
 #include "streamtime.h"
 #include "tools/videoutils.h"
+#include "hardwareoperations.h"
 
 #include "debug.h"
 
@@ -23,6 +24,7 @@
 
 #define V4L2_STD_720P_30        ((v4l2_std_id)(0x0100000000000000ULL))
 #define V4L2_STD_720P_60        ((v4l2_std_id)(0x0004000000000000ULL))
+#define V4L2_STD_1080P_60       ((v4l2_std_id)(0x0040000000000000ULL))
 
 #define NUM_CAPTURE_BUFS captureBufferCount
 
@@ -72,6 +74,8 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 {
 	inputType = COMPONENT;
 	/* these capture w and h are defaults, v4l2input overrides them in start */
+	inputCaptureWidth = 1280;
+	inputCaptureHeight = 720;
 	captureWidth = 1280;
 	captureHeight = 720;
 	captureWidth2 = 352;
@@ -113,10 +117,19 @@ int DM365CameraInput::setSize(int ch, QSize sz)
 	if (ch == 0) {
 		captureWidth = sz.width();
 		captureHeight = sz.height();
+		inputCaptureWidth = sz.width();
+		inputCaptureHeight = sz.height();
 	} else {
 		captureWidth2 = sz.width();
 		captureHeight2 = sz.height();
 	}
+	return 0;
+}
+
+int DM365CameraInput::setInputSize(QSize sz)
+{
+	inputCaptureWidth = sz.width();
+	inputCaptureHeight = sz.height();
 	return 0;
 }
 
@@ -133,6 +146,13 @@ void DM365CameraInput::setVerticalFlip(int ch, bool flip)
 		ch2VerFlip = flip;
 	else
 		ch1VerFlip = flip;
+}
+
+void DM365CameraInput::setNonStdOffsets(int vbp, int hbp)
+{
+	nonStdInput.hbp = hbp;
+	nonStdInput.vbp = vbp;
+	nonStdInput.enabled = (vbp + hbp) ? true : false;
 }
 
 void DM365CameraInput::setHorizontalFlip(int ch, bool flip)
@@ -188,7 +208,7 @@ int DM365CameraInput::openCamera()
 	if (err && inputType != COMPOSITE)
 		return err;
 
-	v4l2_std_id std_id = V4L2_STD_720P_60;
+	v4l2_std_id std_id = V4L2_STD_1080P_60;
 	if (inputType == COMPOSITE || inputType == S_VIDEO)
 		std_id = V4L2_STD_PAL;
 	err = setStandard(&std_id);
@@ -202,6 +222,7 @@ int DM365CameraInput::openCamera()
 	if (err)
 		return err;
 
+	adjustCropping(inputCaptureWidth, inputCaptureHeight);
 	setFormat(pixFormat, width, height, inputType == COMPOSITE);
 
 	/* buffer allocation */
@@ -278,7 +299,10 @@ int DM365CameraInput::openCamera()
 	}
 
 	mDebug("buffers are allocated, starting streaming");
-	return startStreaming();
+	err = startStreaming();
+	if (nonStdInput.enabled)
+		setupNonStdMode();
+	return err;
 }
 
 int DM365CameraInput::closeCamera()
@@ -297,6 +321,56 @@ int DM365CameraInput::closeCamera()
 
 	return 0;
 }
+
+int DM365CameraInput::setupISIF(DM365CameraInput::ISIFMode mode)
+{
+	HardwareOperations hop;
+	hop.map(0x1c71000);
+	hop.write(0x08, mode.hdw);
+	hop.write(0x0c, mode.vdw);
+	hop.write(0x10, mode.ppln);
+	hop.write(0x14, mode.lpfr);
+	hop.write(0x18, mode.sph);
+	hop.write(0x1c, mode.lnh);
+	hop.write(0x20, mode.slv0);
+	hop.write(0x24, mode.slv1);
+	hop.write(0x2c, mode.culh);
+	hop.write(0x30, mode.culv);
+	hop.write(0x34, mode.hsize);
+	hop.write(0x38, mode.sdofst);
+	hop.write(0x3c, mode.cadu);
+	hop.write(0x40, mode.cadl);
+	hop.unmap();
+	return 0;
+}
+
+int DM365CameraInput::setupIPIPE(DM365CameraInput::IPIPEMode mode)
+{
+	HardwareOperations hop;
+	int err = hop.map(0x1c70800);
+	if (err) {
+		mDebug("error mapping IPIPE registers");
+		return err;
+	}
+	hop.write(0x10, mode.vps);
+	hop.write(0x18, mode.hps);
+	hop.unmap();
+	return 0;
+}
+
+int DM365CameraInput::setupNonStdMode()
+{
+	mDebug("adjusting for non-standard input mode: hbp=%d vbp=%d", nonStdInput.hbp
+		   , nonStdInput.vbp);
+	/* ISIF registers are not used in chained mode */
+	/* IPIPEIF is bypassed/not used in chained mode ??? */
+	IPIPEMode mode;
+	mode.hps = nonStdInput.hbp;
+	mode.vps = nonStdInput.vbp;
+	setupIPIPE(mode);
+	return 0;
+}
+
 
 int DM365CameraInput::fpsWorkaround()
 {

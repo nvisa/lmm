@@ -43,7 +43,7 @@ protected:
 
 	virtual int openCamera();
 	virtual int closeCamera();
-	virtual int adjustCropping(int width, int height);
+	virtual int adjustCropping(int width, int height, int left = 0, int top = 0);
 	virtual int allocBuffers(unsigned int buf_cnt, enum v4l2_buf_type type);
 	virtual int putFrame(struct v4l2_buffer *);
 	virtual v4l2_buffer * getFrame();
