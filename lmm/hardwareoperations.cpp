@@ -79,7 +79,8 @@ int HardwareOperations::map(unsigned int addr)
 	void *map_base;
 
 	int fd;
-	if((fd = open("/dev/mem", O_RDWR | O_SYNC)) == -1) FATAL;
+	if((fd = open("/dev/mem", O_RDWR | O_SYNC)) == -1)
+		return -EPERM;
 
 	/* Map one page */
 	map_base = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, addr & ~MAP_MASK);
@@ -90,7 +91,7 @@ int HardwareOperations::map(unsigned int addr)
 	}
 
 	::close(fd);
-	mmapBase = (unsigned int *)map_base + (addr & MAP_MASK);
+	mmapBase = (unsigned int *)map_base + (addr & MAP_MASK) / sizeof(int);
 	return 0;
 }
 
@@ -101,13 +102,13 @@ int HardwareOperations::unmap()
 
 int HardwareOperations::write(unsigned int off, unsigned int value)
 {
-	mmapBase[off] = value;
+	mmapBase[off / sizeof(int)] = value;
 	return 0;
 }
 
 uint HardwareOperations::read(unsigned int off)
 {
-	return mmapBase[off];
+	return mmapBase[off / sizeof(int)];
 }
 
 bool HardwareOperations::SetOsdTransparency(unsigned char trans)
