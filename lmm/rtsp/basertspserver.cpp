@@ -165,6 +165,7 @@ public:
 	QString streamIp;
 	int clientCount;
 	uint ssrc;
+	QTime timeout;
 private:
 	QHostAddress myIpAddr;
 	BaseRtspServer *server;
@@ -219,7 +220,6 @@ int BaseRtspServer::setEnabled(bool val)
 	while (i.hasNext()) {
 		i.next();
 		BaseRtspSession *ses = i.value();
-		ses->teardown();
 		closeSession(ses->sessionId);
 		/*QStringList resp;
 		resp << "RTSP/1.0 200 OK";
@@ -231,6 +231,11 @@ int BaseRtspServer::setEnabled(bool val)
 		sendRtspMessage(sock, resp, lsep);*/
 	}
 	return 0;
+}
+
+int BaseRtspServer::getSessionTimeoutValue(QString id)
+{
+	return sessions[id]->timeout.elapsed();
 }
 
 QString BaseRtspServer::detectLineSeperator(QString mes)
@@ -374,7 +379,7 @@ QStringList BaseRtspServer::handleCommandOptions(QStringList lines, QString lsep
 	int cseq = currentCmdFields["CSeq"].toInt();
 	resp << "RTSP/1.0 200 OK";
 	resp << QString("CSeq: %1").arg(cseq);
-	resp << "Public: DESCRIBE, SETUP, TEARDOWN, PLAY";
+	resp << "Public: DESCRIBE, SETUP, TEARDOWN, PLAY, GET_PARAMETER";
 	resp << lsep;
 	return resp;
 }
@@ -465,6 +470,12 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		resp << "Content-Length: 0";
 		resp << "Cache-Control: no-cache";
 		resp << lsep;
+
+		/*
+		 * we are not defining timeout value, so default
+		 * value of 60 seconds is used.
+		 */
+		ses->timeout.start();
 	} else {
 		mDebug("not enough fields in setup url");
 		return createRtspErrorResponse(400, lsep);
@@ -497,6 +508,8 @@ QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 			sessionPlayExtra(ses->sessionId);
 			emit sessionPlayed(ses->sessionId);
 		}
+		/* kick time-out value */
+		ses->timeout.restart();
 	} else
 		return createRtspErrorResponse(404, lsep);
 	return resp;
@@ -512,21 +525,36 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 		url.append("/");
 	QString sid = getField(lines, "Session");
 	if (sessions.contains(sid)) {
-		BaseRtspSession *ses = sessions[sid];
-		if (ses->clientCount == 1) {
-			int err = ses->teardown();
-			if (err)
-				return createRtspErrorResponse(err, lsep);
-			resp << "RTSP/1.0 200 OK";
-			resp << QString("Session: %1").arg(ses->sessionId);
-			resp << "Content-Length: 0";
-			resp << "Cache-Control: no-cache";
-			resp << QString("CSeq: %1").arg(cseq);
-			resp << lsep;
+		closeSession(sid);
+		resp << "RTSP/1.0 200 OK";
+		resp << QString("Session: %1").arg(sid);
+		resp << "Content-Length: 0";
+		resp << "Cache-Control: no-cache";
+		resp << QString("CSeq: %1").arg(cseq);
+		resp << lsep;
+	} else
+		return createRtspErrorResponse(400, lsep);
+	return resp;
+}
 
-			closeSession(ses->sessionId);
-		} else
-			ses->clientCount--;
+QStringList BaseRtspServer::handleCommandGetParameter(QStringList lines, QString lsep)
+{
+	QStringList resp;
+	mDebug("handling teardown directive");
+	int cseq = currentCmdFields["CSeq"].toInt();
+	QString url = currentCmdFields["url"];
+	if (!url.endsWith("/"))
+		url.append("/");
+	QString sid = getField(lines, "Session");
+	if (sessions.contains(sid)) {
+		BaseRtspSession *ses = sessions[sid];
+		ses->timeout.restart();
+
+		resp << "RTSP/1.0 200 OK";
+		resp << QString("Session: %1").arg(ses->sessionId);
+		resp << "Content-Length: 0";
+		resp << QString("CSeq: %1").arg(cseq);
+		resp << lsep;
 	} else
 		return createRtspErrorResponse(400, lsep);
 	return resp;
@@ -536,11 +564,16 @@ void BaseRtspServer::closeSession(QString sessionId)
 {
 	if (!sessions.contains(sessionId))
 		return;
-	sessionTeardownExtra(sessionId);
-	emit sessionTearedDown(sessionId);
-	BaseRtspSession *s = sessions[sessionId];
-	sessions.remove(sessionId);
-	delete s;
+	BaseRtspSession *ses = sessions[sessionId];
+	if (ses->clientCount == 1) {
+		ses->teardown();
+		sessionTeardownExtra(sessionId);
+		emit sessionTearedDown(sessionId);
+		BaseRtspSession *s = sessions[sessionId];
+		sessions.remove(sessionId);
+		delete s;
+	} else
+		ses->clientCount--;
 }
 
 QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)

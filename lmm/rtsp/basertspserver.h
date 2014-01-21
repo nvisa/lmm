@@ -37,6 +37,7 @@ public:
 	virtual bool isMulticast(QString streamName) = 0;
 	virtual QString getMulticastAddress(QString streamName);
 	virtual int setEnabled(bool val);
+	int getSessionTimeoutValue(QString id);
 signals:
 	void sessionSettedUp(QString);
 	void sessionPlayed(QString);
@@ -69,6 +70,7 @@ protected:
 	virtual QStringList handleCommandSetup(QStringList lines, QString lsep);
 	virtual QStringList handleCommandPlay(QStringList lines, QString lsep);
 	virtual QStringList handleCommandTeardown(QStringList lines, QString lsep);
+	virtual QStringList handleCommandGetParameter(QStringList lines, QString lsep);
 
 	/* extra setup by inherited classes */
 	virtual int sessionSetupExtra(QString) { return 0; }
