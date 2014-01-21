@@ -45,6 +45,7 @@ public:
 	virtual int start();
 	virtual int stop();
 	virtual int flush();
+	int sendEOF();
 	virtual int setParameter(QString param, QVariant value);
 	virtual QVariant getParameter(QString param);
 	virtual void aboutDeleteBuffer(const QHash<QString, QVariant> &) {}
@@ -101,6 +102,7 @@ protected:
 	int elementFps;
 	int fpsBufferCount;
 	QTime *fpsTiming;
+	bool eofSent;
 private:
 	QList< QList<RawBuffer> > inBufQueue;
 	QList< QList<RawBuffer> > outBufQueue;

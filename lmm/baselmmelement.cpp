@@ -330,8 +330,15 @@ int BaseLmmElement::processBlocking(int ch, RawBuffer buf)
 	return processBlocking(ch);
 }
 
+int BaseLmmElement::sendEOF()
+{
+	eofSent = true;
+	return newOutputBuffer(0, RawBuffer::eof());
+}
+
 int BaseLmmElement::start()
 {
+	eofSent = false;
 	outputWakeThreshold = 0;
 	receivedBufferCount = sentBufferCount = 0;
 	elementFps = fpsBufferCount = 0;
