@@ -40,6 +40,9 @@ public:
 	void setPacketized(bool v) { packetized = v; }
 signals:
 	void sdpReady(QString sdp);
+	void newReceiverReport(int);
+protected slots:
+	void readPendingRtcpDatagrams();
 protected:
 	virtual void calculateFps(const RawBuffer buf);
 	virtual int processBuffer(RawBuffer buf);

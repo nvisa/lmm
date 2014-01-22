@@ -45,6 +45,7 @@ int RtpPacketizer::start()
 	bitrate = 0;
 	sock->bind(srcDataPort);
 	sock2->bind(srcControlPort);
+	connect(sock, SIGNAL(readyRead()), SLOT(readPendingRtcpDatagrams()));
 	rtcpTime.start();
 	createSdp();
 	flush();
@@ -268,5 +269,20 @@ void RtpPacketizer::calculateFps(const RawBuffer buf)
 		elementFps = fpsBufferCount * 1000 / elapsed;
 		fpsBufferCount = 0;
 		bitrateBufSize = 0;
+	}
+}
+
+void RtpPacketizer::readPendingRtcpDatagrams()
+{
+	while (sock2->hasPendingDatagrams()) {
+		QByteArray datagram;
+		datagram.resize(sock2->pendingDatagramSize());
+		QHostAddress sender;
+		quint16 senderPort;
+
+		sock2->readDatagram(datagram.data(), datagram.size(),
+								&sender, &senderPort);
+		/* TODO: check incoming message type */
+		emit newReceiverReport(srcControlPort);
 	}
 }
