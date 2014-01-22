@@ -540,7 +540,7 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 QStringList BaseRtspServer::handleCommandGetParameter(QStringList lines, QString lsep)
 {
 	QStringList resp;
-	mDebug("handling teardown directive");
+	mDebug("handling get_parameter directive");
 	int cseq = currentCmdFields["CSeq"].toInt();
 	QString url = currentCmdFields["url"];
 	if (!url.endsWith("/"))
@@ -605,6 +605,8 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 		resp = handleCommandPlay(lines, lsep);
 	} else if (lines.first().startsWith("TEARDOWN")) {
 		resp = handleCommandTeardown(lines, lsep);
+	} else if (lines.first().startsWith("GET_PARAMETER")) {
+		resp = handleCommandGetParameter(lines, lsep);
 	} else {
 		mDebug("Unknown RTSP directive:\n %s", qPrintable(mes));
 		return createRtspErrorResponse(501, lsep);
