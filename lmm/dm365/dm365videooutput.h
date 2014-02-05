@@ -36,6 +36,7 @@ private:
 	void videoCopy(RawBuffer buf, Buffer_Handle dispbuf, Buffer_Handle dmai);
 	int checkFb(QString filename);
 	int setFb(QString filename);
+	int disableFb(QString filename);
 };
 
 #endif // DM365VIDEOOUTPUT_H

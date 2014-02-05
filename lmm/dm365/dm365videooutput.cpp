@@ -66,7 +66,9 @@ DM365VideoOutput::DM365VideoOutput(QObject *parent) :
 
 	//setFb("/dev/fb0");
 	//checkFb("/dev/fb0");
-	//checkFb("/dev/fb0");
+	//checkFb("/dev/fb2");
+	disableFb("/dev/fb0");
+	disableFb("/dev/fb2");
 }
 
 void DM365VideoOutput::setVideoOutput(Lmm::VideoOutput out)
@@ -180,7 +182,7 @@ int DM365VideoOutput::start()
 	}
 	f.setFileName("/sys/class/davinci_display/ch0/mode");
 	if (f.open(QIODevice::Unbuffered | QIODevice::WriteOnly)) {
-		f.write("720P-50\n");
+		f.write("720P-60\n");
 		f.close();
 	}
 	return V4l2Output::start();
@@ -224,6 +226,16 @@ int DM365VideoOutput::setFb(QString filename)
 	return 0;
 }
 
+int DM365VideoOutput::disableFb(QString filename)
+{
+	int fd = open(qPrintable(filename), O_RDWR);
+	if (fd < -1)
+		return -ENOENT;
+	ioctl(fd, FBIOBLANK, 1);
+	close(fd);
+	return 0;
+}
+
 int DM365VideoOutput::checkFb(QString filename)
 {
 	struct fb_var_screeninfo vInfo;
@@ -244,7 +256,7 @@ int DM365VideoOutput::checkFb(QString filename)
 		mDebug("failed to get var screen info");
 		return -EINVAL;
 	}
-	qDebug() << vInfo.xres << vInfo.yres << vInfo.bits_per_pixel << vInfo.hsync_len << vInfo.vsync_len << vInfo.left_margin << vInfo.right_margin;
+	qDebug() << vInfo.xres << vInfo.yres << vInfo.nonstd << vInfo.bits_per_pixel << vInfo.hsync_len << vInfo.vsync_len << vInfo.left_margin << vInfo.right_margin;
 
 
 	::close(fd);
