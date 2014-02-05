@@ -57,7 +57,7 @@ int V4l2Output::outputBuffer(RawBuffer buf)
 			mDebug("cannot start streaming in driver");
 			return -errno;
 		}
-		mInfo("driver streamoned");
+		mDebug("driver streamoned");
 		driverStarted = true;
 	}
 
@@ -139,6 +139,7 @@ int V4l2Output::openDisplay()
 		reqBuffers.last()->memory = V4L2_MEMORY_USERPTR;
 		//reqBuffers.last()->m.userptr
 		reqBuffers.last()->length = VideoUtils::getFrameSize(V4L2_PIX_FMT_NV12, dispWidth, dispHeight);
+		reqBuffers.last()->flags = 0;
 	}
 
 	return 0;
