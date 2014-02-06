@@ -45,7 +45,7 @@ int RtpPacketizer::start()
 	bitrate = 0;
 	sock->bind(srcDataPort);
 	sock2->bind(srcControlPort);
-	connect(sock, SIGNAL(readyRead()), SLOT(readPendingRtcpDatagrams()));
+	connect(sock2, SIGNAL(readyRead()), SLOT(readPendingRtcpDatagrams()));
 	rtcpTime.start();
 	createSdp();
 	flush();
