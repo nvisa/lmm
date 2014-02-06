@@ -36,6 +36,7 @@ public:
 	virtual Lmm::CodecType getSessionCodec(QString streamName) = 0;
 	virtual bool isMulticast(QString streamName) = 0;
 	virtual QString getMulticastAddress(QString streamName);
+	virtual int getMulticastPort(QString streamName);
 	virtual int setEnabled(bool val);
 	int getSessionTimeoutValue(QString id);
 signals:

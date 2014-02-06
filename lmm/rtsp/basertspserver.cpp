@@ -211,6 +211,15 @@ QString BaseRtspServer::getMulticastAddress(QString)
 	return "224.1.1.1";
 }
 
+int BaseRtspServer::getMulticastPort(QString streamName)
+{
+	if (streamName == "stream1m")
+		return 15678;
+	if (streamName == "stream2m")
+		return 15688;
+	return 15698;
+}
+
 int BaseRtspServer::setEnabled(bool val)
 {
 	enabled = val;
@@ -634,8 +643,12 @@ QStringList BaseRtspServer::createSdp(QString url)
 	QStringList sdp;
 	Lmm::CodecType codec = getSessionCodec(stream);
 	QString dstIp = currentPeerIp;
-	if (isMulticast(stream))
+	bool multicast = isMulticast(stream);
+	int streamPort = 0;
+	if (multicast) {
 		dstIp = getMulticastAddress(stream);
+		streamPort = getMulticastPort(stream);
+	}
 	if (codec == Lmm::CODEC_H264) {
 		sdp << "v=0";
 		sdp << "o=- 0 0 IN IP4 127.0.0.1";
@@ -643,7 +656,7 @@ QStringList BaseRtspServer::createSdp(QString url)
 		sdp << "c=IN IP4 " + dstIp;
 		sdp << "t=0 0";
 		sdp << "a=tool:libavformat 52.102.0";
-		sdp << "m=video 15678 RTP/AVP 96";
+		sdp << QString("m=video %1 RTP/AVP 96").arg(streamPort);
 		sdp << "a=rtpmap:96 H264/90000";
 		sdp << "a=fmtp:96 packetization-mode=1";
 		sdp << QString("a=control:%1").arg(url);
