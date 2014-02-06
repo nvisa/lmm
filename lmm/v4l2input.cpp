@@ -3,6 +3,7 @@
 #include "lmmthread.h"
 #include "debug.h"
 #include "tools/videoutils.h"
+#include "tools/unittimestat.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -276,6 +277,7 @@ void V4l2Input::aboutDeleteBuffer(const QHash<QString, QVariant> &params)
 
 int V4l2Input::processBlocking(int ch)
 {
+	Q_UNUSED(ch);
 	if (getState() == STOPPED)
 		return -EINVAL;
 	if (eofSent)
@@ -283,8 +285,13 @@ int V4l2Input::processBlocking(int ch)
 	struct v4l2_buffer *buffer = getFrame();
 	if (getState() == STOPPED)
 		return -EINVAL;
-	if (buffer)
-		return processBuffer(buffer);
+	if (buffer) {
+		processTimeStat->startStat();
+		int ret = processBuffer(buffer);
+		processTimeStat->addStat();
+		return ret;
+	}
+
 	usleep(10000);
 	return 0;
 }
