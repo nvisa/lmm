@@ -6,6 +6,7 @@
 #include <lmm/streamtime.h>
 #include <lmm/tools/cpuload.h>
 #include <lmm/tools/systeminfo.h>
+#include <lmm/tools/unittimestat.h>
 
 LmmSettingHandler::LmmSettingHandler(QObject *parent) :
 	BaseSettingHandler("lmm_settings", parent)
@@ -69,6 +70,21 @@ QVariant LmmSettingHandler::get(QString setting)
 		}
 		return list;
 	}
+	if (equals("lmm_settings.stats.elements.process_time")) {
+		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer0");
+		if (!pl)
+			return QVariant();
+		QList<BaseLmmElement *> elements = pl->getElements();
+		QStringList list;
+		for (int i = 0; i < elements.size(); i++) {
+			BaseLmmElement *el = elements[i];
+			UnitTimeStat *stat = el->getProcessTimeStat();
+			QString s = QString("%1: %2,%3,%4").arg(el->metaObject()->className())
+					.arg(stat->min).arg(stat->max).arg(stat->avgTime);
+			list.append(s);
+		}
+		return list;
+	}
 	if (equals("lmm_settings.stats.extra_debug_info")) {
 		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer0");
 		if (!pl)
@@ -87,7 +103,6 @@ QVariant LmmSettingHandler::get(QString setting)
 			}
 			list.append(s);
 		}
-		qDebug() << list;
 		return list;
 	}
 	if (equals("lmm_settings.stats.cpu_load")) {
