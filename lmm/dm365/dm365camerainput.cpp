@@ -163,6 +163,16 @@ void DM365CameraInput::setHorizontalFlip(int ch, bool flip)
 		ch1HorFlip = flip;
 }
 
+QList<QVariant> DM365CameraInput::extraDebugInfo()
+{
+	QList<QVariant> list;
+	int sum = 0;
+	for (int i = 0; i < useCount.size(); i++)
+		sum += useCount[i];
+	list << sum;
+	return list;
+}
+
 void DM365CameraInput::calculateFps(const RawBuffer buf)
 {
 	if (buf.getBufferParameter("videoWidth").toInt() == captureWidth &&

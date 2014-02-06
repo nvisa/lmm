@@ -44,6 +44,8 @@ public:
 	QSize getSize(int ch);
 	void setVerticalFlip(int ch, bool flip);
 	void setHorizontalFlip(int ch, bool flip);
+
+	virtual QList<QVariant> extraDebugInfo();
 signals:
 	
 public slots:
