@@ -64,6 +64,7 @@ protected:
 	virtual QString detectLineSeperator(QString mes);
 	virtual QString getField(const QStringList lines, QString desc);
 	virtual BaseRtspSession * findMulticastSession(QString streamName);
+	virtual bool isSessionMulticast(QString sid);
 
 	/* command handling */
 	virtual QStringList handleCommandOptions(QStringList lines, QString lsep);

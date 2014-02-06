@@ -293,6 +293,11 @@ BaseRtspSession * BaseRtspServer::findMulticastSession(QString streamName)
 	return NULL;
 }
 
+bool BaseRtspServer::isSessionMulticast(QString sid)
+{
+	return sessions[sid]->multicast;
+}
+
 void BaseRtspServer::newRtspConnection()
 {
 	QTcpSocket *sock = server->nextPendingConnection();
