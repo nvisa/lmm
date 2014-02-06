@@ -62,6 +62,7 @@ public:
 	int getSentBufferCount() { return sentBufferCount; }
 	int getFps() { return elementFps; }
 	UnitTimeStat * getOutputTimeStat() { return outputTimeStat; }
+	UnitTimeStat * getProcessTimeStat() { return processTimeStat; }
 	int getAvailableDuration();
 	void setEnabled(bool val);
 	bool isEnabled();
@@ -98,6 +99,7 @@ protected:
 	qint64 streamDuration;
 	int receivedBufferCount;
 	int sentBufferCount;
+	UnitTimeStat *processTimeStat;
 
 	int elementFps;
 	int fpsBufferCount;
