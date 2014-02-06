@@ -6,6 +6,7 @@
 UnitTimeStat::UnitTimeStat()
 {
 	t = new QTime;
+	addTime = new QTime;
 	avgMethod = COUNT;
 	reset();
 }
@@ -13,6 +14,7 @@ UnitTimeStat::UnitTimeStat()
 UnitTimeStat::UnitTimeStat(UnitTimeStat::AvgMethod m)
 {
 	t = new QTime;
+	addTime = new QTime;
 	avgMethod = m;
 	reset();
 }
@@ -42,6 +44,16 @@ void UnitTimeStat::addStat(int value)
 	}
 }
 
+void UnitTimeStat::addStat()
+{
+	addStat(addTime->restart());
+}
+
+void UnitTimeStat::startStat()
+{
+	addTime->start();
+}
+
 void UnitTimeStat::reset()
 {
 	total = 0;
@@ -52,4 +64,5 @@ void UnitTimeStat::reset()
 	avgCount = 0;
 	avgMax = 100;
 	t->restart();
+	addTime->restart();
 }

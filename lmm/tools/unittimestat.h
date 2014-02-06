@@ -13,6 +13,8 @@ public:
 	explicit UnitTimeStat();
 	explicit UnitTimeStat(AvgMethod m);
 	void addStat(int value);
+	void addStat();
+	void startStat();
 	void reset();
 	int min;
 	int max;
@@ -25,6 +27,7 @@ public:
 	int avgMax;
 	int avgTime;
 	QTime *t;
+	QTime *addTime;
 	AvgMethod avgMethod;
 private:
 };
