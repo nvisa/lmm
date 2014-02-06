@@ -77,9 +77,9 @@ QVariant LmmSettingHandler::get(QString setting)
 		QStringList list;
 		for (int i = 0; i < elements.size(); i++) {
 			BaseLmmElement *el = elements[i];
-			QList<QVariant> list = el->extraDebugInfo();
+			QList<QVariant> list2 = el->extraDebugInfo();
 			QString s = QString("%1:extra").arg(el->metaObject()->className());
-			foreach (const QVariant &var, list) {
+			foreach (const QVariant &var, list2) {
 				if (var.canConvert(QVariant::StringList))
 					s.append(QString(",%1").arg(var.toStringList().join(";")));
 				else
