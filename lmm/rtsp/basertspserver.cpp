@@ -171,6 +171,11 @@ private:
 	BaseRtspServer *server;
 };
 
+static inline QString createDateHeader()
+{
+	return QString("Date: %1 GMT").arg(QDateTime::currentDateTime().toUTC().toString("ddd, MM MMM yyyy hh:mm:ss GMT"));
+}
+
 BaseRtspServer::BaseRtspServer(QObject *parent) :
 	QObject(parent)
 {
@@ -366,7 +371,7 @@ QStringList BaseRtspServer::createDescribeResponse(int cseq, QString url, QStrin
 		sdpSize += sdpline.length();
 	resp << "RTSP/1.0 200 OK";
 	resp << QString("CSeq: %1").arg(cseq);
-	resp << QString("Date: %1 GMT").arg(QDateTime::currentDateTime().toString("ddd, MM MMM yyyy hh mm ss"));
+	resp << createDateHeader();
 	resp << QString("Content-Base: %1").arg(url);
 	resp << "Content-Type: application/sdp";
 	resp << QString("Content-Length: %1").arg(sdpSize + lsep.length() * sdp.length());
@@ -388,6 +393,7 @@ QStringList BaseRtspServer::handleCommandOptions(QStringList lines, QString lsep
 	int cseq = currentCmdFields["CSeq"].toInt();
 	resp << "RTSP/1.0 200 OK";
 	resp << QString("CSeq: %1").arg(cseq);
+	resp << createDateHeader();
 	resp << "Public: DESCRIBE, SETUP, TEARDOWN, PLAY, GET_PARAMETER";
 	resp << lsep;
 	return resp;
@@ -474,6 +480,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("CSeq: %1").arg(cseq);
+		resp << createDateHeader();
 		resp << ses->transportString;
 		resp << QString("Session: %1").arg(ses->sessionId);
 		resp << "Content-Length: 0";
@@ -504,11 +511,13 @@ QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 		BaseRtspSession *ses = sessions[sid];
 		int cseq = currentCmdFields["CSeq"].toInt();
 		resp << "RTSP/1.0 200 OK";
+		resp << QString("CSeq: %1").arg(cseq);
+		resp << createDateHeader();
+		resp << QString("Range: npt=0.000-");
 		resp << QString("RTP-Info: %1").arg(ses->rtpInfo());
 		resp << QString("Session: %1").arg(ses->sessionId);
 		resp << "Content-Length: 0";
 		resp << "Cache-Control: no-cache";
-		resp << QString("CSeq: %1").arg(cseq);
 		resp << lsep;
 		if (ses->clientCount == 1) {
 			int err = ses->play();
@@ -536,10 +545,11 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 	if (sessions.contains(sid)) {
 		closeSession(sid);
 		resp << "RTSP/1.0 200 OK";
+		resp << QString("CSeq: %1").arg(cseq);
+		resp << createDateHeader();
 		resp << QString("Session: %1").arg(sid);
 		resp << "Content-Length: 0";
 		resp << "Cache-Control: no-cache";
-		resp << QString("CSeq: %1").arg(cseq);
 		resp << lsep;
 	} else
 		return createRtspErrorResponse(400, lsep);
@@ -560,9 +570,10 @@ QStringList BaseRtspServer::handleCommandGetParameter(QStringList lines, QString
 		ses->timeout.restart();
 
 		resp << "RTSP/1.0 200 OK";
+		resp << QString("CSeq: %1").arg(cseq);
+		resp << createDateHeader();
 		resp << QString("Session: %1").arg(ses->sessionId);
 		resp << "Content-Length: 0";
-		resp << QString("CSeq: %1").arg(cseq);
 		resp << lsep;
 	} else
 		return createRtspErrorResponse(400, lsep);
