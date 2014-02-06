@@ -658,7 +658,8 @@ QStringList BaseRtspServer::createSdp(QString url)
 	QString stream = fields[2];
 	QStringList sdp;
 	Lmm::CodecType codec = getSessionCodec(stream);
-	QString dstIp = currentPeerIp;
+	/* According to RFC2326 C.1.7 we should report 0.0.0.0 as dest address */
+	QString dstIp = "0.0.0.0";
 	bool multicast = isMulticast(stream);
 	int streamPort = 0;
 	if (multicast) {
