@@ -594,9 +594,8 @@ void BaseRtspServer::closeSession(QString sessionId)
 		ses->teardown();
 		sessionTeardownExtra(sessionId);
 		emit sessionTearedDown(sessionId);
-		BaseRtspSession *s = sessions[sessionId];
 		sessions.remove(sessionId);
-		delete s;
+		delete ses;
 	} else
 		ses->clientCount--;
 }
