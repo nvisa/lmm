@@ -106,10 +106,12 @@ void DM365CameraInput::setOutputFps(float fps)
 void DM365CameraInput::aboutDeleteBuffer(const QHash<QString, QVariant> &params)
 {
 	v4l2_buffer *buffer = (v4l2_buffer *)params["v4l2Buffer"].value<void *>();
+	useLock.lock();
 	if (--useCount[buffer->index] == 0) {
 		mInfo("buffer %p use count is zero, giving back to kernel driver", buffer);
 		V4l2Input::aboutDeleteBuffer(params);
 	}
+	useLock.unlock();
 }
 
 int DM365CameraInput::setSize(int ch, QSize sz)
@@ -167,8 +169,10 @@ QList<QVariant> DM365CameraInput::extraDebugInfo()
 {
 	QList<QVariant> list;
 	int sum = 0;
+	useLock.lock();
 	for (int i = 0; i < useCount.size(); i++)
 		sum += useCount[i];
+	useLock.unlock();
 	list << sum;
 	return list;
 }
@@ -457,7 +461,9 @@ void DM365CameraInput::clearDmaiBuffers()
 	refBuffersA.clear();
 	refBuffersB.clear();
 	srcBuffers.clear();
+	useLock.lock();
 	useCount.clear();
+	useLock.unlock();
 }
 
 int DM365CameraInput::putFrame(v4l2_buffer *buffer)
@@ -506,7 +512,6 @@ int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
 	newbuf.addBufferParameter("fps", outputFps);
 	newbuf.addBufferParameter("videoWidth", captureWidth);
 	newbuf.addBufferParameter("videoHeight", captureHeight);
-	useCount[buffer->index]++;
 
 	RawBuffer sbuf = DmaiBuffer("video/x-raw-yuv", dbufb, this);
 	sbuf.addBufferParameter("v4l2Buffer", qVariantFromValue((void *)buffer));
@@ -515,7 +520,10 @@ int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
 	sbuf.addBufferParameter("fps", outputFps);
 	sbuf.addBufferParameter("videoWidth", captureWidth2);
 	sbuf.addBufferParameter("videoHeight", captureHeight2);
-	useCount[buffer->index]++;
+
+	useLock.lock();
+	useCount[buffer->index] += 2;
+	useLock.unlock();
 
 	newOutputBuffer(0, newbuf);
 	newOutputBuffer(1, sbuf);

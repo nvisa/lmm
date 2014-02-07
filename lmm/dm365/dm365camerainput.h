@@ -70,6 +70,7 @@ private:
 	QList<Buffer_Handle> refBuffersB;
 	QList<Buffer_Handle> srcBuffers;
 	QList<int> useCount;
+	QMutex useLock;
 	int pixFormat;
 	int rszFd;
 	int preFd;
