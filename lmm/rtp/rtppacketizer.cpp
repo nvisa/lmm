@@ -93,9 +93,9 @@ int RtpPacketizer::stop()
 	bitrate = 0;
 	streamLock.lock();
 	sock->deleteLater();
+	sock2->deleteLater();
 	sock = NULL;
 	sock2 = NULL;
-	sock2->deleteLater();
 	streamLock.unlock();
 	return BaseLmmElement::stop();
 }
@@ -310,7 +310,8 @@ void RtpPacketizer::calculateFps(const RawBuffer buf)
 
 void RtpPacketizer::readPendingRtcpDatagrams()
 {
-	while (sock2->hasPendingDatagrams()) {
+	streamLock.lock();
+	while (sock2 && sock2->hasPendingDatagrams()) {
 		QByteArray datagram;
 		datagram.resize(sock2->pendingDatagramSize());
 		QHostAddress sender;
@@ -324,4 +325,5 @@ void RtpPacketizer::readPendingRtcpDatagrams()
 		/* TODO: check incoming message type */
 		emit newReceiverReport(srcControlPort);
 	}
+	streamLock.unlock();
 }
