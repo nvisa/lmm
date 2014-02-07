@@ -5,6 +5,7 @@
 #include <lmm/baselmmelement.h>
 
 #include <QTime>
+#include <QHostAddress>
 
 class QUdpSocket;
 
@@ -62,6 +63,7 @@ protected:
 	bool packetized;
 	QPair<qint64, uint> ntpRtpPair;
 	QTime rtcpTime;
+	QHostAddress myIpAddr;
 
 	int dstDataPort;
 	int dstControlPort;

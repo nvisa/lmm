@@ -4,9 +4,13 @@
 
 #include <QTime>
 #include <QUdpSocket>
+#include <QNetworkInterface>
 
 #include <errno.h>
 #include <sys/time.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 #define RTP_VERSION 2
 
@@ -33,6 +37,19 @@ Lmm::CodecType RtpPacketizer::codecType()
 
 int RtpPacketizer::start()
 {
+	/* Let's find our IP address */
+	foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
+		if (iface.name() != "eth0")
+			continue;
+		if (iface.addressEntries().size()) {
+			myIpAddr = iface.addressEntries().at(0).ip();
+			break;
+		}
+	}
+	quint32 ip = QHostAddress(dstIp).toIPv4Address();
+	bool multicast = false;
+	if (ip >> 28 == 0xe)
+		multicast = true;
 	sampleNtpRtp = true;
 	streamedBufferCount = 0;
 	seq = rand() % 4096;
@@ -44,8 +61,27 @@ int RtpPacketizer::start()
 	bitrateBufSize = 0;
 	bitrate = 0;
 	sock->bind(srcDataPort);
+	if (multicast && (srcControlPort != dstControlPort)) {
+		mDebug("Source and destination control ports should be same for multicast, fixing it.");
+		srcControlPort = dstControlPort;
+	}
 	sock2->bind(srcControlPort);
 	connect(sock2, SIGNAL(readyRead()), SLOT(readPendingRtcpDatagrams()));
+	if (multicast) {
+		/* adjust multicast */
+		ip_mreq mreq;
+		memset(&mreq, 0, sizeof(ip_mreq));
+		mreq.imr_multiaddr.s_addr = inet_addr(qPrintable(dstIp));
+		mreq.imr_interface.s_addr = htons(INADDR_ANY);
+		mDebug("joining multicast group %s", qPrintable(dstIp));
+		if (setsockopt(sock->socketDescriptor(), IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
+			qDebug() << "error joining multicast group";
+		memset(&mreq, 0, sizeof(ip_mreq));
+		mreq.imr_multiaddr.s_addr = inet_addr(qPrintable(dstIp));
+		mreq.imr_interface.s_addr = htons(INADDR_ANY);
+		if (setsockopt(sock2->socketDescriptor(), IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
+			qDebug() << "error joining multicast group";
+	}
 	rtcpTime.start();
 	createSdp();
 	flush();
@@ -282,6 +318,9 @@ void RtpPacketizer::readPendingRtcpDatagrams()
 
 		sock2->readDatagram(datagram.data(), datagram.size(),
 								&sender, &senderPort);
+		/* we may receive our own messages when using multicast */
+		if (sender == myIpAddr)
+			continue;
 		/* TODO: check incoming message type */
 		emit newReceiverReport(srcControlPort);
 	}
