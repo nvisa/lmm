@@ -29,6 +29,7 @@ public:
 	int getDestinationDataPort() { return dstDataPort; }
 	int getDestinationControlPort() { return dstControlPort; }
 	int getLoopLatency() { return loopLatency; }
+	uint getBaseTimestamp();
 	QString getSdp();
 protected:
 	virtual int initMuxer();

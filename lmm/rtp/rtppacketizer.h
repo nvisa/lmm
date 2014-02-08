@@ -36,6 +36,8 @@ public:
 	QString getSdp();
 	void setFrameRate(float fps) { frameRate = fps; }
 	int getBitrate() { return bitrate; }
+	uint getBaseTimestamp() { return baseTs; }
+	uint getBaseSequence() { return seq; }
 
 	bool isPacketized() { return packetized; }
 	void setPacketized(bool v) { packetized = v; }

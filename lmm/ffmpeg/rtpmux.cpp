@@ -50,6 +50,12 @@ int RtpMux::setFrameRate(float fps)
 	return 0;
 }
 
+uint RtpMux::getBaseTimestamp()
+{
+	RTPMuxContext *rtpCtx = (RTPMuxContext *)context->priv_data;
+	return rtpCtx->base_timestamp;
+}
+
 QString RtpMux::getSdp()
 {
 	if (!foundStreamInfo) {
