@@ -106,6 +106,9 @@ public:
 			sourceDataPort = sock.localPort();
 			sourceControlPort = sock.localPort() + 1;
 		}
+		/* for multicast streams, RTCP port should be same for server and clients */
+		if (mcast)
+			sourceControlPort = cPort;
 
 		if (server->getSessionCodec(streamName) != Lmm::CODEC_H264
 				|| server->getSessionCodec(streamName) == Lmm::CODEC_JPEG)
