@@ -129,9 +129,9 @@ public:
 	}
 	QString rtpInfo()
 	{
-		if (multicast)
-			return QString("url=rtsp://%1/%2;seq=6666;rtptime=1578998879").arg(myIpAddr.toString()).arg(streamName);
-		return QString("url=rtsp://%1/%2;seq=6666;rtptime=1578998879").arg(myIpAddr.toString()).arg(streamName);
+		return QString("url=rtsp://%1/%2;seq=%4;rtptime=%3").
+				arg(myIpAddr.toString()).
+				arg(streamName).arg(rtptime).arg(seq);
 	}
 	int play()
 	{
@@ -169,6 +169,8 @@ public:
 	int clientCount;
 	uint ssrc;
 	QTime timeout;
+	int rtptime;
+	int seq;
 private:
 	QHostAddress myIpAddr;
 	BaseRtspServer *server;
@@ -518,6 +520,18 @@ QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 	if (sessions.contains(sid)) {
 		BaseRtspSession *ses = sessions[sid];
 		int cseq = currentCmdFields["CSeq"].toInt();
+		if (ses->clientCount == 1) {
+			int err = ses->play();
+			if (err)
+				return createRtspErrorResponse(err, lsep);
+			sessionPlayExtra(ses->sessionId);
+			ses->seq = getSessionBaseSequence(ses->sessionId);
+			ses->rtptime = getSessionBaseTimestamp(ses->sessionId);
+			emit sessionPlayed(ses->sessionId);
+		}
+		/* kick time-out value */
+		ses->timeout.restart();
+		/* create response */
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("CSeq: %1").arg(cseq);
 		resp << createDateHeader();
@@ -527,15 +541,6 @@ QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 		resp << "Content-Length: 0";
 		resp << "Cache-Control: no-cache";
 		resp << lsep;
-		if (ses->clientCount == 1) {
-			int err = ses->play();
-			if (err)
-				return createRtspErrorResponse(err, lsep);
-			sessionPlayExtra(ses->sessionId);
-			emit sessionPlayed(ses->sessionId);
-		}
-		/* kick time-out value */
-		ses->timeout.restart();
 	} else
 		return createRtspErrorResponse(404, lsep);
 	return resp;

@@ -79,6 +79,9 @@ protected:
 	virtual int sessionPlayExtra(QString) { return 0; }
 	virtual int sessionTeardownExtra(QString) { return 0; }
 
+	virtual uint getSessionBaseTimestamp(QString sid) = 0;
+	virtual uint getSessionBaseSequence(QString sid) = 0;
+
 	void closeSession(QString sessionId);
 
 	QString lastUserAgent;
