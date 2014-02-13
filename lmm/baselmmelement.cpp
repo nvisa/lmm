@@ -313,6 +313,7 @@ int BaseLmmElement::processBlocking(int ch)
 		return -EINVAL;
 	RawBuffer buf = takeInputBuffer(ch);
 	if (buf.isEOF()) {
+		mDebug("new eof received, forwarding and quitting");
 		newOutputBuffer(ch, buf);
 		return -ENODATA;
 	}
@@ -339,7 +340,9 @@ int BaseLmmElement::processBlocking(int ch, RawBuffer buf)
 int BaseLmmElement::sendEOF()
 {
 	eofSent = true;
-	return newOutputBuffer(0, RawBuffer::eof());
+	for (int i = 0; i < outBufQueue.size(); i++)
+		newOutputBuffer(i, RawBuffer::eof());
+	return 0;
 }
 
 int BaseLmmElement::start()
