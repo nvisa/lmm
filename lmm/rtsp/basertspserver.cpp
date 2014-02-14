@@ -14,6 +14,7 @@
 #include <QNetworkInterface>
 #include <QUdpSocket>
 #include <QDateTime>
+#include <QMutex>
 
 /**
  *
@@ -67,6 +68,38 @@
  *	- No tcp socket management, close when request is handled
  *
  */
+
+class MyTime
+{
+public:
+	MyTime()
+	{
+
+	}
+	int elapsed()
+	{
+		l.lock();
+		int el = t.elapsed();
+		l.unlock();
+		return el;
+	}
+	int restart()
+	{
+		l.lock();
+		int el = t.restart();
+		l.unlock();
+		return el;
+	}
+	void start()
+	{
+		l.lock();
+		t.start();
+		l.unlock();
+	}
+protected:
+	QTime t;
+	QMutex l;
+};
 
 class BaseRtspSession
 {
@@ -168,7 +201,7 @@ public:
 	QString streamIp;
 	int clientCount;
 	uint ssrc;
-	QTime timeout;
+	MyTime timeout;
 	int rtptime;
 	int seq;
 private:
