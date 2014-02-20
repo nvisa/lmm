@@ -1011,18 +1011,23 @@ int H264Encoder::startCodec(bool alloc)
 		params->videncParams.rateControlPreset = IVIDEO_NONE;
 		params->videncParams.maxBitRate = 50000000;
 	} else {
+		params->videncParams.maxBitRate = videoBitRate;
 		params->videncParams.rateControlPreset = IVIDEO_USER_DEFINED;
 	}
 	if (profileId == 0)
 		setDefaultParams(params);
 	else if (profileId == 1)
 		setParamsProfile1(params);
+	else if (profileId == 2)
+		setParamsProfile2(params);
 
 	dynH264Params = new IH264VENC_DynamicParams;
 	memset(dynH264Params, 0, sizeof(IH264VENC_DynamicParams));
 	if (profileId == 0)
 		setDefaultDynamicParams(params);
 	else if (profileId == 1)
+		setDynamicParamsProfile1(params);
+	else if (profileId == 2)
 		setDynamicParamsProfile1(params);
 
 	QString codecName;
@@ -1168,6 +1173,18 @@ int H264Encoder::setParamsProfile1(IH264VENC_Params *params)
 	return 0;
 }
 
+int H264Encoder::setParamsProfile2(IH264VENC_Params *params)
+{
+	setParamsProfile1(params);
+	params->videncParams.encodingPreset = XDM_USER_DEFINED;
+	/* standard = 0, high = 1, lite = 2 */
+	params->encQuality = 0;
+	params->profileIdc = 100;
+	params->transform8x8FlagInterFrame = 0;
+
+	return 0;
+}
+
 int H264Encoder::setDefaultDynamicParams(IH264VENC_Params *params)
 {
 	dynH264Params->videncDynamicParams = Venc1_DynamicParams_DEFAULT;
@@ -1250,6 +1267,18 @@ int H264Encoder::setDynamicParamsProfile1(IH264VENC_Params *params)
 	setDefaultDynamicParams(params);
 	dynH264Params->initQ = -1;
 	dynH264Params->rcQMax = 44;
+
+	return 0;
+}
+
+int H264Encoder::setDynamicParamsProfile2(IH264VENC_Params *params)
+{
+	setDefaultDynamicParams(params);
+	dynH264Params->initQ = -1;
+	dynH264Params->rcQMax = 44;
+	dynH264Params->rcQMin = 8;
+	dynH264Params->rcAlgo = 0;
+	dynH264Params->perceptualRC = 1;
 
 	return 0;
 }

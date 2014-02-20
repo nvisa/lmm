@@ -35,7 +35,8 @@ public:
 	enum RateControl {
 		RATE_CBR,
 		RATE_VBR,
-		RATE_NONE
+		RATE_NONE,
+		RATE_USER
 	};
 	explicit DmaiEncoder(QObject *parent = 0);
 	virtual ~DmaiEncoder();
