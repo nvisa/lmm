@@ -173,7 +173,7 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	elementFps = fpsBufferCount = 0;
 	fpsTiming->start();
 	outputTimeStat = new UnitTimeStat;
-	processTimeStat = new UnitTimeStat(UnitTimeStat::TIME);
+	processTimeStat = new UnitTimeStat(UnitTimeStat::COUNT);
 	enabled = true;
 	totalInputBufferSize = 0;
 
@@ -293,8 +293,12 @@ int BaseLmmElement::process(int ch)
 {
 	if (inbufsem[ch]->tryAcquire(1)) {
 		RawBuffer buf = takeInputBuffer(ch);
-		if (buf.size())
-			return processBuffer(buf);
+		if (buf.size()) {
+			processTimeStat->startStat();
+			int ret = processBuffer(buf);
+			processTimeStat->addStat();
+			return ret;
+		}
 	}
 	return 0;
 }
