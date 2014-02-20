@@ -81,7 +81,7 @@ QVariant LmmSettingHandler::get(QString setting)
 			BaseLmmElement *el = elements[i];
 			UnitTimeStat *stat = el->getProcessTimeStat();
 			QString s = QString("%1: %2,%3,%4").arg(el->metaObject()->className())
-					.arg(stat->min).arg(stat->max).arg(stat->avgTime);
+					.arg(stat->min).arg(stat->max).arg(stat->avg);
 			list.append(s);
 		}
 		return list;
