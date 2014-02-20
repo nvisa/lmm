@@ -28,7 +28,8 @@ QVariant LmmSettingHandler::get(QString setting)
 		QList<LmmThread *> threads = pl->getThreads();
 		QStringList list;
 		foreach(LmmThread *t, threads) {
-			list.append(QString("%1: %2 %3").arg(t->threadName()).arg((int)t->getStatus()).arg(t->elapsed()));
+			list.append(QString("%1: %2 %3 %4").arg(t->threadName()).arg((int)t->getStatus())
+						.arg(t->elapsed()).arg(t->getAverageRunTime()));
 		}
 		return list;
 	}
