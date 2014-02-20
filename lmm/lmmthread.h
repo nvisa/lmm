@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+class UnitTimeStat;
 class BaseLmmElement;
 
 class LmmThread : public QThread
@@ -28,6 +29,7 @@ public:
 	QString threadName() { return name; }
 	Status getStatus();
 	int elapsed();
+	int getAverageRunTime();
 	void printStack();
 protected:
 	bool exit;
@@ -43,6 +45,7 @@ private:
 	intptr_t *instStack2;
 	intptr_t *instPos;
 	BaseLmmElement *parent;
+	UnitTimeStat *opTimeStat;
 };
 
 #endif // LMMTHREAD_H

@@ -2,6 +2,7 @@
 #include "platform_info.h"
 #include "debug.h"
 #include "baselmmelement.h"
+#include "tools/unittimestat.h"
 
 #include <QList>
 #include <QMutex>
@@ -13,6 +14,7 @@ LmmThread::LmmThread(QString threadName, BaseLmmElement *parent)
 {
 	this->parent = parent;
 	name = threadName;
+	opTimeStat = new UnitTimeStat;
 	mutex.lock();
 	threads << this;
 	mutex.unlock();
@@ -55,7 +57,9 @@ void LmmThread::run()
 	int opstat = 0;
 	while (!exit) {
 		st = IN_OPERATION;
+		opTimeStat->startStat();
 		opstat = operation();
+		opTimeStat->addStat();
 		if (opstat)
 			break;
 		lock.lock();
@@ -107,6 +111,11 @@ int LmmThread::elapsed()
 	int elapsed = time.elapsed();
 	lock.unlock();
 	return elapsed;
+}
+
+int LmmThread::getAverageRunTime()
+{
+	return opTimeStat->avg;
 }
 
 void LmmThread::printStack()
