@@ -132,7 +132,7 @@ void RawBuffer::setRefData(QString mimeType, void *data, int size)
 	d->usedLen = size;
 }
 
-void RawBuffer::addBufferParameter(QString par, QVariant val)
+void RawBuffer::addBufferParameter(const QString &par, const QVariant &val)
 {
 	d->parameters.insert(par, val);
 }
