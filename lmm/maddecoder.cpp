@@ -160,9 +160,9 @@ int MadDecoder::decode()
 		*out++ = scale(*leftCh++) & 0xffff;
 		*out++ = scale(*rightCh++) & 0xffff;
 	}
-	outbuf.setPts(buf.getPts());
-	outbuf.setDuration(buf.getDuration());
-	outbuf.setStreamBufferNo(decodeCount++);
+	outbuf.pars()->pts = buf.pars()->pts;
+	outbuf.pars()->duration = buf.pars()->duration;
+	outbuf.pars()->streamBufferNo = decodeCount++;
 	outputLock.lock();
 	outputBuffers << outbuf;
 	releaseOutputSem(0);

@@ -187,8 +187,8 @@ int LmmGstPipeline::newGstBuffer(GstBuffer *buffer)
 	int w,h;
 	gst_structure_get_int(str, "width", &w);
 	gst_structure_get_int(str, "height", &h);
-	buf.addBufferParameter("width", w);
-	buf.addBufferParameter("height", h);
+	buf.pars()->videoWidth = w;
+	buf.pars()->videoHeight = h;
 	gst_buffer_unref(buffer);
 	newOutputBuffer(0, buf);
 	return GST_FLOW_OK;

@@ -451,7 +451,7 @@ void OmxDecoder::handleDispBuffer(OMX_BUFFERHEADERTYPE *omxBuf)
 {
 	RawBuffer buf(this);
 	buf.setRefData("video/x-raw-int", omxBuf->pBuffer, omxBuf->nFilledLen);
-	buf.addBufferParameter("omxBuf", (int)omxBuf);
+	buf.pars()->omxBuf = omxBuf;
 	mLog("filled=%u size=%u alloc=%u offset=%u flags=0x%x input=%u output=%u",
 		   (uint32_t)omxBuf->nFilledLen, (uint32_t)omxBuf->nSize, (uint32_t)omxBuf->nAllocLen,
 		   (uint32_t)omxBuf->nOffset, (uint32_t)omxBuf->nFlags, (uint32_t)omxBuf->nInputPortIndex,

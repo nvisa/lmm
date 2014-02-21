@@ -17,7 +17,7 @@
 	RawBuffer sinifi 'Explicitly Shared' bir siniftir, yani kendi
 	otomatik olarak referanslarini sayar ve hicbir kullanici kalmadigi
 	zaman hafizadan silinir. Eger tampon bir donanim hafizasina bagli
-	ise tampona sahip olan BaseLmmElement sinif ornegi aboutDeleteBuffer()
+	ise tampona sahip olan BaseLmmElement sinif ornegi aboutToDeleteBuffer()
 	fonksiyonu ile durumdan bilgilendirilir ve donanim kaynaklari
 	serbest birakilabilir. Bu ozellikleri sayesinde RawBuffer orneklerini
 	stack'te yaratabilir ve bir elemandan oburune cok hizli bir sekilde
@@ -120,6 +120,26 @@ RawBuffer RawBuffer::eof(BaseLmmElement *parent)
 	return buf;
 }
 
+RawBuffer RawBuffer::makeCopy(bool noPointers) const
+{
+	RawBuffer buf(getMimeType(), constData(), size());
+	buf.setParameters(d->parameters, noPointers);
+	return buf;
+}
+
+int RawBuffer::setParameters(const RawBufferParameters *pars, bool noPointers)
+{
+	*d->parameters = *pars;
+	if (noPointers) {
+		d->parameters->dmaiBuffer = NULL;
+		d->parameters->v4l2Buffer = NULL;
+		d->parameters->omxBuf = NULL;
+		d->parameters->avFrame = NULL;
+		d->parameters->avPacket = NULL;
+	}
+	return 0;
+}
+
 void RawBuffer::setRefData(QString mimeType, void *data, int size)
 {
 	if (d->rawData && !d->refData)
@@ -130,35 +150,6 @@ void RawBuffer::setRefData(QString mimeType, void *data, int size)
 	d->prependPos = 0;
 	d->mimeType = mimeType;
 	d->usedLen = size;
-}
-
-void RawBuffer::addBufferParameter(const QString &par, const QVariant &val)
-{
-	d->parameters.insert(par, val);
-}
-
-void RawBuffer::addBufferParameters(const QHash<QString, QVariant> &other)
-{
-	d->parameters = other;
-	d->parameters.detach();
-}
-
-const QHash<QString, QVariant> RawBuffer::bufferParameters() const
-{
-	QHash<QString, QVariant> map;//d->parameters;
-	map = d->parameters;
-	if (map.contains("dmaiBuffer"))
-		map.remove("dmaiBuffer");
-	if (map.contains("v4l2Buffer"))
-		map.remove("v4l2Buffer");
-	return map;
-}
-
-QVariant RawBuffer::getBufferParameter(QString par) const
-{
-	if (d->parameters.contains(par))
-		return d->parameters[par];
-	return QVariant();
 }
 
 void RawBuffer::setSize(int size)
@@ -207,36 +198,6 @@ int RawBuffer::setUsedSize(int size)
 	return 0;
 }
 
-void RawBuffer::setDuration(unsigned int val)
-{
-	d->duration = val;
-}
-
-unsigned int RawBuffer::getDuration() const
-{
-	return d->duration;
-}
-
-void RawBuffer::setPts(qint64 val)
-{
-	d->pts = val;
-}
-
-qint64 RawBuffer::getPts() const
-{
-	return d->pts;
-}
-
-void RawBuffer::setDts(qint64 val)
-{
-	d->dts = val;
-}
-
-qint64 RawBuffer::getDts() const
-{
-	return d->dts;
-}
-
 QString RawBuffer::getMimeType() const
 {
 	return d->mimeType;
@@ -247,14 +208,14 @@ bool RawBuffer::isEOF()
 	return d->mimeType == "application/eof";
 }
 
-void RawBuffer::setStreamBufferNo(int val)
+RawBufferParameters *RawBuffer::pars()
 {
-	d->bufferNo = val;
+	return d->parameters;
 }
 
-int RawBuffer::streamBufferNo() const
+const RawBufferParameters *RawBuffer::constPars() const
 {
-	return d->bufferNo;
+	return d->parameters;
 }
 
 bool RawBuffer::operator ==(const RawBuffer &other)
@@ -269,5 +230,47 @@ RawBufferData::~RawBufferData()
 	if (rawData && !refData)
 		delete [] rawData;
 	if (myParent)
-		myParent->aboutDeleteBuffer(parameters);
+		myParent->aboutToDeleteBuffer(parameters);
+	delete parameters;
+}
+
+
+RawBufferParameters::RawBufferParameters()
+{
+	this->avFrame = NULL;
+	this->avPacket = NULL;
+	this->avPixelFormat = -1;
+	this->captureTime = 0;
+	this->dmaiBuffer = NULL;
+	this->encodeTime = 0;
+	this->fps = 0;
+	this->frameType = -1;
+	this->h264NalType = -1;
+	this->omxBuf = NULL;
+	this->pts = -1;
+	this->poolIndex = -1;
+	this->v4l2Buffer = NULL;
+	this->v4l2PixelFormat = -1;
+	this->videoHeight = 0;
+	this->videoWidth = 0;
+}
+
+RawBufferParameters::RawBufferParameters(const RawBufferParameters &other)
+{
+	this->avFrame = other.avFrame;
+	this->avPacket = other.avPacket;
+	this->avPixelFormat = other.avPixelFormat;
+	this->captureTime = other.captureTime;
+	this->dmaiBuffer = other.dmaiBuffer;
+	this->encodeTime = other.encodeTime;
+	this->fps = other.fps;
+	this->frameType = other.frameType;
+	this->h264NalType = other.h264NalType;
+	this->omxBuf = other.omxBuf;
+	this->poolIndex = other.poolIndex;
+	this->pts = other.pts;
+	this->v4l2Buffer = other.v4l2Buffer;
+	this->v4l2PixelFormat = other.v4l2PixelFormat;
+	this->videoHeight = other.videoHeight;
+	this->videoWidth = other.videoWidth;
 }

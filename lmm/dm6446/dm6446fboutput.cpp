@@ -19,7 +19,7 @@ DM6446FbOutput::DM6446FbOutput(QObject *parent) :
 
 int DM6446FbOutput::outputBuffer(RawBuffer buf)
 {
-	Buffer_Handle dmaiBuf = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer").toInt();
+	Buffer_Handle dmaiBuf = (Buffer_Handle)buf.par()->dmaiBuffer;
 	if (!dmaiBuf)
 		return -EINVAL;
 	if (fd > 0) {

@@ -258,9 +258,9 @@ int TextOverlay::dmaCopy(void *src, void *dst, QImage *im)
 
 void TextOverlay::yuvSwOverlay(RawBuffer buffer)
 {
-	int pixfmt = buffer.getBufferParameter("v4l2PixelFormat").toInt();
-	int width = buffer.getBufferParameter("width").toInt();
-	int height = buffer.getBufferParameter("height").toInt();
+	int pixfmt = buffer.pars()->v4l2PixelFormat;
+	int width = buffer.pars()->videoWidth;
+	int height = buffer.pars()->videoHeight;
 	int linelen = width;
 	if (pixfmt == V4L2_PIX_FMT_UYVY)
 		linelen *= 2;
@@ -289,9 +289,9 @@ void TextOverlay::yuvSwOverlay(RawBuffer buffer)
 
 void TextOverlay::yuvSwMapOverlay(RawBuffer buffer)
 {
-	int pixfmt = buffer.getBufferParameter("v4l2PixelFormat").toInt();
-	int width = buffer.getBufferParameter("width").toInt();
-	int height = buffer.getBufferParameter("height").toInt();
+	int pixfmt = buffer.pars()->v4l2PixelFormat;
+	int width = buffer.pars()->videoWidth;
+	int height = buffer.pars()->videoHeight;
 	int linelen = width;
 	if (pixfmt == V4L2_PIX_FMT_UYVY)
 		linelen *= 2;
@@ -314,9 +314,9 @@ void TextOverlay::yuvSwMapOverlay(RawBuffer buffer)
 
 void TextOverlay::yuvSwPixmapOverlay(RawBuffer buffer)
 {
-	int pixfmt = buffer.getBufferParameter("v4l2PixelFormat").toInt();
-	int width = getParameter("videoWidth").toInt();
-	int height = getParameter("videoHeight").toInt();
+	int pixfmt = buffer.pars()->v4l2PixelFormat;
+	int width = buffer.pars()->videoWidth;
+	int height = buffer.pars()->videoHeight;
 	int linelen = width;
 	if (pixfmt == V4L2_PIX_FMT_UYVY)
 		linelen *= 2;

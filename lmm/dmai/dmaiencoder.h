@@ -44,7 +44,7 @@ public:
 	int stop();
 	int flush();
 	int genIdr();
-	void aboutDeleteBuffer(const QHash<QString, QVariant> &params);
+	void aboutToDeleteBuffer(const RawBufferParameters *params);
 
 	/* control API */
 	int setCodecType(CodecType type);

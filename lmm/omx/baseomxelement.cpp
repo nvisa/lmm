@@ -129,9 +129,9 @@ int BaseOmxElement::outputBufferDone(OMX_BUFFERHEADERTYPE *omxBuf)
 	return 0;
 }
 
-void BaseOmxElement::aboutDeleteBuffer(const QHash<QString, QVariant> &pars)
+void BaseOmxElement::aboutToDeleteBuffer(const RawBufferParameters *params)
 {
-	OMX_BUFFERHEADERTYPE *omxBuf = (OMX_BUFFERHEADERTYPE *)pars["omxBuf"].toInt();
+	OMX_BUFFERHEADERTYPE *omxBuf = (OMX_BUFFERHEADERTYPE *)params->omxBuf;
 	mInfo("giving buffer %p back to omx component", omxBuf);
 	bufLock.lock();
 	availOutBuffers.removeOne(omxBuf);

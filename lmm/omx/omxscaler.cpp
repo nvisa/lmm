@@ -67,7 +67,7 @@ int OmxScaler::execute()
 
 int OmxScaler::processBuffer(RawBuffer buf)
 {
-	OMX_BUFFERHEADERTYPE *omxBuf = (OMX_BUFFERHEADERTYPE *)buf.getBufferParameter("omxBuf").toInt();
+	OMX_BUFFERHEADERTYPE *omxBuf = (OMX_BUFFERHEADERTYPE *)buf.par()->omxBuf;
 	if (!omxBuf) {
 		mDebug("no omx buffers available");
 		return -EINVAL;
@@ -264,7 +264,7 @@ void OmxScaler::handleDispBuffer(OMX_BUFFERHEADERTYPE *omxBuf)
 {
 	RawBuffer buf(this);
 	buf.setRefData("video/x-raw-int", omxBuf->pBuffer, omxBuf->nFilledLen);
-	buf.addBufferParameter("omxBuf", (int)omxBuf);
+	buf.pars()->omxBuf = omxBuf;
 	bufLock.lock();
 	if (busyOutBuffers.contains(omxBuf)) {
 		availOutBuffers << omxBuf;

@@ -22,7 +22,7 @@ public:
 	virtual int setStream(AVCodecContext *stream);
 	virtual int startDecoding();
 	virtual int stopDecoding();
-	virtual void aboutDeleteBuffer(const QHash<QString, QVariant> &pars);
+	virtual void aboutToDeleteBuffer(const RawBufferParameters *params);
 	void setRgbOutput(bool val) { rgbOut = val; }
 	void setOutputScale(int w, int h, bool keepAspect) { outWidth = w; outHeight = h; keepAspectRatio = keepAspect; }
 	void decodeOnlyKeyframe(bool v) { onlyKeyframe = v; }

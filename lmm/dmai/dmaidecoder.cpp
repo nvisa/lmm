@@ -86,9 +86,9 @@ void DmaiDecoder::releaseFreeBuffers()
 
 int DmaiDecoder::decode(RawBuffer bufsrc)
 {
-	int duration = bufsrc.getDuration();
+	int duration = bufsrc.pars()->pts;
 	DmaiBuffer buf = DmaiBuffer("video/mpegdmai", bufsrc.constData(), bufsrc.size(), NULL);
-	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer").toInt();
+	Buffer_Handle dmai = (Buffer_Handle)buf.pars()->dmaiBuffer;
 	if (!dmai) {
 		mDebug("cannot get dmai buffer");
 		return -ENOENT;
@@ -129,10 +129,10 @@ int DmaiDecoder::decode(RawBuffer bufsrc)
 		BufferGfx_getDimensions(outbuf, &dim);
 		mInfo("decoded frame width=%d height=%d", int(dim.width), (int)dim.height);
 		DmaiBuffer newbuf("video/x-raw-yuv", outbuf, this);
-		newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_UYVY);
-		newbuf.setPts(decodeCount * duration);
-		newbuf.setStreamBufferNo(decodeCount++);
-		newbuf.setDuration(duration);
+		newbuf.pars()->v4l2PixelFormat = V4L2_PIX_FMT_UYVY;
+		newbuf.pars()->pts = decodeCount * duration;
+		newbuf.pars()->streamBufferNo = decodeCount++;
+		newbuf.pars()->duration= duration;
 
 		/* set the resulting buffer in use by video output */
 		Buffer_setUseMask(outbuf, Buffer_getUseMask(outbuf) | OUTPUT_USE);
@@ -157,21 +157,21 @@ int DmaiDecoder::flush()
 	return BaseLmmDecoder::flush();
 }
 
-void DmaiDecoder::aboutDeleteBuffer(const QHash<QString, QVariant> &parameters)
+void DmaiDecoder::aboutToDeleteBuffer(const RawBufferParameters *params)
 {
 	/* free buffer in case it is not used by any dmai class */
 	if (decodeWaitCounter.available()) {
 		/*
 		 * no active decode op in progress, safe to clear flag
 		 */
-		Buffer_Handle dmaiBuf = (Buffer_Handle)parameters["dmaiBuffer"].toInt();
+		Buffer_Handle dmaiBuf = (Buffer_Handle)params->dmaiBuffer;
 		Buffer_freeUseMask(dmaiBuf, OUTPUT_USE);
 		/* wake waiting decode thread */
 		decodeWaitCounter.acquire();
 		dispWaitSem.release();
 	} else {
 		buftabLock.lock();
-		Buffer_Handle dmaiBuf = (Buffer_Handle)parameters["dmaiBuffer"].toInt();
+		Buffer_Handle dmaiBuf = (Buffer_Handle)params->dmaiBuffer;
 		Buffer_freeUseMask(dmaiBuf, OUTPUT_USE);
 		buftabLock.unlock();
 	}

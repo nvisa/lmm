@@ -26,7 +26,7 @@ protected:
 	QString mime;
 	int srcStride[3];
 
-	void aboutDeleteBuffer(const QHash<QString, QVariant> &);
+	void aboutToDeleteBuffer(const RawBufferParameters *params);
 };
 
 #endif // FFMPEGCOLORSPACE_H

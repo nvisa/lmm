@@ -20,7 +20,7 @@ FFmpegBuffer::FFmpegBuffer(QString mimeType, AVPacket *packet, BaseLmmElement *p
 	dd->packet = packet;
 	dd->frame = NULL;
 	setRefData(d->mimeType, packet->data, packet->size);
-	addBufferParameter("AVPacket", (quintptr)dd->packet);
+	pars()->avPacket = (quintptr)dd->packet;
 }
 
 FFmpegBuffer::FFmpegBuffer(QString mimeType, int width, int height, BaseLmmElement *parent)
@@ -50,7 +50,7 @@ FFmpegBuffer::FFmpegBuffer(QString mimeType, int width, int height, BaseLmmEleme
 	}
 
 	setRefData(d->mimeType, dd->frameData, dd->frameSize);
-	addBufferParameter("AVFrame", (quintptr)dd->frame);
+	pars()->avFrame = (quintptr)dd->frame;
 }
 
 AVPacket *FFmpegBuffer::getAVPacket()

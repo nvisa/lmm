@@ -130,7 +130,7 @@ int FFmpegDecoder::convertColorSpace(RawBuffer buf)
 			for (int i = 0; i < 15; i++) {
 				mInfo("allocating sw scale buffer %d with size %dx%d", i, outWidth, outHeight);
 				FFmpegBuffer buf(mime, outWidth, outHeight, this);
-				buf.addBufferParameter("poolIndex", i);
+				buf.pars()->poolIndex = i;
 				pool->addBuffer(buf);
 				poolBuffers.insert(i, buf);
 			}
@@ -139,7 +139,7 @@ int FFmpegDecoder::convertColorSpace(RawBuffer buf)
 		RawBuffer poolbuf = pool->take();
 		if (poolbuf.size() == 0)
 			return -ENOENT;
-		AVFrame *frame = (AVFrame *)poolbuf.getBufferParameter("AVFrame").toULongLong();
+		AVFrame *frame = (AVFrame *)poolbuf.par()->avFrame;
 		RawBuffer outbuf;
 		sws_scale(swsCtx, avFrame->data, avFrame->linesize, 0, codecCtx->height,
 				  frame->data, frame->linesize);
@@ -152,21 +152,21 @@ int FFmpegDecoder::convertColorSpace(RawBuffer buf)
 				memcpy(frame->data[0] + i * codecCtx->width, avFrame->data[0] + i * lsz, codecCtx->width);*/
 			outbuf = RawBuffer(QString("video/x-raw-gray"), (const void *)poolbuf.data(), poolbuf.size(), this);
 		}
-		outbuf.addBufferParameter("width", outWidth);
-		outbuf.addBufferParameter("height", outHeight);
+		outbuf.pars()->videoWidth = outWidth;
+		outbuf.pars()->videoHeight = outHeight;
 		if (rgbOut)
-			outbuf.addBufferParameter("avPixelFmt", AV_PIX_FMT_RGB24);
+			outbuf.pars()->avPixelFmt = AV_PIX_FMT_RGB24;
 		else
-			outbuf.addBufferParameter("avPixelFmt", AV_PIX_FMT_GRAY8);
-		outbuf.addBufferParameter("avFrame", (quintptr)frame);
-		outbuf.addBufferParameter("poolIndex", poolbuf.getBufferParameter("poolIndex"));
+			outbuf.pars()->avPixelFmt = AV_PIX_FMT_GRAY8;
+		outbuf.pars()->avFrame = (quintptr)frame;
+		outbuf.pars()->poolIndex = poolbuf.constPars()->poolIndex;
 		if (avFrame->key_frame)
-			outbuf.addBufferParameter("frameType", 0);
+			outbuf.pars()->frameType = 0;
 		else
-			outbuf.addBufferParameter("frameType", 1);
-		outbuf.setPts(buf.getPts());
-		outbuf.setStreamBufferNo(buf.streamBufferNo());
-		outbuf.setDuration(buf.getDuration());
+			outbuf.pars()->frameType = 1;
+		outbuf.pars()->pts = buf.constPars()->pts;
+		outbuf.pars()->streamBufferNo = buf.constPars()->streamBufferNo;
+		outbuf.pars()->duration = buf.constPars()->duration;
 		return newOutputBuffer(0, outbuf);
 	}
 	return -EINVAL;
@@ -299,8 +299,8 @@ void FFmpegDecoder::printMotionVectors(AVFrame *pict)
 	}
 }
 
-void FFmpegDecoder::aboutDeleteBuffer(const QHash<QString, QVariant> &pars)
+void FFmpegDecoder::aboutToDeleteBuffer(const RawBufferParameters *params)
 {
-	int ind = pars["poolIndex"].toInt();
+	int ind = params->poolIndex;
 	pool->give(poolBuffers[ind]);
 }

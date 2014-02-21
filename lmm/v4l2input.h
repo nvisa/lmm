@@ -20,7 +20,7 @@ public:
 	virtual int start();
 	virtual int stop();
 	virtual int flush();
-	virtual void aboutDeleteBuffer(const QHash<QString, QVariant> &params);
+	virtual void aboutToDeleteBuffer(const RawBufferParameters *params);
 	virtual int processBlocking(int ch = 0);
 
 	void setBufferCount(int v) { captureBufferCount = v; }

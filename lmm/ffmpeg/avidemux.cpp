@@ -38,7 +38,7 @@ int AviDemux::demuxAll()
 			RawBuffer *buf = new RawBuffer(packet->data, packet->size);
 			buf->setDuration(packet->duration * audioTimeBase);
 			audioBuffers << buf;
-			streamPosition += buf->getDuration();
+			streamPosition += buf->pars()->pts;
 			emit newAudioFrame();
 		}
 		deletePacket(packet);

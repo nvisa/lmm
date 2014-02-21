@@ -42,12 +42,12 @@ int BaseLmmDecoder::flush()
 
 void BaseLmmDecoder::handleInputTimeStamps(RawBuffer *buf)
 {
-	qint64 pts = buf->getPts();
+	qint64 pts = buf->pars()->pts;
 	if (pts != -1) {
 		decodeTimeStamp *ts = new decodeTimeStamp;
 		ts->pts = pts;
-		ts->duration = buf->getDuration();
-		ts->validDuration = buf->getDuration();
+		ts->duration = buf->pars()->duration;
+		ts->validDuration = ts->duration;
 		ts->usedDuration = 0;
 		/*
 		 * Following timestamp operation is a little bit tricky
@@ -102,7 +102,7 @@ void BaseLmmDecoder::handleInputTimeStamps(RawBuffer *buf)
 			mDebug("no last ts present");
 		} else {
 			ts = inTimeStamps.last();
-			ts->validDuration += buf->getDuration();
+			ts->validDuration += buf->constPars()->duration;
 		}
 	}
 }
@@ -126,13 +126,13 @@ void BaseLmmDecoder::setOutputTimeStamp(RawBuffer *buf, int minDuration)
 			mInfo("using new timestamp %lld, used duration is %d", timestamp->pts, timestamp->usedDuration);
 		} else
 			mInfo("using old timestamp");
-		buf->setPts(timestamp->pts + timestamp->usedDuration);
-		buf->setDuration(timestamp->duration);
+		buf->pars()->pts = timestamp->pts + timestamp->usedDuration;
+		buf->pars()->duration = timestamp->duration;
 		timestamp->usedDuration += timestamp->duration;
 	} else {
 		mDebug("no timestamp");
-		buf->setPts(-1);
-		buf->setDuration(-1);
+		buf->pars()->pts = -1;
+		buf->pars()->duration = -1;
 	}
 }
 

@@ -38,7 +38,7 @@ public:
 	int setInputSize(QSize sz);
 	int setOutputSize(int ch, QSize sz);
 	void setNonStdOffsets(int vbp, int hbp);
-	void aboutDeleteBuffer(const QHash<QString, QVariant> &params);
+	void aboutToDeleteBuffer(const RawBufferParameters *params);
 
 	int setSize(int ch, QSize sz);
 	QSize getSize(int ch);

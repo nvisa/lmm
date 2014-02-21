@@ -129,10 +129,10 @@ int VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 	if (!checkCache(p, attr)) {
 		mDebug("cache is not valid");
 		DmaiBuffer imageBuf("video/x-raw-yuv", width * height * 3 / 2, attr);
-		imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+		imageBuf.pars()->v4l2PixelFormat = V4L2_PIX_FMT_NV12;
 		refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 		DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
-		tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+		tmp.pars()->v4l2PixelFormat = V4L2_PIX_FMT_NV12;
 		addBufferToPool(tmp);
 
 		uchar *ydata = (uchar *)imageBuf.constData();
@@ -176,10 +176,10 @@ int VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 		for (int i = 1; i < NUM_OF_BUFFERS; i++) {
 			DmaiBuffer imageBuf2("video/x-raw-yuv", imageBuf.constData()
 								  , width * height * 3 / 2, attr);
-			imageBuf2.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+			imageBuf2.pars()->v4l2PixelFormat = V4L2_PIX_FMT_NV12;
 			refBuffers.insert((int)imageBuf2.getDmaiBuffer(), imageBuf2);
 			DmaiBuffer tmp2("video/x-raw-yuv", imageBuf2.getDmaiBuffer(), this);
-			tmp2.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+			tmp2.pars()->v4l2PixelFormat = V4L2_PIX_FMT_NV12;
 			addBufferToPool(tmp);
 		}
 	}
@@ -220,10 +220,10 @@ void VideoTestSource::setYUVFile(QString filename)
 		for (int i = 0; i < NUM_OF_BUFFERS; i++) {
 			DmaiBuffer imageBuf("video/x-raw-yuv", (ba.constData())
 								, width * height * 3 / 2, attr);
-			imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+			imageBuf.pars()->v4l2PixelFormat = V4L2_PIX_FMT_NV12;
 			refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 			DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
-			tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+			tmp.pars()->v4l2PixelFormat = V4L2_PIX_FMT_NV12;
 			addBufferToPool(tmp);
 		}
 
@@ -245,10 +245,10 @@ void VideoTestSource::setYUVVideo(QString filename, bool loop)
 	BufferGfx_Attrs *attr = DmaiBuffer::createGraphicAttrs(width, height, V4L2_PIX_FMT_NV12);
 	for (int i = 0; i < NUM_OF_BUFFERS; i++) {
 		DmaiBuffer imageBuf("video/x-raw-yuv", width * height * 3 / 2, attr);
-		imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+		imageBuf.pars()->v4l2PixelFormat = V4L2_PIX_FMT_NV12;
 		refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 		DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
-		tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+		tmp.pars()->v4l2PixelFormat = V4L2_PIX_FMT_NV12;
 		addBufferToPool(tmp);
 	}
 }
@@ -271,8 +271,8 @@ int VideoTestSource::processBuffer(RawBuffer buf)
 	}
 	if (noisy)
 		imageBuf = addNoise(imageBuf);
-	imageBuf.addBufferParameter("captureTime", streamTime->getCurrentTime());
-	imageBuf.addBufferParameter("fps", targetFps);
+	imageBuf.pars()->captureTime = streamTime->getCurrentTime();
+	imageBuf.pars()->fps = targetFps;
 	return newOutputBuffer(0, imageBuf);
 }
 
@@ -281,11 +281,10 @@ void VideoTestSource::addBufferToPool(RawBuffer buf)
 	pool->addBuffer(buf);
 }
 
-void VideoTestSource::aboutDeleteBuffer(const QHash<QString, QVariant> &params)
+void VideoTestSource::aboutToDeleteBuffer(const RawBufferParameters *params)
 {
-	int key = params["dmaiBuffer"].toInt();
-	DmaiBuffer tmp("video/x-raw-yuv", (Buffer_Handle)key, this);
-	tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+	DmaiBuffer tmp("video/x-raw-yuv", (Buffer_Handle)params->dmaiBuffer, this);
+	tmp.pars()->v4l2PixelFormat = V4L2_PIX_FMT_NV12;
 	pool->give(tmp);
 }
 
@@ -366,10 +365,10 @@ bool VideoTestSource::checkCache(TestPattern p, BufferGfx_Attrs *attr)
 			for (int i = 0; i < NUM_OF_BUFFERS; i++) {
 				DmaiBuffer imageBuf("video/x-raw-yuv", (ba.constData() + 1)
 									  , width * height * 3 / 2, attr);
-				imageBuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+				imageBuf.pars()->v4l2PixelFormat =V4L2_PIX_FMT_NV12;
 				refBuffers.insert((int)imageBuf.getDmaiBuffer(), imageBuf);
 				DmaiBuffer tmp("video/x-raw-yuv", imageBuf.getDmaiBuffer(), this);
-				tmp.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_NV12);
+				tmp.pars()->v4l2PixelFormat = V4L2_PIX_FMT_NV12;
 				addBufferToPool(tmp);
 			}
 			valid = true;

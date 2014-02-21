@@ -15,6 +15,7 @@ class CircularBuffer;
 class UnitTimeStat;
 class QSemaphore;
 class LmmThread;
+class RawBufferParameters;
 
 class BaseLmmElement : public QObject
 {
@@ -48,7 +49,7 @@ public:
 	int sendEOF();
 	virtual int setParameter(QString param, QVariant value);
 	virtual QVariant getParameter(QString param);
-	virtual void aboutDeleteBuffer(const QHash<QString, QVariant> &) {}
+	virtual void aboutToDeleteBuffer(const RawBufferParameters *) {}
 	virtual void signalReceived(int) {}
 	virtual int setTotalInputBufferSize(int size, int hysterisisSize = 0);
 	int waitOutputBuffers(int ch, int lessThan);

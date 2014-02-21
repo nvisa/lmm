@@ -242,10 +242,10 @@ int H264Parser::processBuffer(RawBuffer buf)
 		}
 	}
 
-	if (insertSpsPps && buf.getBufferParameter("frameType").toInt() == 0) {
+	if (insertSpsPps && buf.pars()->frameType == 0) {
 		mInfo("inserting SPS and PPS");
 		RawBuffer buf2("video/x-h264", buf.size() + spsBuf.size() + ppsBuf.size());
-		buf2.addBufferParameters(buf.bufferParameters());
+		buf2.setParameters(buf.pars());
 		char *d = (char *)buf2.data();
 		memcpy(d, spsBuf.constData(), spsBuf.size());
 		d += spsBuf.size();
@@ -271,13 +271,13 @@ int H264Parser::processBuffer(RawBuffer buf)
 			qDebug("nal %d", nal);
 		if (d + next < start + buf.size()) {
 			RawBuffer buf2 = RawBuffer("video/x-h264", d, next);
-			buf2.addBufferParameter("h264.nal.type", nal);
+			buf2.pars()->h264NalType = nal;
 			newOutputBuffer(0, buf2);
 			d = d + next;
 			out += next;
 		} else {
 			RawBuffer buf2 = RawBuffer("video/x-h264", d, start - d + buf.size());
-			buf2.addBufferParameter("h264.nal.type", nal);
+			buf2.pars()->h264NalType = nal;
 			newOutputBuffer(0, buf2);
 			out += start - d + buf.size();
 			break;
@@ -300,7 +300,7 @@ void H264Parser::extractSeiData(RawBuffer buf)
 		if (nal == NAL_SEI) {
 			H264SeiInfo si = parseNoStart(d + 4);
 			if (h264_nal_sei_type(si.type) == NAL_SEI_USER_DATA_UNREGISTERED)
-				seiData.insert(buf.streamBufferNo(), si);
+				seiData.insert(buf.pars()->streamBufferNo, si);
 		}
 		if (d + next < start + buf.size()) {
 			d = d + next;

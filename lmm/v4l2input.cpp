@@ -268,9 +268,9 @@ v4l2_buffer *V4l2Input::getFrame()
 	return v4l2buf[buffer.index];
 }
 
-void V4l2Input::aboutDeleteBuffer(const QHash<QString, QVariant> &params)
+void V4l2Input::aboutToDeleteBuffer(const RawBufferParameters *params)
 {
-	v4l2_buffer *buffer = (v4l2_buffer *)params["v4l2Buffer"].value<void *>();
+	v4l2_buffer *buffer = (v4l2_buffer *)params->v4l2Buffer;
 	mInfo("buffer %p", buffer);
 	putFrame(buffer);
 }
@@ -292,6 +292,7 @@ int V4l2Input::processBlocking(int ch)
 		return ret;
 	}
 
+
 	usleep(10000);
 	return 0;
 }
@@ -304,10 +305,10 @@ int V4l2Input::processBuffer(v4l2_buffer *buffer)
 	newbuf.setParentElement(this);
 
 	newbuf.setRefData("video/x-raw-yuv", data, buffer->length);
-	newbuf.addBufferParameter("width", (int)captureWidth);
-	newbuf.addBufferParameter("height", (int)captureHeight);
-	newbuf.addBufferParameter("v4l2Buffer", qVariantFromValue((void *)buffer));
-	newbuf.addBufferParameter("v4l2PixelFormat", V4L2_PIX_FMT_UYVY);
+	newbuf.pars()->videoWidth = captureWidth;
+	newbuf.pars()->videoHeight = captureHeight;
+	newbuf.pars()->v4l2Buffer = (quintptr *)buffer;
+	newbuf.pars()->v4l2PixelFormat = V4L2_PIX_FMT_UYVY;
 	newOutputBuffer(0, newbuf);
 
 	return 0;

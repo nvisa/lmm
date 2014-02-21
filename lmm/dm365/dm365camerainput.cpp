@@ -3,7 +3,7 @@
 #include "streamtime.h"
 #include "tools/videoutils.h"
 #include "hardwareoperations.h"
-
+#include "rawbuffer.h"
 #include "debug.h"
 
 #include <errno.h>
@@ -103,13 +103,13 @@ void DM365CameraInput::setOutputFps(float fps)
 	outputFps = fps;
 }
 
-void DM365CameraInput::aboutDeleteBuffer(const QHash<QString, QVariant> &params)
+void DM365CameraInput::aboutToDeleteBuffer(const RawBufferParameters *params)
 {
-	v4l2_buffer *buffer = (v4l2_buffer *)params["v4l2Buffer"].value<void *>();
+	v4l2_buffer *buffer = (v4l2_buffer *)params->v4l2Buffer;
 	useLock.lock();
 	if (--useCount[buffer->index] == 0) {
 		mInfo("buffer %p use count is zero, giving back to kernel driver", buffer);
-		V4l2Input::aboutDeleteBuffer(params);
+		V4l2Input::aboutToDeleteBuffer(params);
 	}
 	useLock.unlock();
 }
@@ -179,8 +179,8 @@ QList<QVariant> DM365CameraInput::extraDebugInfo()
 
 void DM365CameraInput::calculateFps(const RawBuffer buf)
 {
-	if (buf.getBufferParameter("videoWidth").toInt() == captureWidth &&
-			buf.getBufferParameter("videoHeight").toInt() == captureHeight)
+	if (buf.constPars()->videoWidth == captureWidth &&
+			buf.constPars()->videoHeight == captureHeight)
 		return BaseLmmElement::calculateFps(buf);
 }
 
@@ -266,7 +266,6 @@ int DM365CameraInput::openCamera()
 		srcBuffers << h;
 
 		/* create reference buffers for rsz A channel */
-		//qDebug() << gfxAttrs.bAttrs.reference;
 		gfxAttrs.dim.width = width;
 		gfxAttrs.dim.height = height;
 		gfxAttrs.dim.lineLength = VideoUtils::getLineLength(pixFormat, width);
@@ -504,22 +503,22 @@ int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
 	Buffer_Handle dbufb = refBuffersB[buffer->index];
 
 	RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dbufa, this);
-	newbuf.addBufferParameter("v4l2Buffer",
-							  qVariantFromValue((void *)buffer));
-	newbuf.addBufferParameter("captureTime", streamTime->getCurrentTime()
-							  - (captureBufferCount - 1) * 1000 * 1000 / outputFps);
-	newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
-	newbuf.addBufferParameter("fps", outputFps);
-	newbuf.addBufferParameter("videoWidth", captureWidth);
-	newbuf.addBufferParameter("videoHeight", captureHeight);
+	newbuf.pars()->v4l2Buffer = (quintptr *)buffer;
+	newbuf.pars()->captureTime = streamTime->getCurrentTime()
+							  - (captureBufferCount - 1) * 1000 * 1000 / outputFps;
+	newbuf.pars()->v4l2PixelFormat = pixFormat;
+	newbuf.pars()->fps = outputFps;
+	newbuf.pars()->videoWidth = captureWidth;
+	newbuf.pars()->videoHeight = captureHeight;
 
 	RawBuffer sbuf = DmaiBuffer("video/x-raw-yuv", dbufb, this);
-	sbuf.addBufferParameter("v4l2Buffer", qVariantFromValue((void *)buffer));
-	newbuf.addBufferParameter("v4l2PixelFormat", (int)pixFormat);
-	sbuf.addBufferParameter("captureTime", newbuf.getBufferParameter("captureTime"));
-	sbuf.addBufferParameter("fps", outputFps);
-	sbuf.addBufferParameter("videoWidth", captureWidth2);
-	sbuf.addBufferParameter("videoHeight", captureHeight2);
+	sbuf.pars()->v4l2Buffer = (quintptr *)buffer;
+	sbuf.pars()->captureTime = streamTime->getCurrentTime()
+							  - (captureBufferCount - 1) * 1000 * 1000 / outputFps;
+	sbuf.pars()->v4l2PixelFormat = pixFormat;
+	sbuf.pars()->fps = outputFps;
+	sbuf.pars()->videoWidth = captureWidth2;
+	sbuf.pars()->videoHeight = captureHeight2;
 
 	useLock.lock();
 	useCount[buffer->index] += 2;

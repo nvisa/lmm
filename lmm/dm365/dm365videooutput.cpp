@@ -31,8 +31,7 @@ void DM365VideoOutput::
 	videoCopy(RawBuffer buf, Buffer_Handle dispbuf, Buffer_Handle dmai)
 {
 	if (hFrameCopy == NULL) {
-		int linelen = VideoUtils::getLineLength(buf.getBufferParameter("v4l2PixelFormat").toInt(),
-												buf.getBufferParameter("width").toInt());
+		int linelen = VideoUtils::getLineLength(buf.pars()->v4l2PixelFormat, buf.pars()->videoWidth);
 		char *dst = (char *)Buffer_getUserPtr(dispbuf);
 		char *src = (char *)Buffer_getUserPtr(dmai);
 		int dstTotal = gfxAttrs.dim.lineLength * gfxAttrs.dim.height;
@@ -92,8 +91,7 @@ int DM365VideoOutput::outputBuffer(RawBuffer buf)
 	/* input size does not match output size, do manual copy */
 	Buffer_Handle dispbuf;
 	Display_get(hDisplay, &dispbuf);
-	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer")
-			.toInt();
+	Buffer_Handle dmai = (Buffer_Handle)buf.par()->dmaiBuffer;
 	videoCopy(buf, dispbuf, dmai);
 	Display_put(hDisplay, dispbuf);
 #endif
@@ -170,7 +168,7 @@ int DM365VideoOutput::start()
 	/*for (int i = 0; i < BufTab_getNumBufs(hDispBufTab); i++) {
 		Buffer_Handle dmaibuf = BufTab_getBuf(hDispBufTab, i);
 		DmaiBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dmaibuf, this);
-		newbuf.addBufferParameter("v4l2PixelFormat", (int)pixelFormat);
+		newbuf.pars()->v4l2PixelFormat = pixelFormat;
 		bufferPool.insert(dmaibuf, newbuf);
 	}*/
 #endif

@@ -123,9 +123,9 @@ void DmaiBuffer::init(const void *data, int size, BufferGfx_Attrs *gfxAttrs)
 	Buffer_setSize(dd->dmaibuf, size);
 	Buffer_setUserPtr(dd->dmaibuf, (Int8 *)data);
 	setRefData(d->mimeType, Buffer_getUserPtr(dd->dmaibuf), size);
-	addBufferParameter("width", (int)gfxAttrs->dim.width);
-	addBufferParameter("height", (int)gfxAttrs->dim.height);
-	addBufferParameter("dmaiBuffer", (int)dd->dmaibuf);
+	d->parameters->videoWidth = gfxAttrs->dim.width;
+	d->parameters->videoHeight = gfxAttrs->dim.height;
+	d->parameters->dmaiBuffer = (quintptr *)dd->dmaibuf;
 }
 
 void DmaiBuffer::init(int size, BufferGfx_Attrs *gfxAttrs)
@@ -155,9 +155,9 @@ void DmaiBuffer::init(int size, BufferGfx_Attrs *gfxAttrs)
 	dd->dmaibuf = Buffer_create(size, BufferGfx_getBufferAttrs(gfxAttrs));
 	dd->bufferOwner = true;
 	setRefData(d->mimeType, Buffer_getUserPtr(dd->dmaibuf), size);
-	addBufferParameter("width", (int)gfxAttrs->dim.width);
-	addBufferParameter("height", (int)gfxAttrs->dim.height);
-	addBufferParameter("dmaiBuffer", (int)dd->dmaibuf);
+	d->parameters->videoWidth = gfxAttrs->dim.width;
+	d->parameters->videoHeight = gfxAttrs->dim.height;
+	d->parameters->dmaiBuffer = (quintptr *)dd->dmaibuf;
 }
 
 void DmaiBuffer::init(Buffer_Handle handle)
@@ -172,9 +172,9 @@ void DmaiBuffer::init(Buffer_Handle handle)
 	if (!size)
 		size = Buffer_getSize(dd->dmaibuf);
 	setRefData(d->mimeType, Buffer_getUserPtr(dd->dmaibuf), size);
-	addBufferParameter("width", (int)gfxAttrs->dim.width);
-	addBufferParameter("height", (int)gfxAttrs->dim.height);
-	addBufferParameter("dmaiBuffer", (int)dd->dmaibuf);
+	d->parameters->videoWidth = gfxAttrs->dim.width;
+	d->parameters->videoHeight = gfxAttrs->dim.height;
+	d->parameters->dmaiBuffer = (quintptr *)dd->dmaibuf;
 }
 
 DmaiBufferData::~DmaiBufferData()

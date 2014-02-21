@@ -33,7 +33,7 @@ int OmxDisplayOutput::setFrameSize(QSize sz)
 
 int OmxDisplayOutput::processBuffer(RawBuffer buf)
 {
-	OMX_BUFFERHEADERTYPE *omxBuf = (OMX_BUFFERHEADERTYPE *)buf.getBufferParameter("omxBuf").toInt();
+	OMX_BUFFERHEADERTYPE *omxBuf = (OMX_BUFFERHEADERTYPE *)buf.par()->omxBuf;
 	if (!omxBuf) {
 		mDebug("no omx buffers available");
 		return -EINVAL;

@@ -558,8 +558,7 @@ void H264Encoder::setSeiField(int field, int value)
 
 void H264Encoder::calculateFps(const RawBuffer buf)
 {
-	if (buf.getBufferParameter("nalType").toInt() == 1 ||
-			buf.getBufferParameter("nalType").toInt() == 5)
+	if (buf.constPars()->h264NalType == 1 || buf.constPars()->h264NalType == 5)
 		BaseLmmElement::calculateFps(buf);
 }
 
@@ -841,6 +840,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		generateIdrFrame = false;
 	}
 
+	uint duration = 1000 / (float)source.constPars()->fps;
 	if (packetized) {
 		QList<int> offsets;
 		QList<int> nals;
@@ -857,8 +857,6 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			if (nal >= encend - 4)
 				break;
 		}
-		qint64 ctime = streamTime->getCurrentTime();
-		uint duration = 1000 / source.getBufferParameter("fps").toFloat();
 		QList<RawBuffer> list;
 		for (int i = 0; i < offsets.size(); i++) {
 			int start = offsets[i];
@@ -866,15 +864,15 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			if (i < offsets.size() - 1)
 				end = offsets[i + 1];
 			RawBuffer buf = RawBuffer("video/x-h264", end - start);
-			buf.addBufferParameters(source.bufferParameters());
-			buf.addBufferParameter("frameType", (int)BufferGfx_getFrameType(buffer));
-			buf.addBufferParameter("encodeTime", ctime);
-			buf.setStreamBufferNo(encodeCount);
-			buf.setDuration(duration);
+			buf.setParameters(source.constPars());
+			buf.pars()->frameType = BufferGfx_getFrameType(buffer);
+			buf.pars()->encodeTime = streamTime->getCurrentTime();
+			buf.pars()->streamBufferNo = encodeCount;
+			buf.pars()->duration = duration;
 			if (seiDataOffset < end && seiDataOffset > start)
 				insertSeiData(seiDataOffset, hDstBuf, source);
 			memcpy(buf.data(), encdata + start, end - start);
-			buf.addBufferParameter("nalType", nals[i]);
+			buf.pars()->h264NalType = nals[i];
 			list << buf;
 		}
 		newOutputBuffer(0, list);
@@ -888,11 +886,11 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			insertSeiData(seiDataOffset, hDstBuf, source);
 		}
 		RawBuffer buf = DmaiBuffer("video/x-h264", hDstBuf, this);
-		buf.addBufferParameters(source.bufferParameters());
-		buf.addBufferParameter("frameType", (int)BufferGfx_getFrameType(buffer));
-		buf.addBufferParameter("encodeTime", streamTime->getCurrentTime());
-		buf.setStreamBufferNo(encodeCount++);
-		buf.setDuration(1000 / buf.getBufferParameter("fps").toFloat());
+		buf.setParameters(source.constPars());
+		buf.pars()->frameType = BufferGfx_getFrameType(buffer);
+		buf.pars()->encodeTime = streamTime->getCurrentTime();
+		buf.pars()->streamBufferNo = encodeCount;
+		buf.pars()->duration = duration;
 		Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 		/* Reset the dimensions to what they were originally */
 		BufferGfx_resetDimensions(buffer);
@@ -1111,14 +1109,13 @@ int H264Encoder::createSeiData(QByteArray *ba, const RawBuffer source)
 	out.setByteOrder(QDataStream::LittleEndian);
 	append((qint32)0x11223344); //version
 	append((qint64)streamTime->getCurrentTime());
-	append((qint64)source.getBufferParameter("captureTime").toLongLong());
+	append((qint64)source.constPars()->captureTime);
 	append((qint32)QDateTime::currentDateTime().toTime_t());
 	append((qint32)CpuLoad::getCpuLoad());
 	append((qint32)CpuLoad::getAverageCpuLoad());
 	append((qint32)sentBufferCount);
 	append((qint32)SystemInfo::getFreeMemory());
 	append((qint32)getFps());
-	append((qint32)source.getBufferParameter("latencyId").toInt());
 	for (int i = 0; i < customSeiData.size(); i++) {
 		append((qint32)customSeiData[i]);
 	}

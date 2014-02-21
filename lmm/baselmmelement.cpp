@@ -42,7 +42,7 @@
 
 	Eger elemaninizin kendi yarattigi tamponlar silinirken yapmasi gereken
 	islemler varsa(ornegin donanim kaynaklarinin birakilmasi gibi)
-	aboutDeleteBuffer() fonksiyonunu override edebilirsiniz. Baz implementasyon
+	aboutToDeleteBuffer() fonksiyonunu override edebilirsiniz. Baz implementasyon
 	hic bir islem yapmamaktadir.
 
 	\section Durum Durum Yonetimi
@@ -404,7 +404,7 @@ int BaseLmmElement::getAvailableDuration()
 {
 	int availDuration = 0;
 	for (int i = 0; i < inBufQueue[0].size(); i++)
-		availDuration += inBufQueue[0].at(i).getDuration();
+		availDuration += inBufQueue[0].at(i).constPars()->duration;
 	return availDuration;
 }
 

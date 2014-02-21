@@ -38,7 +38,7 @@ public:
 
 	int flush();
 
-	void aboutDeleteBuffer(const QHash<QString, QVariant> &);
+	void aboutToDeleteBuffer(const RawBufferParameters *params);
 
 	static void initCodecEngine();
 	static void cleanUpDsp();

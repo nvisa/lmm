@@ -136,11 +136,11 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		return -EIO;
 	}
 	RawBuffer buf = DmaiBuffer("image/jpeg", hDstBuf, this);
-	buf.addBufferParameters(source.bufferParameters());
-	buf.addBufferParameter("frameType", (int)IVIDEO_I_FRAME);
-	buf.addBufferParameter("encodeTime", streamTime->getCurrentTime());
-	buf.setStreamBufferNo(encodeCount++);
-	buf.setDuration(1000 / buf.getBufferParameter("fps").toFloat());
+	buf.setParameters(source.constPars());
+	buf.pars()->frameType = IVIDEO_I_FRAME;
+	buf.pars()->encodeTime = streamTime->getCurrentTime();
+	buf.pars()->streamBufferNo = encodeCount++;
+	buf.pars()->duration = 1000 / buf.pars()->fps;
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);

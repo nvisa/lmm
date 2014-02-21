@@ -121,8 +121,7 @@ int DmaiEncoder::processBuffer(RawBuffer buf)
 {
 	QTime t;
 	int err = 0;
-	Buffer_Handle dmai = (Buffer_Handle)buf.getBufferParameter("dmaiBuffer")
-			.toInt();
+	Buffer_Handle dmai = (Buffer_Handle)buf.pars()->dmaiBuffer;
 	if (!dmai) {
 		mDebug("cannot get dmai buffer");
 		err = -ENOENT;
@@ -145,9 +144,9 @@ out:
 	return err;
 }
 
-void DmaiEncoder::aboutDeleteBuffer(const QHash<QString, QVariant> &params)
+void DmaiEncoder::aboutToDeleteBuffer(const RawBufferParameters *params)
 {
-	Buffer_Handle dmai = (Buffer_Handle)params["dmaiBuffer"].toInt();
+	Buffer_Handle dmai = (Buffer_Handle)params->dmaiBuffer;
 	bufferLock.lock();
 	BufTab_freeBuf(dmai);
 	bufferLock.unlock();
@@ -361,11 +360,11 @@ int DmaiEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	int frameType = BufferGfx_getFrameType(buffer);
 	if (frameType == IVIDEO_IDR_FRAME)
 		qDebug("IDR frame generated");
-	buf.addBufferParameters(source.bufferParameters());
-	buf.addBufferParameter("frameType", frameType);
-	buf.addBufferParameter("encodeTime", streamTime->getCurrentTime());
-	buf.setStreamBufferNo(encodeCount++);
-	buf.setDuration(1000 / buf.getBufferParameter("fps").toFloat());
+	buf.setParameters(source.constPars());
+	buf.pars()->frameType = frameType;
+	buf.pars()->encodeTime = streamTime->getCurrentTime();
+	buf.pars()->streamBufferNo = encodeCount++;
+	buf.pars()->duration = 1000 / (float)buf.pars()->fps;
 	BufTab_freeBuf(hDstBuf);
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);

@@ -42,7 +42,7 @@ int BaseLmmOutput::getLoopLatency()
 int BaseLmmOutput::processBuffer(RawBuffer buf)
 {
 	int err = outputBuffer(buf);
-	lastOutputPts = buf.getPts();
+	lastOutputPts = buf.pars()->pts;
 	return err;
 }
 

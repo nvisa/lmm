@@ -20,15 +20,15 @@ FFmpegColorSpace::FFmpegColorSpace(QObject *parent) :
 
 int FFmpegColorSpace::processBuffer(RawBuffer buf)
 {
-	int w = buf.getBufferParameter("width").toInt();
-	int h = buf.getBufferParameter("height").toInt();
+	int w = buf.par()->videoWidth;
+	int h = buf.par()->videoHeigth;
 	if (!swsCtx) {
 		swsCtx = sws_getContext(w, h, (AVPixelFormat)inPixFmt, w, h, (AVPixelFormat)outPixFmt, SWS_BICUBIC
 											, NULL, NULL, NULL);
 		for (int i = 0; i < 15; i++) {
 			mInfo("allocating sw scale buffer %d with size %dx%d", i, w, h);
 			FFmpegBuffer buffer(mime, w, h, this);
-			buffer.addBufferParameter("poolIndex", i);
+			buffer.pars()->poolIndex = i;
 			pool->addBuffer(buffer);
 			poolBuffers.insert(i, buffer);
 		}
@@ -39,7 +39,7 @@ int FFmpegColorSpace::processBuffer(RawBuffer buf)
 	if (poolbuf.size() == 0)
 		return -ENOENT;
 
-	AVFrame *frame = (AVFrame *)poolbuf.getBufferParameter("AVFrame").toULongLong();
+	AVFrame *frame = (AVFrame *)poolbuf.par()->avFrame;
 	RawBuffer outbuf;
 
 	int stride = w;
@@ -54,14 +54,14 @@ int FFmpegColorSpace::processBuffer(RawBuffer buf)
 	outbuf = RawBuffer(poolbuf.getMimeType(),
 					 (const void *)poolbuf.data(), poolbuf.size(), this);
 
-	outbuf.addBufferParameter("width", w);
-	outbuf.addBufferParameter("height", h);
-	outbuf.addBufferParameter("avPixelFmt", outPixFmt);
-	outbuf.addBufferParameter("avFrame", (quintptr)frame);
-	outbuf.addBufferParameter("poolIndex", poolbuf.getBufferParameter("poolIndex"));
-	outbuf.setPts(buf.getPts());
-	outbuf.setStreamBufferNo(buf.streamBufferNo());
-	outbuf.setDuration(buf.getDuration());
+	outbuf.pars()->videoWidth = w;
+	outbuf.pars()->videoHeight = h;
+	outbuf.pars()->avPixelFmt = outPixFmt;
+	outbuf.pars()->avFrame = (quintptr)frame;
+	outbuf.pars()->poolIndex = poolbuf.constPars()->poolIndex;
+	outbuf.pars()->pts = buf.constPars()->pts;
+	outbuf.pars()->streamBufferNo = buf.constPars()->streamBufferNo;
+	outbuf.pars()->duration= buf.constPars()->duration;
 	newOutputBuffer(0, outbuf);
 
 	return 0;
@@ -83,7 +83,7 @@ int FFmpegColorSpace::convertToGray()
 	return 0;
 }
 
-void FFmpegColorSpace::aboutDeleteBuffer(const QHash<QString, QVariant> &pars)
+void FFmpegColorSpace::aboutToDeleteBuffer(const RawBufferParameters *)
 {
 	int ind = pars["poolIndex"].toInt();
 	pool->give(poolBuffers[ind]);

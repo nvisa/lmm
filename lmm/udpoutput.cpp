@@ -70,7 +70,7 @@ int UdpOutput::outputBuffer(RawBuffer buf)
 	int cnt = size / DATAGRAM_SIZE + 1;
 	// send ses
 	int sendCnt = 0;
-	int no = buf.streamBufferNo() & 0xffff;
+	int no = buf.pars()->streamBufferNo & 0xffff;
 	ba.append(PT_SES);
 	ba.append(no >> 8);
 	ba.append(no & 0xff);
@@ -102,7 +102,7 @@ int UdpOutput::outputBuffer(RawBuffer buf)
 		ba.append(PT_EES);
 		ba.append(no >> 8);
 		ba.append(no & 0xff);
-		ba.append((char)buf.getBufferParameter("frameType").toInt());
+		ba.append((char)buf.pars()->frameType);
 		ba.append((char)0);
 		ba.append((char)0);
 		ba.append((char)0);
@@ -110,9 +110,8 @@ int UdpOutput::outputBuffer(RawBuffer buf)
 		ba.append(frame + sendCnt, size - sendCnt);
 		writeData(ba);
 		ba.clear();
-		if (buf.getBufferParameter("frameType").toInt() != 1) {
-			mInfo("frame type is %d",
-				   buf.getBufferParameter("frameType").toInt());
+		if (buf.pars()->frameType != 1) {
+			mInfo("frame type is %d", buf.pars()->frameType);
 		}
 	}
 
