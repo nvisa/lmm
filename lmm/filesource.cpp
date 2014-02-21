@@ -48,7 +48,7 @@ int FileSource::stop()
 	return BaseLmmElement::stop();
 }
 
-int FileSource::processBuffer(RawBuffer)
+int FileSource::processBuffer(const RawBuffer &)
 {
 	return -EINVAL;
 }

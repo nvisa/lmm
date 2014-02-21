@@ -219,7 +219,7 @@ H264SeiInfo H264Parser::parseNoStart(const uchar *data)
 	return sinfo;
 }
 
-int H264Parser::processBuffer(RawBuffer buf)
+int H264Parser::processBuffer(const RawBuffer &buf)
 {
 	if (insertSpsPps && spsBuf.size() == 0) {
 		const uchar *d = (const uchar *)buf.constData();
@@ -242,10 +242,10 @@ int H264Parser::processBuffer(RawBuffer buf)
 		}
 	}
 
-	if (insertSpsPps && buf.pars()->frameType == 0) {
+	if (insertSpsPps && buf.constPars()->frameType == 0) {
 		mInfo("inserting SPS and PPS");
 		RawBuffer buf2("video/x-h264", buf.size() + spsBuf.size() + ppsBuf.size());
-		buf2.setParameters(buf.pars());
+		buf2.setParameters(buf.constPars());
 		char *d = (char *)buf2.data();
 		memcpy(d, spsBuf.constData(), spsBuf.size());
 		d += spsBuf.size();

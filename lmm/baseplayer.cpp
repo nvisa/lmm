@@ -165,7 +165,7 @@ RemoteConsole *BasePlayer::createManagementConsole()
 	return new RemoteConsole(8944 + instCount, this);
 }
 
-int BasePlayer::processBuffer(RawBuffer)
+int BasePlayer::processBuffer(const RawBuffer &)
 {
 	return 0;
 }

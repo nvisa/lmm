@@ -18,7 +18,7 @@ protected:
 	CircularBuffer *circBuf;
 	QMutex shiftLock;
 
-	virtual int processBuffer(RawBuffer buf);
+	virtual int processBuffer(const RawBuffer &buf);
 	virtual int parse(const uchar *data, int size) = 0;
 };
 

@@ -253,7 +253,7 @@ void VideoTestSource::setYUVVideo(QString filename, bool loop)
 	}
 }
 
-int VideoTestSource::processBuffer(RawBuffer buf)
+int VideoTestSource::processBuffer(const RawBuffer &buf)
 {
 	mInfo("creating next frame");
 	RawBuffer imageBuf = pool->take(false);

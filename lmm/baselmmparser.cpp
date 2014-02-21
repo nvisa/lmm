@@ -35,7 +35,7 @@ int BaseLmmParser::parseBlocking()
 	return err;
 }
 
-int BaseLmmParser::processBuffer(RawBuffer buf)
+int BaseLmmParser::processBuffer(const RawBuffer &buf)
 {
 	circBuf->lock();
 	int err = circBuf->addDataNoShift(buf.constData(), buf.size());

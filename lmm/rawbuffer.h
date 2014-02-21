@@ -99,7 +99,7 @@ public:
 	int size() const;
 	int setUsedSize(int size);
 	QString getMimeType() const;
-	bool isEOF();
+	bool isEOF() const;
 	RawBufferParameters * pars();
 	const RawBufferParameters * constPars() const;
 

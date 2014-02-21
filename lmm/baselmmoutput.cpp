@@ -39,10 +39,10 @@ int BaseLmmOutput::getLoopLatency()
 	return 0;
 }
 
-int BaseLmmOutput::processBuffer(RawBuffer buf)
+int BaseLmmOutput::processBuffer(const RawBuffer &buf)
 {
 	int err = outputBuffer(buf);
-	lastOutputPts = buf.pars()->pts;
+	lastOutputPts = buf.constPars()->pts;
 	return err;
 }
 

@@ -35,7 +35,7 @@ int OmxDecoder::setFrameSize(QSize sz)
 	return 0;
 }
 
-int OmxDecoder::processBuffer(RawBuffer buf)
+int OmxDecoder::processBuffer(const RawBuffer &buf)
 {
 	bufLock.lock();
 	OMX_BUFFERHEADERTYPE *omxBuf = NULL;

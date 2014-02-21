@@ -203,7 +203,7 @@ QString RawBuffer::getMimeType() const
 	return d->mimeType;
 }
 
-bool RawBuffer::isEOF()
+bool RawBuffer::isEOF() const
 {
 	return d->mimeType == "application/eof";
 }

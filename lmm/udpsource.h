@@ -23,7 +23,7 @@ protected slots:
 	void dataReady();
 protected:
 	void processTheDatagram(const QByteArray &ba);
-	int processBuffer(RawBuffer);
+	int processBuffer(const RawBuffer &);
 
 	QUdpSocket *sock;
 	int bindPort;

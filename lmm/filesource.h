@@ -26,7 +26,7 @@ protected:
 	QFile *file;
 	QMutex fileLock;
 
-	int processBuffer(RawBuffer buf);
+	int processBuffer(const RawBuffer &buf);
 };
 
 #endif // FILESOURCE_H

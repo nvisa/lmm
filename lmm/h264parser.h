@@ -40,7 +40,7 @@ protected:
 	int findNextStartCode(const uchar *data, int size);
 	int parse(const uchar *data, int size);
 	H264SeiInfo parseNoStart(const uchar *data);
-	int processBuffer(RawBuffer buf);
+	int processBuffer(const RawBuffer &buf);
 	void extractSeiData(RawBuffer buf);
 
 	int packState;

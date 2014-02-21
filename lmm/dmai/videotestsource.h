@@ -72,7 +72,7 @@ private:
 	QImage getPatternImage(TestPattern p);
 	DmaiBuffer addNoise(DmaiBuffer imageBuf);
 	bool checkCache(TestPattern p, BufferGfx_Attrs *attr);
-	int processBuffer(RawBuffer buf);
+	int processBuffer(const RawBuffer &buf);
 	void addBufferToPool(RawBuffer buf);
 };
 

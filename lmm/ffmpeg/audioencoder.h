@@ -17,7 +17,7 @@ public:
 protected:
 	virtual int startCodec();
 	virtual int stopCodec();
-	virtual int processBuffer(RawBuffer buf);
+	virtual int processBuffer(const RawBuffer &buf);
 	int encode(const short *samples);
 
 	AVCodec *codec;

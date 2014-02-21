@@ -22,7 +22,7 @@ public:
 	int getVideoStride() { return videoStride; }
 	const QList< QPair<OMX_BUFFERHEADERTYPE *, int> > getDecoderBuffers();
 protected:
-	int processBuffer(RawBuffer buf);
+	int processBuffer(const RawBuffer &buf);
 	int startComponent();
 	int stopComponent();
 	OMX_HANDLETYPE getCompHandle() { return handleDec; }

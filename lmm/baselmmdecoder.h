@@ -33,7 +33,7 @@ protected:
 	void setOutputTimeStamp(RawBuffer *buf, int minDuration = 2000);
 	virtual int startDecoding() { return 0; }
 	virtual int stopDecoding() { return 0; }
-	virtual int processBuffer(RawBuffer buf);
+	virtual int processBuffer(const RawBuffer &buf);
 	virtual int decode(RawBuffer) = 0;
 };
 

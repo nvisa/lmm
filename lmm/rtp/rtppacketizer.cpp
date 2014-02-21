@@ -228,7 +228,7 @@ void RtpPacketizer::createSdp()
 	emit sdpReady(sdp);
 }
 
-int RtpPacketizer::processBuffer(RawBuffer buf)
+int RtpPacketizer::processBuffer(const RawBuffer &buf)
 {
 	mInfo("streaming next packet: %d bytes", buf.size());
 

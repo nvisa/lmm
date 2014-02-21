@@ -69,7 +69,7 @@ void UdpSource::processTheDatagram(const QByteArray &ba)
 	newOutputBuffer(0, buf);
 }
 
-int UdpSource::processBuffer(RawBuffer)
+int UdpSource::processBuffer(const RawBuffer &)
 {
 	return -EINVAL;
 }

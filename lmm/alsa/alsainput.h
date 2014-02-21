@@ -13,7 +13,7 @@ public:
 	virtual int start();
 	virtual int stop();
 	virtual int processBlocking(int ch = 0);
-	virtual int processBuffer(RawBuffer buf);
+	virtual int processBuffer(const RawBuffer &buf);
 signals:
 	
 public slots:

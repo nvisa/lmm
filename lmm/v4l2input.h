@@ -59,7 +59,7 @@ protected:
 	int startStreaming();
 	int stopStreaming();
 private:
-	int processBuffer(RawBuffer) { return 0; }
+	int processBuffer(const RawBuffer &) { return 0; }
 	virtual int processBuffer(v4l2_buffer *buffer);
 };
 

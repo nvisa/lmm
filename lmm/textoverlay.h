@@ -48,7 +48,7 @@ public:
 	int start();
 	int stop();
 protected:
-	int processBuffer(RawBuffer buffer);
+	int processBuffer(const RawBuffer &buffer);
 signals:
 	
 public slots:

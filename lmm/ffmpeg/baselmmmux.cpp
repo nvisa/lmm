@@ -344,12 +344,12 @@ void BaseLmmMux::printInputInfo()
 #endif
 }
 
-int BaseLmmMux::processBuffer(RawBuffer buf)
+int BaseLmmMux::processBuffer(const RawBuffer &buf)
 {
 	return processBuffer(0, buf);
 }
 
-int BaseLmmMux::processBuffer(int ch, RawBuffer buf)
+int BaseLmmMux::processBuffer(int ch, const RawBuffer &buf)
 {
 	if (!foundStreamInfo) {
 		if (findInputStreamInfo()) {

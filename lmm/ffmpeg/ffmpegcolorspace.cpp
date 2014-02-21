@@ -18,7 +18,7 @@ FFmpegColorSpace::FFmpegColorSpace(QObject *parent) :
 	pool = new LmmBufferPool(this);
 }
 
-int FFmpegColorSpace::processBuffer(RawBuffer buf)
+int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 {
 	int w = buf.par()->videoWidth;
 	int h = buf.par()->videoHeigth;

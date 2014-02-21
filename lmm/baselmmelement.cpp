@@ -185,7 +185,7 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	inBufSize << 0;
 }
 
-int BaseLmmElement::addBuffer(int ch, RawBuffer buffer)
+int BaseLmmElement::addBuffer(int ch, const RawBuffer &buffer)
 {
 	if (buffer.size() == 0)
 		return -EINVAL;
@@ -205,7 +205,7 @@ int BaseLmmElement::addBuffer(int ch, RawBuffer buffer)
 	return 0;
 }
 
-int BaseLmmElement::addBufferBlocking(int ch, RawBuffer buffer)
+int BaseLmmElement::addBufferBlocking(int ch, const RawBuffer &buffer)
 {
 	if (!buffer.size())
 		return -EINVAL;
@@ -303,7 +303,7 @@ int BaseLmmElement::process(int ch)
 	return 0;
 }
 
-int BaseLmmElement::process(int ch, RawBuffer buf)
+int BaseLmmElement::process(int ch, const RawBuffer &buf)
 {
 	int err = addBuffer(ch, buf);
 	if (err)
@@ -333,7 +333,7 @@ int BaseLmmElement::processBlocking(int ch)
 	return ret;
 }
 
-int BaseLmmElement::processBlocking(int ch, RawBuffer buf)
+int BaseLmmElement::processBlocking(int ch, const RawBuffer &buf)
 {
 	int err = addBuffer(ch, buf);
 	if (err)
@@ -494,7 +494,7 @@ void BaseLmmElement::checkAndWakeInputWaiters()
 		inputWaiter.wakeAll();
 }
 
-int BaseLmmElement::newOutputBuffer(int ch, RawBuffer buf)
+int BaseLmmElement::newOutputBuffer(int ch, const RawBuffer &buf)
 {
 	outputLock.lock();
 	outBufQueue[ch] << buf;
@@ -613,7 +613,7 @@ RawBuffer BaseLmmElement::takeInputBuffer(int ch)
 	return buf;
 }
 
-int BaseLmmElement::appendInputBuffer(int ch, RawBuffer buf)
+int BaseLmmElement::appendInputBuffer(int ch, const RawBuffer &buf)
 {
 	inputLock.lock();
 	inBufQueue[ch].append(buf);
@@ -623,7 +623,7 @@ int BaseLmmElement::appendInputBuffer(int ch, RawBuffer buf)
 	return 0;
 }
 
-int BaseLmmElement::prependInputBuffer(int ch, RawBuffer buf)
+int BaseLmmElement::prependInputBuffer(int ch, const RawBuffer &buf)
 {
 	inputLock.lock();
 	inBufQueue[ch].prepend(buf);
@@ -633,7 +633,7 @@ int BaseLmmElement::prependInputBuffer(int ch, RawBuffer buf)
 	return 0;
 }
 
-int BaseLmmElement::processBuffer(int ch, RawBuffer buf)
+int BaseLmmElement::processBuffer(int ch, const RawBuffer &buf)
 {
 	Q_UNUSED(ch);
 	Q_UNUSED(buf);

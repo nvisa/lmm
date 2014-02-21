@@ -45,7 +45,7 @@ protected:
 	int outputBufferSize;
 	int videoStride;
 
-	int processBuffer(RawBuffer buf);
+	int processBuffer(const RawBuffer &buf);
 	int setOmxScalarParams();
 	OMX_HANDLETYPE getCompHandle() { return handleScalar; }
 };

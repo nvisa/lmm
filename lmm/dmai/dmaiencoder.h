@@ -94,7 +94,7 @@ protected:
 	virtual int startCodec(bool alloc = true);
 	virtual int stopCodec();
 	virtual int encode(Buffer_Handle buffer, const RawBuffer source);
-	int processBuffer(RawBuffer buf);
+	int processBuffer(const RawBuffer &buf);
 
 private:
 	IVIDENC1_DynamicParams *dynParams;

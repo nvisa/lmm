@@ -78,7 +78,7 @@ int AudioEncoder::stopCodec()
 	return 0;
 }
 
-int AudioEncoder::processBuffer(RawBuffer buf)
+int AudioEncoder::processBuffer(const RawBuffer &buf)
 {
 	int insize = sbuf.size();
 	short *samples = (short *)sbuf.data();

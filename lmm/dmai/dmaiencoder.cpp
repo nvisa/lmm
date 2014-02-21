@@ -117,11 +117,11 @@ int DmaiEncoder::genIdr()
 	return -EINVAL;
 }
 
-int DmaiEncoder::processBuffer(RawBuffer buf)
+int DmaiEncoder::processBuffer(const RawBuffer &buf)
 {
 	QTime t;
 	int err = 0;
-	Buffer_Handle dmai = (Buffer_Handle)buf.pars()->dmaiBuffer;
+	Buffer_Handle dmai = (Buffer_Handle)buf.constPars()->dmaiBuffer;
 	if (!dmai) {
 		mDebug("cannot get dmai buffer");
 		err = -ENOENT;

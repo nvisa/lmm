@@ -21,7 +21,7 @@ protected:
 	QMutex mutex;
 	QList<BufferSyncThread *> threads;
 	BufferSyncThread * findEmptyThread();
-	int processBuffer(RawBuffer buffer);
+	int processBuffer(const RawBuffer &buffer);
 };
 
 #endif // BUFFERSYNCER_H

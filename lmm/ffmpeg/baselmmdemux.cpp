@@ -291,7 +291,7 @@ int BaseLmmDemux::demuxOne()
 	return 0;
 }
 
-int BaseLmmDemux::processBuffer(RawBuffer buf)
+int BaseLmmDemux::processBuffer(const RawBuffer &buf)
 {
 	return demuxOne();
 }

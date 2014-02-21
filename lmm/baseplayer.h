@@ -85,7 +85,7 @@ protected:
 	virtual int stopPlayer() = 0;
 	virtual int elementStarted(BaseLmmElement *el);
 	virtual RemoteConsole * createManagementConsole();
-	int processBuffer(RawBuffer);
+	int processBuffer(const RawBuffer &);
 	virtual void timeoutHandler() {}
 
 	friend class LmmSettingHandler;

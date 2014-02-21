@@ -65,7 +65,7 @@ int OmxScaler::execute()
 	return 0;
 }
 
-int OmxScaler::processBuffer(RawBuffer buf)
+int OmxScaler::processBuffer(const RawBuffer &buf)
 {
 	OMX_BUFFERHEADERTYPE *omxBuf = (OMX_BUFFERHEADERTYPE *)buf.par()->omxBuf;
 	if (!omxBuf) {

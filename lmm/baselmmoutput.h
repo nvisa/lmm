@@ -23,7 +23,7 @@ signals:
 	
 public slots:
 protected:
-	virtual int processBuffer(RawBuffer buf);
+	virtual int processBuffer(const RawBuffer &buf);
 	virtual int outputBuffer(RawBuffer buf);
 	qint64 outputLatency;
 	int outputDelay;

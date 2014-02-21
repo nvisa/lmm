@@ -31,7 +31,7 @@ int OmxDisplayOutput::setFrameSize(QSize sz)
 	return 0;
 }
 
-int OmxDisplayOutput::processBuffer(RawBuffer buf)
+int OmxDisplayOutput::processBuffer(const RawBuffer &buf)
 {
 	OMX_BUFFERHEADERTYPE *omxBuf = (OMX_BUFFERHEADERTYPE *)buf.par()->omxBuf;
 	if (!omxBuf) {

@@ -11,7 +11,7 @@ class FFmpegColorSpace : public BaseLmmElement
 	Q_OBJECT
 public:
 	explicit FFmpegColorSpace(QObject *parent = 0);
-	int processBuffer(RawBuffer buf);
+	int processBuffer(const RawBuffer &buf);
 	int convertToRgb();
 	int convertToGray();
 signals:

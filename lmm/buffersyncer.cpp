@@ -70,13 +70,13 @@ BufferSyncer::BufferSyncer(int threadCount, QObject *parent) :
 	}
 }
 
-int BufferSyncer::processBuffer(RawBuffer buffer)
+int BufferSyncer::processBuffer(const RawBuffer &buffer)
 {
-	BaseLmmOutput *target = (BaseLmmOutput *)buffer.pars()->targetElement;
-	qint64 pts = buffer.pars()->pts;
+	BaseLmmOutput *target = (BaseLmmOutput *)buffer.constPars()->targetElement;
+	qint64 pts = buffer.constPars()->pts;
 	qint64 delay = streamTime->ptsToTimeDiff(pts) - target->getAvailableBufferTime();
 	mInfo("syncing %s: pts=%lld delay=%lld dur=%d cnt=%d", target->metaObject()->className(), pts, delay,
-		  buffer.pars()->duration, buffer.pars()->streamBufferNo);
+		  buffer.constPars()->duration, buffer.constPars()->streamBufferNo);
 	if (sync && delay > 0) {
 		mutex.lock();
 		BufferSyncThread *th = findEmptyThread();

@@ -72,8 +72,8 @@ protected:
 	virtual int findInputStreamInfo();
 	virtual QString mimeType() = 0;
 	void printInputInfo();
-	int processBuffer(RawBuffer buf);
-	virtual int processBuffer(int ch, RawBuffer buf);
+	int processBuffer(const RawBuffer &buf);
+	virtual int processBuffer(int ch, const RawBuffer &buf);
 	virtual qint64 packetTimestamp(int stream);
 	virtual int timebaseNum();
 	virtual int timebaseDenom();

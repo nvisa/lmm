@@ -24,7 +24,7 @@ int AlsaInput::processBlocking(int ch)
 	return newOutputBuffer(ch, buf);
 }
 
-int AlsaInput::processBuffer(RawBuffer buf)
+int AlsaInput::processBuffer(const RawBuffer &buf)
 {
 	Q_UNUSED(buf);
 	return 0;

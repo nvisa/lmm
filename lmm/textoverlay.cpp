@@ -133,7 +133,7 @@ int TextOverlay::stop()
 	return BaseLmmElement::stop();
 }
 
-int TextOverlay::processBuffer(RawBuffer buffer)
+int TextOverlay::processBuffer(const RawBuffer &buffer)
 {
 	/* we modify buffers in-place */
 	if (type == CHAR_MAP)

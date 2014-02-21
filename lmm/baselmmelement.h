@@ -28,17 +28,17 @@ public:
 		PAUSED,
 	};
 	explicit BaseLmmElement(QObject *parent = 0);
-	int addBuffer(int ch, RawBuffer buffer);
-	int addBufferBlocking(int ch, RawBuffer buffer);
+	int addBuffer(int ch, const RawBuffer &buffer);
+	int addBufferBlocking(int ch, const RawBuffer &buffer);
 	int addBuffersBlocking(int ch, const QList<RawBuffer> list);
 	RawBuffer nextBuffer(int ch);
 	RawBuffer nextBufferBlocking(int ch);
 	QList<RawBuffer> nextBuffers(int ch);
 	QList<RawBuffer> nextBuffersBlocking(int ch);
 	virtual int process(int ch = 0);
-	virtual int process(int ch, RawBuffer buf);
+	virtual int process(int ch, const RawBuffer &buf);
 	virtual int processBlocking(int ch = 0);
-	virtual int processBlocking(int ch, RawBuffer buf);
+	virtual int processBlocking(int ch, const RawBuffer &buf);
 	void setStreamTime(StreamTime *t) { streamTime = t; }
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
 	virtual CircularBuffer * getCircularBuffer() { return NULL; }
@@ -83,17 +83,17 @@ protected:
 	bool acquireInputSem(int ch) __attribute__((warn_unused_result));
 	bool acquireOutputSem(int ch) __attribute__((warn_unused_result));
 	RawBuffer takeInputBuffer(int ch);
-	int appendInputBuffer(int ch, RawBuffer buf);
-	int prependInputBuffer(int ch, RawBuffer buf);
-	virtual int processBuffer(RawBuffer buf) = 0;
-	virtual int processBuffer(int ch, RawBuffer buf);
+	int appendInputBuffer(int ch, const RawBuffer &buf);
+	int prependInputBuffer(int ch, const RawBuffer &buf);
+	virtual int processBuffer(const RawBuffer &buf) = 0;
+	virtual int processBuffer(int ch, const RawBuffer &buf);
 	virtual void updateOutputTimeStats();
 	virtual void calculateFps(const RawBuffer buf);
 	RunningState getState();
 	int setState(RunningState s);
 	virtual int checkSizeLimits();
 	virtual void checkAndWakeInputWaiters();
-	virtual int newOutputBuffer(int ch, RawBuffer buf);
+	virtual int newOutputBuffer(int ch, const RawBuffer &buf);
 	virtual int newOutputBuffer(int ch, QList<RawBuffer> list);
 
 	StreamTime *streamTime;

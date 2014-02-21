@@ -37,7 +37,7 @@ protected:
 	QString inputMime;
 	QString outputMime;
 
-	int processBuffer(RawBuffer buf);
+	int processBuffer(const RawBuffer &buf);
 };
 
 #endif // LMMGSTPIPELINE_H

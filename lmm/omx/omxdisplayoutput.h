@@ -23,7 +23,7 @@ protected:
 	int setOmxDisplayParams();
 	int execute();
 	OMX_HANDLETYPE getCompHandle() { return handleDisp; }
-	int processBuffer(RawBuffer buf);
+	int processBuffer(const RawBuffer &buf);
 
 	OMX_HANDLETYPE handleDisp;
 	/* controller handle is to only control display, no buffers and other stuff at all */

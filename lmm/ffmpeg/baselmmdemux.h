@@ -26,7 +26,7 @@ public:
 	virtual int stop();
 	virtual int seekTo(qint64 pos);
 	virtual int demuxOne();
-	virtual int processBuffer(RawBuffer buf);
+	virtual int processBuffer(const RawBuffer &buf);
 	AVCodecContext * getVideoCodecContext();
 
 	void setAudioDemuxing(bool v) { demuxAudio = v; } /* TODO: clear existing buffers */
