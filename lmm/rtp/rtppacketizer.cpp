@@ -26,6 +26,7 @@ RtpPacketizer::RtpPacketizer(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	maxPayloadSize = 1460;
+	tempRtpBuf = new uchar[maxPayloadSize + 12];
 	frameRate = 30.0;
 	packetized = true;
 	passThru = false;
@@ -126,7 +127,14 @@ QString RtpPacketizer::getSdp()
 
 int RtpPacketizer::sendNalUnit(const uchar *buf, int size)
 {
-	uchar rtpbuf[maxPayloadSize + 12];
+	RawNetworkSocket::SockBuffer *sbuf = NULL;
+	uchar *rtpbuf;
+	if (zeroCopy) {
+		sbuf = rawsock->getNextFreeBuffer();
+		rtpbuf = (uchar *)sbuf->payload;
+	} else {
+		rtpbuf = tempRtpBuf;
+	}
 	uchar type = buf[0] & 0x1F;
 	uchar nri = buf[0] & 0x60;
 	if (type >= 13) {
@@ -135,7 +143,7 @@ int RtpPacketizer::sendNalUnit(const uchar *buf, int size)
 	}
 	if (size <= maxPayloadSize) {
 		memcpy(rtpbuf + 12, buf, size);
-		sendRtpData(rtpbuf, size, 1);
+		sendRtpData(rtpbuf, size, 1, sbuf);
 	} else {
 		uchar *dstbuf = rtpbuf + 12;
 		dstbuf[0] = 28;        /* FU Indicator; Type = 28 ---> FU-A */
@@ -146,19 +154,19 @@ int RtpPacketizer::sendNalUnit(const uchar *buf, int size)
 		size -= 1;
 		while (size + 2 > maxPayloadSize) {
 			memcpy(&dstbuf[2], buf, maxPayloadSize - 2);
-			sendRtpData(rtpbuf, maxPayloadSize, 0);
+			sendRtpData(rtpbuf, maxPayloadSize, 0, sbuf);
 			buf += maxPayloadSize - 2;
 			size -= maxPayloadSize - 2;
 			dstbuf[1] &= ~(1 << 7);
 		}
 		dstbuf[1] |= 1 << 6;
 		memcpy(&dstbuf[2], buf, size);
-		sendRtpData(rtpbuf, size + 2, 1);
+		sendRtpData(rtpbuf, size + 2, 1, sbuf);
 	}
 	return 0;
 }
 
-void RtpPacketizer::sendRtpData(uchar *buf, int size, int last)
+void RtpPacketizer::sendRtpData(uchar *buf, int size, int last, void *sbuf)
 {
 	uint ts = baseTs + packetTimestamp(0);
 	buf[0] = RTP_VERSION << 6;
@@ -173,9 +181,12 @@ void RtpPacketizer::sendRtpData(uchar *buf, int size, int last)
 	buf[9] = (ssrc >> 16) & 0xff;
 	buf[10] = (ssrc >> 8) & 0xff;
 	buf[11] = (ssrc >> 0) & 0xff;
-	if (zeroCopy)
-		rawsock->send((char *)buf, size + 12);
-	else
+	if (zeroCopy) {
+		if (sbuf)
+			rawsock->send((RawNetworkSocket::SockBuffer *)sbuf, size + 12);
+		else
+			rawsock->send((char *)buf, size + 12);
+	} else
 		sock->writeDatagram((const char *)buf, size + 12, QHostAddress(dstIp), dstDataPort);
 	seq = (seq + 1) & 0xffff;
 	totalPacketCount++;

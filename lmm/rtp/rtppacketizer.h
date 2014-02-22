@@ -52,7 +52,7 @@ protected:
 	virtual int processBuffer(const RawBuffer &buf);
 	virtual quint64 packetTimestamp(int stream);
 	int sendNalUnit(const uchar *buf, int size);
-	void sendRtpData(uchar *buf, int size, int last);
+	void sendRtpData(uchar *buf, int size, int last, void *sbuf);
 	void createSdp();
 	void sendSR();
 	bool initZeroCopy();
@@ -68,6 +68,7 @@ protected:
 	QPair<qint64, uint> ntpRtpPair;
 	QTime rtcpTime;
 	QHostAddress myIpAddr;
+	uchar *tempRtpBuf;
 
 	int dstDataPort;
 	int dstControlPort;
