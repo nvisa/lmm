@@ -1,6 +1,7 @@
 #include "rtppacketizer.h"
 #include "h264parser.h"
 #include "debug.h"
+#include "tools/rawnetworksocket.h"
 
 #include <QTime>
 #include <QUdpSocket>
@@ -28,6 +29,7 @@ RtpPacketizer::RtpPacketizer(QObject *parent) :
 	frameRate = 30.0;
 	packetized = true;
 	passThru = false;
+	zeroCopy = true;
 }
 
 Lmm::CodecType RtpPacketizer::codecType()
@@ -60,7 +62,14 @@ int RtpPacketizer::start()
 	sock2 = new QUdpSocket;
 	bitrateBufSize = 0;
 	bitrate = 0;
-	sock->bind(srcDataPort);
+	if (zeroCopy) {
+		if (!initZeroCopy()) {
+			mDebug("failed to initialize zero-copy, reverting to normal sockets");
+			zeroCopy = false;
+		}
+	}
+	if (!zeroCopy)
+		sock->bind(srcDataPort);
 	if (multicast && (srcControlPort != dstControlPort)) {
 		mDebug("Source and destination control ports should be same for multicast, fixing it.");
 		srcControlPort = dstControlPort;
@@ -74,7 +83,12 @@ int RtpPacketizer::start()
 		mreq.imr_multiaddr.s_addr = inet_addr(qPrintable(dstIp));
 		mreq.imr_interface.s_addr = htons(INADDR_ANY);
 		mDebug("joining multicast group %s", qPrintable(dstIp));
-		if (setsockopt(sock->socketDescriptor(), IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
+		int sd = 0;
+		if (!zeroCopy)
+			sd = sock->socketDescriptor();
+		else
+			sd = rawsock->socketDescriptor();
+		if (setsockopt(sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 			qDebug() << "error joining multicast group";
 		memset(&mreq, 0, sizeof(ip_mreq));
 		mreq.imr_multiaddr.s_addr = inet_addr(qPrintable(dstIp));
@@ -159,7 +173,10 @@ void RtpPacketizer::sendRtpData(uchar *buf, int size, int last)
 	buf[9] = (ssrc >> 16) & 0xff;
 	buf[10] = (ssrc >> 8) & 0xff;
 	buf[11] = (ssrc >> 0) & 0xff;
-	sock->writeDatagram((const char *)buf, size + 12, QHostAddress(dstIp), dstDataPort);
+	if (zeroCopy)
+		rawsock->send((char *)buf, size + 12);
+	else
+		sock->writeDatagram((const char *)buf, size + 12, QHostAddress(dstIp), dstDataPort);
 	seq = (seq + 1) & 0xffff;
 	totalPacketCount++;
 	totalOctetCount += size;
@@ -210,6 +227,12 @@ void RtpPacketizer::sendSR()
 
 	sock2->writeDatagram((const char *)buf, (length + 1) * 4, QHostAddress(dstIp), dstControlPort);
 	rtcpTime.restart();
+}
+
+bool RtpPacketizer::initZeroCopy()
+{
+	rawsock = new RawNetworkSocket(dstIp, dstDataPort, myIpAddr.toString(), srcDataPort);
+	return rawsock->isActive();
 }
 
 void RtpPacketizer::createSdp()

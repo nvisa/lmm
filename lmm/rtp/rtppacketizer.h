@@ -8,6 +8,7 @@
 #include <QHostAddress>
 
 class QUdpSocket;
+class RawNetworkSocket;
 
 class RtpPacketizer : public BaseLmmElement
 {
@@ -54,6 +55,7 @@ protected:
 	void sendRtpData(uchar *buf, int size, int last);
 	void createSdp();
 	void sendSR();
+	bool initZeroCopy();
 
 	int maxPayloadSize;
 	int seq;
@@ -83,6 +85,8 @@ protected:
 	uint totalPacketCount;
 	uint totalOctetCount;
 	bool sampleNtpRtp;
+	bool zeroCopy;
+	RawNetworkSocket *rawsock;
 };
 
 #endif // RTPPACKETIZER_H
