@@ -11,6 +11,7 @@ class RawNetworkSocket
 public:
 	struct SockBuffer {
 		char *data;
+		char *payload;
 		int size;
 		int index;
 	};

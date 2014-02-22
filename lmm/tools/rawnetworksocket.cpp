@@ -163,6 +163,7 @@ RawNetworkSocket::SockBuffer * RawNetworkSocket::createBuffer()
 
 	SockBuffer *sbuf = new SockBuffer;
 	sbuf->data = datagram;
+	sbuf->payload = sbuf->data + sizeof(struct iphdr) + sizeof(struct udphdr);
 	sbuf->index = 0;
 	sbuf->size = 4096;
 	return sbuf;
