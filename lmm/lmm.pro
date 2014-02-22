@@ -42,6 +42,7 @@ SOURCES += \
 	tools/lmmsettinghandler.cpp \
 	tools/cpuload.cpp \
     players/simplevideoplayer.cpp \
+    tools/rawnetworksocket.cpp
 
 HEADERS  += \
     filesource.h \
@@ -81,6 +82,7 @@ HEADERS  += \
 	tools/lmmsettinghandler.h \
 	tools/cpuload.h \
 	players/simplevideoplayer.h \
+    tools/rawnetworksocket.h
 
 alsa {
     HEADERS += \
