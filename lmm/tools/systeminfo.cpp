@@ -66,9 +66,34 @@ int SystemInfo::getTVPVersion()
 	::close(fd);
 	return ver;
 }
+
+int SystemInfo::getADV7842Version()
+{
+	int fd = open("/dev/i2c-1", O_RDWR);
+
+	/* With force, let the user read from/write to the registers
+		 even when a driver is also running */
+	if (ioctl(fd, I2C_SLAVE_FORCE, 0x20) < 0) {
+		fprintf(stderr,
+				"Error: Could not set address to 0x%02x: %s\n",
+				0x5f, strerror(errno));
+		return -errno;
+	}
+
+	int ver = i2c_smbus_read_byte_data(fd, 0xea) << 8;
+	ver |= i2c_smbus_read_byte_data(fd, 0xeb);
+	::close(fd);
+	return ver;
+}
+
 #else
 
 int SystemInfo::getTVPVersion()
+{
+	return -ENOENT;
+}
+
+int SystemInfo::getADV7842Version()
 {
 	return -ENOENT;
 }
