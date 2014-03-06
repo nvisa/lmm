@@ -139,7 +139,7 @@ int FFmpegDecoder::convertColorSpace(RawBuffer buf)
 		RawBuffer poolbuf = pool->take();
 		if (poolbuf.size() == 0)
 			return -ENOENT;
-		AVFrame *frame = (AVFrame *)poolbuf.par()->avFrame;
+		AVFrame *frame = (AVFrame *)poolbuf.constPars()->avFrame;
 		RawBuffer outbuf;
 		sws_scale(swsCtx, avFrame->data, avFrame->linesize, 0, codecCtx->height,
 				  frame->data, frame->linesize);
@@ -155,10 +155,10 @@ int FFmpegDecoder::convertColorSpace(RawBuffer buf)
 		outbuf.pars()->videoWidth = outWidth;
 		outbuf.pars()->videoHeight = outHeight;
 		if (rgbOut)
-			outbuf.pars()->avPixelFmt = AV_PIX_FMT_RGB24;
+			outbuf.pars()->avPixelFormat = AV_PIX_FMT_RGB24;
 		else
-			outbuf.pars()->avPixelFmt = AV_PIX_FMT_GRAY8;
-		outbuf.pars()->avFrame = (quintptr)frame;
+			outbuf.pars()->avPixelFormat = AV_PIX_FMT_GRAY8;
+		outbuf.pars()->avFrame = (quintptr *)frame;
 		outbuf.pars()->poolIndex = poolbuf.constPars()->poolIndex;
 		if (avFrame->key_frame)
 			outbuf.pars()->frameType = 0;

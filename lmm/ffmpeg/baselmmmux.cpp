@@ -378,7 +378,7 @@ int BaseLmmMux::processBuffer(int ch, const RawBuffer &buf)
 		pckt.data = (uint8_t *)buf.constData();
 		pckt.size = buf.size();
 		if (ch == 0) {
-			int ft = buf.par()->frameType;
+			int ft = buf.constPars()->frameType;
 			if (!ft) {
 				pckt.flags |= AV_PKT_FLAG_KEY;
 			}

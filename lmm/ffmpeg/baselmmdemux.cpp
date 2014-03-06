@@ -250,18 +250,13 @@ int BaseLmmDemux::demuxOne()
 		mInfo("new audio stream: size=%d", packet->size);
 		if (demuxAudio) {
 			RawBuffer buf("audio/x-raw-int", packet->data, packet->size);
-			buf.setDuration(packet->duration * audioTimeBaseN / 1000);
+			buf.pars()->duration = packet->duration * audioTimeBaseN / 1000;
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
-				buf.setPts(packet->pts * audioTimeBaseN / 1000);
+				buf.pars()->pts = packet->pts * audioTimeBaseN / 1000;
 			} else {
-				buf.setPts(-1);
+				buf.pars()->pts = -1;
 			}
-			if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
-				buf.setDts(packet->dts * audioTimeBaseN / 1000);
-			} else {
-				buf.setDts(-1);
-			}
-			buf.setStreamBufferNo(demuxedCount++);
+			buf.pars()->streamBufferNo = demuxedCount++;
 			newOutputBuffer(1, buf);
 		}
 		av_free_packet(packet);
@@ -272,18 +267,13 @@ int BaseLmmDemux::demuxOne()
 			   packet->duration, packet->flags);
 		if (demuxVideo) {
 			FFmpegBuffer buf("video/mpeg", packet);
-			buf.setDuration(packet->duration * videoTimeBaseN / 1000);
+			buf.pars()->duration = packet->duration * videoTimeBaseN / 1000;
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
-				buf.setPts(packet->pts * videoTimeBaseN / 1000);
+				buf.pars()->pts = (int64_t)AV_NOPTS_VALUE;
 			} else {
-				buf.setPts(-1);
+				buf.pars()->pts = -1;
 			}
-			if (packet->dts != int64_t(AV_NOPTS_VALUE)) {
-				buf.setDts(packet->dts * videoTimeBaseN / 1000);
-			} else {
-				buf.setDts(-1);
-			}
-			buf.setStreamBufferNo(demuxedCount++);
+			buf.pars()->streamBufferNo = demuxedCount++;
 			newOutputBuffer(0, buf);
 		}
 	}

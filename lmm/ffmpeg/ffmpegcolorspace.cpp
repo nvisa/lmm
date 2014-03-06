@@ -20,8 +20,8 @@ FFmpegColorSpace::FFmpegColorSpace(QObject *parent) :
 
 int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 {
-	int w = buf.par()->videoWidth;
-	int h = buf.par()->videoHeigth;
+	int w = buf.constPars()->videoWidth;
+	int h = buf.constPars()->videoHeight;
 	if (!swsCtx) {
 		swsCtx = sws_getContext(w, h, (AVPixelFormat)inPixFmt, w, h, (AVPixelFormat)outPixFmt, SWS_BICUBIC
 											, NULL, NULL, NULL);
@@ -39,7 +39,7 @@ int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 	if (poolbuf.size() == 0)
 		return -ENOENT;
 
-	AVFrame *frame = (AVFrame *)poolbuf.par()->avFrame;
+	AVFrame *frame = (AVFrame *)poolbuf.constPars()->avFrame;
 	RawBuffer outbuf;
 
 	int stride = w;
@@ -56,8 +56,8 @@ int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 
 	outbuf.pars()->videoWidth = w;
 	outbuf.pars()->videoHeight = h;
-	outbuf.pars()->avPixelFmt = outPixFmt;
-	outbuf.pars()->avFrame = (quintptr)frame;
+	outbuf.pars()->avPixelFormat = outPixFmt;
+	outbuf.pars()->avFrame = (quintptr *)frame;
 	outbuf.pars()->poolIndex = poolbuf.constPars()->poolIndex;
 	outbuf.pars()->pts = buf.constPars()->pts;
 	outbuf.pars()->streamBufferNo = buf.constPars()->streamBufferNo;
@@ -83,8 +83,7 @@ int FFmpegColorSpace::convertToGray()
 	return 0;
 }
 
-void FFmpegColorSpace::aboutToDeleteBuffer(const RawBufferParameters *)
+void FFmpegColorSpace::aboutToDeleteBuffer(const RawBufferParameters *pars)
 {
-	int ind = pars["poolIndex"].toInt();
-	pool->give(poolBuffers[ind]);
+	pool->give(poolBuffers[pars->poolIndex]);
 }
