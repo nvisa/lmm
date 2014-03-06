@@ -483,7 +483,10 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 							dataPort = ports[1].split("-")[0].toInt();
 							controlPort = ports[1].split("-")[1].toInt();
 						}
-					}
+					} else if (field.contains("unicast") && multicast)
+						return createRtspErrorResponse(451, lsep);
+					else if (field.contains("multicast") && !multicast)
+						return createRtspErrorResponse(451, lsep);
 				}
 				if (!dataPort)
 					dataPort = 5000;
@@ -703,7 +706,7 @@ QStringList BaseRtspServer::createSdp(QString url)
 	bool multicast = isMulticast(stream);
 	int streamPort = 0;
 	if (multicast) {
-		dstIp = getMulticastAddress(stream);
+		dstIp = getMulticastAddress(stream) + "/255";
 		streamPort = getMulticastPort(stream);
 	}
 	if (codec == Lmm::CODEC_H264) {
