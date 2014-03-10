@@ -346,6 +346,8 @@ int BaseLmmElement::sendEOF()
 	eofSent = true;
 	for (int i = 0; i < outBufQueue.size(); i++)
 		newOutputBuffer(i, RawBuffer::eof());
+	for (int i = 0; i < inBufQueue.size(); i++)
+		addBuffer(0, RawBuffer::eof());
 	return 0;
 }
 
