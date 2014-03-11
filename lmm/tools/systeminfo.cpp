@@ -76,7 +76,7 @@ int SystemInfo::getADV7842Version()
 	if (ioctl(fd, I2C_SLAVE_FORCE, 0x20) < 0) {
 		fprintf(stderr,
 				"Error: Could not set address to 0x%02x: %s\n",
-				0x5f, strerror(errno));
+				0x20, strerror(errno));
 		return -errno;
 	}
 
