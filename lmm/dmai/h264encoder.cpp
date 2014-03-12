@@ -545,15 +545,9 @@ void H264Encoder::setSeiEnabled(bool value)
 		seiBufferSize = 0;
 }
 
-void H264Encoder::setCustomSeiFieldCount(int value)
+void H264Encoder::setSeiField(const QByteArray ba)
 {
-	for (int i = customSeiData.size(); i < value; i++)
-		customSeiData << 0;
-}
-
-void H264Encoder::setSeiField(int field, int value)
-{
-	customSeiData[field] = value;
+	customSeiData = ba;
 }
 
 void H264Encoder::calculateFps(const RawBuffer buf)
@@ -1107,7 +1101,7 @@ int H264Encoder::createSeiData(QByteArray *ba, const RawBuffer source)
 	QDataStream out(ba, QIODevice::WriteOnly);
 	int start = out.device()->pos();
 	out.setByteOrder(QDataStream::LittleEndian);
-	append((qint32)0x11223344); //version
+	append((qint32)0x11223345); //version
 	append((qint64)streamTime->getCurrentTime());
 	append((qint64)source.constPars()->captureTime);
 	append((qint32)QDateTime::currentDateTime().toTime_t());
@@ -1116,9 +1110,7 @@ int H264Encoder::createSeiData(QByteArray *ba, const RawBuffer source)
 	append((qint32)sentBufferCount);
 	append((qint32)SystemInfo::getFreeMemory());
 	append((qint32)getFps());
-	for (int i = 0; i < customSeiData.size(); i++) {
-		append((qint32)customSeiData[i]);
-	}
+	append(customSeiData);
 	return out.device()->pos() - start;
 }
 

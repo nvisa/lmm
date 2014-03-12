@@ -43,8 +43,7 @@ public:
 	void setSeiEnabled(bool value);
 
 	/* sei information */
-	void setCustomSeiFieldCount(int value);
-	void setSeiField(int field, int value);
+	void setSeiField(const QByteArray ba);
 
 	IH264VENC_DynamicParams * getDynamicParams() { return dynH264Params; }
 	int setDynamicParamsNextLoop(bool v) { setDynamicParams = v; return 0; }
@@ -56,7 +55,7 @@ protected:
 private:
 	int seiBufferSize;
 	IH264VENC_DynamicParams *dynH264Params;
-	QList<int> customSeiData;
+	QByteArray customSeiData;
 	bool setDynamicParams;
 
 	int enableBufSei;
