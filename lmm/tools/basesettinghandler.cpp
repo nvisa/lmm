@@ -250,8 +250,15 @@ int BaseSettingHandler::readAllFromDisk(QString filename)
 int BaseSettingHandler::readIncrementalSettings()
 {
 	QStringList keys = changed.allKeys();
+	QStringList cachedOnes;
 	foreach (const QString key, keys) {
-		setSetting(key, changed.value(key));
+		QString last = key.split(".").last();
+		if (last.startsWith("_"))
+			cachedOnes  << key;
+		else
+			setSetting(key, changed.value(key));
 	}
+	foreach (const QString key, cachedOnes)
+		setSetting(key, changed.value(key));
 	return 0;
 }
