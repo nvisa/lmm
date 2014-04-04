@@ -2,6 +2,7 @@
 #include "h264parser.h"
 #include "debug.h"
 #include "tools/rawnetworksocket.h"
+#include "streamtime.h"
 
 #include <QTime>
 #include <QUdpSocket>
@@ -326,7 +327,8 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 
 quint64 RtpPacketizer::packetTimestamp(int stream)
 {
-	return (90000ll * (streamedBufferCount) / (int)frameRate);
+	Q_UNUSED(stream);
+	return 90ull * streamTime->getCurrentTimeMili();
 }
 
 void RtpPacketizer::calculateFps(const RawBuffer buf)
