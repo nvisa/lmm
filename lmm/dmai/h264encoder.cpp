@@ -1020,7 +1020,7 @@ int H264Encoder::startCodec(bool alloc)
 	else if (profileId == 1)
 		setDynamicParamsProfile1(params);
 	else if (profileId == 2)
-		setDynamicParamsProfile1(params);
+		setDynamicParamsProfile2(params);
 
 	QString codecName;
 	if (codec == CODEC_H264)
