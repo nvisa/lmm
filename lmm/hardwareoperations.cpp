@@ -10,9 +10,7 @@
 #include <unistd.h>
 #include <linux/fb.h>
 #include <linux/errno.h>
-#if defined(__arm__)
 #include <sys/mman.h>
-#endif
 #include <sys/ioctl.h>
 #include <errno.h>
 
