@@ -428,6 +428,7 @@ int V4l2Input::setFormat(unsigned int chromaFormat, int width, int height, bool 
 		mDebug("Unable to get VIDIOC_G_FMT");
 		return -EINVAL;
 	}
+	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	fmt.fmt.pix.width        = width;
 	fmt.fmt.pix.height       = height;
 	fmt.fmt.pix.bytesperline = VideoUtils::getLineLength(chromaFormat, width);
