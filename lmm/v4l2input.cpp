@@ -432,7 +432,7 @@ int V4l2Input::setFormat(unsigned int chromaFormat, int width, int height, bool 
 	fmt.fmt.pix.width        = width;
 	fmt.fmt.pix.height       = height;
 	fmt.fmt.pix.bytesperline = VideoUtils::getLineLength(chromaFormat, width);
-	fmt.fmt.pix.sizeimage = 0;
+	fmt.fmt.pix.sizeimage = fmt.fmt.pix.bytesperline * height;
 	fmt.fmt.pix.pixelformat  = chromaFormat;
 	fmt.fmt.pix.field        = interlaced ? V4L2_FIELD_INTERLACED : V4L2_FIELD_NONE;
 	if (ioctl(fd, VIDIOC_S_FMT, &fmt) == -1) {
