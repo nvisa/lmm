@@ -91,13 +91,14 @@ int HardwareOperations::map(unsigned int addr)
 	}
 
 	::close(fd);
+	realBase = map_base;
 	mmapBase = (unsigned int *)map_base + (addr & MAP_MASK) / sizeof(int);
 	return 0;
 }
 
 int HardwareOperations::unmap()
 {
-	return munmap(mmapBase, MAP_SIZE);
+	return munmap(realBase, MAP_SIZE);
 }
 
 int HardwareOperations::write(unsigned int off, unsigned int value)

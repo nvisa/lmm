@@ -30,7 +30,8 @@ signals:
 
 public slots:
 private:
-	unsigned int * mmapBase;
+	unsigned int *mmapBase;
+	void *realBase;
 };
 
 #endif // HARDWAREOPERATIONS_H
