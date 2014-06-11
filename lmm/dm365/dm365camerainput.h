@@ -53,6 +53,7 @@ protected:
 	void calculateFps(const RawBuffer buf);
 private:
 	int openCamera();
+	int openCamera2();
 	int closeCamera();
 	int fpsWorkaround();
 	int allocBuffers();

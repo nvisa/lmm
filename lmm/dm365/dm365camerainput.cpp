@@ -69,6 +69,347 @@
 	\sa V4l2Input, DM365DmaiCapture
 */
 
+
+/* ISIF registers relative offsets */
+#define SYNCEN					0x00
+#define MODESET					0x04
+#define HDW						0x08
+#define VDW						0x0c
+#define PPLN					0x10
+#define LPFR					0x14
+#define SPH						0x18
+#define LNH						0x1c
+#define SLV0					0x20
+#define SLV1					0x24
+#define LNV						0x28
+#define CULH					0x2c
+#define CULV					0x30
+#define HSIZE					0x34
+#define SDOFST					0x38
+#define CADU					0x3c
+#define CADL					0x40
+#define LINCFG0					0x44
+#define LINCFG1					0x48
+#define CCOLP					0x4c
+#define CRGAIN 					0x50
+#define CGRGAIN					0x54
+#define CGBGAIN					0x58
+#define CBGAIN					0x5c
+#define COFSTA					0x60
+#define FLSHCFG0				0x64
+#define FLSHCFG1				0x68
+#define FLSHCFG2				0x6c
+#define VDINT0					0x70
+#define VDINT1					0x74
+#define VDINT2					0x78
+#define MISC 					0x7c
+#define CGAMMAWD				0x80
+#define REC656IF				0x84
+#define CCDCFG					0x88
+
+#define IPIPE_SRC_EN            (0x0000)
+#define IPIPE_SRC_MODE          (0x0004)
+#define IPIPE_SRC_FMT           (0x0008)
+#define IPIPE_SRC_COL           (0x000C)
+#define IPIPE_SRC_VPS           (0x0010)
+#define IPIPE_SRC_VSZ           (0x0014)
+#define IPIPE_SRC_HPS           (0x0018)
+#define IPIPE_SRC_HSZ           (0x001C)
+#define IPIPE_GCK_MMR           (0x0028)
+#define IPIPE_GCK_PIX           (0x002C)
+
+/* Resizer */
+#define RSZ_SRC_EN              (0x0)
+#define RSZ_SRC_MODE            (0x4)
+#define RSZ_SRC_FMT0            (0x8)
+#define RSZ_SRC_FMT1            (0xC)
+#define RSZ_SRC_VPS             (0x10)
+#define RSZ_SRC_VSZ             (0x14)
+#define RSZ_SRC_HPS             (0x18)
+#define RSZ_SRC_HSZ             (0x1C)
+#define RSZ_DMA_RZA             (0x20)
+#define RSZ_DMA_RZB             (0x24)
+#define RSZ_DMA_STA             (0x28)
+#define RSZ_GCK_MMR             (0x2C)
+#define RSZ_RESERVED0           (0x30)
+#define RSZ_GCK_SDR             (0x34)
+#define RSZ_IRQ_RZA             (0x38)
+#define RSZ_IRQ_RZB             (0x3C)
+#define RSZ_YUV_Y_MIN           (0x40)
+#define RSZ_YUV_Y_MAX           (0x44)
+#define RSZ_YUV_C_MIN           (0x48)
+#define RSZ_YUV_C_MAX           (0x4C)
+#define RSZ_YUV_PHS             (0x50)
+#define RSZ_SEQ                 (0x54)
+/* Resizer Rescale Parameters */
+#define RSZ_EN_A                (0x58)
+#define RSZ_EN_B                (0xE8)
+/* offset of the registers to be added with base register of
+   either RSZ0 or RSZ1
+*/
+#define RSZ_MODE                (0x4)
+#define RSZ_420                 (0x8)
+#define RSZ_I_VPS               (0xC)
+#define RSZ_I_HPS               (0x10)
+#define RSZ_O_VSZ               (0x14)
+#define RSZ_O_HSZ               (0x18)
+#define RSZ_V_PHS_Y             (0x1C)
+#define RSZ_V_PHS_C             (0x20)
+#define RSZ_V_DIF               (0x24)
+#define RSZ_V_TYP               (0x28)
+#define RSZ_V_LPF               (0x2C)
+#define RSZ_H_PHS               (0x30)
+#define RSZ_H_PHS_ADJ           (0x34)
+#define RSZ_H_DIF               (0x38)
+#define RSZ_H_TYP               (0x3C)
+#define RSZ_H_LPF               (0x40)
+#define RSZ_DWN_EN              (0x44)
+#define RSZ_DWN_AV              (0x48)
+
+/* Resizer RGB Conversion Parameters */
+#define RSZ_RGB_EN              (0x4C)
+#define RSZ_RGB_TYP             (0x50)
+#define RSZ_RGB_BLD             (0x54)
+
+/* Resizer External Memory Parameters */
+#define RSZ_SDR_Y_BAD_H         (0x58)
+#define RSZ_SDR_Y_BAD_L         (0x5C)
+#define RSZ_SDR_Y_SAD_H         (0x60)
+#define RSZ_SDR_Y_SAD_L         (0x64)
+#define RSZ_SDR_Y_OFT           (0x68)
+#define RSZ_SDR_Y_PTR_S         (0x6C)
+#define RSZ_SDR_Y_PTR_E         (0x70)
+#define RSZ_SDR_C_BAD_H         (0x74)
+#define RSZ_SDR_C_BAD_L         (0x78)
+#define RSZ_SDR_C_SAD_H         (0x7C)
+#define RSZ_SDR_C_SAD_L         (0x80)
+#define RSZ_SDR_C_OFT           (0x84)
+#define RSZ_SDR_C_PTR_S         (0x88)
+#define RSZ_SDR_C_PTR_E         (0x8C)
+
+
+class BaseHwConfig
+{
+public:
+	BaseHwConfig()
+	{
+
+	}
+
+	/* these are parameters for desired output image */
+	int width;
+	int height;
+	int linelen;
+
+	virtual int setup()
+	{
+		/* setup with a paused pipeline */
+		enablePipeline(false);
+
+		int err = setupISIF();
+		if (err)
+			return err;
+
+		err = setupIPIPEIF();
+		if (err)
+			return err;
+
+		err = setupIPIPE();
+		if (err)
+			return err;
+
+		err = setupResizer();
+		if (err)
+			return err;
+
+		return 0;
+	}
+
+	virtual int enablePipeline(bool en)
+	{
+		enableISIF(en);
+		enableIPIPEIF(en);
+		enableIPIPE(en);
+		enableResizer(en, en ? 0x01 : 0x00); //enable only A channel
+		return 0;
+	}
+protected:
+	virtual int setupISIF() = 0;
+	virtual int setupIPIPEIF() = 0;
+	virtual int setupIPIPE() = 0;
+	virtual int setupResizer() = 0;
+
+	virtual int enableISIF(bool en) = 0;
+	virtual int enableIPIPEIF(bool en) = 0;
+	virtual int enableIPIPE(bool en) = 0;
+	virtual int enableResizer(bool en, int ch) = 0;
+};
+
+class YPbPrConfig : public BaseHwConfig
+{
+public:
+	YPbPrConfig()
+		: BaseHwConfig()
+	{
+
+	}
+
+	~YPbPrConfig()
+	{
+		enablePipeline(false);
+	}
+
+protected:
+	int enableISIF(bool en)
+	{
+		HardwareOperations hop;
+		int err = hop.map(0x1c71000);
+		if (err)
+			return err;
+		hop.write(SYNCEN, en ? 1 : 0);
+		hop.unmap();
+		return 0;
+	}
+
+	int enableIPIPEIF(bool en)
+	{
+		HardwareOperations hop;
+		int err = hop.map(0x1c71200);
+		if (err)
+			return err;
+		hop.write(0x0, en ? 1 : 0);
+		hop.unmap();
+		return 0;
+	}
+
+	int enableIPIPE(bool en)
+	{
+		HardwareOperations hop;
+		int err = hop.map(0x1c70800);
+		if (err)
+			return err;
+		hop.write(IPIPE_GCK_MMR, 0x1);
+		hop.write(IPIPE_GCK_PIX, 0xe);
+		hop.write(IPIPE_SRC_EN, en ? 1 : 0);
+		hop.unmap();
+		return 0;
+	}
+
+	int enableResizer(bool en, int ch)
+	{
+		HardwareOperations hop;
+		int err = hop.map(0x1c70400);
+		if (err)
+			return err;
+		hop.write(RSZ_GCK_MMR, 0x1);
+		hop.write(RSZ_SRC_EN, en ? 1 : 0);
+		if (ch & 0x1)
+			hop.write(RSZ_EN_A, 0x1);
+		else
+			hop.write(RSZ_EN_A, 0x0);
+		if (ch & 0x2)
+			hop.write(RSZ_EN_B, 0x1);
+		else
+			hop.write(RSZ_EN_B, 0x0);
+		hop.unmap();
+		return 0;
+	}
+
+	int setupISIF()
+	{
+		HardwareOperations hop;
+		int err = hop.map(0x1c71000);
+		if (err)
+			return err;
+		hop.write(MODESET, (1 << 12)); //16-bit YPbPr
+		hop.write(HDW, 0); //not used when input
+		hop.write(VDW, 0); //not used when input
+		hop.write(PPLN, 0); //not used when input
+		hop.write(LPFR, 0); //not used when input
+		hop.write(SPH, 0);
+		hop.write(LNH, width - 1);
+		hop.write(SLV0, 0);
+		hop.write(SLV1, 0);
+		hop.write(LNV, height - 1);
+		hop.write(HSIZE, ((((width * 2) + 31) & 0xffffffe0) >> 5));
+		hop.write(VDINT0, height - 1); //FIXME: check this
+		hop.write(VDINT1, height / 2); //FIXME: check this
+
+		hop.unmap();
+		return 0;
+	}
+
+	int setupIPIPEIF()
+	{
+		/* no IPIPEIF in this mode */
+		return 0;
+	}
+
+	int setupIPIPE()
+	{
+		HardwareOperations hop;
+		int err = hop.map(0x1c70800);
+		if (err)
+			return err;
+		hop.write(IPIPE_GCK_MMR, 0x1);
+		hop.write(IPIPE_SRC_MODE, 0);
+		hop.write(IPIPE_SRC_FMT, 3);
+		hop.write(IPIPE_SRC_VPS, 1); //FIXME: check this
+		hop.write(IPIPE_SRC_VSZ, height - 1);
+		hop.write(IPIPE_SRC_HPS, 0);
+		hop.write(IPIPE_SRC_HSZ, width - 1);
+
+		hop.unmap();
+		return 0;
+	}
+
+	virtual int setupResizer()
+	{
+		HardwareOperations hop;
+		int err = hop.map(0x1c70400);
+		if (err)
+			return err;
+		hop.write(RSZ_GCK_MMR, 0x1);
+		hop.write(RSZ_SRC_MODE, 0x0);
+		hop.write(RSZ_SRC_FMT0, 0x0);
+		hop.write(RSZ_SRC_FMT1, 0x0);
+		hop.write(RSZ_SRC_VPS, 0x0);
+		hop.write(RSZ_SRC_VSZ, height - 1);
+		hop.write(RSZ_SRC_HPS, 0);
+		hop.write(RSZ_SRC_HSZ, width - 1);
+		hop.write(RSZ_GCK_SDR, 0x1);
+		hop.write(RSZ_SEQ, 0x0);
+		int off = RSZ_EN_A;
+		hop.write(off + RSZ_MODE, 0x0); //continuous mode
+		hop.write(off + RSZ_420, 0x03); //enable 420 conversion
+		hop.write(off + RSZ_I_VPS, 0x0);
+		hop.write(off + RSZ_I_HPS, 0x0);
+		hop.write(off + RSZ_O_VSZ, height - 1);
+		hop.write(off + RSZ_O_HSZ, width - 1);
+		hop.write(off + RSZ_V_PHS_Y, 0);
+		hop.write(off + RSZ_V_PHS_C, 0);
+		hop.write(off + RSZ_V_DIF, 256);
+		hop.write(off + RSZ_V_TYP, 0);
+		hop.write(off + RSZ_H_DIF, 256);
+		hop.write(off + RSZ_H_TYP, 0);
+		hop.write(off + RSZ_H_PHS, 0);
+		hop.write(off + RSZ_H_PHS_ADJ, 0);
+		hop.write(off + RSZ_DWN_EN, 0x0); //no down scaling
+		hop.write(off + RSZ_RGB_EN, 0x0); //no rgb conversion
+
+		/* BAD|SAD{H|L} registers should be adjusted by kernel driver */
+		hop.write(off + RSZ_SDR_Y_OFT, linelen);
+		hop.write(off + RSZ_SDR_Y_PTR_S, 0x0); //can be used for cropping
+		hop.write(off + RSZ_SDR_Y_PTR_E, height);
+		hop.write(off + RSZ_SDR_C_OFT, linelen);
+		hop.write(off + RSZ_SDR_C_PTR_S, 0x0); //can be used for cropping
+		hop.write(off + RSZ_SDR_C_PTR_E, height / 2);
+
+		hop.unmap();
+		return 0;
+	}
+};
+
 DM365CameraInput::DM365CameraInput(QObject *parent) :
 	V4l2Input(parent)
 {
@@ -237,7 +578,9 @@ int DM365CameraInput::openCamera()
 		return err;
 
 	adjustCropping(inputCaptureWidth, inputCaptureHeight);
-	setFormat(pixFormat, width, height, inputType == COMPOSITE);
+	err = setFormat(pixFormat, width, height, inputType == COMPOSITE);
+	if (err)
+		return err;
 
 	/* buffer allocation */
 	BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
@@ -318,12 +661,116 @@ int DM365CameraInput::openCamera()
 	return err;
 }
 
+int DM365CameraInput::openCamera2()
+{
+	int width = captureWidth, height = captureHeight;
+	int width2 = captureWidth2, height2 = captureHeight2;
+	int err = 0;
+
+	err = openDeviceNode();
+	if (err)
+		return err;
+
+	BaseHwConfig *config = new YPbPrConfig;
+	config->width = width;
+	config->height = height;
+	config->linelen = width;
+	err = config->setup();
+	if (err)
+		return err;
+
+	err = setFormat(pixFormat, width, height, inputType == COMPOSITE);
+	if (err)
+		return err;
+
+	/* buffer allocation */
+	BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
+	gfxAttrs.dim.x = 0;
+	gfxAttrs.dim.y = 0;
+	int bufSize = VideoUtils::getFrameSize(
+				pixFormat, (width + width2), (height + height2));
+	if (pixFormat == V4L2_PIX_FMT_UYVY)
+		gfxAttrs.colorSpace = ColorSpace_UYVY;
+	else if (pixFormat == V4L2_PIX_FMT_NV12)
+		gfxAttrs.colorSpace = ColorSpace_YUV420PSEMI;
+	else
+		return -EINVAL;
+
+	for (uint i = 0; i < captureBufferCount; i++) {
+		gfxAttrs.dim.width = width;
+		gfxAttrs.dim.height = height;
+		gfxAttrs.dim.lineLength = VideoUtils::getLineLength(pixFormat, width);
+		gfxAttrs.bAttrs.reference = 0;
+		Buffer_Handle h = Buffer_create(bufSize, BufferGfx_getBufferAttrs(&gfxAttrs));
+		if (!h) {
+			mDebug("unable to create %d capture buffers with size %d", captureBufferCount, bufSize);
+			return -ENOMEM;
+		}
+		Buffer_setNumBytesUsed(h, bufSize);
+		srcBuffers << h;
+
+		/* create reference buffers for rsz A channel */
+		gfxAttrs.dim.width = width;
+		gfxAttrs.dim.height = height;
+		gfxAttrs.dim.lineLength = VideoUtils::getLineLength(pixFormat, width);
+		gfxAttrs.bAttrs.reference = true;
+		Buffer_Handle h2 = Buffer_create(0, BufferGfx_getBufferAttrs(&gfxAttrs));
+		if (!h2) {
+			mDebug("unable to create capture buffers");
+			return -ENOMEM;
+		}
+		Buffer_setSize(h2, VideoUtils::getFrameSize(pixFormat, width, height));
+		Buffer_setUserPtr(h2, Buffer_getUserPtr(h));
+		refBuffersA << h2;
+
+		/* create reference buffers for rsz B channel */
+		gfxAttrs.bAttrs.reference = true;
+		gfxAttrs.dim.width = width2;
+		gfxAttrs.dim.height = height2;
+		gfxAttrs.dim.lineLength = VideoUtils::getLineLength(pixFormat, width2);
+		Buffer_Handle h3 = Buffer_create(0, BufferGfx_getBufferAttrs(&gfxAttrs));
+		if (!h3) {
+			mDebug("unable to create capture buffers");
+			return -ENOMEM;
+		}
+		Buffer_setSize(h3, VideoUtils::getFrameSize(pixFormat, width2, height2));
+		/*
+		 * NOTE:
+		 * we cannot simple set user pointer like this:
+		 *		Buffer_setUserPtr(h3, Buffer_getUserPtr(h) + Buffer_getSize(h3));
+		 * This is because cmem allocator will not be able to resolve physical
+		 * address from this. Workaround is to use these buffers with a proper
+		 * offset
+		 **/
+		Buffer_setUserPtr(h3, Buffer_getUserPtr(h));
+		h3->physPtr += Buffer_getSize(h2);
+		h3->userPtr += Buffer_getSize(h2);
+		refBuffersB << h3;
+
+		useCount << 0;
+	}
+	err = allocBuffers();
+	if (err) {
+		mDebug("unable to allocate driver buffers with error %d", err);
+		return err;
+	}
+
+	mDebug("buffers are allocated, starting streaming");
+	err = startStreaming();
+
+	config->enablePipeline(true);
+
+	return err;
+}
+
 int DM365CameraInput::closeCamera()
 {
 	stopStreaming();
 	close(fd);
-	close(rszFd);
-	close(preFd);
+	if (rszFd > 0)
+		close(rszFd);
+	if (preFd > 0)
+		close(preFd);
 	qDeleteAll(v4l2buf);
 	v4l2buf.clear();
 	userptr.clear();
