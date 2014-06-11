@@ -56,7 +56,6 @@ HEADERS  += \
     lmmcommon.h \
     v4l2input.h \
     fboutput.h \
-    textoverlay.h \
     debugserver.h \
     debugclient.h \
     udpoutput.h \
