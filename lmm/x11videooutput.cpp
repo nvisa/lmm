@@ -75,8 +75,8 @@ int X11VideoOutput::stop()
 
 int X11VideoOutput::outputBuffer(RawBuffer buf)
 {
-	int w = buf.getBufferParameter("width").toInt();
-	int h = buf.getBufferParameter("height").toInt();
+	int w = buf.constPars()->videoWidth;
+	int h = buf.constPars()->videoHeight;
 	if (!p->win) {
 		int background = 0x010203;
 		p->win = XCreateSimpleWindow(p->dpy, DefaultRootWindow(p->dpy), 0, 0, w, h, 0,

@@ -83,6 +83,10 @@ HEADERS  += \
 	players/simplevideoplayer.h \
     tools/rawnetworksocket.h
 
+x11 {
+	HEADERS += x11videooutput.h
+	SOURCES += x11videooutput.cpp
+}
 alsa {
     HEADERS += \
         alsa/alsa.h \
