@@ -82,6 +82,13 @@ QString BaseSettingHandler::getSettingString(QString setting)
 
 int BaseSettingHandler::setSetting(QString setting, QVariant value)
 {
+	if (setting.startsWith("__base")) {
+		if (equals("__base.sync")) {
+			changed.sync();
+			::sync();
+		}
+		return 0;
+	}
 	QStringList l = setting.split(".");
 	if (!handlers.contains(l.first()))
 		return -ENOENT;
