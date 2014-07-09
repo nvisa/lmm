@@ -123,7 +123,6 @@ ffmpeg {
 		ffmpeg/ffmpegcolorspace.h \
 
     SOURCES += \
-		ffmpeg/avidemux.cpp \
         ffmpeg/baselmmdemux.cpp \
         ffmpeg/mpegtsdemux.cpp \
         ffmpeg/avidemux.cpp \
@@ -164,6 +163,21 @@ ffmpeg {
 
     }
     DEFINES += CONFIG_FFMPEG
+
+    #when building non-static libraries following libraries needed so that lmm can be used in plugins
+    !staticlib {
+        LIBS += -L$$/usr/lib \
+            -lavdevice \
+            -lavformat \
+            -lavfilter \
+            -lavcodec \
+            -lswresample \
+            -lswscale \
+            -lavutil \
+            -lfdk-aac \
+            -lx264 \
+            -lpostproc \
+    }
 }
 
 dmai {

@@ -9,6 +9,8 @@
 
 #include <errno.h>
 
+#include <unistd.h> /* for sync() */
+
 QMap<QString, int> BaseSettingHandler::settingKeys;
 QMap<QString, BaseSettingHandler *> BaseSettingHandler::handlers;
 QMap<QString, QObject *> BaseSettingHandler::targetIndex;
