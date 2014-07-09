@@ -35,6 +35,7 @@ public:
 	int v4l2PixelFormat;
 	int videoWidth;
 	int videoHeight;
+	QByteArray metaData;
 };
 
 class RawBufferData : public QSharedData
