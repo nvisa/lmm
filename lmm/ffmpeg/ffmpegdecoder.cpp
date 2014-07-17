@@ -93,7 +93,7 @@ int FFmpegDecoder::decode(RawBuffer buf)
 	int bytes = avcodec_decode_video2(codecCtx, avFrame, &finished, packet);
 	if (bytes < 0) {
 		mDebug("error %d while decoding frame", bytes);
-		return bytes;
+		return 0;
 	}
 	if (finished) {
 		if (convert)
