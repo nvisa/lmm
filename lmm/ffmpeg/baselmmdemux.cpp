@@ -152,7 +152,11 @@ int BaseLmmDemux::findStreamInfo()
 		}
 		context->pb = (AVIOContext *)avioCtx;
 	}
-	int err = avformat_open_input(&context, qPrintable(sourceUrlName), NULL, NULL);
+	AVDictionary* options = NULL;
+	if (getParameter("rtsp_transport").isValid()) {
+		av_dict_set(&options, "rtsp_transport", qPrintable(getParameter("rtsp_transport").toString()), 0);
+	}
+	int err = avformat_open_input(&context, qPrintable(sourceUrlName), NULL, &options);
 #endif
 	if (err) {
 		mDebug("cannot open input file '%s', errorno is %d", qPrintable(sourceUrlName), err);
