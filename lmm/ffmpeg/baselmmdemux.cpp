@@ -76,6 +76,11 @@ static int64_t lmmUrlSeek(void *opaque, int64_t offset, int whence)
 }
 #endif
 
+int interrupCallback(void *opaque)
+{
+	return ((BaseLmmDemux *)opaque)->isAvformatContextDone() ? 1 : 0;
+}
+
 BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	BaseLmmElement(parent)
 {
@@ -144,18 +149,20 @@ int BaseLmmDemux::findStreamInfo()
 #ifdef URL_RDONLY
 	int err = av_open_input_file(&context, qPrintable(sourceUrlName), NULL, 0, NULL);
 #else
+	context = avformat_alloc_context();
+	if (!context) {
+		mDebug("error allocating input context");
+		return -ENOMEM;
+	}
 	if (sourceUrlName.contains("lmmdemuxi")) {
-		context = avformat_alloc_context();
-		if (!context) {
-			mDebug("error allocating input context");
-			return -ENOMEM;
-		}
 		context->pb = (AVIOContext *)avioCtx;
 	}
 	AVDictionary* options = NULL;
 	if (getParameter("rtsp_transport").isValid()) {
 		av_dict_set(&options, "rtsp_transport", qPrintable(getParameter("rtsp_transport").toString()), 0);
 	}
+	context->interrupt_callback.callback = interrupCallback;
+	context->interrupt_callback.opaque = this;
 	int err = avformat_open_input(&context, qPrintable(sourceUrlName), NULL, &options);
 #endif
 	if (err) {
@@ -383,6 +390,7 @@ int BaseLmmDemux::start()
 		mDebug("bye bye to context");
 		conlock.unlock();
 	}
+	unblockContext = false;
 	demuxedCount = 0;
 	streamPosition = 0;
 	videoStreamIndex = audioStreamIndex = -1;
@@ -394,6 +402,7 @@ int BaseLmmDemux::start()
 int BaseLmmDemux::stop()
 {
 	if (sourceUrlName.contains("rtsp")) {
+		unblockContext = true;
 		conlock.lock();
 		av_close_input_file(context);
 		context = NULL;

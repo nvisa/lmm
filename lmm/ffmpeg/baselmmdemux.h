@@ -28,6 +28,7 @@ public:
 	virtual int demuxOne();
 	virtual int processBuffer(const RawBuffer &buf);
 	AVCodecContext * getVideoCodecContext();
+	bool isAvformatContextDone() { return unblockContext; }
 
 	void setAudioDemuxing(bool v) { demuxAudio = v; } /* TODO: clear existing buffers */
 	void setVideoDemuxing(bool v) { demuxVideo = v; } /* TODO: clear existing buffers */
@@ -60,6 +61,7 @@ protected:
 	int avioBufferSize;
 	uchar *avioBuffer;
 	int demuxedCount;
+	bool unblockContext;
 	/*
 	 * In older FFmpeg releases AVIOContext is typedef to
 	 * anonymous struct so it is not possible to forward
