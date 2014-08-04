@@ -1101,15 +1101,6 @@ int H264Encoder::createSeiData(QByteArray *ba, const RawBuffer source)
 	QDataStream out(ba, QIODevice::WriteOnly);
 	int start = out.device()->pos();
 	out.setByteOrder(QDataStream::LittleEndian);
-	append((qint32)0x11223345); //version
-	append((qint64)streamTime->getCurrentTime());
-	append((qint64)source.constPars()->captureTime);
-	append((qint32)QDateTime::currentDateTime().toTime_t());
-	append((qint32)CpuLoad::getCpuLoad());
-	append((qint32)CpuLoad::getAverageCpuLoad());
-	append((qint32)sentBufferCount);
-	append((qint32)SystemInfo::getFreeMemory());
-	append((qint32)getFps());
 	append(customSeiData);
 	return out.device()->pos() - start;
 }
