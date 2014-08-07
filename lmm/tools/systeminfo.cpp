@@ -40,7 +40,7 @@ static inline __s32 i2c_smbus_write_byte_data(int file, __u8 command,
 							I2C_SMBUS_BYTE_DATA, &data);
 }
 
-static inline __s32 i2c_smbus_read_byte_data(int file, __u8 command)
+static inline __u8 i2c_smbus_read_byte_data(int file, __u8 command)
 {
 	union i2c_smbus_data data;
 	int status;
@@ -61,7 +61,7 @@ int SystemInfo::getTVPVersion()
 		return -errno;
 	}
 
-	int ver = i2c_smbus_read_byte_data(fd, 0x80) << 8;
+	short ver = i2c_smbus_read_byte_data(fd, 0x80) << 8;
 	ver |= i2c_smbus_read_byte_data(fd, 0x81);
 	::close(fd);
 	return ver;
@@ -80,8 +80,27 @@ int SystemInfo::getADV7842Version()
 		return -errno;
 	}
 
-	int ver = i2c_smbus_read_byte_data(fd, 0xea) << 8;
+	short ver = i2c_smbus_read_byte_data(fd, 0xea) << 8;
 	ver |= i2c_smbus_read_byte_data(fd, 0xeb);
+	::close(fd);
+	return ver;
+}
+
+int SystemInfo::getTFP410DevId()
+{
+	int fd = open("/dev/i2c-1", O_RDWR);
+
+	/* With force, let the user read from/write to the registers
+		 even when a driver is also running */
+	if (ioctl(fd, I2C_SLAVE_FORCE, 0x3f) < 0) {
+		fprintf(stderr,
+				"Error: Could not set address to 0x%02x: %s\n",
+				0x3f, strerror(errno));
+		return -errno;
+	}
+
+	short ver = i2c_smbus_read_byte_data(fd, 0x03) << 8;
+	ver |= i2c_smbus_read_byte_data(fd, 0x02);
 	::close(fd);
 	return ver;
 }
