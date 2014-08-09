@@ -1,4 +1,6 @@
 #include "alsa.h"
+#include "debug.h"
+#include "platform_info.h"
 
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -6,6 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <getopt.h>
+
 #include <alsa/asoundlib.h>
 #include <alsa/input.h>
 #include <alsa/output.h>
@@ -15,28 +18,86 @@
 #include <alsa/asoundlib.h>
 #include <alsa/control.h>
 #include <alsa/error.h>
-#include "debug.h"
-#include "platform_info.h"
+
+static snd_pcm_format_t toPcmFormat(Lmm::AudioSampleType format)
+{
+	switch (format) {
+	case Lmm::AUDIO_SAMPLE_DBL:
+		return SND_PCM_FORMAT_FLOAT64;
+	case Lmm::AUDIO_SAMPLE_FLT:
+		return SND_PCM_FORMAT_FLOAT;
+	case Lmm::AUDIO_SAMPLE_FLTP:
+		return SND_PCM_FORMAT_FLOAT;
+	case Lmm::AUDIO_SAMPLE_S16:
+		return SND_PCM_FORMAT_S16;
+	case Lmm::AUDIO_SAMPLE_S16P:
+		return SND_PCM_FORMAT_S16;
+	case Lmm::AUDIO_SAMPLE_S32:
+		return SND_PCM_FORMAT_S32;
+	case Lmm::AUDIO_SAMPLE_S32P:
+		return SND_PCM_FORMAT_S32;
+	case Lmm::AUDIO_SAMPLE_U8:
+		return SND_PCM_FORMAT_U8;
+	case Lmm::AUDIO_SAMPLE_U8P:
+		return SND_PCM_FORMAT_U8;
+	}
+	return SND_PCM_FORMAT_S16;
+}
+
+static int pcmBytesPerSample(Lmm::AudioSampleType format)
+{
+	switch (format) {
+	case Lmm::AUDIO_SAMPLE_DBL:
+		return 8;
+	case Lmm::AUDIO_SAMPLE_FLT:
+		return 4;
+	case Lmm::AUDIO_SAMPLE_FLTP:
+		return 4;
+	case Lmm::AUDIO_SAMPLE_S16:
+		return 2;
+	case Lmm::AUDIO_SAMPLE_S16P:
+		return 2;
+	case Lmm::AUDIO_SAMPLE_S32:
+		return 4;
+	case Lmm::AUDIO_SAMPLE_S32P:
+		return 4;
+	case Lmm::AUDIO_SAMPLE_U8:
+		return 1;
+	case Lmm::AUDIO_SAMPLE_U8P:
+		return 1;
+	}
+	return 2;
+}
 
 Alsa::Alsa(QObject *parent) :
 	QObject(parent)
 {
-	bytesPerSample = 2;
+	bytesPerSample = 4;
 	bufferTime = 200000;
 	periodTime = 10000;
 	handle = NULL;
 	hctl = NULL;
+	channels = 1;
+	running = false;
 }
 
-int Alsa::open(int rate, bool capture)
+bool Alsa::isOpen()
 {
+	return running;
+}
+
+int Alsa::open(int rate, int chs, Lmm::AudioSampleType format, bool capture)
+{
+	channels = chs;
+	sampleFormat = format;
+	bytesPerSample = pcmBytesPerSample(format);
 	if (!hctl)
 		initVolumeControl();
 	int err = 0;
 	if (!capture)
-		snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+		err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
 	else
-		snd_pcm_open(&handle, "default", SND_PCM_STREAM_CAPTURE, 0);
+		err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_CAPTURE, 0);
 	if (err)
 		return err;
 	mDebug("pcm device opened");
@@ -54,9 +115,12 @@ int Alsa::open(int rate, bool capture)
 
 int Alsa::close()
 {
+	int err = 0;
 	mutex.lock();
-	int err = snd_pcm_close(handle);
-	handle = NULL;
+	if (handle) {
+		err = snd_pcm_close(handle);
+		handle = NULL;
+	}
 	running = false;
 	mutex.unlock();
 	return err;
@@ -113,8 +177,7 @@ int Alsa::write(const void *buf, int length)
 	if (!handle || !running)
 		return length;
 	mutex.lock();
-	cptr = length / bytesPerSample / 2;
-
+	cptr = length / bytesPerSample / channels;
 	while (cptr > 0) {
 		err = snd_pcm_writei(handle, ptr, cptr);
 		mInfo("written %d frames out of %d", err, cptr);
@@ -145,7 +208,7 @@ write_error:
 
 int Alsa::read(void *buf, int length)
 {
-	int ch = 2;
+	//int ch = 2;
 	mutex.lock();
 	int err = snd_pcm_readi(handle, buf, length);// / bytesPerSample / ch);
 	mutex.unlock();
@@ -182,16 +245,16 @@ int Alsa::setHwParams(int rate)
 
 	err = snd_pcm_hw_params_any(handle, params);
 	if (err)
-		goto out;
+		snd_pcm_hw_params_current(handle, params);
 	err = snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
 	if (err)
 		goto out;
 	mDebug("access type ok");
-	err = snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S16);
+	err = snd_pcm_hw_params_set_format(handle, params, toPcmFormat(sampleFormat));
 	if (err)
 		goto out;
 	mDebug("format ok");
-	snd_pcm_hw_params_set_channels(handle, params, 2);
+	snd_pcm_hw_params_set_channels(handle, params, channels);
 	if (err)
 		goto out;
 	mDebug("channels ok");
@@ -213,6 +276,7 @@ int Alsa::setHwParams(int rate)
 	//snd_pcm_hw_params_get_period_time(params, &periodTime, NULL);
 	snd_pcm_hw_params(handle, params);
 out:
+	mDebug("error %d: '%s'", err, snd_strerror(err));
 	snd_pcm_hw_params_free(params);
 	return err;
 }

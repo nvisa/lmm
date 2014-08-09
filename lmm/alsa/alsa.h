@@ -15,12 +15,15 @@ typedef unsigned long snd_pcm_uframes_t;
 #include <alsa/global.h>
 #include <alsa/control.h>
 
+#include <lmm/lmmcommon.h>
+
 class Alsa : public QObject
 {
 	Q_OBJECT
 public:
 	Alsa(QObject *parent = NULL);
-	int open(int rate = 48000, bool capture = false);
+	bool isOpen();
+	int open(int rate, int chs, Lmm::AudioSampleType format, bool capture = false);
 	int close();
 	int pause();
 	int resume();
@@ -43,6 +46,8 @@ private:
 	bool running;
 	int sampleRate;
 	int driverDelay;
+	int channels;
+	Lmm::AudioSampleType sampleFormat;
 
 	snd_hctl_t *hctl;
 	snd_hctl_elem_t *mixerVolumeElem;
