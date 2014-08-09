@@ -278,7 +278,7 @@ int BaseLmmDemux::demuxOne()
 			FFmpegBuffer buf("video/mpeg", packet);
 			buf.pars()->duration = packet->duration * videoTimeBaseN / 1000;
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
-				buf.pars()->pts = (int64_t)AV_NOPTS_VALUE;
+				buf.pars()->pts = packet->pts * videoTimeBaseN / 1000;
 			} else {
 				buf.pars()->pts = -1;
 			}
