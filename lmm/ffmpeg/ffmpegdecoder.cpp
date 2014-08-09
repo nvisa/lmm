@@ -75,17 +75,34 @@ int FFmpegDecoder::decode(RawBuffer buf)
 	AVPacket *packet = ffbuf->getAVPacket();
 	if (onlyKeyframe && (packet->flags & AV_PKT_FLAG_KEY) == 0)
 		return 0;
-	int finished;
-	int bytes = avcodec_decode_video2(codecCtx, avFrame, &finished, packet);
-	if (bytes < 0) {
-		mDebug("error %d while decoding frame", bytes);
+	if (codec->type == AVMEDIA_TYPE_VIDEO) {
+		int finished;
+		int bytes = avcodec_decode_video2(codecCtx, avFrame, &finished, packet);
+		if (bytes < 0) {
+			mDebug("error %d while decoding frame", bytes);
+			return 0;
+		}
+		if (finished) {
+			if (convert)
+				return convertColorSpace(buf);
+		}
 		return 0;
+	} else if (codec->type == AVMEDIA_TYPE_AUDIO) {
+		int finished;
+		int bytes = avcodec_decode_audio4(codecCtx, avFrame, &finished, packet);
+		if (bytes < 0) {
+			mDebug("error %d while decoding audio frame", bytes);
+			return 0;
+		}
+		/* since we are using demuxer all packet should be used by the decoder */
+		int frameSize = av_samples_get_buffer_size(NULL, codecCtx->channels, avFrame->nb_samples, codecCtx->sample_fmt, 1);
+		RawBuffer buf(QString("audio/x-raw-int,rate=%1,fmt=%2,channels=%3").arg(codecCtx->sample_rate)
+					  .arg(codecCtx->sample_fmt).arg(codecCtx->channels),
+					  avFrame->data[0], frameSize);
+		return newOutputBuffer(0, buf);
 	}
-	if (finished) {
-		if (convert)
-			return convertColorSpace(buf);
-	}
-	return 0;
+
+	return -EINVAL;
 }
 
 int FFmpegDecoder::convertColorSpace(RawBuffer buf)
