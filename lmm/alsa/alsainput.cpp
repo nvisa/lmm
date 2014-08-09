@@ -34,7 +34,7 @@ int AlsaInput::start()
 {
 	bufferSize = getParameter("sampleSize").toInt() * 2 * 2;
 	/* alsa defaults 48000 for invalid sample rates */
-	int err = alsaIn->open(getParameter("audioRate").toInt(), true);
+	int err = alsaIn->open(getParameter("audioRate").toInt(), 2, Lmm::AUDIO_SAMPLE_S16, true);
 	if (err)
 		return err;
 	return BaseLmmElement::start();

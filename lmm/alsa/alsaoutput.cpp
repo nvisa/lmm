@@ -1,7 +1,6 @@
 #include "alsaoutput.h"
 #include "alsa/alsa.h"
 #include "rawbuffer.h"
-#define DEBUG
 #include "debug.h"
 #include <errno.h>
 
@@ -10,25 +9,46 @@ AlsaOutput::AlsaOutput(QObject *parent) :
 {
 	alsaOut = new Alsa;
 	unmute = false;
+	channels = 2;
+	format = Lmm::AUDIO_SAMPLE_FLTP;
+	audioRate = 48000;
 }
 
 int AlsaOutput::outputBuffer(RawBuffer buf)
 {
+	if (!alsaOut->isOpen()) {
+		/* alsa defaults to 48000 for invalid sample rates */
+		QStringList mime = buf.getMimeType().split(",");
+		foreach (QString pair, mime) {
+			if (!pair.contains("="))
+				continue;
+			QStringList flds = pair.split("=");
+			if (flds[0] == "rate")
+				audioRate = flds[1].toInt();
+			if (flds[0] == "fmt")
+				format = (Lmm::AudioSampleType)flds[1].toInt();
+			if (flds[0] == "channels")
+				channels = flds[1].toInt();
+		}
+		int err = alsaOut->open(audioRate, channels, format);
+		if (err)
+			return err;
+	}
+
 	const char *data = (const char *)buf.constData();
 	alsaOut->write(data, buf.size());
 	if (unmute) {
 		alsaOut->mute(false);
 		unmute = false;
 	}
+
 	return 0;
 }
 
 int AlsaOutput::start()
 {
-	/* alsa defaults 48000 for invalid sample rates */
-	int err = alsaOut->open(getParameter("audioRate").toInt());
-	if (err)
-		return err;
+	/* we will open alsa device with first buffer */
+	alsaOut->close();
 	return BaseLmmOutput::start();
 }
 
@@ -51,9 +71,10 @@ int AlsaOutput::setParameter(QString param, QVariant value)
 	int err = BaseLmmElement::setParameter(param, value);
 	if (err)
 		return err;
-	if (param == "audioRate") {
+	if (isRunning() && param == "audioRate") {
+		audioRate = value.toInt();
 		alsaOut->close();
-		alsaOut->open(value.toInt());
+		alsaOut->open(audioRate, channels, format);
 	}
 	return 0;
 }

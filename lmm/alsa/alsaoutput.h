@@ -1,7 +1,9 @@
 #ifndef ALSAOUTPUT_H
 #define ALSAOUTPUT_H
 
+#include <lmm/lmmcommon.h>
 #include <lmm/baselmmoutput.h>
+
 #include <QList>
 
 class Alsa;
@@ -28,6 +30,9 @@ public slots:
 private:
 	Alsa *alsaOut;
 	bool unmute;
+	int channels;
+	int audioRate;
+	Lmm::AudioSampleType format;
 };
 
 #endif // ALSAOUTPUT_H
