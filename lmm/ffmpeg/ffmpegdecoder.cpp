@@ -3,8 +3,8 @@
 
 #include <lmm/ffmpeg/ffmpegbuffer.h>
 #include <lmm/lmmbufferpool.h>
-
 #include <lmm/debug.h>
+#include <lmm/lmmcommon.h>
 
 #include <stdint.h>
 
@@ -12,19 +12,6 @@ extern "C" {
 	#include <libavformat/avformat.h>
 	#include <libavcodec/avcodec.h>
 	#include <libswscale/swscale.h>
-}
-
-static int decLockOp(void **mutex, enum AVLockOp op)
-{
-	if (op == AV_LOCK_CREATE)
-		*mutex = new QMutex();
-	else if (op == AV_LOCK_OBTAIN)
-		((QMutex *)(*mutex))->lock();
-	else if (op == AV_LOCK_RELEASE)
-		((QMutex *)(*mutex))->unlock();
-	else if (op == AV_LOCK_DESTROY)
-		delete ((QMutex *)(*mutex));
-	return 0;
 }
 
 FFmpegDecoder::FFmpegDecoder(QObject *parent) :
@@ -38,7 +25,6 @@ FFmpegDecoder::FFmpegDecoder(QObject *parent) :
 	onlyKeyframe = false;
 	pool = new LmmBufferPool(this);
 	avFrame = NULL;
-	av_lockmgr_register(decLockOp);
 	convert = true;
 }
 
