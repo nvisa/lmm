@@ -260,7 +260,7 @@ int BaseLmmDemux::demuxOne()
 	if (packet->stream_index == audioStreamIndex) {
 		mInfo("new audio stream: size=%d", packet->size);
 		if (demuxAudio) {
-			RawBuffer buf("audio/x-raw-int", packet->data, packet->size);
+			FFmpegBuffer buf("audio/mpeg", packet);
 			buf.pars()->duration = packet->duration * audioTimeBaseN / 1000;
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 				buf.pars()->pts = packet->pts * audioTimeBaseN / 1000;
@@ -270,8 +270,6 @@ int BaseLmmDemux::demuxOne()
 			buf.pars()->streamBufferNo = demuxedCount++;
 			newOutputBuffer(1, buf);
 		}
-		av_free_packet(packet);
-		delete packet;
 	} else if (packet->stream_index == videoStreamIndex) {
 		mInfo("new video stream: size=%d pts=%lld duration=%d dflags=%d", packet->size,
 			   packet->pts == (int64_t)AV_NOPTS_VALUE ? -1 : packet->pts ,
@@ -300,6 +298,11 @@ int BaseLmmDemux::processBuffer(const RawBuffer &buf)
 AVCodecContext * BaseLmmDemux::getVideoCodecContext()
 {
 	return context->streams[videoStreamIndex]->codec;
+}
+
+AVCodecContext *BaseLmmDemux::getAudioCodecContext()
+{
+	return context->streams[audioStreamIndex]->codec;
 }
 
 int BaseLmmDemux::getAudioSampleRate()

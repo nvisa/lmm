@@ -28,6 +28,7 @@ public:
 	virtual int demuxOne();
 	virtual int processBuffer(const RawBuffer &buf);
 	AVCodecContext * getVideoCodecContext();
+	AVCodecContext * getAudioCodecContext();
 	bool isAvformatContextDone() { return unblockContext; }
 
 	void setAudioDemuxing(bool v) { demuxAudio = v; } /* TODO: clear existing buffers */
