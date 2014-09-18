@@ -23,6 +23,8 @@ public:
 	virtual void aboutToDeleteBuffer(const RawBufferParameters *params);
 	virtual int processBlocking(int ch = 0);
 
+	int info();
+
 	void setBufferCount(int v) { captureBufferCount = v; }
 	int getBufferCount() { return captureBufferCount; }
 	friend class captureThread;
@@ -50,6 +52,7 @@ protected:
 
 	int openDeviceNode();
 	int enumStd();
+	int enumFmt(int index);
 	int enumInput(v4l2_input *input);
 	int setInput(v4l2_input *input);
 	int setStandard(v4l2_std_id *std_id);

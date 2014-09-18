@@ -292,8 +292,84 @@ int V4l2Input::processBlocking(int ch)
 		return ret;
 	}
 
-
 	usleep(10000);
+	return 0;
+}
+
+/**
+ * @brief V4l2Input::info
+ * @return
+ *
+ * VIDIOC_QUERYCAP
+ * VIDIOC_G_FMT(set?, try?)
+ * VIDIOC_ENUM_FMT
+ * VIDIOC_ENUMINPUT
+ * VIDIOC_G_INPUT, (set?)
+ */
+int V4l2Input::info()
+{
+	int err = openDeviceNode();
+	if (err)
+		return err;
+
+	/* query capabilities */
+	struct v4l2_capability cap;
+	err = queryCapabilities(&cap);
+	if (err)
+		return err;
+	mDebug("device has streaming/capture capabilities.");
+
+	struct v4l2_input input;
+	input.type = V4L2_INPUT_TYPE_CAMERA;
+	input.index = 0;
+	err = enumInput(&input);
+	while (!err) {
+		mDebug("input %d is %s", input.index, input.name);
+
+		/* enum format */
+		int fmtIndex = 0;
+		int tmp = enumFmt(fmtIndex);
+		while (!tmp) {
+			fmtIndex++;
+			tmp = enumFmt(fmtIndex);
+		}
+
+		/* get format */
+		struct v4l2_format fmt;
+		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		if (ioctl(fd, VIDIOC_G_FMT, &fmt) == -1) {
+			mDebug("Unable to get VIDIOC_G_FMT");
+			return -EINVAL;
+		}
+		int x = fmt.fmt.pix.pixelformat;
+		mDebug("pix info: \nbytesperline=%d\n"
+			   "field=%d\n"
+			   "height=%d\n"
+			   "width=%d\n"
+			   "size=%d\n"
+			   "pixfmt=%c%c%c%c"
+			   , fmt.fmt.pix.bytesperline, fmt.fmt.pix.field, fmt.fmt.pix.height
+			   , fmt.fmt.pix.width, fmt.fmt.pix.sizeimage, x >> 24, (x >> 16) & 0xff, (x >> 8) & 0xff, (x >> 0) & 0xff);
+
+		break;
+		input.index++;
+		err = enumInput(&input);
+	}
+
+	if (ioctl(fd, VIDIOC_G_INPUT, &input.index)) {
+		mDebug("Unable to get input from device");
+		return -EINVAL;
+	}
+	mDebug("current selected input is %d", input.index);
+
+	if (ioctl(fd, VIDIOC_S_INPUT, &input.index) == -1) {
+		mDebug("Failed to set video input to %d, err is %d", inputIndex, errno);
+		return -EINVAL;
+	}
+
+	queryStandard();
+
+	close(fd);
 	return 0;
 }
 
@@ -344,6 +420,20 @@ int V4l2Input::enumStd()
 		}
 	}
 	mDebug("Standard supported: %s fps=%d/%d", dstd.name, dstd.frameperiod.denominator, dstd.frameperiod.numerator);
+	return 0;
+}
+
+int V4l2Input::enumFmt(int index)
+{
+	struct v4l2_fmtdesc desc;
+	desc.index = index;
+	desc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	if (ioctl(fd, VIDIOC_ENUM_FMT, &desc) == -1) {
+		mDebug("end of format enumaration");
+		return -EINVAL;
+	}
+	int x = desc.pixelformat;
+	mDebug("pixfmt=%c%c%c%c", x >> 24, (x >> 16) & 0xff, (x >> 8) & 0xff, (x >> 0) & 0xff);
 	return 0;
 }
 
@@ -417,6 +507,16 @@ int V4l2Input::queryCapabilities(v4l2_capability *cap)
 
 int V4l2Input::queryStandard()
 {
+	v4l2_std_id std;
+	if (ioctl(fd, VIDIOC_QUERYSTD, &std) == -1) {
+		mDebug("Unable to query input standard");
+		return -EINVAL;
+	}
+	const QList<QPair<quint64, QString > > list = getV4L2Standards();
+	for(int i = 0; i < list.size(); i++) {
+		if ((list[i].first & std) == list[i].first)
+			mDebug("Input supports %s", qPrintable(list[i].second));
+	}
 	return 0;
 }
 
