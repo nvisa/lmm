@@ -96,10 +96,13 @@ int FFmpegDecoder::decode(RawBuffer buf)
 		}
 		/* since we are using demuxer all packet should be used by the decoder */
 		int frameSize = av_samples_get_buffer_size(NULL, codecCtx->channels, avFrame->nb_samples, codecCtx->sample_fmt, 1);
-		RawBuffer buf(QString("audio/x-raw-int,rate=%1,fmt=%2,channels=%3").arg(codecCtx->sample_rate)
+		RawBuffer outbuf(QString("audio/x-raw-int,rate=%1,fmt=%2,channels=%3").arg(codecCtx->sample_rate)
 					  .arg(codecCtx->sample_fmt).arg(codecCtx->channels),
 					  avFrame->data[0], frameSize);
-		return newOutputBuffer(0, buf);
+		outbuf.pars()->pts = buf.constPars()->pts;
+		outbuf.pars()->streamBufferNo = buf.constPars()->streamBufferNo;
+		outbuf.pars()->duration = buf.constPars()->duration;
+		return newOutputBuffer(0, outbuf);
 	}
 
 	return -EINVAL;

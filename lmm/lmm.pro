@@ -84,8 +84,12 @@ HEADERS  += \
     tools/rawnetworksocket.h
 
 x11 {
-	HEADERS += x11videooutput.h
-	SOURCES += x11videooutput.cpp
+    HEADERS += x11videooutput.h
+    SOURCES += x11videooutput.cpp
+
+    !staticlib {
+	LIBS += -lX11 -lXv
+    }
 }
 alsa {
     HEADERS += \
@@ -99,6 +103,10 @@ alsa {
 		alsa/alsainput.cpp \
 
     DEFINES += CONFIG_ALSA
+
+    !staticlib {
+	LIBS += -lasound
+    }
 }
 
 mad {

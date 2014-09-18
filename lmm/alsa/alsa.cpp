@@ -44,6 +44,32 @@ static snd_pcm_format_t toPcmFormat(Lmm::AudioSampleType format)
 	return SND_PCM_FORMAT_S16;
 }
 
+bool isInterleaved(Lmm::AudioSampleType format)
+{
+	return true; //broken at the moment
+	switch (format) {
+	case Lmm::AUDIO_SAMPLE_DBL:
+		return true;
+	case Lmm::AUDIO_SAMPLE_FLT:
+		return true;
+	case Lmm::AUDIO_SAMPLE_FLTP:
+		return false;
+	case Lmm::AUDIO_SAMPLE_S16:
+		return true;
+	case Lmm::AUDIO_SAMPLE_S16P:
+		return false;
+	case Lmm::AUDIO_SAMPLE_S32:
+		return true;
+	case Lmm::AUDIO_SAMPLE_S32P:
+		return false;
+	case Lmm::AUDIO_SAMPLE_U8:
+		return true;
+	case Lmm::AUDIO_SAMPLE_U8P:
+		return false;
+	}
+	return true;
+}
+
 static int pcmBytesPerSample(Lmm::AudioSampleType format)
 {
 	switch (format) {
@@ -179,7 +205,13 @@ int Alsa::write(const void *buf, int length)
 	mutex.lock();
 	cptr = length / bytesPerSample / channels;
 	while (cptr > 0) {
-		err = snd_pcm_writei(handle, ptr, cptr);
+		if (isInterleaved(sampleFormat)) {
+			err = snd_pcm_writei(handle, ptr, cptr);
+		} else {
+			/* TODO: non-interleaved is not working */
+			void *chns[2] = {(void *)buf, (char *)buf + length / 2};
+			err = snd_pcm_writen(handle, chns, cptr);
+		}
 		mInfo("written %d frames out of %d", err, cptr);
 		if (err < 0) {
 			mDebug("Write error: %s", snd_strerror (err));
@@ -246,7 +278,10 @@ int Alsa::setHwParams(int rate)
 	err = snd_pcm_hw_params_any(handle, params);
 	if (err)
 		snd_pcm_hw_params_current(handle, params);
-	err = snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+	if (isInterleaved(sampleFormat))
+		err = snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+	else
+		err = snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
 	if (err)
 		goto out;
 	mDebug("access type ok");

@@ -24,6 +24,10 @@ public:
 	qint64 getAvailableBufferTime();
 
 	int muteTillFirstOutput();
+
+	int getAudioRate() { return audioRate; }
+	int getAudioChannels() { return channels; }
+	Lmm::AudioSampleType getAudioFormat() { return format; }
 signals:
 	
 public slots:
