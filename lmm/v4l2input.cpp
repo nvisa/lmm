@@ -31,6 +31,7 @@ V4l2Input::V4l2Input(QObject *parent) :
 	deviceName = "/dev/video0";
 	fd = -1;
 	inputIndex = 0;
+	nonBlockingIO = true;
 }
 
 int V4l2Input::start()
@@ -293,7 +294,7 @@ int V4l2Input::processBlocking(int ch)
 	}
 
 	usleep(10000);
-	return 0;
+	return nonBlockingIO ? 0 : -ENXIO;
 }
 
 /**
@@ -393,7 +394,10 @@ int V4l2Input::processBuffer(v4l2_buffer *buffer)
 int V4l2Input::openDeviceNode()
 {
 	/* Open video capture device */
-	fd = open(qPrintable(deviceName), O_RDWR | O_NONBLOCK, 0);
+	if (nonBlockingIO)
+		fd = open(qPrintable(deviceName), O_RDWR | O_NONBLOCK, 0);
+	else
+		fd = open(qPrintable(deviceName), O_RDWR, 0);
 	if (fd == -1) {
 		mDebug("Cannot open capture device %s", qPrintable(deviceName));
 		return -ENODEV;
@@ -525,7 +529,7 @@ int V4l2Input::setFormat(unsigned int chromaFormat, int width, int height, bool 
 	struct v4l2_format fmt;
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (ioctl(fd, VIDIOC_G_FMT, &fmt) == -1) {
-		mDebug("Unable to get VIDIOC_G_FMT");
+		mDebug("Unable to get VIDIOC_G_FMT, error %d", errno);
 		return -EINVAL;
 	}
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;

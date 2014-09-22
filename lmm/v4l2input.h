@@ -42,6 +42,7 @@ protected:
 	QList<struct v4l2_buffer *> v4l2buf;
 	QList<char *> userptr;
 	QTime timing;
+	bool nonBlockingIO;
 
 	virtual int openCamera();
 	virtual int closeCamera();
