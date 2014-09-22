@@ -559,6 +559,7 @@ int DM365CameraInput::openCamera()
 		input.index++;
 		err = enumInput(&input);
 	}
+	mDebug("setting input index to '%d'", inputIndex);
 	inputIndex = input.index;
 	err = setInput(&input);
 	if (err && inputType != COMPOSITE)

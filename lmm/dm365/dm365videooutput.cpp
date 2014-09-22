@@ -25,7 +25,21 @@
 #include <ti/sdo/dmai/Framecopy.h>
 
 static BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
-static Display_Attrs dAttrs = Display_Attrs_DM365_VID_DEFAULT;
+static const Display_Attrs dAttrs = {
+	3,
+	Display_Std_V4L2,
+	VideoStd_D1_NTSC,
+	Display_Output_COMPOSITE,
+	"/dev/video2",
+	0,
+	ColorSpace_YUV420PSEMI,
+	-1,
+	-1,
+	FALSE,
+	0,
+	0,
+	FALSE
+};
 
 void DM365VideoOutput::
 	videoCopy(RawBuffer buf, Buffer_Handle dispbuf, Buffer_Handle dmai)
