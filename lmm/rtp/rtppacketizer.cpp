@@ -32,6 +32,8 @@ RtpPacketizer::RtpPacketizer(QObject *parent) :
 	packetized = true;
 	passThru = false;
 	zeroCopy = true;
+	srcDataPort = 0;
+	srcControlPort = 0;
 }
 
 Lmm::CodecType RtpPacketizer::codecType()
