@@ -202,6 +202,7 @@ QList<int> TextOverlay::createPixelMap(int fontWidth, const QImage &image)
 
 void TextOverlay::createYuvMap()
 {
+	mDebug("creating YUV font map");
 	QImage image;
 	if (imageBuf)
 		image = QImage((uchar *)imageBuf,
