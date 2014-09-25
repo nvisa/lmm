@@ -447,7 +447,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	seiBufferSize = 4096 * 4;
 	dirty = false;
 	encodeFps = 30;
-	profileId = 0;
+	profileId = 2;
 	useMetadata = false;
 	genMetadata = false;
 	frameinfoInterface = NULL;
