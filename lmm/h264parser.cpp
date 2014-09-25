@@ -3,6 +3,7 @@
 #include <lmm/debug.h>
 #include <lmm/circularbuffer.h>
 
+/* according to table 7-1 */
 enum h264_nal_type
 {
 	NAL_UNKNOWN = 0,
