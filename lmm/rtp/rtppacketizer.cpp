@@ -34,6 +34,7 @@ RtpPacketizer::RtpPacketizer(QObject *parent) :
 	zeroCopy = true;
 	srcDataPort = 0;
 	srcControlPort = 0;
+	useStapA = true;
 }
 
 Lmm::CodecType RtpPacketizer::codecType()
@@ -296,6 +297,11 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 		sendNalUnit(data + 4, size - 4);
 	} else {
 		streamedBufferCount++;
+		uchar *stapBuf = NULL;
+		int stapSize = 0;
+		uchar nriMax = 0;
+		RawNetworkSocket::SockBuffer *sbuf = NULL;
+		uchar *rtpbuf = NULL;
 		while (1) {
 			const uchar *first = H264Parser::findNextStartCode(data, data + size);
 			if (first >= end)
@@ -307,12 +313,83 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 			}
 			if (end - next == 4)
 				next = end;
-			/* while sending we omit NAL start-code */
-			sendNalUnit(first + 4, next - first - 4);
+
+			if (!useStapA) {
+				/* while sending we omit NAL start-code */
+				sendNalUnit(first + 4, next - first - 4);
+			} else {
+				/* Use STAP-A messages */
+				const uchar *buf = first + 4;
+				int usize = next - first - 4;
+
+				if (usize + 3 > maxPayloadSize) {
+					mInfo("too big for stap-a(%d bytes), fuaing", usize);
+					if (stapBuf) {
+						mInfo("sending waiting stap-a(%d bytes)", stapSize);
+						rtpbuf[12] |= nriMax;
+						sendRtpData(rtpbuf, stapSize, 1, sbuf);
+						stapSize = 0;
+						nriMax = 0;
+						stapBuf = NULL;
+					}
+					sendNalUnit(buf, usize);
+				} else {
+					uchar type = buf[0] & 0x1F;
+					uchar nri = buf[0] & 0x60;
+					if (nri > nriMax)
+						nriMax = nri;
+					bool skip = false;
+					if (type >= 13) {
+						mDebug("undefined nal type %d", type);
+						skip = true;
+					}
+
+					if (!skip) {
+						if (!stapBuf) {
+							if (zeroCopy) {
+								sbuf = rawsock->getNextFreeBuffer();
+								rtpbuf = (uchar *)sbuf->payload;
+							} else {
+								rtpbuf = tempRtpBuf;
+							}
+							stapBuf = rtpbuf + 12;
+							stapBuf[0] = 24;        /* STAP-A */
+							stapBuf++;
+							stapSize++;
+						}
+
+						if (stapSize + usize + 2 <= maxPayloadSize) {
+							mInfo("adding to stap-a nalu=%d(%d bytes)", type, usize);
+							stapBuf[0] = usize >> 8;
+							stapBuf[1] = usize & 0xff;
+							memcpy(&stapBuf[2], buf, usize);
+							stapBuf += usize + 2;
+							stapSize += usize + 2;
+						} else {
+							mInfo("sending full stap-a(%d bytes)", stapSize);
+							rtpbuf[12] |= nriMax;
+							sendRtpData(rtpbuf, stapSize, 1, sbuf);
+							stapSize = 0;
+							nriMax = 0;
+							stapBuf = NULL;
+							continue;
+						}
+					}
+				}
+			}
+
 			data += next - first;
 			size -= next - first;
 			if (size <= 0 || data == end)
 				break;
+		}
+		if (stapBuf) {
+			mInfo("sending waiting stap-a(%d bytes)", stapSize);
+			rtpbuf[12] |= nriMax;
+			sendRtpData(rtpbuf, stapSize, 1, sbuf);
+			stapSize = 0;
+			nriMax = 0;
+			stapBuf = NULL;
 		}
 	}
 

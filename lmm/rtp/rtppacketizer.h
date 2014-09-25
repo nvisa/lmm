@@ -69,6 +69,7 @@ protected:
 	QTime rtcpTime;
 	QHostAddress myIpAddr;
 	uchar *tempRtpBuf;
+	bool useStapA;
 
 	int dstDataPort;
 	int dstControlPort;
