@@ -19,10 +19,10 @@
 #include <QImage>
 #include <QRect>
 #include <QDateTime>
-#include <QTime>
 #include <QFile>
 #include <QDataStream>
 #include <QFontMetrics>
+#include <QElapsedTimer>
 
 #define DM365MMAP_IOCMEMCPY        0x7
 #define DM365MMAP_IOCWAIT          0x8

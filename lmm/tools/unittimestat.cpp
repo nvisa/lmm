@@ -1,20 +1,20 @@
 #include "unittimestat.h"
 
-#include <QTime>
 #include <QDebug>
+#include <QElapsedTimer>
 
 UnitTimeStat::UnitTimeStat()
 {
-	t = new QTime;
-	addTime = new QTime;
+	t = new QElapsedTimer;
+	addTime = new QElapsedTimer;
 	avgMethod = COUNT;
 	reset();
 }
 
 UnitTimeStat::UnitTimeStat(UnitTimeStat::AvgMethod m)
 {
-	t = new QTime;
-	addTime = new QTime;
+	t = new QElapsedTimer;
+	addTime = new QElapsedTimer;
 	avgMethod = m;
 	reset();
 }

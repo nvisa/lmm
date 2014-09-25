@@ -1,6 +1,6 @@
 #include "streamtime.h"
 
-#include <QTime>
+#include <QElapsedTimer>
 
 /**
 	\class StreamTime
@@ -37,8 +37,8 @@ StreamTime::StreamTime(QObject *parent) :
 {
 	startPts = 0;
 	startTime = 0;
-	drifter = new QTime;
-	clock = new QTime;
+	drifter = new QElapsedTimer;
+	clock = new QElapsedTimer;
 	paused = false;
 }
 

@@ -7,9 +7,8 @@
 #include "debug.h"
 
 #include <QFile>
-#include <QTime>
-#include <QTimer>
 #include <QSemaphore>
+#include <QElapsedTimer>
 
 #include <errno.h>
 #include <linux/videodev2.h>
@@ -345,12 +344,12 @@ DmaiBuffer VideoTestSource::addNoise(DmaiBuffer imageBuf)
 	/* TODO: color space is assumed to be NV12 */
 	char *ydata = (char *)imageBuf.data();
 	int offset = imageBuf.size() / 3 * 2 - width * noiseHeight;
-	QTime t; t.start();
+	QElapsedTimer t; t.start();
 	static int ni = 0;
 	char *ndata = noise.at((ni++ & 0xf));
 	for (int i = offset, noff = 0; i < offset + noiseHeight * width; i += width, noff += noiseWidth)
 		memcpy(ydata + i + width - noiseWidth, ndata + noff, noiseWidth);
-	mInfo("noise addition took %d msecs", t.elapsed());
+	mInfo("noise addition took %lld msecs", t.elapsed());
 	return imageBuf;
 }
 

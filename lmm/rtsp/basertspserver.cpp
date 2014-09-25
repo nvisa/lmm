@@ -15,6 +15,7 @@
 #include <QUdpSocket>
 #include <QDateTime>
 #include <QMutex>
+#include <QElapsedTimer>
 
 /**
  *
@@ -97,7 +98,7 @@ public:
 		l.unlock();
 	}
 protected:
-	QTime t;
+	QElapsedTimer t;
 	QMutex l;
 };
 

@@ -3,8 +3,6 @@
 
 #include <lmm/baselmmelement.h>
 
-class QTime;
-
 class BaseLmmOutput : public BaseLmmElement
 {
 	Q_OBJECT

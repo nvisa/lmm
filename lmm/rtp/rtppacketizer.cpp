@@ -4,8 +4,8 @@
 #include "tools/rawnetworksocket.h"
 #include "streamtime.h"
 
-#include <QTime>
 #include <QUdpSocket>
+#include <QElapsedTimer>
 #include <QNetworkInterface>
 
 #include <errno.h>

@@ -4,8 +4,8 @@
 #include <lmm/lmmcommon.h>
 #include <lmm/baselmmelement.h>
 
-#include <QTime>
 #include <QHostAddress>
+#include <QElapsedTimer>
 
 class QUdpSocket;
 class RawNetworkSocket;
@@ -66,7 +66,7 @@ protected:
 	QMutex streamLock;
 	bool packetized;
 	QPair<qint64, uint> ntpRtpPair;
-	QTime rtcpTime;
+	QElapsedTimer rtcpTime;
 	QHostAddress myIpAddr;
 	uchar *tempRtpBuf;
 	bool useStapA;

@@ -16,6 +16,7 @@ class UnitTimeStat;
 class QSemaphore;
 class LmmThread;
 class RawBufferParameters;
+class QElapsedTimer;
 
 class BaseLmmElement : public QObject
 {
@@ -104,7 +105,7 @@ protected:
 
 	int elementFps;
 	int fpsBufferCount;
-	QTime *fpsTiming;
+	QElapsedTimer *fpsTiming;
 	bool eofSent;
 private:
 	QList< QList<RawBuffer> > inBufQueue;

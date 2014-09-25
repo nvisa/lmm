@@ -4,7 +4,8 @@
 #include <lmm/baselmmelement.h>
 
 #include <QList>
-#include <QTime>
+#include <QElapsedTimer>
+
 #include <linux/videodev2.h>
 
 class captureThread;
@@ -41,7 +42,7 @@ protected:
 	int inputIndex;
 	QList<struct v4l2_buffer *> v4l2buf;
 	QList<char *> userptr;
-	QTime timing;
+	QElapsedTimer timing;
 	bool nonBlockingIO;
 
 	virtual int openCamera();

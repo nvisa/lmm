@@ -10,7 +10,7 @@
 #include <linux/videodev2.h>
 #include <errno.h>
 
-#include <QTime>
+#include <QElapsedTimer>
 
 static DmaiEncoder *instance = NULL;
 
@@ -24,7 +24,7 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 	imageHeight = 720;
 	codec = CODEC_H264;
 	encodeTimeStat = new UnitTimeStat;
-	encodeTiming = new QTime;
+	encodeTiming = new QElapsedTimer;
 	instance = this;
 	generateIdrFrame = false;
 	inputPixFormat = V4L2_PIX_FMT_NV12;
@@ -119,7 +119,7 @@ int DmaiEncoder::genIdr()
 
 int DmaiEncoder::processBuffer(const RawBuffer &buf)
 {
-	QTime t;
+	QElapsedTimer t;
 	int err = 0;
 	Buffer_Handle dmai = (Buffer_Handle)buf.constPars()->dmaiBuffer;
 	if (!dmai) {

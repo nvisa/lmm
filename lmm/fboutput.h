@@ -7,7 +7,6 @@
 #include <QVariant>
 
 class RawBuffer;
-class QTime;
 class BaseLmmElement;
 
 class FbOutput : public BaseLmmOutput

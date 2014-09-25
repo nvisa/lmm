@@ -17,7 +17,6 @@
 #include <asm/types.h>
 
 #include <QTimer>
-#include <QTime>
 
 extern "C" {
 	#include <linux/videodev2.h>

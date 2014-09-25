@@ -909,7 +909,7 @@ int H264Encoder::insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuff
 	seidata[18] = 0x1; //version
 	seidata[19] = 0x1; //version
 	QByteArray ba(seidata + 20, seiBufferSize - 20);
-	QTime t2; t2.start();
+	QElapsedTimer t2; t2.start();
 	int seiAllocSize = seiBufferSize;
 	seiBufferSize = createSeiData(&ba, source) + 20;
 	memcpy(seidata + 20, ba.constData(), seiAllocSize - 20);
@@ -939,7 +939,7 @@ int H264Encoder::insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuff
 			memcpy(seidata + 20 + seiBufferSize - 20, motVectBuf + motVectSize / 2, motVectSize / 2);
 		}
 	}
-	mInfo("sei addition took %d msecs", t2.elapsed());
+	mInfo("sei addition took %lld msecs", t2.elapsed());
 	return 0;
 }
 
@@ -1277,7 +1277,7 @@ ROI_Interface * H264Encoder::roiParameter(uchar *vdata)
 		roi->roiPriority[0] = 4;
 		roi->roiType[0] = FOREGROUND_OBJECT;
 		if (vdata && markRoi) {
-			QTime t; t.start();
+			QElapsedTimer t; t.start();
 			int linewidth = 1;
 			int col = 255;
 			/* top line */
@@ -1292,7 +1292,7 @@ ROI_Interface * H264Encoder::roiParameter(uchar *vdata)
 			/* right line */
 			for (int i = y; i < y + h; i++)
 				memset(&vdata[i * 1280] + x + w - linewidth, col, linewidth);
-			mInfo("roi mark took %d msecs", t.elapsed());
+			mInfo("roi mark took %lld msecs", t.elapsed());
 		}
 		return roi;
 	}

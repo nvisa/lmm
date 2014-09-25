@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QDateTime>
 
-class QTime;
+class QElapsedTimer;
 
 class StreamTime : public QObject
 {
@@ -34,8 +34,8 @@ private:
 	qint64 currentTime;
 	qint64 startTime;
 	qint64 startPts;
-	QTime *drifter;
-	QTime *clock;
+	QElapsedTimer *drifter;
+	QElapsedTimer *clock;
 	QDateTime wallStartTime;
 
 	bool paused;

@@ -1,9 +1,9 @@
 #ifndef LMMTHREAD_H
 #define LMMTHREAD_H
 
-#include <QTime>
 #include <QMutex>
 #include <QThread>
+#include <QElapsedTimer>
 
 #include <stdint.h>
 
@@ -38,7 +38,7 @@ protected:
 private:
 	QString name;
 	Status st;
-	QTime time;
+	QElapsedTimer time;
 	QMutex lock;
 	Qt::HANDLE id;
 	intptr_t *instStack1;

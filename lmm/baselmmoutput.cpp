@@ -4,7 +4,6 @@
 #include "debug.h"
 #include "lmmthread.h"
 
-#include <QTime>
 #include <QThread>
 
 #include <errno.h>

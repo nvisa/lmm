@@ -4,7 +4,6 @@
 
 #include <QFile>
 #include <QStringList>
-#include <QTime>
 
 #include <errno.h>
 #include <sys/ioctl.h>

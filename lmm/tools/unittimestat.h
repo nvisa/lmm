@@ -1,7 +1,7 @@
 #ifndef UNITTIMESTAT_H
 #define UNITTIMESTAT_H
 
-class QTime;
+class QElapsedTimer;
 
 class UnitTimeStat
 {
@@ -26,8 +26,8 @@ public:
 	int avgCount;
 	int avgMax;
 	int avgTime;
-	QTime *t;
-	QTime *addTime;
+	QElapsedTimer *t;
+	QElapsedTimer *addTime;
 	AvgMethod avgMethod;
 private:
 };

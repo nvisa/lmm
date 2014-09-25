@@ -2,7 +2,7 @@
 #define SYSTEMINFO_H
 
 #include <QObject>
-#include <QTime>
+#include <QElapsedTimer>
 
 class QFile;
 
@@ -24,7 +24,7 @@ private:
 
 	static SystemInfo inst;
 	QFile *meminfo;
-	QTime memtime;
+	QElapsedTimer memtime;
 	int lastMemFree;
 };
 

@@ -6,7 +6,7 @@
 
 #include <errno.h>
 
-#include <QTime>
+#include <QElapsedTimer>
 #include <QSemaphore>
 
 /**
@@ -169,7 +169,7 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	state = INIT;
 	receivedBufferCount = sentBufferCount = 0;
 	streamTime = NULL;
-	fpsTiming = new QTime;
+	fpsTiming = new QElapsedTimer;
 	elementFps = fpsBufferCount = 0;
 	fpsTiming->start();
 	outputTimeStat = new UnitTimeStat;

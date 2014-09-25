@@ -7,7 +7,6 @@ typedef unsigned long snd_pcm_uframes_t;
 #include <QObject>
 #include <QThread>
 #include <QMutex>
-#include <QTime>
 
 #include <alsa/input.h>
 #include <alsa/output.h>

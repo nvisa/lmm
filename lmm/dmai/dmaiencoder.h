@@ -18,7 +18,7 @@
 #include <ti/sdo/dmai/ce/Venc1.h>
 
 class UnitTimeStat;
-class QTime;
+class QElapsedTimer;
 
 #define CODECHEIGHTALIGN 16
 
@@ -78,7 +78,7 @@ protected:
 	QMutex bufferLock;
 	CodecType codec;
 	UnitTimeStat *encodeTimeStat;
-	QTime *encodeTiming;
+	QElapsedTimer *encodeTiming;
 
 	float frameRate;
 	Venc1_Handle hCodec;
