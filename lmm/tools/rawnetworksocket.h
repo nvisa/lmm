@@ -30,6 +30,7 @@ protected:
 	quint16 srcPort;
 	struct sockaddr_in *sin;
 	QList<SockBuffer *> buffers;
+	int nextIndex;
 
 	int init();
 	int sendData(char *datagram, int size);

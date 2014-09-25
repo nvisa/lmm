@@ -51,8 +51,9 @@ RawNetworkSocket::RawNetworkSocket(QString destinationIp, quint16 destinationPor
 	srcPort = sourcePort;
 	myIp = sourceIp;
 	fd = init();
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < 128; i++)
 		buffers << createBuffer();
+	nextIndex = -1;
 }
 
 bool RawNetworkSocket::isActive()
@@ -77,7 +78,10 @@ int RawNetworkSocket::send(RawNetworkSocket::SockBuffer *sbuf, int size)
 
 RawNetworkSocket::SockBuffer * RawNetworkSocket::getNextFreeBuffer()
 {
-	return buffers[0];
+	nextIndex++;
+	if (nextIndex >= buffers.size())
+		nextIndex = 0;
+	return buffers[nextIndex];
 	// + sizeof(struct iphdr) + sizeof(struct udphdr);
 }
 
