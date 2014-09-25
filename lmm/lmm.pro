@@ -83,6 +83,12 @@ HEADERS  += \
 	players/simplevideoplayer.h \
     tools/rawnetworksocket.h
 
+lessThan(QT_VERSION, 4.7) {
+    SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
+    HEADERS += compat/qelapsedtimer.h compat/QElapsedTimer
+    INCLUDEPATH += compat
+}
+
 x11 {
     HEADERS += x11videooutput.h
     SOURCES += x11videooutput.cpp
