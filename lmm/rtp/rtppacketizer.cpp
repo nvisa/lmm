@@ -145,9 +145,10 @@ int RtpPacketizer::sendNalUnit(const uchar *buf, int size)
 		mDebug("undefined nal type %d, not sending", type);
 		return 0;
 	}
+	qint64 ts = packetTimestamp(0);
 	if (size <= maxPayloadSize) {
 		memcpy(rtpbuf + 12, buf, size);
-		sendRtpData(rtpbuf, size, 1, sbuf);
+		sendRtpData(rtpbuf, size, 1, sbuf, ts);
 	} else {
 		uchar *dstbuf = rtpbuf + 12;
 		dstbuf[0] = 28;        /* FU Indicator; Type = 28 ---> FU-A */
@@ -158,19 +159,19 @@ int RtpPacketizer::sendNalUnit(const uchar *buf, int size)
 		size -= 1;
 		while (size + 2 > maxPayloadSize) {
 			memcpy(&dstbuf[2], buf, maxPayloadSize - 2);
-			sendRtpData(rtpbuf, maxPayloadSize, 0, sbuf);
+			sendRtpData(rtpbuf, maxPayloadSize, 0, sbuf, ts);
 			buf += maxPayloadSize - 2;
 			size -= maxPayloadSize - 2;
 			dstbuf[1] &= ~(1 << 7);
 		}
 		dstbuf[1] |= 1 << 6;
 		memcpy(&dstbuf[2], buf, size);
-		sendRtpData(rtpbuf, size + 2, 1, sbuf);
+		sendRtpData(rtpbuf, size + 2, 1, sbuf, ts);
 	}
 	return 0;
 }
 
-void RtpPacketizer::sendRtpData(uchar *buf, int size, int last, void *sbuf)
+void RtpPacketizer::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 tsRef)
 {
 	uint ts = baseTs + packetTimestamp(0);
 	buf[0] = RTP_VERSION << 6;
@@ -327,7 +328,7 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 					if (stapBuf) {
 						mInfo("sending waiting stap-a(%d bytes)", stapSize);
 						rtpbuf[12] |= nriMax;
-						sendRtpData(rtpbuf, stapSize, 1, sbuf);
+						sendRtpData(rtpbuf, stapSize, 1, sbuf, packetTimestamp(0));
 						stapSize = 0;
 						nriMax = 0;
 						stapBuf = NULL;
@@ -368,7 +369,7 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 						} else {
 							mInfo("sending full stap-a(%d bytes)", stapSize);
 							rtpbuf[12] |= nriMax;
-							sendRtpData(rtpbuf, stapSize, 1, sbuf);
+							sendRtpData(rtpbuf, stapSize, 1, sbuf, packetTimestamp(0));
 							stapSize = 0;
 							nriMax = 0;
 							stapBuf = NULL;
@@ -386,7 +387,7 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 		if (stapBuf) {
 			mInfo("sending waiting stap-a(%d bytes)", stapSize);
 			rtpbuf[12] |= nriMax;
-			sendRtpData(rtpbuf, stapSize, 1, sbuf);
+			sendRtpData(rtpbuf, stapSize, 1, sbuf, packetTimestamp(0));
 			stapSize = 0;
 			nriMax = 0;
 			stapBuf = NULL;

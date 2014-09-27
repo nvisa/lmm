@@ -52,7 +52,7 @@ protected:
 	virtual int processBuffer(const RawBuffer &buf);
 	virtual quint64 packetTimestamp(int stream);
 	int sendNalUnit(const uchar *buf, int size);
-	void sendRtpData(uchar *buf, int size, int last, void *sbuf);
+	void sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 tsRef);
 	void createSdp();
 	void sendSR();
 	bool initZeroCopy();
