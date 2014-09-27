@@ -49,6 +49,21 @@ void LmmCommon::platformCleanUp()
 		inst.plat->platformCleanUp();
 }
 
+bool LmmCommon::isFaultInjected(Lmm::FaultInjection f)
+{
+	return inst.faultInjection & f;
+}
+
+void LmmCommon::addFaultInjection(uint f)
+{
+	inst.faultInjection |= f;
+}
+
+void LmmCommon::removeFaultInjection(uint f)
+{
+	inst.faultInjection &= ~f;
+}
+
 static QMap<int, int> signalCount;
 
 void LmmCommon::platformInit()
@@ -111,6 +126,7 @@ static void signalHandler(int signalNumber)
 LmmCommon::LmmCommon(QObject *parent) :
 	QObject(parent)
 {
+	faultInjection = Lmm::FI_NONE;
 	plat = NULL;
 #ifdef CONFIG_DM365
 	plat = new PlatformCommonDM365;

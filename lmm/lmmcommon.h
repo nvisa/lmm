@@ -34,6 +34,10 @@ namespace Lmm {
 		AUDIO_SAMPLE_S32P,
 		AUDIO_SAMPLE_FLTP,
 	};
+	enum FaultInjection {
+		FI_NONE = 0,
+		FI_RANDOM_RTP_PACKET_DROP = 0x01,
+	};
 }
 
 class PlatformCommon
@@ -66,6 +70,9 @@ public:
 	static QString getGStreamerVersion();
 	static void platformInit();
 	static void platformCleanUp();
+	static bool isFaultInjected(enum Lmm::FaultInjection f);
+	static void addFaultInjection(uint f);
+	static void removeFaultInjection(uint f);
 signals:
 	
 public slots:
@@ -74,7 +81,8 @@ private:
 
 	static LmmCommon inst;
 	PlatformCommon *plat;
-	
+
+	uint faultInjection;
 };
 
 #endif // LMMCOMMON_H
