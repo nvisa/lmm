@@ -1,5 +1,7 @@
 #include "rawnetworksocket.h"
 
+#include <lmmcommon.h>
+
 #include <string.h>
 #include <sys/socket.h>
 #include <stdlib.h>
@@ -73,6 +75,11 @@ int RawNetworkSocket::send(char *buf, int size)
 
 int RawNetworkSocket::send(RawNetworkSocket::SockBuffer *sbuf, int size)
 {
+	if (LmmCommon::isFaultInjected(Lmm::FI_RANDOM_RTP_PACKET_DROP)) {
+		int r = rand() % 10;
+		if (r == 2)
+			return 0;
+	}
 	return sendData(sbuf->data, size);
 }
 
