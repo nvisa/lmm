@@ -8,6 +8,8 @@
 #include <lmm/tools/systeminfo.h>
 #include <lmm/tools/unittimestat.h>
 
+#include <errno.h>
+
 LmmSettingHandler::LmmSettingHandler(QObject *parent) :
 	BaseSettingHandler("lmm_settings", parent)
 {
@@ -129,6 +131,13 @@ QVariant LmmSettingHandler::get(QString setting)
 
 int LmmSettingHandler::set(QString setting, QVariant value)
 {
+	if (starts("lmm_settings.fi")) {
+		if (equals("lmm_settings.fi.add"))
+			LmmCommon::addFaultInjection(value.toUInt());
+		if (equals("lmm_settings.fi.remove"))
+			LmmCommon::removeFaultInjection(value.toUInt());
+		return -EROFS;
+	}
 	return 0;
 }
 
