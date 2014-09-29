@@ -212,7 +212,7 @@ private:
 
 static inline QString createDateHeader()
 {
-	return QString("Date: %1 GMT").arg(QDateTime::currentDateTime().toUTC().toString("ddd, MM MMM yyyy hh:mm:ss"));
+	return QString("Date: %1 GMT").arg(QDateTime::currentDateTime().toUTC().toString("ddd, dd MMM yyyy hh:mm:ss"));
 }
 
 BaseRtspServer::BaseRtspServer(QObject *parent) :
