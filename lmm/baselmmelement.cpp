@@ -176,6 +176,7 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	processTimeStat = new UnitTimeStat(UnitTimeStat::COUNT);
 	enabled = true;
 	totalInputBufferSize = 0;
+	passThru = false;
 
 	bufsem  << new QSemaphore;
 	inbufsem << new QSemaphore;

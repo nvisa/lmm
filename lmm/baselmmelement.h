@@ -55,6 +55,7 @@ public:
 	virtual int setTotalInputBufferSize(int size, int hysterisisSize = 0);
 	int waitOutputBuffers(int ch, int lessThan);
 	virtual void threadFinished(LmmThread *) {}
+	void setPassThru(bool v) { passThru = v; }
 
 	/* stat information */
 	void printStats();
@@ -102,6 +103,7 @@ protected:
 	int receivedBufferCount;
 	int sentBufferCount;
 	UnitTimeStat *processTimeStat;
+	bool passThru;
 
 	int elementFps;
 	int fpsBufferCount;
