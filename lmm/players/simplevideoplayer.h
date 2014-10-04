@@ -35,7 +35,7 @@ protected:
 	virtual int queueForVideoDisplay();
 	virtual int display();
 	void checkEOF();
-	void threadFinished(LmmThread *thr);
+	virtual void threadFinished(LmmThread *thr);
 
 	/* abstract members */
 	virtual BaseLmmOutput * createVideoOutput() = 0;

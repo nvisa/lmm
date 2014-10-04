@@ -131,6 +131,9 @@ int SimpleVideoPlayer::queueForVideoDecode()
 		return 0;
 	}
 
+	if (buf.isEOF())
+		return -ENODATA;
+
 	return -ENOENT;
 }
 
@@ -153,6 +156,8 @@ int SimpleVideoPlayer::queueForVideoDisplay()
 		mInfo("display %d", buf.size());
 		return vout->addBuffer(0, buf);
 	}
+	if (buf.isEOF())
+		return -ENODATA;
 
 	return -ENOENT;
 }
