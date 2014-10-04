@@ -284,6 +284,15 @@ int BaseLmmDemux::demuxOne()
 				buf.pars()->pts = -1;
 			}
 			buf.pars()->streamBufferNo = demuxedCount++;
+			if (packet->flags & AV_PKT_FLAG_KEY)
+				buf.pars()->frameType = 0;
+			else
+				buf.pars()->frameType = 1;
+			AVCodecContext *ctx = context->streams[packet->stream_index]->codec;
+			if (ctx) {
+				buf.pars()->videoWidth = ctx->width;
+				buf.pars()->videoHeight = ctx->height;
+			}
 			newOutputBuffer(0, buf);
 		} else
 			deletePacket(packet);
