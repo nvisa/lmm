@@ -138,5 +138,7 @@ void BaseLmmDecoder::setOutputTimeStamp(RawBuffer *buf, int minDuration)
 
 int BaseLmmDecoder::processBuffer(const RawBuffer &buf)
 {
+	if (passThru)
+		return newOutputBuffer(0, buf);
 	return decode(buf);
 }
