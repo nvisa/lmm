@@ -87,4 +87,6 @@ FFmpegBufferData::~FFmpegBufferData()
 		deleteFrame(frame);
 		frame = NULL;
 	}
+	if (frameData)
+		delete [] frameData;
 }

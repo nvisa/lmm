@@ -12,6 +12,7 @@ public:
 	FFmpegBufferData()
 		: RawBufferData()
 	{
+		frameData = NULL;
 	}
 	FFmpegBufferData(const FFmpegBufferData &other)
 		: RawBufferData(other)
