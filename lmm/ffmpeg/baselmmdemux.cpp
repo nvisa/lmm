@@ -269,7 +269,8 @@ int BaseLmmDemux::demuxOne()
 			}
 			buf.pars()->streamBufferNo = demuxedCount++;
 			newOutputBuffer(1, buf);
-		}
+		} else
+			deletePacket(packet);
 	} else if (packet->stream_index == videoStreamIndex) {
 		mInfo("new video stream: size=%d pts=%lld duration=%d dflags=%d", packet->size,
 			   packet->pts == (int64_t)AV_NOPTS_VALUE ? -1 : packet->pts ,
@@ -284,7 +285,8 @@ int BaseLmmDemux::demuxOne()
 			}
 			buf.pars()->streamBufferNo = demuxedCount++;
 			newOutputBuffer(0, buf);
-		}
+		} else
+			deletePacket(packet);
 	}
 	conlock.unlock();
 	return 0;
