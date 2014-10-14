@@ -135,7 +135,7 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		BufTab_freeBuf(hDstBuf);
 		return -EIO;
 	}
-	RawBuffer buf = DmaiBuffer("image/jpeg", hDstBuf, this);
+	RawBuffer buf = RawBuffer("image/jpeg", Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
 	buf.setParameters(source.constPars());
 	buf.pars()->frameType = IVIDEO_I_FRAME;
 	buf.pars()->encodeTime = streamTime->getCurrentTime();
@@ -145,6 +145,7 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
 	newOutputBuffer(0, buf);
+	BufTab_freeBuf(hDstBuf);
 
 	return 0;
 }
