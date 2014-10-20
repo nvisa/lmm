@@ -214,8 +214,12 @@ void RtpPacketizer::sendSR()
 	buf[7] = (ssrc >> 0) & 0xff;
 
 	/* ntp part */
-	qint64 ntpu = getCurrentTime() + NTP_OFFSET * 1000000;
-	uint ntps = ntpu / 1000000, ntpf = ntpu % 1000000;
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	qint64 ntpu = (qint64)tv.tv_sec * 1000000 + tv.tv_usec;
+	uint ntps = tv.tv_sec + NTP_OFFSET;
+	uint ntpf = (uint)((tv.tv_usec / 15625.0 ) * 0x04000000 + 0.5);
+
 	buf[8] = (ntps >> 24) & 0xff;
 	buf[9] = (ntps >> 16) & 0xff;
 	buf[10] = (ntps >> 8) & 0xff;
