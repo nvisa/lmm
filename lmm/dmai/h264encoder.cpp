@@ -851,6 +851,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			if (nal >= encend - 4)
 				break;
 		}
+		qint64 etime = streamTime->getCurrentTime();
 		QList<RawBuffer> list;
 		for (int i = 0; i < offsets.size(); i++) {
 			int start = offsets[i];
@@ -860,7 +861,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			RawBuffer buf = RawBuffer("video/x-h264", end - start);
 			buf.setParameters(source.constPars());
 			buf.pars()->frameType = BufferGfx_getFrameType(buffer);
-			buf.pars()->encodeTime = streamTime->getCurrentTime();
+			buf.pars()->encodeTime = etime;
 			buf.pars()->streamBufferNo = encodeCount;
 			buf.pars()->duration = duration;
 			if (seiDataOffset < end && seiDataOffset > start)
