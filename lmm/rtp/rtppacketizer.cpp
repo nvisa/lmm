@@ -287,7 +287,7 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 		sampleNtpRtp = false;
 		sendSR();
 	}
-	if (rtcpTime.elapsed() > 1000)
+	if (rtcpTime.elapsed() > 5000)
 		sendSR();
 
 	/* rtp part */
