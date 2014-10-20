@@ -119,6 +119,7 @@ public:
 			}
 		}
 		clientCount = 1;
+		rtspTimeoutEnabled = false;
 	}
 	~BaseRtspSession()
 	{
@@ -205,6 +206,7 @@ public:
 	MyTime timeout;
 	int rtptime;
 	int seq;
+	bool rtspTimeoutEnabled;
 private:
 	QHostAddress myIpAddr;
 	BaseRtspServer *server;
@@ -288,6 +290,8 @@ int BaseRtspServer::setEnabled(bool val)
 
 int BaseRtspServer::getSessionTimeoutValue(QString id)
 {
+	if (!sessions[id]->rtspTimeoutEnabled)
+		return 0;
 	return sessions[id]->timeout.elapsed();
 }
 
@@ -618,6 +622,7 @@ QStringList BaseRtspServer::handleCommandGetParameter(QStringList lines, QString
 	if (sessions.contains(sid)) {
 		BaseRtspSession *ses = sessions[sid];
 		ses->timeout.restart();
+		ses->rtspTimeoutEnabled = true;
 
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("CSeq: %1").arg(cseq);
