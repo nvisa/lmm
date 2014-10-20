@@ -129,7 +129,7 @@ QString RtpPacketizer::getSdp()
 	return sdp;
 }
 
-int RtpPacketizer::sendNalUnit(const uchar *buf, int size)
+int RtpPacketizer::sendNalUnit(const uchar *buf, int size, qint64 ts)
 {
 	RawNetworkSocket::SockBuffer *sbuf = NULL;
 	uchar *rtpbuf;
@@ -145,7 +145,6 @@ int RtpPacketizer::sendNalUnit(const uchar *buf, int size)
 		mDebug("undefined nal type %d, not sending", type);
 		return 0;
 	}
-	qint64 ts = packetTimestamp(0);
 	if (size <= maxPayloadSize) {
 		memcpy(rtpbuf + 12, buf, size);
 		sendRtpData(rtpbuf, size, 1, sbuf, ts);
@@ -295,7 +294,7 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 		if (int(data[4] & 0x1f) <= 5) {
 			streamedBufferCount++;
 		}
-		sendNalUnit(data + 4, size - 4);
+		sendNalUnit(data + 4, size - 4, packetTimestamp(0));
 	} else {
 		streamedBufferCount++;
 		uchar *stapBuf = NULL;
@@ -303,6 +302,7 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 		uchar nriMax = 0;
 		RawNetworkSocket::SockBuffer *sbuf = NULL;
 		uchar *rtpbuf = NULL;
+		qint64 ts = packetTimestamp(0);
 		while (1) {
 			const uchar *first = H264Parser::findNextStartCode(data, data + size);
 			if (first >= end)
@@ -317,7 +317,7 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 
 			if (!useStapA) {
 				/* while sending we omit NAL start-code */
-				sendNalUnit(first + 4, next - first - 4);
+				sendNalUnit(first + 4, next - first - 4, ts);
 			} else {
 				/* Use STAP-A messages */
 				const uchar *buf = first + 4;
@@ -333,7 +333,7 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 						nriMax = 0;
 						stapBuf = NULL;
 					}
-					sendNalUnit(buf, usize);
+					sendNalUnit(buf, usize, ts);
 				} else {
 					uchar type = buf[0] & 0x1F;
 					uchar nri = buf[0] & 0x60;

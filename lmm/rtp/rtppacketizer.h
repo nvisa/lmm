@@ -51,7 +51,7 @@ protected:
 	virtual void calculateFps(const RawBuffer buf);
 	virtual int processBuffer(const RawBuffer &buf);
 	virtual quint64 packetTimestamp(int stream);
-	int sendNalUnit(const uchar *buf, int size);
+	int sendNalUnit(const uchar *buf, int size, qint64 ts);
 	void sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 tsRef);
 	void createSdp();
 	void sendSR();
