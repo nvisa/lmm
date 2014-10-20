@@ -172,7 +172,7 @@ int RtpPacketizer::sendNalUnit(const uchar *buf, int size, qint64 ts)
 
 void RtpPacketizer::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 tsRef)
 {
-	uint ts = baseTs + packetTimestamp(0);
+	uint ts = baseTs + tsRef;
 	buf[0] = RTP_VERSION << 6;
 	buf[1] = last << 7 | 96;
 	buf[2] = seq >> 8;
