@@ -1172,7 +1172,7 @@ int H264Encoder::setDefaultDynamicParams(IH264VENC_Params *params)
 	dynH264Params->videncDynamicParams = Venc1_DynamicParams_DEFAULT;
 	dynH264Params->VUI_Buffer = vuiparambuf;
 	dynH264Params->VUI_Buffer->numUnitsInTicks = 100;
-	dynH264Params->VUI_Buffer->timeScale = 100 * encodeFps;
+	dynH264Params->VUI_Buffer->timeScale = 100 * encodeFps * 2;
 	dynH264Params->videncDynamicParams.size = sizeof(IH264VENC_DynamicParams);
 	dynH264Params->videncDynamicParams.targetBitRate   = params->videncParams.maxBitRate;
 	dynH264Params->videncDynamicParams.inputWidth      = imageWidth;
