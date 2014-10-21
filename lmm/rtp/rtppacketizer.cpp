@@ -298,7 +298,7 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 		if (int(data[4] & 0x1f) <= 5) {
 			streamedBufferCount++;
 		}
-		sendNalUnit(data + 4, size - 4, packetTimestamp(0));
+		sendNalUnit(data + 4, size - 4, buf.constPars()->encodeTime / 1000 * 90ull);
 	} else {
 		streamedBufferCount++;
 		uchar *stapBuf = NULL;
