@@ -216,7 +216,6 @@ void RtpPacketizer::sendSR()
 	/* ntp part */
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	qDebug() << "send";
 	qint64 ntpu = (qint64)tv.tv_sec * 1000000 + tv.tv_usec + NTP_OFFSET * 1000000;
 	uint ntps = tv.tv_sec + NTP_OFFSET;
 	uint ntpf = (uint)((tv.tv_usec / 15625.0 ) * 0x04000000 + 0.5);
