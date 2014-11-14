@@ -74,15 +74,27 @@ int TextOverlay::setFontSize(int size)
 int TextOverlay::setOverlayText(QString text)
 {
 	overlayText = text;
+	return 0;
+}
+
+void TextOverlay::clearFields()
+{
 	overlayFields.clear();
 	overlayFieldTexts.clear();
-	return 0;
 }
 
 void TextOverlay::addOverlayField(TextOverlay::overlayTextFields f, QString val)
 {
 	overlayFields << f;
 	overlayFieldTexts << val;
+}
+
+QStringList TextOverlay::getFontSizes()
+{
+	QStringList list;
+	for (int i = 0; i < mapCount; i++)
+		list << QString::number(i + 8);
+	return list;
 }
 
 int TextOverlay::setOverlayField(int pos, TextOverlay::overlayTextFields f)
@@ -155,6 +167,7 @@ bool TextOverlay::readMapsFromCache()
 	QDataStream in(&f);
 	qint32 cnt;
 	in >> cnt;
+	mapCount = cnt;
 	mDebug("%d character maps present", cnt);
 	if (fontSize - 8 > cnt)
 		fontSize = cnt - 8;

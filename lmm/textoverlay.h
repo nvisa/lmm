@@ -36,8 +36,10 @@ public:
 	int setFontSize(int size);
 	int setOverlayPosition(QPoint topLeft) { overlayPos = topLeft; return 0; }
 	int setOverlayText(QString text);
+	void clearFields();
 	void addOverlayField(overlayTextFields f, QString val = "");
 	int getFontSize() { return fontSize; }
+	QStringList getFontSizes();
 	QPoint getOverlayPosition() { return overlayPos; }
 	QString getOverlayText() { return overlayText; }
 	int getFieldCount() { return overlayFields.size(); }
@@ -69,6 +71,7 @@ private:
 	QString overlayText;
 	QList<overlayTextFields> overlayFields;
 	QStringList overlayFieldTexts;
+	int mapCount;
 
 	bool readMapsFromCache();
 	QByteArray createCharMap(int fontWidth, const QImage &image);
