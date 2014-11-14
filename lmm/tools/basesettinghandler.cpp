@@ -97,6 +97,9 @@ int BaseSettingHandler::setSetting(QString setting, QVariant value)
 	BaseSettingHandler *h = handlers[l.first()];
 	fDebug("setting '%s'", qPrintable(setting));
 	int err = h->set(setting, value);
+	/* not an error, just a flag for not saving ;) */
+	if (err == -EROFS)
+		return 0;
 	if (err)
 		return err;
 	changed.setValue(setting, value);
