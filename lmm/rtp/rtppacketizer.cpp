@@ -35,6 +35,7 @@ RtpPacketizer::RtpPacketizer(QObject *parent) :
 	srcDataPort = 0;
 	srcControlPort = 0;
 	useStapA = true;
+	useAbsoluteTimestamp = false;
 }
 
 Lmm::CodecType RtpPacketizer::codecType()
@@ -412,7 +413,9 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 quint64 RtpPacketizer::packetTimestamp(int stream)
 {
 	Q_UNUSED(stream);
-	return 90ull * streamTime->getCurrentTimeMili();
+	if (useAbsoluteTimestamp)
+		return 90ull * streamTime->getCurrentTimeMili();
+	return (90000ll * (streamedBufferCount) / (int)frameRate);
 }
 
 void RtpPacketizer::calculateFps(const RawBuffer buf)

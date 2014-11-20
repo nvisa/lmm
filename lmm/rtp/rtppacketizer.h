@@ -42,6 +42,8 @@ public:
 
 	bool isPacketized() { return packetized; }
 	void setPacketized(bool v) { packetized = v; }
+	void setAbsoluteTimestamp(bool v) { useAbsoluteTimestamp = v; }
+	bool isUsingAbsoluteTimestamp() { return useAbsoluteTimestamp; }
 signals:
 	void sdpReady(QString sdp);
 	void newReceiverReport(int);
@@ -70,6 +72,7 @@ protected:
 	QHostAddress myIpAddr;
 	uchar *tempRtpBuf;
 	bool useStapA;
+	bool useAbsoluteTimestamp;
 
 	int dstDataPort;
 	int dstControlPort;
