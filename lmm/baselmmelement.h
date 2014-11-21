@@ -47,6 +47,7 @@ public:
 	virtual int start();
 	virtual int stop();
 	virtual int flush();
+	virtual int prepareStop();
 	int sendEOF();
 	virtual int setParameter(QString param, QVariant value);
 	virtual QVariant getParameter(QString param);
