@@ -767,7 +767,6 @@ int DM365CameraInput::openCamera2()
 
 int DM365CameraInput::closeCamera()
 {
-	stopStreaming();
 	close(fd);
 	if (rszFd > 0)
 		close(rszFd);

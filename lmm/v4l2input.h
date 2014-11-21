@@ -20,6 +20,7 @@ public:
 
 	virtual int start();
 	virtual int stop();
+	virtual int prepareStop();
 	virtual int flush();
 	virtual void aboutToDeleteBuffer(const RawBufferParameters *params);
 	virtual int processBlocking(int ch = 0);

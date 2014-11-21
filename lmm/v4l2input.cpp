@@ -60,6 +60,12 @@ int V4l2Input::stop()
 	return err;
 }
 
+int V4l2Input::prepareStop()
+{
+	stopStreaming();
+	return BaseLmmElement::prepareStop();
+}
+
 int V4l2Input::flush()
 {
 	return BaseLmmElement::flush();
@@ -69,8 +75,6 @@ int V4l2Input::closeCamera()
 {
 	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	int i;
-
-	stopStreaming();
 
 	struct v4l2_requestbuffers req;
 	req.count = 0;
