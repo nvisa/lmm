@@ -68,8 +68,8 @@ int BasePlayer::stop()
 	int err;
 
 	foreach (BaseLmmElement *el, elements) {
-		mDebug("stopping element %s", el->metaObject()->className());
-		el->stop();
+		mDebug("preparing element %s to stop", el->metaObject()->className());
+		el->prepareStop();
 	}
 
 	const QList<LmmThread *> threads = getThreads();
@@ -77,6 +77,11 @@ int BasePlayer::stop()
 		mDebug("stopping thread %s", qPrintable(th->threadName()));
 		th->stop();
 		th->wait();
+	}
+
+	foreach (BaseLmmElement *el, elements) {
+		mDebug("stopping element %s", el->metaObject()->className());
+		el->stop();
 	}
 
 	err = stopPlayer();
