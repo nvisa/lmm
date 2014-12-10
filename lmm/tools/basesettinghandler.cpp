@@ -103,7 +103,8 @@ int BaseSettingHandler::setSetting(QString setting, QVariant value)
 	if (err)
 		return err;
 	changed.setValue(setting, value);
-	h->cache.insert(setting, value);
+	if (h->shouldCache(setting))
+		h->cache.insert(setting, value);
 	return 0;
 }
 
