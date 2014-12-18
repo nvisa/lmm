@@ -230,7 +230,7 @@ void RtpPacketizer::sendSR()
 	buf[14] = (ntpf >> 8) & 0xff;
 	buf[15] = (ntpf >> 0) & 0xff;
 
-	uint rtpts = (ntpu - ntpRtpPair.first) * 90000 / 1000000 + ntpRtpPair.second;
+	uint rtpts = baseTs + (ntpu - ntpRtpPair.first) * 90000 / 1000000 + ntpRtpPair.second;
 	buf[16] = (rtpts >> 24) & 0xff;
 	buf[17] = (rtpts >> 16) & 0xff;
 	buf[18] = (rtpts >> 8) & 0xff;
@@ -284,7 +284,7 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 	/* check rtcp first */
 	if (sampleNtpRtp) {
 		ntpRtpPair.first = getCurrentTime() + NTP_OFFSET * 1000000;
-		ntpRtpPair.second = baseTs + packetTimestamp(0);
+		ntpRtpPair.second = packetTimestamp(0);
 		sampleNtpRtp = false;
 		sendSR();
 	}
