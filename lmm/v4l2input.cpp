@@ -31,6 +31,7 @@ V4l2Input::V4l2Input(QObject *parent) :
 	fd = -1;
 	inputIndex = 0;
 	nonBlockingIO = true;
+	manualStart = false;
 }
 
 int V4l2Input::start()
@@ -147,6 +148,9 @@ int V4l2Input::openCamera()
 		err = ENOMEM;
 		goto cleanup_devnode;
 	}
+
+	if (manualStart)
+		return 0;
 
 	/* Start the video streaming */
 	startStreaming();

@@ -30,6 +30,10 @@ public:
 	void setBufferCount(int v) { captureBufferCount = v; }
 	int getBufferCount() { return captureBufferCount; }
 	friend class captureThread;
+
+	virtual int startStreaming();
+	virtual int stopStreaming();
+	void setManualStart(bool v) { manualStart = v; }
 signals:
 	
 private slots:
@@ -45,6 +49,7 @@ protected:
 	QList<char *> userptr;
 	QElapsedTimer timing;
 	bool nonBlockingIO;
+	bool manualStart;
 
 	virtual int openCamera();
 	virtual int closeCamera();
@@ -62,8 +67,6 @@ protected:
 	int queryCapabilities(v4l2_capability *cap);
 	int queryStandard();
 	int setFormat(unsigned int chromaFormat, int width, int height, bool interlaced = false);
-	virtual int startStreaming();
-	virtual int stopStreaming();
 private:
 	int processBuffer(const RawBuffer &) { return 0; }
 	virtual int processBuffer(v4l2_buffer *buffer);
