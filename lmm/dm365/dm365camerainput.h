@@ -46,6 +46,8 @@ public:
 	void setHorizontalFlip(int ch, bool flip);
 
 	virtual QList<QVariant> extraDebugInfo();
+
+	int startStreaming();
 signals:
 	
 public slots:
@@ -63,7 +65,7 @@ private:
 	virtual int putFrame(struct v4l2_buffer * buffer);
 	virtual v4l2_buffer * getFrame();
 	int processBuffer(v4l2_buffer *buffer);
-	int startStreaming();
+
 	int stopStreaming();
 
 	float inputFps;

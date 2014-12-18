@@ -656,6 +656,9 @@ int DM365CameraInput::openCamera()
 		return err;
 	}
 
+	if (manualStart)
+		return 0;
+
 	mDebug("buffers are allocated, starting streaming");
 	return startStreaming();
 }
@@ -932,7 +935,7 @@ v4l2_buffer * DM365CameraInput::getFrame()
 
 	/* Get a frame buffer with captured data */
 	if (ioctl(fd, VIDIOC_DQBUF, &buffer) < 0) {
-		if (errno != EAGAIN)
+		if (errno != EAGAIN && !manualStart)
 			mDebug("VIDIOC_DQBUF failed with err %d", -errno);
 		return NULL;
 	}
