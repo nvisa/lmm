@@ -657,10 +657,7 @@ int DM365CameraInput::openCamera()
 	}
 
 	mDebug("buffers are allocated, starting streaming");
-	err = startStreaming();
-	if (nonStdInput.enabled)
-		setupNonStdMode();
-	return err;
+	return startStreaming();
 }
 
 int DM365CameraInput::openCamera2()
@@ -979,6 +976,19 @@ int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
 		mInfo("late capture: %d", passed);
 
 	return 0;
+}
+
+int DM365CameraInput::startStreaming()
+{
+	int err = V4l2Input::startStreaming();
+	if (err == 0 && nonStdInput.enabled)
+		setupNonStdMode();
+	return err;
+}
+
+int DM365CameraInput::stopStreaming()
+{
+	return V4l2Input::stopStreaming();
 }
 
 int DM365CameraInput::configureResizer(void)
