@@ -35,7 +35,7 @@ RtpPacketizer::RtpPacketizer(QObject *parent) :
 	srcDataPort = 0;
 	srcControlPort = 0;
 	useStapA = true;
-	useAbsoluteTimestamp = false;
+	useAbsoluteTimestamp = true;
 }
 
 Lmm::CodecType RtpPacketizer::codecType()
