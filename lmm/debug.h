@@ -21,9 +21,13 @@ extern QString __dbg_file_log_dir;
 void initDebug();
 void changeDebug(QString debug, int defaultLevel = 0);
 void setDebuggingMode(int mode, QString networkAddr);
+void useAbsoluteTimeForMessages(int on);
+int isUsingAbsoluteTimeForMessages();
 #ifdef DEBUG_TIMING
+#include <QTime>
 #include <QElapsedTimer>
 extern QElapsedTimer __debugTimer;
+extern int __useAbsTime;
 extern unsigned int __lastTime;
 extern unsigned int __totalTime;
 static inline unsigned int __totalTimePassed()
@@ -36,7 +40,12 @@ static inline unsigned int __totalTimePassed()
 #define __debug(__mes, __list, __class, __place, arg...) { \
 	if (__list.size() == 0 || \
 		__list.contains(__class->metaObject()->className())) { \
-			__totalTimePassed(); qDebug("[%d] [%u] " __mes, __totalTime, __lastTime, __place, ##arg); } \
+			__totalTimePassed(); \
+			if (__useAbsTime) \
+				qDebug("[%s] [%u] " __mes, qPrintable(QTime::currentTime().toString()), __lastTime, __place, ##arg); \
+			else \
+				qDebug("[%d] [%u] " __mes, __totalTime, __lastTime, __place, ##arg); \
+		} \
 	}
 #define __debug_fast qDebug
 

@@ -11,6 +11,7 @@
 QElapsedTimer __debugTimer;
 unsigned int __lastTime;
 unsigned int __totalTime;
+int __useAbsTime = 0;
 #endif
 
 QStringList __dbg_classes;
@@ -213,4 +214,24 @@ void __cyg_profile_func_exit(void *this_fn, void *call_site)
 	_trpos--;
 }
 
+}
+
+
+void useAbsoluteTimeForMessages(int on)
+{
+#ifdef DEBUG_TIMING
+	__useAbsTime = on;
+#else
+	Q_UNUSED(on);
+#endif
+}
+
+
+int isUsingAbsoluteTimeForMessages()
+{
+#ifdef DEBUG_TIMING
+	return __useAbsTime;
+#else
+	return 0;
+#endif
 }
