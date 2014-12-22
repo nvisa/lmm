@@ -22,8 +22,8 @@ void initDebug();
 void changeDebug(QString debug, int defaultLevel = 0);
 void setDebuggingMode(int mode, QString networkAddr);
 #ifdef DEBUG_TIMING
-#include <QTime>
-extern QTime __debugTimer;
+#include <QElapsedTimer>
+extern QElapsedTimer __debugTimer;
 extern unsigned int __lastTime;
 extern unsigned int __totalTime;
 static inline unsigned int __totalTimePassed()
@@ -33,8 +33,13 @@ static inline unsigned int __totalTimePassed()
     return __totalTime;
 }
 
-#define __debug(mes, arg...) { __totalTimePassed(); qDebug("[%d] [%u] " mes, __totalTime, __lastTime, ##arg); }
+#define __debug(__mes, __list, __class, __place, arg...) { \
+	if (__list.size() == 0 || \
+		__list.contains(__class->metaObject()->className())) { \
+			__totalTimePassed(); qDebug("[%d] [%u] " __mes, __totalTime, __lastTime, __place, ##arg); } \
+	}
 #define __debug_fast qDebug
+
 #else
 #define __debug(__mes, __list, __class, __place, arg...) { \
 	if (__list.size() == 0 || \

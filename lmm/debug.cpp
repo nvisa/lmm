@@ -8,7 +8,7 @@
 #include <QTextCodec>
 
 #ifdef DEBUG_TIMING
-QTime __debugTimer;
+QElapsedTimer __debugTimer;
 unsigned int __lastTime;
 unsigned int __totalTime;
 #endif
