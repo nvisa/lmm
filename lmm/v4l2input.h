@@ -26,6 +26,7 @@ public:
 	virtual int processBlocking(int ch = 0);
 
 	int info();
+	int setFrameSkip(int cnt);
 
 	void setBufferCount(int v) { captureBufferCount = v; }
 	int getBufferCount() { return captureBufferCount; }
@@ -50,6 +51,8 @@ protected:
 	QElapsedTimer timing;
 	bool nonBlockingIO;
 	bool manualStart;
+	int frameSkipCount;
+	int frameSkip;
 
 	virtual int openCamera();
 	virtual int closeCamera();

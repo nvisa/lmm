@@ -35,6 +35,8 @@ public:
 	void setInputType(cameraInput inp) { inputType = inp; }
 	void setInputFps(float fps);
 	void setOutputFps(float fps);
+	float getInputFps() { return inputFps; }
+	float getOutputFps() { return outputFps; }
 	int setInputSize(QSize sz);
 	int setOutputSize(int ch, QSize sz);
 	void setNonStdOffsets(int vbp, int hbp);

@@ -438,11 +438,13 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 void DM365CameraInput::setInputFps(float fps)
 {
 	inputFps = fps;
+	setFrameSkip(inputFps / outputFps);
 }
 
 void DM365CameraInput::setOutputFps(float fps)
 {
 	outputFps = fps;
+	setFrameSkip(inputFps / outputFps);
 }
 
 void DM365CameraInput::aboutToDeleteBuffer(const RawBufferParameters *params)
@@ -572,8 +574,8 @@ int DM365CameraInput::openCamera()
 	if (err)
 		return err;
 
-	if (outputFps != inputFps)
-		fpsWorkaround();
+	//if (outputFps != inputFps)
+		//fpsWorkaround();
 
 	err = queryCapabilities(&cap);
 	if (err)
