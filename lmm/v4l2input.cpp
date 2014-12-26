@@ -295,7 +295,15 @@ int V4l2Input::processBlocking(int ch)
 		return -EINVAL;
 	if (buffer) {
 		processTimeStat->startStat();
-		int ret = processBuffer(buffer);
+		int ret = 0;
+		if (frameSkip) {
+			if (frameSkipCount--) {
+				putFrame(buffer);
+				return ret;
+			}
+			frameSkipCount = frameSkip;
+		}
+		ret = processBuffer(buffer);
 		processTimeStat->addStat();
 		return ret;
 	}
@@ -378,6 +386,13 @@ int V4l2Input::info()
 	queryStandard();
 
 	close(fd);
+	return 0;
+}
+
+int V4l2Input::setFrameSkip(int cnt)
+{
+	frameSkip = cnt;
+	frameSkipCount = 0;
 	return 0;
 }
 
