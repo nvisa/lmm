@@ -25,6 +25,7 @@ public:
     static bool blendOSD(bool blend, unsigned short colorKey = 0xffff);
 
     static bool writeRegister(unsigned int addr, unsigned int value);
+	static uint readRegister(unsigned int addr);
 
 signals:
 
