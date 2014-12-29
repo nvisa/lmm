@@ -13,6 +13,7 @@ class JpegEncoder : public DmaiEncoder
 public:
 	explicit JpegEncoder(QObject *parent = 0);
 	void setQualityFactor(int q);
+	int qualityFactor();
 signals:
 	
 public slots:
@@ -20,6 +21,7 @@ private:
 	IMGENC1_DynamicParams   defaultDynParams;
 	Ienc1_Handle hCodec;
 	int qFact;
+	bool qFactChanged;
 	BufTab_Handle outputBufTab;
 
 	virtual int startCodec(bool alloc = true);

@@ -20,6 +20,26 @@ JpegEncoder::JpegEncoder(QObject *parent) :
 {
 	codec = CODEC_JPEG;
 	qFact = 90;
+	qFactChanged = false;
+}
+
+void JpegEncoder::setQualityFactor(int q)
+{
+	if (q == qFact)
+		return;
+	if (q > 100)
+		q = 100;
+	if (q < 3)
+		q = 3;
+	qFact = q;
+	dspl.lock();
+	qFactChanged = true;
+	dspl.unlock();
+}
+
+int JpegEncoder::qualityFactor()
+{
+	return qFact;
 }
 
 int JpegEncoder::startCodec(bool alloc)
@@ -121,6 +141,19 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	BufferGfx_getDimensions(buffer, &dim);
 	dim.height = Dmai_roundUp(dim.height, CODECHEIGHTALIGN);
 	BufferGfx_setDimensions(buffer, &dim);
+
+	if (qFactChanged) {
+		mDebug("changing quality to %d", qFact);
+		IMGENC1_Status status;
+		status.size = sizeof(IMGENC1_Status);
+		IMGENC1_DynamicParams *dynParams = &defaultDynParams;
+		dynParams->qValue = qFact;
+		if (IMGENC1_control(Ienc1_getVisaHandle(hCodec), XDM_SETPARAMS,
+							dynParams, &status) != IMGENC1_EOK) {
+			mDebug("error setting control on encoder: 0x%x", (int)status.extendedError)
+		}
+		qFactChanged = false;
+	}
 
 	mInfo("invoking Ienc1_process: width=%d height=%d",
 		  (int)dim.width, (int)dim.height);
