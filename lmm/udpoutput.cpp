@@ -8,6 +8,7 @@
 UdpOutput::UdpOutput(QObject *parent) :
 	BaseLmmOutput(parent)
 {
+	packetHashing = false;
 }
 
 int UdpOutput::start()
@@ -115,19 +116,21 @@ int UdpOutput::outputBuffer(RawBuffer buf)
 		}
 	}
 
-	QCryptographicHash hash(QCryptographicHash::Md5);
-	hash.addData((const char *)buf.constData());
-	QByteArray hashBa = hash.result();
-	ba.append(PT_HES);
-	ba.append(no >> 8);
-	ba.append(no & 0xff);
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append(hashBa);
-	writeData(ba);
+	if (packetHashing) {
+		QCryptographicHash hash(QCryptographicHash::Md5);
+		hash.addData((const char *)buf.constData());
+		QByteArray hashBa = hash.result();
+		ba.append(PT_HES);
+		ba.append(no >> 8);
+		ba.append(no & 0xff);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append(hashBa);
+		writeData(ba);
+	}
 
 	return 0;
 }

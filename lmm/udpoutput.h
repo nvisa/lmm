@@ -36,6 +36,7 @@ public:
 	virtual int start();
 	virtual int stop();
 
+	void usePacketHashing(bool v) { packetHashing = v; }
 	static QByteArray createControlCommand(CommandType cmd,
 										   QVariant var = QVariant());
 private slots:
@@ -48,6 +49,7 @@ private:
 	QUdpSocket *sock;
 	ClientStatus clientStatus;
 	QHostAddress target;
+	bool packetHashing;
 };
 
 #endif // UDPOUTPUT_H
