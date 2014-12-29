@@ -67,6 +67,17 @@ bool HardwareOperations::writeRegister(unsigned int addr, unsigned int value)
 #endif
 }
 
+uint HardwareOperations::readRegister(unsigned int addr)
+{
+	unsigned int *reg = (unsigned int *)memmap(addr);
+	if (!reg)
+		return 0;
+
+	uint value = *reg;
+	munmap(reg, MAP_SIZE);
+	return value;
+}
+
 HardwareOperations::HardwareOperations(QObject *parent) :
 	QObject(parent)
 {
