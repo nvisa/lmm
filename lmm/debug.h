@@ -25,6 +25,7 @@ void useAbsoluteTimeForMessages(int on);
 int isUsingAbsoluteTimeForMessages();
 #ifdef DEBUG_TIMING
 #include <QTime>
+#include <QDateTime>
 #include <QElapsedTimer>
 extern QElapsedTimer __debugTimer;
 extern int __useAbsTime;
@@ -42,7 +43,7 @@ static inline unsigned int __totalTimePassed()
 		__list.contains(__class->metaObject()->className())) { \
 			__totalTimePassed(); \
 			if (__useAbsTime) \
-				qDebug("[%s] [%u] " __mes, qPrintable(QTime::currentTime().toString()), __lastTime, __place, ##arg); \
+				qDebug("[%s] [%u] " __mes, qPrintable(QDateTime::currentDateTime().toString()), __lastTime, __place, ##arg); \
 			else \
 				qDebug("[%d] [%u] " __mes, __totalTime, __lastTime, __place, ##arg); \
 		} \
