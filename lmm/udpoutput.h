@@ -37,6 +37,7 @@ public:
 	virtual int stop();
 
 	void usePacketHashing(bool v) { packetHashing = v; }
+	void setTarget(QHostAddress addr) { target = addr; }
 	static QByteArray createControlCommand(CommandType cmd,
 										   QVariant var = QVariant());
 private slots:
