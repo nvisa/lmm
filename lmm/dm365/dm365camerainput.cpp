@@ -942,7 +942,9 @@ v4l2_buffer * DM365CameraInput::getFrame()
 		return NULL;
 	}
 
-	return v4l2buf[buffer.index];
+	struct v4l2_buffer *buf = v4l2buf[buffer.index];
+	buf->timestamp = buffer.timestamp;
+	return buf;
 }
 
 int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
@@ -954,8 +956,7 @@ int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
 
 	RawBuffer newbuf = DmaiBuffer("video/x-raw-yuv", dbufa, this);
 	newbuf.pars()->v4l2Buffer = (quintptr *)buffer;
-	newbuf.pars()->captureTime = streamTime->getCurrentTime()
-							  - (captureBufferCount - 1) * 1000 * 1000 / outputFps;
+	newbuf.pars()->captureTime = buffer->timestamp.tv_sec * (qint64)1000000 + buffer->timestamp.tv_usec;
 	newbuf.pars()->v4l2PixelFormat = pixFormat;
 	newbuf.pars()->fps = outputFps;
 	newbuf.pars()->videoWidth = captureWidth;
