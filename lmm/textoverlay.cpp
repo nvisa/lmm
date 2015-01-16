@@ -288,7 +288,7 @@ void TextOverlay::yuvSwOverlay(RawBuffer buffer)
 	f.setPointSize(fontSize);
 	painter.setFont(f);
 	painter.drawText(QRect(0, 0, image.width(), image.height()),
-					 compileOverlayText());
+					 compileOverlayText(buffer));
 	char *data = (char *)buffer.data() + linelen * height;
 	for (int j = 0; j < image.height(); j++) {
 		int start = j * linelen + overlayPos.x();
@@ -313,7 +313,7 @@ void TextOverlay::yuvSwMapOverlay(RawBuffer buffer)
 	if (overlayPos.y() > height - fontHeight)
 		overlayPos.setY(height - fontHeight);
 	char *dst = (char *)buffer.data() + linelen * overlayPos.y();
-	QString text = compileOverlayText();
+	QString text = compileOverlayText(buffer);
 	QByteArray ba = text.toLatin1();
 	for (int i = 0; i < ba.size(); i++) {
 		const QByteArray map = charMap[(int)ba.at(i) - 32];
@@ -339,7 +339,7 @@ void TextOverlay::yuvSwPixmapOverlay(RawBuffer buffer)
 		overlayPos.setY(height - fontHeight);
 	char *dst = (char *)buffer.data() + linelen * overlayPos.y()
 			+ overlayPos.x();
-	QString text = compileOverlayText();
+	QString text = compileOverlayText(buffer);
 	QByteArray ba = text.toLatin1();
 	int x, y, val;
 	for (int i = 0; i < ba.size(); i++) {
@@ -361,7 +361,7 @@ void TextOverlay::yuvSwPixmapOverlay(RawBuffer buffer)
 	}
 }
 
-QString TextOverlay::compileOverlayText()
+QString TextOverlay::compileOverlayText(const RawBuffer &buf)
 {
 	QStringList args;
 	for (int i = 0; i < overlayFields.size(); i++) {
@@ -396,7 +396,14 @@ QString TextOverlay::compileOverlayText()
 		case FIELD_AVG_CPU_LOAD:
 			args << QString::number(CpuLoad::getAverageCpuLoad());
 			break;
-		default:
+		case FIELD_FRAME_TIME: {
+			qint64 epoch = buf.constPars()->captureTime;
+			int secs = epoch / 1000000;
+			qint64 usecs = epoch - secs * (qint64)1000000;
+			args << QString("%1.%2")
+					.arg(QDateTime::fromTime_t(secs).toString("dd-MM-yy_hh:mm:ss"))
+					.arg(QString::number(usecs / 1000).rightJustified(3, '0'));
+		} default:
 			break;
 		}
 	}
