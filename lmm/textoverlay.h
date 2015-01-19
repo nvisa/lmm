@@ -50,10 +50,11 @@ public:
 	int setOverlayFieldText(int pos, QString text);
 	int start();
 	int stop();
+	int dmaCopy(void *src, void *dst, int acnt, int bcnt);
 protected:
 	int processBuffer(const RawBuffer &buffer);
 signals:
-	
+
 public slots:
 private:
 	int mmapfd;

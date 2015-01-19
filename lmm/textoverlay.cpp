@@ -243,6 +243,34 @@ void TextOverlay::createYuvMap()
 	}
 }
 
+int TextOverlay::dmaCopy(void *src, void *dst, int acnt, int bcnt)
+{
+	dm365mmap_params params;
+	params.src = (uint)src;
+	params.srcmode = 0;
+	params.srcbidx = acnt;
+
+	params.dst = (uint)dst;
+	params.dstmode = 0;
+	params.dstbidx = acnt;
+
+	params.acnt = acnt;
+	params.bcnt = bcnt;
+	params.ccnt = 1;
+	params.bcntrld = acnt; //not valid for AB synced
+	params.syncmode = 1; //AB synced
+
+	int err = 0;
+	dmalock.lock();
+	if (ioctl(mmapfd, DM365MMAP_IOCMEMCPY, &params) == -1) {
+		mDebug("error %d during dma copy", errno);
+		err = errno;
+	}
+	dmalock.unlock();
+	mInfo("dma copy succeeded with %d", err);
+	return err;
+}
+
 int TextOverlay::dmaCopy(void *src, void *dst, QImage *im)
 {
 	dm365mmap_params params;
