@@ -260,9 +260,16 @@ int BaseSettingHandler::readAllFromDisk(QString filename)
 	return 0;
 }
 
-int BaseSettingHandler::readIncrementalSettings()
+int BaseSettingHandler::readIncrementalSettings(QString handler)
 {
 	QStringList keys = changed.allKeys();
+	if (!handler.isEmpty()) {
+		QStringList filtered;
+		for (int i = 0; i < keys.size(); i++)
+			if (keys[i].split(".").first() == handler)
+				filtered << keys[i];
+		keys = filtered;
+	}
 	QStringList cachedOnes;
 	foreach (const QString key, keys) {
 		QString last = key.split(".").last();

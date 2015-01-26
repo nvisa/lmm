@@ -32,7 +32,7 @@ public:
 	static int importKeyList(QString filename);
 	static int saveAllToDisk(QString filename);
 	static int readAllFromDisk(QString filename);
-	static int readIncrementalSettings();
+	static int readIncrementalSettings(QString handler = "");
 protected:
 	explicit BaseSettingHandler(QString key, QObject *parent = NULL);
 	virtual QVariant get(QString setting) = 0;
