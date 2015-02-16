@@ -533,7 +533,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		resp << QString("CSeq: %1").arg(cseq);
 		resp << createDateHeader();
 		resp << ses->transportString;
-		resp << QString("Session: %1 ; timeout = %2").arg(ses->sessionId).arg(60);
+		resp << QString("Session:%1;timeout=%2").arg(ses->sessionId).arg(60);
 		resp << "Content-Length: 0";
 		resp << "Cache-Control: no-cache";
 		resp << lsep;
