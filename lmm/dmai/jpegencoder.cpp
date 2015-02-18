@@ -19,7 +19,7 @@ JpegEncoder::JpegEncoder(QObject *parent) :
 	DmaiEncoder(parent)
 {
 	codec = CODEC_JPEG;
-	qFact = 90;
+	qFact = 97;
 	qFactChanged = false;
 }
 
