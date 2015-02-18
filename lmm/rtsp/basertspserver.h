@@ -25,6 +25,7 @@ struct RtspSessionParameters {
 	QString streamIp;
 	QString streamName;
 	uint ssrc;
+	uint ttl;
 };
 
 class BaseRtspServer : public QObject

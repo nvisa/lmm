@@ -150,8 +150,8 @@ public:
 			return -EINVAL;
 
 		if (multicast) {
-			transportString = QString("Transport: RTP/AVP;multicast;destination=%3;port=%1-%2;ssrc=%3;mode=play")
-					.arg(dataPort).arg(controlPort).arg(streamIp).arg(ssrc, 0, 16);
+			transportString = QString("Transport: RTP/AVP;multicast;destination=%3;port=%1-%2;ttl=%4;mode=play")
+					.arg(dataPort).arg(controlPort).arg(streamIp).arg(ttl);
 		} else {
 			transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=%5;mode=play")
 					.arg(dataPort).arg(controlPort).arg(sourceDataPort)
@@ -203,6 +203,7 @@ public:
 	QString streamIp;
 	int clientCount;
 	uint ssrc;
+	uint ttl;
 	MyTime timeout;
 	int rtptime;
 	int seq;
@@ -249,6 +250,7 @@ RtspSessionParameters BaseRtspServer::getSessionParameters(QString id)
 	sp.streamIp = ses->streamIp;
 	sp.streamName = ses->streamName;
 	sp.ssrc = ses->ssrc;
+	sp.ttl = ses->ttl;
 	return sp;
 }
 
@@ -510,6 +512,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 			ses->controlUrl = cbase;
 			ses->streamName = stream;
 			ses->ssrc = rand();
+			ses->ttl = 10;
 			int err = ses->setup(multicast, dataPort, controlPort, stream);
 			if (err) {
 				mDebug("cannot create session, error is %d", err);
