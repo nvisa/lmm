@@ -32,6 +32,7 @@ V4l2Input::V4l2Input(QObject *parent) :
 	inputIndex = 0;
 	nonBlockingIO = true;
 	manualStart = false;
+	frameSkip = 0;
 }
 
 int V4l2Input::start()
@@ -391,7 +392,7 @@ int V4l2Input::info()
 
 int V4l2Input::setFrameSkip(int cnt)
 {
-	frameSkip = cnt;
+	frameSkip = cnt - 1;
 	frameSkipCount = 0;
 	return 0;
 }
