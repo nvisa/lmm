@@ -2,8 +2,8 @@
 #include "rawbuffer.h"
 #include "streamtime.h"
 #include "tools/cpuload.h"
-
 #include "debug.h"
+#include "tools/basesettinghandler.h"
 
 #include <ti/sdo/dmai/Buffer.h>
 #include <ti/sdo/dmai/BufferGfx.h>
@@ -423,6 +423,9 @@ QString TextOverlay::compileOverlayText(const RawBuffer &buf)
 			break;
 		case FIELD_AVG_CPU_LOAD:
 			args << QString::number(CpuLoad::getAverageCpuLoad());
+			break;
+		case FIELD_SETTING:
+			args << BaseSettingHandler::getSetting("video_encoding.ch.0.profile").toString();
 			break;
 		case FIELD_FRAME_TIME: {
 			qint64 epoch = buf.constPars()->captureTime;
