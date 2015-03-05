@@ -84,9 +84,11 @@ private:
 	int setDefaultParams(IH264VENC_Params *params);
 	int setParamsProfile1(IH264VENC_Params *params);
 	int setParamsProfile2(IH264VENC_Params *params);
+	int setParamsProfile3(IH264VENC_Params *params);
 	int setDefaultDynamicParams(IH264VENC_Params *params);
 	int setDynamicParamsProfile1(IH264VENC_Params *params);
 	int setDynamicParamsProfile2(IH264VENC_Params *params);
+	int setDynamicParamsProfile3(IH264VENC_Params *params);
 	ROI_Interface *roiParameter(uchar *vdata);
 };
 
