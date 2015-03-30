@@ -961,15 +961,16 @@ int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
 	newbuf.pars()->fps = outputFps;
 	newbuf.pars()->videoWidth = captureWidth;
 	newbuf.pars()->videoHeight = captureHeight;
+	newbuf.pars()->streamBufferNo = captureCount;
 
 	RawBuffer sbuf = DmaiBuffer("video/x-raw-yuv", dbufb, this);
 	sbuf.pars()->v4l2Buffer = (quintptr *)buffer;
-	sbuf.pars()->captureTime = streamTime->getCurrentTime()
-							  - (captureBufferCount - 1) * 1000 * 1000 / outputFps;
+	sbuf.pars()->captureTime = buffer->timestamp.tv_sec * (qint64)1000000 + buffer->timestamp.tv_usec;
 	sbuf.pars()->v4l2PixelFormat = pixFormat;
 	sbuf.pars()->fps = outputFps;
 	sbuf.pars()->videoWidth = captureWidth2;
 	sbuf.pars()->videoHeight = captureHeight2;
+	sbuf.pars()->streamBufferNo = captureCount;
 
 	useLock.lock();
 	useCount[buffer->index] += 2;
