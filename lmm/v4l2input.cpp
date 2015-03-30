@@ -50,6 +50,7 @@ int V4l2Input::start()
 		if (err)
 			return err;
 		timing.start();
+		captureCount = 0;
 		return BaseLmmElement::start();
 	}
 	return 0;
@@ -295,6 +296,7 @@ int V4l2Input::processBlocking(int ch)
 	if (getState() == STOPPED)
 		return -EINVAL;
 	if (buffer) {
+		captureCount++;
 		processTimeStat->startStat();
 		int ret = 0;
 		if (frameSkip) {

@@ -53,6 +53,7 @@ protected:
 	bool manualStart;
 	int frameSkipCount;
 	int frameSkip;
+	int captureCount;
 
 	virtual int openCamera();
 	virtual int closeCamera();
