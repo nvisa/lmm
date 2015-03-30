@@ -39,10 +39,8 @@ int V4l2Output::outputBuffer(RawBuffer buf)
 		reqBuffers << reqBuffersInUse.take(v4l2buf.index);
 	}
 
-	v4l2_buffer *buffer = (v4l2_buffer *)buf.pars()->v4l2Buffer;
-
 	v4l2_buffer *outbuf = reqBuffers.takeFirst();
-	outbuf->m.userptr = buffer->m.userptr;
+	outbuf->m.userptr = (long unsigned int)buf.constData();
 	if (ioctl(fd, VIDIOC_QBUF, outbuf)) {
 		mDebug("Unable to queue buffer");
 		return -EINVAL;
