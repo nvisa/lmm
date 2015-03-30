@@ -52,6 +52,7 @@ public:
 	int start();
 	int stop();
 	int dmaCopy(void *src, void *dst, int acnt, int bcnt);
+	int overlayInPlace(const RawBuffer &buffer);
 protected:
 	int processBuffer(const RawBuffer &buffer);
 signals:

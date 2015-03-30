@@ -55,6 +55,7 @@ TextOverlay::TextOverlay(overlayType t, QObject *parent) :
 	fontSize = 28;
 	useDma = false;
 	imageBuf = NULL;
+	setEnabled(false);
 }
 
 int TextOverlay::setFontSize(int size)
@@ -269,6 +270,16 @@ int TextOverlay::dmaCopy(void *src, void *dst, int acnt, int bcnt)
 	dmalock.unlock();
 	mInfo("dma copy succeeded with %d", err);
 	return err;
+}
+
+int TextOverlay::overlayInPlace(const RawBuffer &buffer)
+{
+	/* we modify buffers in-place */
+	if (type == CHAR_MAP)
+		yuvSwMapOverlay(buffer);
+	else if (type == PIXEL_MAP)
+		yuvSwPixmapOverlay(buffer);
+	return 0;
 }
 
 int TextOverlay::dmaCopy(void *src, void *dst, QImage *im)
