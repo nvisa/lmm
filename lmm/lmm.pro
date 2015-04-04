@@ -45,7 +45,8 @@ SOURCES += \
     tools/rawnetworksocket.cpp \
     baselmmpipeline.cpp \
     pipeline/basepipeelement.cpp \
-    pipeline/functionpipeelement.cpp
+    pipeline/functionpipeelement.cpp \
+    dm365/dm365dmacopy.cpp
 
 HEADERS  += \
     filesource.h \
@@ -87,7 +88,8 @@ HEADERS  += \
     tools/rawnetworksocket.h \
     baselmmpipeline.h \
     pipeline/basepipeelement.h \
-    pipeline/functionpipeelement.h
+    pipeline/functionpipeelement.h \
+    dm365/dm365dmacopy.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
