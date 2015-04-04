@@ -29,7 +29,7 @@ public:
 		PAUSED,
 	};
 	explicit BaseLmmElement(QObject *parent = 0);
-	int addBuffer(int ch, const RawBuffer &buffer);
+	virtual int addBuffer(int ch, const RawBuffer &buffer);
 	int addBufferBlocking(int ch, const RawBuffer &buffer);
 	int addBuffersBlocking(int ch, const QList<RawBuffer> list);
 	RawBuffer nextBuffer(int ch);
