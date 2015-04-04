@@ -10,6 +10,8 @@
 static QMutex mutex;
 static QList<LmmThread *> threads;
 
+__thread LmmThread *currentLmmThread = NULL;
+
 LmmThread::LmmThread(QString threadName, BaseLmmElement *parent)
 {
 	this->parent = parent;
@@ -55,6 +57,7 @@ void LmmThread::run()
 	exit = false;
 	paused = false;
 	int opstat = 0;
+	currentLmmThread = this;
 	while (!exit) {
 		st = IN_OPERATION;
 		opTimeStat->startStat();
