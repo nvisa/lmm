@@ -8,43 +8,44 @@ BasePipeElement::BasePipeElement(BaseLmmPipeline *parent) :
 	BaseLmmElement(parent),
 	pipeline(parent)
 {
-	pipe = NULL;
-	target = NULL;
-	next = NULL;
+	link.source = NULL;
+	link.destination = NULL;
 }
 
 int BasePipeElement::operationProcess()
 {
-	if (pipe)
-		return processBlocking(targetCh);
-	return target->processBlocking(targetCh);
+	return link.source->processBlocking(link.sourceProcessChannel);
 }
 
 int BasePipeElement::operationBuffer()
 {
-	RawBuffer buf;
-	if (target)
-		buf = target->nextBufferBlocking(targetCh);
-	else if (pipe)
-		buf = nextBufferBlocking(targetCh);
-	return next->addBuffer(nextCh, buf);
+	const RawBuffer buf = link.source->nextBufferBlocking(link.sourceChannel);
+	foreach (const outLink &l, copyLinks)
+		l.destination->addBuffer(l.destinationChannel, buf);
+	return link.destination->addBuffer(link.destinationChannel, buf);
 }
 
-void BasePipeElement::setPipe(BaseLmmElement *target, BaseLmmElement *next, int tch, int nch)
+int BasePipeElement::addBuffer(int ch, const RawBuffer &buffer)
 {
-	this->target = target;
-	this->next = next;
-	targetCh = tch;
-	nextCh = nch;
+	if (passThru)
+		return link.destination->addBuffer(link.destinationChannel, buffer);
+	return link.source->addBuffer(ch, buffer);
 }
 
-int BasePipeElement::setPipe(BasePipe *pipe)
+void BasePipeElement::setPipe(BaseLmmElement *target, BaseLmmElement *next, int tch, int pch, int nch)
 {
-	this->pipe = pipe;
-	targetCh = 0;
-	nextCh = 0;
-	next = NULL;
-	return 0;
+	if (!target->objectName().isEmpty())
+		setObjectName(QString("PipeOf%2").arg(target->objectName()));
+	link.source = target;
+	link.destination = next;
+	link.sourceChannel = tch;
+	link.sourceProcessChannel = pch;
+	link.destinationChannel = nch;
+}
+
+void BasePipeElement::addNewLink(const outLink &link)
+{
+	copyLinks << link;
 }
 
 void BasePipeElement::threadFinished(LmmThread *thread)
@@ -52,9 +53,9 @@ void BasePipeElement::threadFinished(LmmThread *thread)
 	pipeline->threadFinished(thread);
 }
 
-int BasePipeElement::processBuffer(RawBuffer buf)
+int BasePipeElement::processBuffer(const RawBuffer &buf)
 {
-	if (!buf.isEOF())
-		buf = pipe->process(buf);
-	return newOutputBuffer(0, buf);
+	Q_UNUSED(buf);
+	/* this function will never be called */
+	return -EINVAL;
 }

@@ -7,27 +7,13 @@ class BasePipe;
 class QEventLoop;
 class BasePipeElement;
 
-/*template <class T>
-class PipeOperation
-{
-public:
-	typedef int (T::*pipeOp)();
-	PipeOperation(T *parent, pipeOp op)
-	{
-		pclass = parent;
-		mfunc = op;
-	}
-	T *pclass;
-	pipeOp mfunc;
-};*/
-
 class BaseLmmPipeline : public BaseLmmElement
 {
 	Q_OBJECT
 public:
 	explicit BaseLmmPipeline(QObject *parent = 0);
-	virtual int addPipe(BaseLmmElement *el);
-	virtual int addPipe(BasePipe *pipe);
+	virtual BasePipeElement * appendPipe(BaseLmmElement *el);
+	virtual BasePipeElement * addPipe(BaseLmmElement *, BaseLmmElement *next = NULL);
 	virtual int start();
 	virtual int stop();
 
@@ -39,11 +25,11 @@ public:
 
 	virtual void threadFinished(LmmThread *);
 protected:
-	virtual int processBuffer(RawBuffer buf);
-	virtual int processBuffer(int ch, RawBuffer buf);
+	virtual int processBuffer(const RawBuffer &buf);
+	virtual int processBuffer(int ch, const RawBuffer &buf);
 
 	QMap<QString, LmmThread *> threads;
-	QList<BaseLmmElement *> pipelineElements;
+	//QList<BaseLmmElement *> pipelineElements;
 	QList<BasePipeElement *> pipes;
 	QMutex thLock;
 	QEventLoop *el;

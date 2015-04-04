@@ -7,53 +7,6 @@
 
 #include <errno.h>
 
-/*class BasePipe : public BaseLmmElement
-{
-	Q_OBJECT
-public:
-	BasePipe(BaseLmmElement *el, BaseLmmElement *nextEl = NULL)
-	{
-		target = el;
-		next = nextEl;
-		targetCh = 0;
-		nextCh = 0;
-	}
-
-	int operation()
-	{
-		if (next)
-			return operationBuffer();
-		return operationProcess();
-	}
-
-	int operationProcess()
-	{
-		return target->processBlocking(targetCh);
-	}
-
-	int operationBuffer()
-	{
-		RawBuffer buf = target->nextBufferBlocking(targetCh);
-		if (!buf.size()) {
-			return -ENOENT;
-		}
-		if (buf.isEOF()) {
-			return -ENODATA;
-		}
-		return next->addBuffer(nextCh, buf);
-	}
-	BaseLmmElement *target;
-	BaseLmmElement *next;
-	int targetCh;
-	int nextCh;
-protected:
-	int processBuffer(RawBuffer buf)
-	{
-		Q_UNUSED(buf);
-		return 0;
-	}
-};*/
-
 BaseLmmPipeline::BaseLmmPipeline(QObject *parent) :
 	BaseLmmElement(parent)
 {
@@ -61,50 +14,57 @@ BaseLmmPipeline::BaseLmmPipeline(QObject *parent) :
 	el = new QEventLoop(this);
 }
 
-int BaseLmmPipeline::addPipe(BaseLmmElement *el)
+BasePipeElement *BaseLmmPipeline::appendPipe(BaseLmmElement *el)
 {
-	pipelineElements << el;
-	return 0;
+	BasePipeElement *pipeEl = new BasePipeElement(this);
+	pipeEl->setPipe(el, this, 0, 0, 1);
+	if (pipes.size()) {
+		pipes.last()->setNext(pipeEl);
+		pipes.last()->setNextChannel(0);
+	}
+	pipes << pipeEl;
+	return pipeEl;
+}
+
+BasePipeElement * BaseLmmPipeline::addPipe(BaseLmmElement *el, BaseLmmElement *next)
+{
+	BasePipeElement *pipeEl = new BasePipeElement(this);
+	pipeEl->setPipe(el, next);
+	pipes << pipeEl;
+	return pipeEl;
 }
 
 int BaseLmmPipeline::start()
 {
 	finishedThreadCount = 0;
-	/*for (int i = 0; i < pipelineElements.size(); i++) {
-		BaseLmmElement *next = this;
-		if (i < pipelineElements.size() - 1)
-			next = pipelineElements[i + 1];
-		BasePipeElement *pipe = new BasePipeElement(this);
-		pipe->setPipe(pipelineElements[i], next);
-		if (next == this)
-			pipe->setNextChannel(1);
-		pipes << pipe;
-	}*/
 
 	pipes.last()->setNext(this);
 	pipes.last()->setNextChannel(1);
 
 	for (int i = 0; i < pipes.size(); i++) {
 		BasePipeElement *pipe = pipes[i];
+		const struct BasePipeElement::pipe link = pipe->getLink();
 		/* create process thread */
-		QString name = QString("BaseLmmPipelineProcessThread%1").arg(i);
-		LmmThread *th = new OpThread<BasePipeElement>(pipe, &BasePipeElement::operationProcess, name);
-		threads.insert(name, th);
-		th->start(QThread::LowestPriority);
+		if (link.sourceProcessChannel >= 0) {
+			LmmThread *th = new OpThread<BasePipeElement>(pipe, &BasePipeElement::operationProcess,
+														  objectName().append("ProcessThread%1").arg(i));
+			threads.insert(th->threadName(), th);
+			th->start(QThread::LowestPriority);
+		}
 
 		/* create buffer thread */
-		name = QString("BaseLmmPipelineBufferThread%1").arg(i + 1);
-		th = new OpThread<BasePipeElement>(pipe, &BasePipeElement::operationBuffer, name);
-		threads.insert(name, th);
+		LmmThread *th = new OpThread<BasePipeElement>(pipe, &BasePipeElement::operationBuffer,
+										   objectName().append("BufferThread%1").arg(i));
+		threads.insert(th->threadName(), th);
 		th->start(QThread::LowestPriority);
 	}
 	/* pipeline process thread */
-	QString name = QString("PipelineProcessThread");
+	QString name = objectName().append("ProcessCheckThread");
 	LmmThread *th = new OpThread<BaseLmmPipeline>(this, &BaseLmmPipeline::processPipeline, name);
 	threads.insert(name, th);
 	th->start(QThread::LowestPriority);
 	/* pipeline output check thread */
-	name = QString("PipelineOutputCheckThread");
+	name = objectName().append("OutputCheckThread");
 	th = new OpThread<BaseLmmPipeline>(this, &BaseLmmPipeline::checkPipelineOutput, name);
 	threads.insert(name, th);
 	th->start(QThread::LowestPriority);
@@ -119,10 +79,11 @@ int BaseLmmPipeline::stop()
 
 int BaseLmmPipeline::processPipeline()
 {
-	int err = processBlocking();
+	return processBlocking();
+	/*int err = processBlocking();
 	if (err == -ENODATA)
 		processBuffer(RawBuffer::eof());
-	return err;
+	return err;*/
 }
 
 int BaseLmmPipeline::checkPipelineOutput()
@@ -151,26 +112,15 @@ void BaseLmmPipeline::threadFinished(LmmThread *)
 	thLock.unlock();
 }
 
-int BaseLmmPipeline::processBuffer(RawBuffer buf)
+int BaseLmmPipeline::processBuffer(const RawBuffer &buf)
 {
 	/* put buffer into the pipeline for processing */
 	return pipes.first()->addBuffer(0, buf);
 }
 
-int BaseLmmPipeline::processBuffer(int ch, RawBuffer buf)
+int BaseLmmPipeline::processBuffer(int ch, const RawBuffer &buf)
 {
-	if (buf.isEOF())
-		return -ENODATA;
+	Q_UNUSED(ch);
 	/* we have new buffer output from pipeline */
-	return 0;
-}
-
-int BaseLmmPipeline::addPipe(BasePipe *pipe)
-{
-	BasePipeElement *pipeEl = new BasePipeElement(this);
-	pipeEl->setPipe(pipe);
-	if (pipes.size())
-		pipes.last()->setNext(pipeEl);
-	pipes << pipeEl;
-	return 0;
+	return newOutputBuffer(0, buf);
 }
