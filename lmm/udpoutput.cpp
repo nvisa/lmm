@@ -9,12 +9,12 @@ UdpOutput::UdpOutput(QObject *parent) :
 	BaseLmmOutput(parent)
 {
 	packetHashing = false;
+	target = QHostAddress("192.168.1.2");
 }
 
 int UdpOutput::start()
 {
 	clientStatus = CS_STARTED;
-	target = QHostAddress("192.168.1.1");
 	sock = new QUdpSocket(this);
 	if (!sock->bind(47156))
 		qDebug() << "error binding to udp port 47156";
