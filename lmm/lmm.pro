@@ -46,7 +46,8 @@ SOURCES += \
     baselmmpipeline.cpp \
     pipeline/basepipeelement.cpp \
     pipeline/functionpipeelement.cpp \
-    dm365/dm365dmacopy.cpp
+    dm365/dm365dmacopy.cpp \
+    bufferqueue.cpp
 
 HEADERS  += \
     filesource.h \
@@ -89,7 +90,8 @@ HEADERS  += \
     baselmmpipeline.h \
     pipeline/basepipeelement.h \
     pipeline/functionpipeelement.h \
-    dm365/dm365dmacopy.h
+    dm365/dm365dmacopy.h \
+    bufferqueue.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
