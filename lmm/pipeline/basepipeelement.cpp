@@ -10,6 +10,9 @@ BasePipeElement::BasePipeElement(BaseLmmPipeline *parent) :
 {
 	link.source = NULL;
 	link.destination = NULL;
+	copyOnUse = false;
+	outHook = NULL;
+	outPriv = NULL;
 }
 
 int BasePipeElement::operationProcess()
@@ -20,6 +23,10 @@ int BasePipeElement::operationProcess()
 int BasePipeElement::operationBuffer()
 {
 	const RawBuffer buf = link.source->nextBufferBlocking(link.sourceChannel);
+	if (!link.destination)
+		return 0;
+	if (outHook)
+		outHook(buf, outPriv);
 	foreach (const outLink &l, copyLinks)
 		l.destination->addBuffer(l.destinationChannel, buf);
 	return link.destination->addBuffer(link.destinationChannel, buf);
@@ -29,6 +36,8 @@ int BasePipeElement::addBuffer(int ch, const RawBuffer &buffer)
 {
 	if (passThru)
 		return link.destination->addBuffer(link.destinationChannel, buffer);
+	if (copyOnUse)
+		return link.source->addBuffer(ch, buffer.makeCopy());
 	return link.source->addBuffer(ch, buffer);
 }
 
@@ -46,6 +55,12 @@ void BasePipeElement::setPipe(BaseLmmElement *target, BaseLmmElement *next, int 
 void BasePipeElement::addNewLink(const outLink &link)
 {
 	copyLinks << link;
+}
+
+void BasePipeElement::addOutputHook(pipeHook hook, void *priv)
+{
+	outHook = hook;
+	outPriv = priv;
 }
 
 void BasePipeElement::threadFinished(LmmThread *thread)

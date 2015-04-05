@@ -5,6 +5,8 @@
 
 class BaseLmmPipeline;
 
+typedef void (*pipeHook)(const RawBuffer &, void *);
+
 class BasePipeElement : public BaseLmmElement
 {
 	Q_OBJECT
@@ -36,6 +38,8 @@ public:
 	void setSourceChannel(int ch) { link.sourceChannel = ch; }
 	void setLink(const pipe &link) { this->link = link; }
 	void addNewLink(const outLink &link);
+	void setCopyOnUse(bool v) { copyOnUse = v; }
+	void addOutputHook(pipeHook hook, void *priv);
 
 	virtual void threadFinished(LmmThread *);
 
@@ -46,6 +50,9 @@ protected:
 	BaseLmmPipeline *pipeline;
 	pipe link;
 	QList<outLink> copyLinks;
+	bool copyOnUse;
+	pipeHook outHook;
+	void *outPriv;
 	
 };
 
