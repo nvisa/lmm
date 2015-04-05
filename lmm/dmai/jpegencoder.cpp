@@ -150,7 +150,7 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		dynParams->qValue = qFact;
 		if (IMGENC1_control(Ienc1_getVisaHandle(hCodec), XDM_SETPARAMS,
 							dynParams, &status) != IMGENC1_EOK) {
-			mDebug("error setting control on encoder: 0x%x", (int)status.extendedError)
+			mDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
 		}
 		qFactChanged = false;
 	}
@@ -173,7 +173,8 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	buf.pars()->frameType = IVIDEO_I_FRAME;
 	buf.pars()->encodeTime = streamTime->getCurrentTime();
 	buf.pars()->streamBufferNo = source.constPars()->streamBufferNo;
-	buf.pars()->duration = 1000 / buf.pars()->fps;
+	if (buf.pars()->fps)
+		buf.pars()->duration = 1000 / buf.pars()->fps;
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
