@@ -219,7 +219,7 @@ static inline QString createDateHeader()
 }
 
 BaseRtspServer::BaseRtspServer(QObject *parent) :
-	QObject(parent)
+	BaseLmmElement(parent)
 {
 	enabled = true;
 	server = new QTcpServer(this);

@@ -6,6 +6,7 @@
 #include <QStringList>
 
 #include <lmm/lmmcommon.h>
+#include <lmm/baselmmelement.h>
 
 class QTcpServer;
 class QTcpSocket;
@@ -28,7 +29,7 @@ struct RtspSessionParameters {
 	uint ttl;
 };
 
-class BaseRtspServer : public QObject
+class BaseRtspServer : public BaseLmmElement
 {
 	Q_OBJECT
 public:
