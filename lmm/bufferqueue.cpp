@@ -1,4 +1,5 @@
 #include "bufferqueue.h"
+#include "debug.h"
 
 BufferQueue::BufferQueue(QObject *parent) :
 	BaseLmmElement(parent)
@@ -35,6 +36,30 @@ RawBuffer BufferQueue::findBuffer(qint64 ts)
 	return buf;
 }
 
+QList<RawBuffer> BufferQueue::findBuffers(qint64 ts, int count)
+{
+	int f = -1;
+	int min = INT_MAX;
+	block.lock();
+	for (int i = buffers.size() - 1; i >= 0; i--) {
+		int diff = qAbs(ts - buffers[i].constPars()->captureTime);
+		if (diff < min) {
+			min = diff;
+			f = i;
+		}
+	}
+	QList<RawBuffer> bufs;
+	if (f < 0) {
+		block.unlock();
+		return bufs;
+	}
+	for (int i = f; i < f + count; i++)
+		if (i < buffers.size())
+			bufs << buffers[i];
+	block.unlock();
+	return bufs;
+}
+
 RawBuffer BufferQueue::getLast()
 {
 	block.lock();
@@ -43,6 +68,16 @@ RawBuffer BufferQueue::getLast()
 		buf = buffers.last();
 	block.unlock();
 	return buf;
+}
+
+QList<RawBuffer> BufferQueue::getLast(int count)
+{
+	QList<RawBuffer> bufs;
+	block.lock();
+	for (int i = buffers.size() - 1; i > buffers.size() - 1 - count; i--)
+		bufs << buffers[i];
+	block.unlock();
+	return bufs;
 }
 
 void BufferQueue::setQueueSize(int length)

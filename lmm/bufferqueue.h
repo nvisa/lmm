@@ -11,7 +11,9 @@ public:
 	explicit BufferQueue(QObject *parent = 0);
 	RawBuffer getBuffer(int ind);
 	RawBuffer findBuffer(qint64 ts);
+	QList<RawBuffer> findBuffers(qint64 ts, int count);
 	RawBuffer getLast();
+	QList<RawBuffer> getLast(int count);
 	void setQueueSize(int length);
 	int getBufferCount();
 protected:
