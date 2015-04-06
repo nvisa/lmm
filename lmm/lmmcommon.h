@@ -15,7 +15,8 @@ namespace Lmm {
 		CODEC_MPEG2,
 		CODEC_MPEG4,
 		CODEC_H264,
-		CODEC_JPEG
+		CODEC_JPEG,
+		CODEC_RAW
 	};
 	enum AspectRatio {
 		ASPECT_RATIO_4_3,
