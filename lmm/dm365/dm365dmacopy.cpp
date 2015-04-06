@@ -105,11 +105,12 @@ int DM365DmaCopy::processBuffer(const RawBuffer &buf)
 	buflock.lock();
 	if (!freeBuffers.size()) {
 		buflock.unlock();
-		qDebug() << "no free buffers left";
+		mDebug("no free buffers left");
 		newOutputBuffer(0, buf);
 		return 0;
 	}
 	DmaiBuffer dstBuf = freeBuffers.takeFirst();
+	dstBuf.pars()->streamBufferNo = buf.constPars()->streamBufferNo;
 	buflock.unlock();
 	int err = dmaCopy((void *)Buffer_getPhysicalPtr((Buffer_Handle)buf.constPars()->dmaiBuffer)
 						 , (void *)Buffer_getPhysicalPtr((Buffer_Handle)dstBuf.constPars()->dmaiBuffer)
@@ -128,6 +129,7 @@ RawBuffer DM365DmaCopy::createAndCopy(const RawBuffer &buf)
 				buf.constPars()->videoHeight,
 				buf.constPars()->v4l2PixelFormat);
 	DmaiBuffer dstBuf("video/x-raw-yuv", buf.size(), attrs);
+	dstBuf.setParameters(buf.constPars());
 	delete attrs;
 	dmaCopy((void *)Buffer_getPhysicalPtr((Buffer_Handle)buf.constPars()->dmaiBuffer)
 						 , (void *)Buffer_getPhysicalPtr((Buffer_Handle)dstBuf.constPars()->dmaiBuffer)
