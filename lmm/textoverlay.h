@@ -9,10 +9,6 @@
 #include <QList>
 #include <QMap>
 
-class RawBuffer;
-struct _Buffer_Object;
-typedef struct _Buffer_Object *Buffer_Handle;
-
 class TextOverlay : public BaseLmmElement
 {
 	Q_OBJECT
@@ -51,7 +47,6 @@ public:
 	int setOverlayFieldText(int pos, QString text);
 	int start();
 	int stop();
-	int dmaCopy(void *src, void *dst, int acnt, int bcnt);
 	int overlayInPlace(const RawBuffer &buffer);
 protected:
 	int processBuffer(const RawBuffer &buffer);
@@ -62,15 +57,12 @@ private:
 	int mmapfd;
 	QMutex dmalock;
 	QMutex maplock;
-	Buffer_Handle dmaBuf;
 	QList<QByteArray> charMap;
 	QList<QList<int> > charPixelMap;
 	QList<int> charFontWidth;
 	int fontSize;
 	int fontHeight;
 	overlayType type;
-	bool useDma;
-	void *imageBuf;
 	QPoint overlayPos;
 	QString overlayText;
 	QList<overlayTextFields> overlayFields;
@@ -81,7 +73,6 @@ private:
 	QByteArray createCharMap(int fontWidth, const QImage &image);
 	QList<int> createPixelMap(int fontWidth, const QImage &image);
 	void createYuvMap();
-	int dmaCopy(void *src, void *dst, QImage *im);
 	void yuvSwOverlay(RawBuffer buffer);
 	void yuvSwMapOverlay(RawBuffer buffer);
 	void yuvSwPixmapOverlay(RawBuffer buffer);

@@ -46,8 +46,8 @@ SOURCES += \
     baselmmpipeline.cpp \
     pipeline/basepipeelement.cpp \
     pipeline/functionpipeelement.cpp \
-    dm365/dm365dmacopy.cpp \
-    bufferqueue.cpp
+    bufferqueue.cpp \
+    textoverlay.cpp \
 
 HEADERS  += \
     filesource.h \
@@ -90,8 +90,8 @@ HEADERS  += \
     baselmmpipeline.h \
     pipeline/basepipeelement.h \
     pipeline/functionpipeelement.h \
-    dm365/dm365dmacopy.h \
-    bufferqueue.h
+    bufferqueue.h \
+    textoverlay.h \
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
@@ -240,13 +240,13 @@ dm365 {
         dm365/dm365camerainput.cpp \
         dm365/dm365videooutput.cpp \
         dm365/platformcommondm365.cpp \
-        textoverlay.cpp \
+	dm365/dm365dmacopy.cpp \
 
 
     HEADERS += dm365/dm365camerainput.h \
         dm365/dm365videooutput.h \
         dm365/platformcommondm365.h \
-        textoverlay.h \
+	dm365/dm365dmacopy.h \
 
     xdc.files += dm365/tipaths.pri
     xdc.files += dm365/dm365.pri

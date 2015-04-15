@@ -5,9 +5,6 @@
 #include "debug.h"
 #include "tools/basesettinghandler.h"
 
-#include <ti/sdo/dmai/Buffer.h>
-#include <ti/sdo/dmai/BufferGfx.h>
-
 #include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -24,37 +21,12 @@
 #include <QFontMetrics>
 #include <QElapsedTimer>
 
-#define DM365MMAP_IOCMEMCPY        0x7
-#define DM365MMAP_IOCWAIT          0x8
-#define DM365MMAP_IOCCLEAR_PENDING 0x9
-
-struct dm365mmap_params {
-	unsigned long src;
-	unsigned long dst;
-	unsigned int  srcmode;
-	unsigned int  srcfifowidth;
-	int           srcbidx;
-	int           srccidx;
-	unsigned int  dstmode;
-	unsigned int  dstfifowidth;
-	int           dstbidx;
-	int           dstcidx;
-	int           acnt;
-	int           bcnt;
-	int           ccnt;
-	int           bcntrld;
-	int           syncmode;
-};
-
 TextOverlay::TextOverlay(overlayType t, QObject *parent) :
 	BaseLmmElement(parent)
 {
 	type = t;
 	mmapfd = -1;
-	dmaBuf = NULL;
 	fontSize = 28;
-	useDma = false;
-	imageBuf = NULL;
 	setEnabled(false);
 }
 
@@ -117,15 +89,6 @@ int TextOverlay::setOverlayFieldText(int pos, QString text)
 
 int TextOverlay::start()
 {
-	if (useDma) {
-		BufferGfx_Attrs gfxAttrs = BufferGfx_Attrs_DEFAULT;
-		dmaBuf = Buffer_create(1280 * 240 * 3, BufferGfx_getBufferAttrs(&gfxAttrs));
-		if (!dmaBuf) {
-			mDebug("Unable to allocate memory for text image buffer");
-			return -ENOMEM;
-		}
-		imageBuf = (void *)Buffer_getUserPtr(dmaBuf);
-	}
 	if (type == CHAR_MAP || type == PIXEL_MAP) {
 		if (!readMapsFromCache())
 			createYuvMap();
@@ -142,8 +105,6 @@ int TextOverlay::stop()
 		close(mmapfd);
 		mmapfd = -1;
 	}
-	if (dmaBuf)
-		Buffer_delete(dmaBuf);
 	return BaseLmmElement::stop();
 }
 
@@ -217,12 +178,7 @@ QList<int> TextOverlay::createPixelMap(int fontWidth, const QImage &image)
 void TextOverlay::createYuvMap()
 {
 	mDebug("creating YUV font map");
-	QImage image;
-	if (imageBuf)
-		image = QImage((uchar *)imageBuf,
-				 240, 120, QImage::Format_RGB888);
-	else
-		image = QImage(240, 240, QImage::Format_RGB888);
+	QImage image(240, 240, QImage::Format_RGB888);
 	QPainter painter(&image);
 	painter.setPen(Qt::red);
 	QFont f = painter.font();
@@ -244,34 +200,6 @@ void TextOverlay::createYuvMap()
 	}
 }
 
-int TextOverlay::dmaCopy(void *src, void *dst, int acnt, int bcnt)
-{
-	dm365mmap_params params;
-	params.src = (uint)src;
-	params.srcmode = 0;
-	params.srcbidx = acnt;
-
-	params.dst = (uint)dst;
-	params.dstmode = 0;
-	params.dstbidx = acnt;
-
-	params.acnt = acnt;
-	params.bcnt = bcnt;
-	params.ccnt = 1;
-	params.bcntrld = acnt; //not valid for AB synced
-	params.syncmode = 1; //AB synced
-
-	int err = 0;
-	dmalock.lock();
-	if (ioctl(mmapfd, DM365MMAP_IOCMEMCPY, &params) == -1) {
-		mDebug("error %d during dma copy", errno);
-		err = errno;
-	}
-	dmalock.unlock();
-	mInfo("dma copy succeeded with %d", err);
-	return err;
-}
-
 int TextOverlay::overlayInPlace(const RawBuffer &buffer)
 {
 	/* we modify buffers in-place */
@@ -280,34 +208,6 @@ int TextOverlay::overlayInPlace(const RawBuffer &buffer)
 	else if (type == PIXEL_MAP)
 		yuvSwPixmapOverlay(buffer);
 	return 0;
-}
-
-int TextOverlay::dmaCopy(void *src, void *dst, QImage *im)
-{
-	dm365mmap_params params;
-	params.src = (uint)src;
-	params.srcmode = 0;
-	params.srcbidx = 3;
-
-	params.dst = (uint)dst;
-	params.dstmode = 0;
-	params.dstbidx = 1;
-
-	params.acnt = 1;
-	params.bcnt = im->width() * im->height();
-	params.ccnt = 1;
-	params.bcntrld = im->width();
-	params.syncmode = 1; //AB synced
-
-	int err = 0;
-	dmalock.lock();
-	if (ioctl(mmapfd, DM365MMAP_IOCMEMCPY, &params) == -1) {
-		mDebug("error %d during dma copy", errno);
-		err = errno;
-	}
-	dmalock.unlock();
-	mInfo("dma copy succeeded with %d", err);
-	return err;
 }
 
 void TextOverlay::yuvSwOverlay(RawBuffer buffer)
