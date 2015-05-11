@@ -27,7 +27,8 @@ public:
 		COMPOSITE,
 		S_VIDEO,
 		COMPONENT,
-		SENSOR
+		SENSOR,
+		COMPOSITE1,
 	};
 
 	explicit DM365CameraInput(QObject *parent = 0);

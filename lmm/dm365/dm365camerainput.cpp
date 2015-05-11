@@ -552,6 +552,8 @@ int DM365CameraInput::openCamera()
 		QString str = QString::fromAscii((const char *)input.name);
 		if (inputType == COMPOSITE && str == "Composite")
 			break;
+		if (inputType == COMPOSITE1 && str == "Composite1")
+			break;
 		if (inputType == COMPONENT && str == "Component")
 			break;
 		if (inputType == S_VIDEO && str == "S-Video")
@@ -561,14 +563,14 @@ int DM365CameraInput::openCamera()
 		input.index++;
 		err = enumInput(&input);
 	}
-	mDebug("setting input index to '%d'", inputIndex);
 	inputIndex = input.index;
+	mDebug("setting input index to '%d'", inputIndex);
 	err = setInput(&input);
 	if (err && inputType != COMPOSITE)
 		return err;
 
 	v4l2_std_id std_id = V4L2_STD_1080P_60;
-	if (inputType == COMPOSITE || inputType == S_VIDEO)
+	if (inputType == COMPOSITE || inputType == S_VIDEO || inputType == COMPOSITE1)
 		std_id = V4L2_STD_PAL;
 	err = setStandard(&std_id);
 	if (err)
@@ -582,7 +584,10 @@ int DM365CameraInput::openCamera()
 		return err;
 
 	adjustCropping(inputCaptureWidth, inputCaptureHeight);
-	err = setFormat(pixFormat, width, height, inputType == COMPOSITE);
+	bool interlaced = false;
+	if (inputType == COMPOSITE || inputType == COMPOSITE1)
+		interlaced = true;
+	err = setFormat(pixFormat, width, height, interlaced);
 	if (err)
 		return err;
 
