@@ -132,7 +132,7 @@ int DmaiEncoder::processBuffer(const RawBuffer &buf)
 	dspl.lock();
 	err = encode(dmai, buf);
 	dspl.unlock();
-	mInfo("encode took %d msecs", t.elapsed());
+	mInfo("encode took %lld msecs", t.elapsed());
 	encodeTimeStat->addStat(encodeTiming->restart());
 	if (encodeTimeStat->last > 75)
 		mInfo("late encode: %d", encodeTimeStat->last);

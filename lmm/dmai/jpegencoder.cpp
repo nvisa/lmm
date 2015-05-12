@@ -165,7 +165,9 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			  BufferGfx_getColorSpace(buffer),
 			  (int)dim.x, (int)dim.y, (int)dim.width,
 			  (int)dim.height, (int)dim.lineLength);
+		bufferLock.lock();
 		BufTab_freeBuf(hDstBuf);
+		bufferLock.unlock();
 		return -EIO;
 	}
 	RawBuffer buf = RawBuffer("image/jpeg", Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
@@ -179,7 +181,9 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
 	newOutputBuffer(0, buf);
+	bufferLock.lock();
 	BufTab_freeBuf(hDstBuf);
+	bufferLock.unlock();
 
 	return 0;
 }
