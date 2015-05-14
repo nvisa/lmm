@@ -241,7 +241,6 @@ dm365 {
         dm365/dm365videooutput.cpp \
         dm365/platformcommondm365.cpp \
 	dm365/dm365dmacopy.cpp \
-	dm365/dm365_sdk.c \
 	dm365/vicp.c \
 	dm365/SemMP_posix.c \
 
