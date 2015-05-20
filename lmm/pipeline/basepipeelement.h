@@ -3,6 +3,7 @@
 
 #include <lmm/baselmmelement.h>
 
+class RateReducto;
 class BaseLmmPipeline;
 
 typedef void (*pipeHook)(const RawBuffer &, void *);
@@ -17,10 +18,13 @@ public:
 		int sourceChannel;
 		int destinationChannel;
 		int sourceProcessChannel;
+		RateReducto *reducto;
 	};
 	struct outLink {
 		BaseLmmElement *destination;
 		int destinationChannel;
+		RateReducto *reducto;
+		int setRateReduction(int skip, int outOf);
 	};
 
 	explicit BasePipeElement(BaseLmmPipeline *parent = 0);
@@ -40,6 +44,7 @@ public:
 	void addNewLink(const outLink &link);
 	void setCopyOnUse(bool v) { copyOnUse = v; }
 	void addOutputHook(pipeHook hook, void *priv);
+	int setRateReduction(int skip, int outOf);
 
 	virtual void threadFinished(LmmThread *);
 

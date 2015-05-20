@@ -4,12 +4,41 @@
 
 #include <errno.h>
 
+class RateReducto {
+public:
+	RateReducto()
+	{
+		enabled = false;
+		reset();
+	}
+	void reset()
+	{
+		skippedCount = 0;
+		current = 0;
+	}
+	bool shouldSkip()
+	{
+		if (current++ == 0)
+			return true;
+		if (current == total)
+			reset();
+		return false;
+	}
+
+	int skip;
+	int total;
+	bool enabled;
+	int skippedCount;
+	int current;
+};
+
 BasePipeElement::BasePipeElement(BaseLmmPipeline *parent) :
 	BaseLmmElement(parent),
 	pipeline(parent)
 {
 	link.source = NULL;
 	link.destination = NULL;
+	link.reducto = new RateReducto;
 	copyOnUse = false;
 	outHook = NULL;
 	outPriv = NULL;
@@ -28,7 +57,10 @@ int BasePipeElement::operationBuffer()
 	if (outHook)
 		outHook(buf, outPriv);
 	foreach (const outLink &l, copyLinks)
-		l.destination->addBuffer(l.destinationChannel, buf);
+		if (!l.reducto->shouldSkip())
+			l.destination->addBuffer(l.destinationChannel, buf);
+	if (link.reducto->shouldSkip())
+		return 0;
 	return link.destination->addBuffer(link.destinationChannel, buf);
 }
 
@@ -63,6 +95,17 @@ void BasePipeElement::addOutputHook(pipeHook hook, void *priv)
 	outPriv = priv;
 }
 
+int BasePipeElement::setRateReduction(int skip, int outOf)
+{
+	link.reducto->enabled = true;
+	link.reducto->skip = skip;
+	link.reducto->total = outOf;
+	if (link.reducto->skip == 0)
+		link.reducto->enabled = false;
+	link.reducto->reset();
+	return 0;
+}
+
 void BasePipeElement::threadFinished(LmmThread *thread)
 {
 	pipeline->threadFinished(thread);
@@ -73,4 +116,16 @@ int BasePipeElement::processBuffer(const RawBuffer &buf)
 	Q_UNUSED(buf);
 	/* this function will never be called */
 	return -EINVAL;
+}
+
+
+int BasePipeElement::outLink::setRateReduction(int skip, int outOf)
+{
+	reducto->enabled = true;
+	reducto->skip = skip;
+	reducto->total = outOf;
+	if (reducto->skip == 0)
+		reducto->enabled = false;
+	reducto->reset();
+	return 0;
 }
