@@ -233,6 +233,27 @@ dvb {
     QT += sql
 }
 
+neon {
+
+    SOURCES += neon/neonvideoscaler.cpp \
+	neon/neoncolorspace.cpp \
+	neon/libyuv.c \
+
+    HEADERS += neon/neonvideoscaler.h \
+	neon/neoncolorspace.h \
+	neon/libyuv.h \
+
+}
+
+zynq {
+
+    SOURCES += zynq/zynqvideoinput.cpp \
+
+    HEADERS += zynq/zynqvideoinput.h \
+
+    CONFIG += arm
+}
+
 dm365 {
     include(dm365/tipaths.pri)
     DEFINES += CONFIG_DM365
