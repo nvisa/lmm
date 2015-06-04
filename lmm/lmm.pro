@@ -99,6 +99,11 @@ lessThan(QT_VERSION, 4.7) {
     INCLUDEPATH += compat
 }
 
+x264 {
+    SOURCES += x264encoder.cpp
+    HEADERS += x264encoder.h
+}
+
 x11 {
     HEADERS += x11videooutput.h
     SOURCES += x11videooutput.cpp

@@ -28,3 +28,7 @@ vlc {
 live555 {
 	LIBS += -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment
 }
+
+x264 {
+    LIBS += -lx264
+}
