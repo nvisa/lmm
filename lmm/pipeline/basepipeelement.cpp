@@ -9,6 +9,8 @@ public:
 	RateReducto()
 	{
 		enabled = false;
+		skip = 0;
+		total = 0;
 		reset();
 	}
 	void reset()
@@ -18,7 +20,7 @@ public:
 	}
 	bool shouldSkip()
 	{
-		if (current++ == 0)
+		if (current++ < skip)
 			return true;
 		if (current == total)
 			reset();
