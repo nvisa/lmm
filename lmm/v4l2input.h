@@ -75,9 +75,9 @@ protected:
 	int queryCapabilities(v4l2_capability *cap);
 	int queryStandard();
 	int setFormat(unsigned int chromaFormat, int width, int height, bool interlaced = false);
+	virtual int processBuffer(v4l2_buffer *buffer);
 private:
 	int processBuffer(const RawBuffer &) { return 0; }
-	virtual int processBuffer(v4l2_buffer *buffer);
 };
 
 #endif // V4L2INPUT_H
