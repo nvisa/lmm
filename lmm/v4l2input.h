@@ -35,6 +35,10 @@ public:
 	virtual int startStreaming();
 	virtual int stopStreaming();
 	void setManualStart(bool v) { manualStart = v; }
+
+	void listControls(const QString &filename);
+	int getControlValue(const QString &filename, int controlId);
+	int setControlValue(const QString &filename, int controlId, int val);
 signals:
 	
 private slots:

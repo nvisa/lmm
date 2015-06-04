@@ -22,6 +22,43 @@ extern "C" {
 	#include <linux/videodev2.h>
 }
 
+static void enumMenu(int fd, const struct v4l2_queryctrl queryctrl)
+{
+	qDebug("\tMenu items:");
+
+	struct v4l2_querymenu querymenu;
+	memset(&querymenu, 0, sizeof(querymenu));
+	querymenu.id = queryctrl.id;
+
+	for (querymenu.index = queryctrl.minimum;
+		 querymenu.index <= (uint)queryctrl.maximum;
+		 querymenu.index++) {
+		if (0 == ioctl(fd, VIDIOC_QUERYMENU, &querymenu)) {
+			qDebug("\t\t%s", querymenu.name);
+		}
+	}
+}
+
+static void listSubdevControls(int fd, uint v4l2Id)
+{
+	struct v4l2_queryctrl queryctrl;
+	memset(&queryctrl, 0, sizeof(queryctrl));
+	queryctrl.id = v4l2Id | V4L2_CTRL_FLAG_NEXT_CTRL;
+	while (0 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl)) {
+		if (V4L2_CTRL_ID2CLASS(queryctrl.id) != v4l2Id)
+			break;
+		if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
+			continue;
+
+		qDebug("Control %s", queryctrl.name);
+
+		if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+			enumMenu(fd, queryctrl);
+
+		queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
+	}
+}
+
 V4l2Input::V4l2Input(QObject *parent) :
 	BaseLmmElement(parent)
 {
@@ -414,6 +451,59 @@ int V4l2Input::processBuffer(v4l2_buffer *buffer)
 	newOutputBuffer(0, newbuf);
 
 	return 0;
+}
+
+void V4l2Input::listControls(const QString &filename)
+{
+	int fd = open(qPrintable(filename), O_RDWR, 0);
+	if (fd < 0)
+		return;
+
+	listSubdevControls(fd, V4L2_CTRL_CLASS_USER);
+	listSubdevControls(fd, V4L2_CTRL_CLASS_MPEG);
+	listSubdevControls(fd, V4L2_CTRL_CLASS_CAMERA);
+	listSubdevControls(fd, V4L2_CTRL_CLASS_FM_TX);
+	listSubdevControls(fd, V4L2_CTRL_CLASS_FLASH);
+	listSubdevControls(fd, V4L2_CTRL_CLASS_JPEG);
+	listSubdevControls(fd, V4L2_CTRL_CLASS_IMAGE_SOURCE);
+	listSubdevControls(fd, V4L2_CTRL_CLASS_IMAGE_PROC);
+	listSubdevControls(fd, V4L2_CTRL_CLASS_DV);
+	listSubdevControls(fd, V4L2_CTRL_CLASS_FM_RX);
+	listSubdevControls(fd, V4L2_CTRL_CLASS_RF_TUNER);
+	listSubdevControls(fd, V4L2_CTRL_CLASS_DETECT);
+
+	close(fd);
+}
+
+int V4l2Input::getControlValue(const QString &filename, int controlId)
+{
+	int fd = open(qPrintable(filename), O_RDWR, 0);
+	if (fd < 0)
+		return -ENOENT;
+
+	int val = 0;
+	struct v4l2_control control;
+	memset(&control, 0, sizeof(control));
+	control.id = controlId;
+	if (0 == ioctl(fd, VIDIOC_G_CTRL, &control))
+		val = control.value;
+	close(fd);
+	return val;
+}
+
+int V4l2Input::setControlValue(const QString &filename, int controlId, int val)
+{
+	int fd = open(qPrintable(filename), O_RDWR, 0);
+	if (fd < 0)
+		return -ENOENT;
+
+	struct v4l2_control control;
+	memset(&control, 0, sizeof(control));
+	control.id = controlId;
+	control.value = val;
+	int err = ioctl(fd, VIDIOC_S_CTRL, &control);
+	close(fd);
+	return err;
 }
 
 int V4l2Input::openDeviceNode()
