@@ -296,10 +296,13 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 	int size = buf.size();
 	const uchar *end = data + size;
 	if (packetized) {
-		if (int(data[4] & 0x1f) <= 5) {
+		int dOff = 4;
+		if (data[3] != 1)
+			dOff = 3;
+		if (int(data[dOff] & 0x1f) <= 5) {
 			streamedBufferCount++;
 		}
-		sendNalUnit(data + 4, size - 4, buf.constPars()->encodeTime / 1000 * 90ull);
+		sendNalUnit(data + dOff, size - dOff, buf.constPars()->encodeTime / 1000 * 90ull);
 	} else {
 		streamedBufferCount++;
 		uchar *stapBuf = NULL;
