@@ -78,6 +78,7 @@ static inline unsigned int __totalTimePassed()
 #ifdef DEBUG
 #define mDebug(mes, arg...) __debug("%s: " mes, __dbg_classes, this, __PRETTY_FUNCTION__, ##arg)
 #define fDebug(mes, arg...) __debug_fast("%s: " mes, __PRETTY_FUNCTION__, ##arg)
+#define ffDebug() qDebug() << __PRETTY_FUNCTION__
 #define debugMessagesAvailable() 1
 #else
 #define mDebug(mes, arg...) do { if (0) qDebug(mes, ##arg); } while (0)
