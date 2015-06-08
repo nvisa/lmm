@@ -1,6 +1,7 @@
 #include "x264encoder.h"
 
 #include <lmm/debug.h>
+#include <lmm/streamtime.h>
 
 extern "C" {
 	#include <x264.h>
@@ -37,8 +38,13 @@ int x264Encoder::start()
 	priv->param.i_width  = priv->w;
 	priv->param.i_height = priv->h;
 	priv->param.b_vfr_input = 0;
+	priv->param.i_fps_num = 30 * 1000;
+	priv->param.i_fps_den = 1000;
+	priv->param.i_timebase_num = 30;
+	priv->param.i_timebase_den = 1;
 	priv->param.b_repeat_headers = 1;
 	priv->param.b_annexb = 1;
+	priv->param.i_keyint_max = 30;
 
 	/* Apply profile restrictions. */
 	if (x264_param_apply_profile(&priv->param, "baseline") < 0)
@@ -81,6 +87,7 @@ int x264Encoder::processBuffer(const RawBuffer &buf)
 		outb.setParameters(buf.constPars());
 		outb.pars()->frameType = priv->picout.i_type;
 		outb.pars()->h264NalType = nal[i].i_type;
+		outb.pars()->encodeTime = streamTime->getCurrentTime();
 		memcpy(outb.data(), nal[i].p_payload, nal[i].i_payload);
 		list << outb;
 	}
