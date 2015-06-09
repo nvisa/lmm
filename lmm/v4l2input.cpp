@@ -463,6 +463,7 @@ void V4l2Input::listControls(const QString &filename)
 	listSubdevControls(fd, V4L2_CTRL_CLASS_MPEG);
 	listSubdevControls(fd, V4L2_CTRL_CLASS_CAMERA);
 	listSubdevControls(fd, V4L2_CTRL_CLASS_FM_TX);
+#ifdef V4L2_CTRL_CLASS_FLASH
 	listSubdevControls(fd, V4L2_CTRL_CLASS_FLASH);
 	listSubdevControls(fd, V4L2_CTRL_CLASS_JPEG);
 	listSubdevControls(fd, V4L2_CTRL_CLASS_IMAGE_SOURCE);
@@ -471,6 +472,7 @@ void V4l2Input::listControls(const QString &filename)
 	listSubdevControls(fd, V4L2_CTRL_CLASS_FM_RX);
 	listSubdevControls(fd, V4L2_CTRL_CLASS_RF_TUNER);
 	listSubdevControls(fd, V4L2_CTRL_CLASS_DETECT);
+#endif
 
 	close(fd);
 }
