@@ -48,6 +48,7 @@ SOURCES += \
     pipeline/functionpipeelement.cpp \
     bufferqueue.cpp \
     textoverlay.cpp \
+    rtp/rtpdepacketizer.cpp
 
 HEADERS  += \
     filesource.h \
@@ -92,6 +93,7 @@ HEADERS  += \
     pipeline/functionpipeelement.h \
     bufferqueue.h \
     textoverlay.h \
+    rtp/rtpdepacketizer.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
