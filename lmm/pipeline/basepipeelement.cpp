@@ -20,6 +20,8 @@ public:
 	}
 	bool shouldSkip()
 	{
+		if (!enabled)
+			return false;
 		if (current++ < skip)
 			return true;
 		if (current == total)
