@@ -14,6 +14,7 @@ public:
 	explicit JpegEncoder(QObject *parent = 0);
 	void setQualityFactor(int q);
 	int qualityFactor();
+	void setBufferCount(int cnt, int maxSize = 0);
 signals:
 	
 public slots:
@@ -23,6 +24,8 @@ private:
 	int qFact;
 	bool qFactChanged;
 	BufTab_Handle outputBufTab;
+	int bufferCount;
+	int maxBufferSize;
 
 	virtual int startCodec(bool alloc = true);
 	virtual int stopCodec();

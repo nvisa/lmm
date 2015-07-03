@@ -21,6 +21,8 @@ JpegEncoder::JpegEncoder(QObject *parent) :
 	codec = CODEC_JPEG;
 	qFact = 97;
 	qFactChanged = false;
+	bufferCount = 0;
+	maxBufferSize = 0;
 }
 
 void JpegEncoder::setQualityFactor(int q)
@@ -40,6 +42,12 @@ void JpegEncoder::setQualityFactor(int q)
 int JpegEncoder::qualityFactor()
 {
 	return qFact;
+}
+
+void JpegEncoder::setBufferCount(int cnt, int maxSize)
+{
+	bufferCount = cnt;
+	maxBufferSize = maxSize;
 }
 
 int JpegEncoder::startCodec(bool alloc)
@@ -95,10 +103,15 @@ int JpegEncoder::startCodec(bool alloc)
 	if (alloc) {
 		/* Allocate output buffers */
 		Buffer_Attrs bAttrs = Buffer_Attrs_DEFAULT;
-		outBufSize = Ienc1_getOutBufSize(hCodec);
-		outputBufTab = BufTab_create(3, outBufSize, &bAttrs);
+		outBufSize = maxBufferSize;
+		if (!outBufSize)
+			outBufSize = Ienc1_getOutBufSize(hCodec);
+		if (bufferCount)
+			outputBufTab = BufTab_create(bufferCount, outBufSize, &bAttrs);
+		else
+			outputBufTab = BufTab_create(1, outBufSize, &bAttrs);
 		if (outputBufTab == NULL) {
-			mDebug("unable to allocate output buffer tab of size %d for %d buffers", outBufSize, 3);
+			mDebug("unable to allocate output buffer tab of size %d for %d buffers", outBufSize, bufferCount);
 			return -ENOMEM;
 		}
 	}
@@ -170,20 +183,28 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		bufferLock.unlock();
 		return -EIO;
 	}
-	RawBuffer buf = RawBuffer("image/jpeg", Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
+	RawBuffer buf;
+	if (bufferCount)
+		buf = DmaiBuffer("image/jpeg", hDstBuf, this);
+	else
+		buf = RawBuffer("image/jpeg", Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
 	buf.setParameters(source.constPars());
 	buf.pars()->frameType = IVIDEO_I_FRAME;
 	buf.pars()->encodeTime = streamTime->getCurrentTime();
 	buf.pars()->streamBufferNo = source.constPars()->streamBufferNo;
+	if (bufferCount)
+		buf.pars()->dmaiBuffer = (quintptr *)hDstBuf;
 	if (buf.pars()->fps)
 		buf.pars()->duration = 1000 / buf.pars()->fps;
 	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
 	newOutputBuffer(0, buf);
-	bufferLock.lock();
-	BufTab_freeBuf(hDstBuf);
-	bufferLock.unlock();
+	if (!bufferCount) {
+		bufferLock.lock();
+		BufTab_freeBuf(hDstBuf);
+		bufferLock.unlock();
+	}
 
 	return 0;
 }
