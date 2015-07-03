@@ -16,12 +16,14 @@ public:
 	QList<RawBuffer> getLast(int count);
 	void setQueueSize(int length);
 	int getBufferCount();
+	int getTotalSize() { return totalSize; }
 protected:
 	int processBuffer(const RawBuffer &buf);
 
 	QList<RawBuffer> buffers;
 	int queueLen;
 	QMutex block;
+	int totalSize;
 };
 
 #endif // BUFFERQUEUE_H

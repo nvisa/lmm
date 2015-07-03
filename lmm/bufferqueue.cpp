@@ -98,9 +98,11 @@ int BufferQueue::processBuffer(const RawBuffer &buf)
 {
 	block.lock();
 	buffers << buf;
+	totalSize += buf.size();
 	int size = buffers.size();
 	if (size >= queueLen) {
 		const RawBuffer outbuf = buffers.takeFirst();
+		totalSize -= outbuf.size();
 		block.unlock();
 		return newOutputBuffer(0, outbuf);
 	}
