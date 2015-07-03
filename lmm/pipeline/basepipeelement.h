@@ -20,7 +20,12 @@ public:
 		int sourceProcessChannel;
 		RateReducto *reducto;
 	};
-	struct outLink {
+	class outLink {
+	public:
+		outLink()
+		{
+			reducto = NULL;
+		}
 		BaseLmmElement *destination;
 		int destinationChannel;
 		RateReducto *reducto;

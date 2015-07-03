@@ -61,7 +61,7 @@ int BasePipeElement::operationBuffer()
 	if (outHook)
 		outHook(buf, outPriv);
 	foreach (const outLink &l, copyLinks)
-		if (!l.reducto->shouldSkip())
+		if (!l.reducto || !l.reducto->shouldSkip())
 			l.destination->addBuffer(l.destinationChannel, buf);
 	if (link.reducto->shouldSkip())
 		return 0;
