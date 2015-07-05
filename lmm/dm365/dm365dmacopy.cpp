@@ -32,12 +32,15 @@ struct dm365mmap_params {
 	int           syncmode;
 };
 
-DM365DmaCopy::DM365DmaCopy(QObject *parent) :
+DM365DmaCopy::DM365DmaCopy(QObject *parent, int outCnt) :
 	BaseLmmElement(parent)
 {
 	mmapfd = -1;
 	bufferCount = 0;
-	addNewOutputChannel();
+	allocSize = 0;
+	outputCount = outCnt;
+	if (outputCount == 2)
+		addNewOutputChannel();
 }
 
 int DM365DmaCopy::dmaCopy(void *src, void *dst, int acnt, int bcnt)
@@ -76,6 +79,8 @@ int DM365DmaCopy::dmaCopy(void *src, void *dst, int acnt, int bcnt)
 void DM365DmaCopy::aboutToDeleteBuffer(const RawBufferParameters *pars)
 {
 	buflock.lock();
+	/* set used size to 0 so that newly created will buffer use all available data */
+	Buffer_setNumBytesUsed((Buffer_Handle)pars->dmaiBuffer, 0);
 	freeBuffers << DmaiBuffer(pool.first().getMimeType(), (Buffer_Handle)pars->dmaiBuffer, this);
 	buflock.unlock();
 }
@@ -93,11 +98,13 @@ int DM365DmaCopy::processBuffer(const RawBuffer &buf)
 					buf.constPars()->videoHeight,
 					buf.constPars()->v4l2PixelFormat);
 		for (int i = 0; i < bufferCount; i++) {
-			DmaiBuffer dmaibuf("video/x-raw-yuv", buf.size(), attrs, this);
+			if (!allocSize)
+				allocSize = buf.size();
+			DmaiBuffer dmaibuf("video/x-raw-yuv", allocSize, attrs, this);
 			pool << dmaibuf;
 			pool[i].pars()->captureTime = 0;
 			pool[i].pars()->fps = 1;
-			memset(pool[i].data(), 0, buf.size());
+			memset(pool[i].data(), 0, allocSize);
 			freeBuffers << DmaiBuffer(dmaibuf.getMimeType(), (Buffer_Handle)dmaibuf.constPars()->dmaiBuffer, this);
 		}
 		delete attrs;
@@ -112,13 +119,23 @@ int DM365DmaCopy::processBuffer(const RawBuffer &buf)
 	DmaiBuffer dstBuf = freeBuffers.takeFirst();
 	dstBuf.pars()->streamBufferNo = buf.constPars()->streamBufferNo;
 	buflock.unlock();
-	int err = dmaCopy((void *)Buffer_getPhysicalPtr((Buffer_Handle)buf.constPars()->dmaiBuffer)
-						 , (void *)Buffer_getPhysicalPtr((Buffer_Handle)dstBuf.constPars()->dmaiBuffer)
-						 , buf.constPars()->videoWidth, buf.constPars()->videoHeight * 3 / 2);
+	int err = 0;
+	if (allocSize == buf.size()) {
+		err = dmaCopy((void *)Buffer_getPhysicalPtr((Buffer_Handle)buf.constPars()->dmaiBuffer)
+							 , (void *)Buffer_getPhysicalPtr((Buffer_Handle)dstBuf.constPars()->dmaiBuffer)
+							 , buf.constPars()->videoWidth, buf.constPars()->videoHeight * 3 / 2);
+	} else {
+		err = dmaCopy((void *)Buffer_getPhysicalPtr((Buffer_Handle)buf.constPars()->dmaiBuffer)
+							 , (void *)Buffer_getPhysicalPtr((Buffer_Handle)dstBuf.constPars()->dmaiBuffer)
+							 , 1024, buf.size() / 1024 + 1);
+		dstBuf.setUsedSize(buf.size());
+	}
 	dstBuf.pars()->captureTime = buf.constPars()->captureTime;
-	newOutputBuffer(0, buf);
 	if (err)
 		return err;
+	if (outputCount == 1)
+		return newOutputBuffer(0, dstBuf);
+	newOutputBuffer(0, buf);
 	return newOutputBuffer(1, dstBuf);
 }
 

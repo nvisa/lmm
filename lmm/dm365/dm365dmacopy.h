@@ -10,9 +10,10 @@ class DM365DmaCopy : public BaseLmmElement
 {
 	Q_OBJECT
 public:
-	explicit DM365DmaCopy(QObject *parent = 0);
+	explicit DM365DmaCopy(QObject *parent = 0, int outCnt = 2);
 	int dmaCopy(void *src, void *dst, int acnt, int bcnt);
 	void setBufferCount(int cnt) { bufferCount = cnt; }
+	void setAllocateSize(int size) { allocSize = size; }
 
 protected:
 	void aboutToDeleteBuffer(const RawBufferParameters *pars);
@@ -20,6 +21,8 @@ protected:
 	RawBuffer createAndCopy(const RawBuffer &buf);
 
 	int mmapfd;
+	int outputCount;
+	int allocSize;
 	QMutex dmalock;
 	QMutex buflock;
 	int bufferCount;
