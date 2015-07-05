@@ -136,15 +136,17 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	mInfo("start");
 	bufferLock.lock();
 	Buffer_Handle hDstBuf = BufTab_getFreeBuf(outputBufTab);
-	bufferLock.unlock();
 	if (!hDstBuf) {
 		/*
 		 * This is not an error, probably buffers are not finished yet
 		 * and we don't need to encode any more
 		 */
 		mInfo("cannot get new buf from buftab");
-		return -ENOENT;
+		bufferLock.unlock();
+		return 0;
 	}
+	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
+	bufferLock.unlock();
 
 	BufferGfx_Dimensions dim;
 	/* Make sure the whole buffer is used for input */
@@ -196,7 +198,6 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		buf.pars()->dmaiBuffer = (quintptr *)hDstBuf;
 	if (buf.pars()->fps)
 		buf.pars()->duration = 1000 / buf.pars()->fps;
-	Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 	/* Reset the dimensions to what they were originally */
 	BufferGfx_resetDimensions(buffer);
 	newOutputBuffer(0, buf);
