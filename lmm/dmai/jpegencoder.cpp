@@ -15,6 +15,23 @@
 
 #define CODECHEIGHTALIGN 16
 
+#ifdef MAKE_RND
+#define RNSIZE 1280 * 720 * 3 / 2
+static uchar rnd[1280 * 720 * 3 / 2];
+static void initRnd()
+{
+	for (int i = 0; i < RNSIZE; i++)
+		rnd[i] = rand() % 30 + 50;
+}
+static void makeRnd(Buffer_Handle buffer)
+{
+	memcpy(Buffer_getUserPtr(buffer), rnd, RNSIZE);
+}
+#else
+static void makeRnd(Buffer_Handle) {}
+static void initRnd() {}
+#endif
+
 JpegEncoder::JpegEncoder(QObject *parent) :
 	DmaiEncoder(parent)
 {
@@ -23,6 +40,10 @@ JpegEncoder::JpegEncoder(QObject *parent) :
 	qFactChanged = false;
 	bufferCount = 0;
 	maxBufferSize = 0;
+	maxJpegSize = 0;
+
+	/* following is a no-op unless MAKE_RND is defined */
+	initRnd();
 }
 
 void JpegEncoder::setQualityFactor(int q)
@@ -134,6 +155,7 @@ int JpegEncoder::stopCodec()
 int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 {
 	mInfo("start");
+	makeRnd(buffer); /* no-op unless MAKE_RND is defined */
 	bufferLock.lock();
 	Buffer_Handle hDstBuf = BufTab_getFreeBuf(outputBufTab);
 	if (!hDstBuf) {
@@ -190,6 +212,10 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		buf = DmaiBuffer("image/jpeg", hDstBuf, this);
 	else
 		buf = RawBuffer("image/jpeg", Buffer_getUserPtr(hDstBuf), Buffer_getNumBytesUsed(hDstBuf));
+	if (maxJpegSize && buf.size() > maxJpegSize) {
+		qFact--;
+		qFactChanged = true;
+	}
 	buf.setParameters(source.constPars());
 	buf.pars()->frameType = IVIDEO_I_FRAME;
 	buf.pars()->encodeTime = streamTime->getCurrentTime();

@@ -15,6 +15,7 @@ public:
 	void setQualityFactor(int q);
 	int qualityFactor();
 	void setBufferCount(int cnt, int maxSize = 0);
+	void setMaxJpegSize(int maxSize) { maxJpegSize = maxSize; }
 signals:
 	
 public slots:
@@ -26,6 +27,7 @@ private:
 	BufTab_Handle outputBufTab;
 	int bufferCount;
 	int maxBufferSize;
+	int maxJpegSize;
 
 	virtual int startCodec(bool alloc = true);
 	virtual int stopCodec();
