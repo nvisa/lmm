@@ -14,6 +14,15 @@ BaseLmmPipeline::BaseLmmPipeline(QObject *parent) :
 	el = new QEventLoop(this);
 }
 
+BaseLmmPipeline::~BaseLmmPipeline()
+{
+	if (threads.size()) {
+		mDebug("destroying threads");
+		qDeleteAll(threads);
+		threads.clear();
+	}
+}
+
 BasePipeElement *BaseLmmPipeline::appendPipe(BaseLmmElement *el)
 {
 	BasePipeElement *pipeEl = new BasePipeElement(this);
@@ -36,6 +45,12 @@ BasePipeElement * BaseLmmPipeline::addPipe(BaseLmmElement *el, BaseLmmElement *n
 
 int BaseLmmPipeline::start()
 {
+	if (threads.size()) {
+		mDebug("destroying threads");
+		qDeleteAll(threads);
+		threads.clear();
+	}
+
 	finishedThreadCount = 0;
 
 	pipes.last()->setNext(this);

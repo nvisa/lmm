@@ -12,6 +12,7 @@ class BaseLmmPipeline : public BaseLmmElement
 	Q_OBJECT
 public:
 	explicit BaseLmmPipeline(QObject *parent = 0);
+	~BaseLmmPipeline();
 	virtual BasePipeElement * appendPipe(BaseLmmElement *el);
 	virtual BasePipeElement * addPipe(BaseLmmElement *, BaseLmmElement *next = NULL);
 	virtual int start();
