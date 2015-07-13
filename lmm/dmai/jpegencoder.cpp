@@ -32,6 +32,9 @@ static void makeRnd(Buffer_Handle) {}
 static void initRnd() {}
 #endif
 
+/* Let's prevent building agains old codec versions */
+#include <ti/sdo/codecs/jpegenc/JPEGENC.version.01.00.00.12.wizardversion.0.5.2>
+
 JpegEncoder::JpegEncoder(QObject *parent) :
 	DmaiEncoder(parent)
 {
