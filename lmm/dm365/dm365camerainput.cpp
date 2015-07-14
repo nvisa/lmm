@@ -433,6 +433,9 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	ch2VerFlip = false;
 
 	inputFps = outputFps = 30;
+
+	flashAdjusted = false;
+	flashDuration = flashOffset = 0;
 }
 
 void DM365CameraInput::setInputFps(float fps)
@@ -507,6 +510,28 @@ void DM365CameraInput::setHorizontalFlip(int ch, bool flip)
 		ch2HorFlip = flip;
 	else
 		ch1HorFlip = flip;
+}
+
+void DM365CameraInput::setFlashTimingOffset(int value)
+{
+	flashAdjusted = false;
+	flashOffset = value;
+}
+
+void DM365CameraInput::setFlashTimingDuration(int value)
+{
+	flashAdjusted = false;
+	flashDuration = value;
+}
+
+int DM365CameraInput::getFlashTimingOffset()
+{
+	return flashOffset;
+}
+
+int DM365CameraInput::getFlashTimingDuration()
+{
+	return flashDuration;
 }
 
 QList<QVariant> DM365CameraInput::extraDebugInfo()
@@ -987,6 +1012,15 @@ int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
 	if (passed > 35)
 		mInfo("late capture: %d", passed);
 
+	if (flashAdjusted == false) {
+		if (flashDuration) {
+			HardwareOperations::writeRegister(0x1c40004, 0x00107555);
+			HardwareOperations::writeRegister(0x1c7106c, flashDuration);
+			HardwareOperations::writeRegister(0x1c71068, flashOffset);
+		}
+		flashAdjusted = true;
+	}
+
 	return 0;
 }
 
@@ -1000,6 +1034,7 @@ int DM365CameraInput::startStreaming()
 
 int DM365CameraInput::stopStreaming()
 {
+	flashAdjusted = false;
 	return V4l2Input::stopStreaming();
 }
 

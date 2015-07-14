@@ -48,6 +48,11 @@ public:
 	void setVerticalFlip(int ch, bool flip);
 	void setHorizontalFlip(int ch, bool flip);
 
+	void setFlashTimingOffset(int value);
+	void setFlashTimingDuration(int value);
+	int getFlashTimingOffset();
+	int getFlashTimingDuration();
+
 	virtual QList<QVariant> extraDebugInfo();
 
 	int startStreaming();
@@ -90,6 +95,9 @@ private:
 	bool ch1VerFlip;
 	bool ch2HorFlip;
 	bool ch2VerFlip;
+	int flashDuration;
+	int flashOffset;
+	bool flashAdjusted;
 
 	QSemaphore bufsFree;
 	Capture_Handle hCapture;
