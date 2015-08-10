@@ -652,6 +652,11 @@ void DM365CameraInput::calculateFps(const RawBuffer buf)
 		return BaseLmmElement::calculateFps(buf);
 }
 
+void DM365CameraInput::doSensorTweaks()
+{
+	HardwareOperations::writeRegister(0x1c71080, 0xc);
+}
+
 int DM365CameraInput::openCamera()
 {
 	struct v4l2_capability cap;
@@ -1130,6 +1135,8 @@ int DM365CameraInput::startStreaming()
 	int err = V4l2Input::startStreaming();
 	if (err == 0 && nonStdInput.enabled)
 		setupNonStdMode();
+	if (inputType == SENSOR)
+		doSensorTweaks();
 	return err;
 }
 

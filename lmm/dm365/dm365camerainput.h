@@ -71,6 +71,7 @@ signals:
 public slots:
 protected:
 	void calculateFps(const RawBuffer buf);
+	void doSensorTweaks();
 private:
 	int openCamera();
 	int openCamera2();
