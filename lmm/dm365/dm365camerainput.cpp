@@ -597,6 +597,8 @@ int DM365CameraInput::openCamera()
 	v4l2_std_id std_id = V4L2_STD_1080P_60;
 	if (inputType == COMPOSITE || inputType == S_VIDEO || inputType == COMPOSITE1)
 		std_id = V4L2_STD_PAL;
+	if (inputType == SENSOR)
+		std_id = V4L2_STD_720P_30;
 	err = setStandard(&std_id);
 	if (err)
 		return err;
