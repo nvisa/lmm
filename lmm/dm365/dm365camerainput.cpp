@@ -19,6 +19,7 @@
 #include <media/davinci/imp_previewer.h>
 #include <media/davinci/imp_resizer.h>
 #include <media/davinci/dm365_ipipe.h>
+#include <media/davinci/dm365_aew.h>
 
 #define RESIZER_DEVICE   "/dev/davinci_resizer"
 #define PREVIEWER_DEVICE "/dev/davinci_previewer"
@@ -188,6 +189,28 @@
 #define RSZ_SDR_C_PTR_S         (0x88)
 #define RSZ_SDR_C_PTR_E         (0x8C)
 
+struct aew_window_data_sq {
+	ushort ssacc[4];
+	ushort sacc[4];
+	uint ssqu[4];
+};
+
+struct aew_window_data_minmax {
+	ushort ssacc[4];
+	ushort sacc[4];
+	ushort min[4];
+	ushort max[4];
+};
+
+struct aew_window_8data_sq {
+	aew_window_data_sq win[8];
+	ushort blockCount[8];
+};
+
+struct aew_window_8data_minmax {
+	aew_window_data_minmax win[8];
+	ushort blockCount[8];
+};
 
 class BaseHwConfig
 {
@@ -532,6 +555,82 @@ int DM365CameraInput::getFlashTimingOffset()
 int DM365CameraInput::getFlashTimingDuration()
 {
 	return flashDuration;
+}
+
+int DM365CameraInput::startAEW()
+{
+	int aewFd = open("/dev/dm365_aew", O_RDWR);
+	if (aewFd < 0) {
+		mDebug("error opening aew engine");
+		return -errno;
+	}
+	aew_configuration *config = new aew_configuration;
+	config->window_config.width = 8;
+	config->window_config.height = 8;
+	config->window_config.hz_line_incr = 2;
+	config->window_config.vt_line_incr = 2;
+	config->window_config.vt_cnt = 16;
+	config->window_config.hz_cnt = 32;
+	config->window_config.vt_start = 512;
+	config->window_config.hz_start = 512;
+	/* Configure black window parameter */
+	config->blackwindow_config.height = 4;
+	config->blackwindow_config.vt_start = 4;
+	/* Enable ALaw */
+	config->alaw_enable = H3A_AEW_ENABLE;
+	/* Set Saturation limit */
+	config->saturation_limit = 255;
+	config->out_format = AEW_OUT_MIN_MAX;
+	config->sum_shift = 0;
+
+	int err = ioctl(aewFd, AEW_S_PARAM, config);
+	if (err < 0) {
+		mDebug("error %d in AEW_S_PARAM", -errno);
+		return -errno;
+	}
+	aew.bsize = err;
+	aew.readBuf = new uchar[aew.bsize];
+	memset(aew.readBuf, 0, aew.bsize);
+
+	err = ioctl(aewFd, AEW_ENABLE);
+	if (err < 0) {
+		mDebug("error %d starting AEW engine", -errno);
+		return -errno;
+	}
+
+	aew.fd = aewFd;
+	aew.config = config;
+
+	return 0;
+}
+
+int DM365CameraInput::readAEW()
+{
+	int err = read(aew.fd, aew.readBuf, aew.bsize);
+	//qDebug() << aew.bsize << err << sizeof(aew_window_8data);
+	if (err != aew.bsize) {
+		mDebug("error '%d' reading aew buffer", -errno);
+		return err;
+	}
+
+	int cols = aew.config->window_config.hz_cnt;
+	int rows = aew.config->window_config.vt_cnt;
+#if 0
+	int wsize = aew.bsize / aew.config->window_config.hz_cnt / aew.config->window_config.vt_cnt;
+	for (int i = 0; i < rows; i++) {
+		for (int j = 0; j < cols; j++) {
+			uchar *wdata = &aew.readBuf[(j + i * cols) * wsize];
+
+		}
+	}
+#else
+	aew_window_8data_minmax *w8data = (aew_window_8data_minmax *)aew.readBuf;
+	//qDebug() << w8data[5].win[4].ssqu[0] << w8data[5].blockCount[4];
+	qDebug() << w8data[5].win[4].min[0] << w8data[5].win[4].max[0] << w8data[5].blockCount[4];
+	//for (int i = 0; i < cols * rows / 8 / 4; i++)
+		//qDebug() << i << w8data[i].blockCount[0];
+#endif
+	return 0;
 }
 
 QList<QVariant> DM365CameraInput::extraDebugInfo()

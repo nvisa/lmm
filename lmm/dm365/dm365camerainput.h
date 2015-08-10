@@ -16,6 +16,7 @@
 struct _VideoBufDesc;
 struct BufTab_Object;
 struct _Buffer_Object;
+struct aew_configuration;
 typedef struct BufTab_Object *BufTab_Handle;
 typedef struct _Buffer_Object *Buffer_Handle;
 
@@ -52,6 +53,15 @@ public:
 	void setFlashTimingDuration(int value);
 	int getFlashTimingOffset();
 	int getFlashTimingDuration();
+	int startAEW();
+	int readAEW();
+	struct aewConfig {
+		int fd;
+		int bsize;
+		aew_configuration *config;
+		uchar *readBuf;
+	};
+	aewConfig aew;
 
 	virtual QList<QVariant> extraDebugInfo();
 
