@@ -13,6 +13,7 @@
 #include <ti/sdo/dmai/VideoStd.h>
 #include <ti/sdo/dmai/BufferGfx.h>
 
+class AewControl;
 struct _VideoBufDesc;
 struct BufTab_Object;
 struct _Buffer_Object;
@@ -30,6 +31,10 @@ public:
 		COMPONENT,
 		SENSOR,
 		COMPOSITE1,
+	};
+	enum whiteBalanceAlgo {
+		WB_NONE,
+		WB_GRAY_WORLD,
 	};
 
 	explicit DM365CameraInput(QObject *parent = 0);
@@ -54,14 +59,11 @@ public:
 	int getFlashTimingOffset();
 	int getFlashTimingDuration();
 	int startAEW();
-	int readAEW();
-	struct aewConfig {
-		int fd;
-		int bsize;
-		aew_configuration *config;
-		uchar *readBuf;
-	};
-	aewConfig aew;
+	whiteBalanceAlgo getWhiteBalanceAlgo();
+	int setWhiteBalanceAlgo(whiteBalanceAlgo val);
+	const QByteArray getAewBuffer();
+
+	AewControl *aew;
 
 	virtual QList<QVariant> extraDebugInfo();
 

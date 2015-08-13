@@ -119,6 +119,14 @@
 #define IPIPE_SRC_HSZ           (0x001C)
 #define IPIPE_GCK_MMR           (0x0028)
 #define IPIPE_GCK_PIX           (0x002C)
+#define IPIPE_WB2_OFT_R         (0x01D0)
+#define IPIPE_WB2_OFT_GR        (0x01D4)
+#define IPIPE_WB2_OFT_GB        (0x01D8)
+#define IPIPE_WB2_OFT_B         (0x01DC)
+#define IPIPE_WB2_WGN_R         (0x01E0)
+#define IPIPE_WB2_WGN_GR        (0x01E4)
+#define IPIPE_WB2_WGN_GB        (0x01E8)
+#define IPIPE_WB2_WGN_B         (0x01EC)
 
 /* Resizer */
 #define RSZ_SRC_EN              (0x0)
@@ -210,6 +218,173 @@ struct aew_window_8data_sq {
 struct aew_window_8data_minmax {
 	aew_window_data_minmax win[8];
 	ushort blockCount[8];
+};
+
+#define Gr 0
+#define R 2
+#define B 1
+#define Gb 3
+
+class AewControl {
+public:
+	AewControl()
+	{
+		hop = NULL;
+		readBuf = NULL;
+		config = NULL;
+		wbAlgo = DM365CameraInput::WB_NONE;
+	}
+
+	~AewControl()
+	{
+		if (hop) {
+			hop->unmap();
+			delete hop;
+			delete [] readBuf;
+			delete config;
+		}
+	}
+
+	int init()
+	{
+		fd = open("/dev/dm365_aew", O_RDWR);
+		if (fd < 0) {
+			fDebug("error opening aew engine");
+			return -errno;
+		}
+
+		int err = ioctl(fd, AEW_DISABLE);
+		if (err < 0) {
+			fDebug("error %d stopping AEW engine", -errno);
+			return -errno;
+		}
+		//HardwareOperations::writeRegister(0x1c71464, 0x250021);
+		HardwareOperations::writeRegister(0x1c71464, 0);
+
+		config = new aew_configuration;
+#if 0
+		config->window_config.width = 480;
+		config->window_config.height = 512;
+		config->window_config.hz_cnt = 4;
+		config->window_config.vt_cnt = 2;
+#elif 1
+		config->window_config.width = 128;
+		config->window_config.hz_cnt = 15;
+		config->window_config.height = 128;
+		config->window_config.vt_cnt = 8;
+#endif
+		config->window_config.hz_line_incr = 2;
+		config->window_config.vt_line_incr = 2;
+		config->window_config.hz_start = 0;
+		config->window_config.vt_start = 0;
+		/* Configure black window parameter */
+		config->blackwindow_config.height = 4;
+		config->blackwindow_config.vt_start = 1024;
+		/* Enable ALaw */
+		config->alaw_enable = H3A_AEW_DISABLE;
+		/* Set Saturation limit */
+		config->saturation_limit = 255;
+		config->out_format = AEW_OUT_MIN_MAX;
+		config->sum_shift = 10;
+		config->hmf_config.enable = H3A_AEW_DISABLE;
+
+		err = ioctl(fd, AEW_S_PARAM, config);
+		if (err < 0) {
+			fDebug("error %d in AEW_S_PARAM", -errno);
+			return -errno;
+		}
+		bsize = err;
+		readBuf = new uchar[bsize];
+		memset(readBuf, 0, bsize);
+
+		err = ioctl(fd, AEW_ENABLE);
+		if (err < 0) {
+			fDebug("error %d starting AEW engine", -errno);
+			return -errno;
+		}
+
+		hop = new HardwareOperations;
+		err = hop->map(0x1c70800);
+		if (err) {
+			fDebug("error mapping IPIPE registers");
+			return -EINVAL;
+		}
+
+		return 0;
+	}
+
+	void update(float gainRed, float gainBlue)
+	{
+		hop->write(IPIPE_WB2_WGN_R, 512 * gainRed);
+		hop->write(IPIPE_WB2_WGN_B, 512 * gainBlue);
+	}
+
+	int readAew()
+	{
+		int err = read(fd, readBuf, bsize);
+		if (err != bsize) {
+			fDebug("error '%d' reading aew buffer", -errno);
+			return err;
+		}
+
+		int cols = config->window_config.hz_cnt;
+		int rows = config->window_config.vt_cnt;
+		int bcnt = cols * rows / 8;
+
+		aew_window_8data_minmax *w8data = (aew_window_8data_minmax *)readBuf;
+		uint sums[] = {0, 0, 0, 0};
+		for (int i = 0; i < bcnt; i++) {
+			for (int j = 0; j < 8; j++) {
+				sums[0] += w8data[i].win[j].ssacc[0];
+				sums[1] += w8data[i].win[j].ssacc[1];
+				sums[2] += w8data[i].win[j].ssacc[2];
+				sums[3] += w8data[i].win[j].ssacc[3];
+			}
+		}
+
+		lock.lock();
+		if (wbAlgo == DM365CameraInput::WB_GRAY_WORLD) {
+			uint green = (sums[Gr] + sums[Gb]) / 2;
+			float gainRed = green / (float)sums[R];
+			float gainBlue = green / (float)sums[B];
+			update(gainRed, gainBlue);
+		}
+		lock.unlock();
+
+		return 0;
+	}
+
+	QByteArray getAewBuffer()
+	{
+		lock.lock();
+		QByteArray ba = QByteArray((const char *)readBuf, bsize);
+		lock.unlock();
+		return ba;
+	}
+
+	int setWbAlgo(DM365CameraInput::whiteBalanceAlgo val)
+	{
+		lock.lock();
+		wbAlgo = val;
+		if (wbAlgo == DM365CameraInput::WB_NONE)
+			update(1.0, 1.0);
+		lock.unlock();
+		return 0;
+	}
+
+	DM365CameraInput::whiteBalanceAlgo getWbAlgo()
+	{
+		return wbAlgo;
+	}
+
+protected:
+	int fd;
+	int bsize;
+	aew_configuration *config;
+	uchar *readBuf;
+	HardwareOperations *hop;
+	DM365CameraInput::whiteBalanceAlgo wbAlgo;
+	QMutex lock;
 };
 
 class BaseHwConfig
@@ -435,7 +610,8 @@ protected:
 };
 
 DM365CameraInput::DM365CameraInput(QObject *parent) :
-	V4l2Input(parent)
+	V4l2Input(parent),
+	aew(NULL)
 {
 	inputType = COMPONENT;
 	/* these capture w and h are defaults, v4l2input overrides them in start */
@@ -559,78 +735,30 @@ int DM365CameraInput::getFlashTimingDuration()
 
 int DM365CameraInput::startAEW()
 {
-	int aewFd = open("/dev/dm365_aew", O_RDWR);
-	if (aewFd < 0) {
-		mDebug("error opening aew engine");
-		return -errno;
-	}
-	aew_configuration *config = new aew_configuration;
-	config->window_config.width = 8;
-	config->window_config.height = 8;
-	config->window_config.hz_line_incr = 2;
-	config->window_config.vt_line_incr = 2;
-	config->window_config.vt_cnt = 16;
-	config->window_config.hz_cnt = 32;
-	config->window_config.vt_start = 512;
-	config->window_config.hz_start = 512;
-	/* Configure black window parameter */
-	config->blackwindow_config.height = 4;
-	config->blackwindow_config.vt_start = 4;
-	/* Enable ALaw */
-	config->alaw_enable = H3A_AEW_ENABLE;
-	/* Set Saturation limit */
-	config->saturation_limit = 255;
-	config->out_format = AEW_OUT_MIN_MAX;
-	config->sum_shift = 0;
+	aew = new AewControl;
+	return aew->init();
+}
 
-	int err = ioctl(aewFd, AEW_S_PARAM, config);
-	if (err < 0) {
-		mDebug("error %d in AEW_S_PARAM", -errno);
-		return -errno;
-	}
-	aew.bsize = err;
-	aew.readBuf = new uchar[aew.bsize];
-	memset(aew.readBuf, 0, aew.bsize);
+DM365CameraInput::whiteBalanceAlgo DM365CameraInput::getWhiteBalanceAlgo()
+{
+	if (!aew)
+		return WB_NONE;
+	return aew->getWbAlgo();
+}
 
-	err = ioctl(aewFd, AEW_ENABLE);
-	if (err < 0) {
-		mDebug("error %d starting AEW engine", -errno);
-		return -errno;
-	}
-
-	aew.fd = aewFd;
-	aew.config = config;
-
+int DM365CameraInput::setWhiteBalanceAlgo(DM365CameraInput::whiteBalanceAlgo val)
+{
+	if (!aew)
+		return -EPERM;
+	aew->setWbAlgo(val);
 	return 0;
 }
 
-int DM365CameraInput::readAEW()
+const QByteArray DM365CameraInput::getAewBuffer()
 {
-	int err = read(aew.fd, aew.readBuf, aew.bsize);
-	//qDebug() << aew.bsize << err << sizeof(aew_window_8data);
-	if (err != aew.bsize) {
-		mDebug("error '%d' reading aew buffer", -errno);
-		return err;
-	}
-
-	int cols = aew.config->window_config.hz_cnt;
-	int rows = aew.config->window_config.vt_cnt;
-#if 0
-	int wsize = aew.bsize / aew.config->window_config.hz_cnt / aew.config->window_config.vt_cnt;
-	for (int i = 0; i < rows; i++) {
-		for (int j = 0; j < cols; j++) {
-			uchar *wdata = &aew.readBuf[(j + i * cols) * wsize];
-
-		}
-	}
-#else
-	aew_window_8data_minmax *w8data = (aew_window_8data_minmax *)aew.readBuf;
-	//qDebug() << w8data[5].win[4].ssqu[0] << w8data[5].blockCount[4];
-	qDebug() << w8data[5].win[4].min[0] << w8data[5].win[4].max[0] << w8data[5].blockCount[4];
-	//for (int i = 0; i < cols * rows / 8 / 4; i++)
-		//qDebug() << i << w8data[i].blockCount[0];
-#endif
-	return 0;
+	if (!aew)
+		return QByteArray();
+	return aew->getAewBuffer();
 }
 
 QList<QVariant> DM365CameraInput::extraDebugInfo()
@@ -1126,6 +1254,9 @@ int DM365CameraInput::processBuffer(v4l2_buffer *buffer)
 		}
 		flashAdjusted = true;
 	}
+
+	if (aew)
+		aew->readAew();
 
 	return 0;
 }
