@@ -70,7 +70,7 @@ int BasePipeElement::operationBuffer()
 
 int BasePipeElement::addBuffer(int ch, const RawBuffer &buffer)
 {
-	if (passThru)
+	if (passThru || filterMimes.contains(buffer.getMimeType()))
 		return link.destination->addBuffer(link.destinationChannel, buffer);
 	if (copyOnUse)
 		return link.source->addBuffer(ch, buffer.makeCopy());
@@ -108,6 +108,11 @@ int BasePipeElement::setRateReduction(int skip, int outOf)
 		link.reducto->enabled = false;
 	link.reducto->reset();
 	return 0;
+}
+
+void BasePipeElement::addPassFilter(const QString &mimeType)
+{
+	filterMimes << mimeType;
 }
 
 void BasePipeElement::threadFinished(LmmThread *thread)

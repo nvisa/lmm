@@ -3,6 +3,8 @@
 
 #include <lmm/baselmmelement.h>
 
+#include <QStringList>
+
 class RateReducto;
 class BaseLmmPipeline;
 
@@ -50,6 +52,7 @@ public:
 	void setCopyOnUse(bool v) { copyOnUse = v; }
 	void addOutputHook(pipeHook hook, void *priv);
 	int setRateReduction(int skip, int outOf);
+	void addPassFilter(const QString &mimeType);
 
 	virtual void threadFinished(LmmThread *);
 
@@ -63,7 +66,7 @@ protected:
 	bool copyOnUse;
 	pipeHook outHook;
 	void *outPriv;
-	
+	QStringList filterMimes;
 };
 
 #endif // BASEPIPEELEMENT_H
