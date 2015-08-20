@@ -44,6 +44,8 @@ public:
 	int stop();
 	int flush();
 	int genIdr();
+	virtual int resetCodec();
+	virtual int flushCodec();
 	void aboutToDeleteBuffer(const RawBufferParameters *params);
 
 	/* control API */

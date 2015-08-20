@@ -117,6 +117,16 @@ int DmaiEncoder::genIdr()
 	return -EINVAL;
 }
 
+int DmaiEncoder::resetCodec()
+{
+	return 0;
+}
+
+int DmaiEncoder::flushCodec()
+{
+	return 0;
+}
+
 int DmaiEncoder::processBuffer(const RawBuffer &buf)
 {
 	QElapsedTimer t;
