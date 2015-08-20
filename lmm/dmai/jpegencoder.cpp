@@ -74,6 +74,32 @@ void JpegEncoder::setBufferCount(int cnt, int maxSize)
 	maxBufferSize = maxSize;
 }
 
+int JpegEncoder::flushCodec()
+{
+	ffDebug();
+	IMGENC1_Status status;
+	status.data.buf = NULL;
+	status.size = sizeof(IMGENC1_Status);
+	dspl.lock();
+	Int32 err = IMGENC1_control(Ienc1_getVisaHandle(hCodec), XDM_FLUSH,
+								&defaultDynParams, &status);
+	dspl.unlock();
+	return err;
+}
+
+int JpegEncoder::resetCodec()
+{
+	ffDebug();
+	IMGENC1_Status status;
+	status.data.buf = NULL;
+	status.size = sizeof(IMGENC1_Status);
+	dspl.lock();
+	Int32 err = IMGENC1_control(Ienc1_getVisaHandle(hCodec), XDM_RESET,
+								&defaultDynParams, &status);
+	dspl.unlock();
+	return err;
+}
+
 int JpegEncoder::startCodec(bool alloc)
 {
 	defaultDynParams = Ienc1_DynamicParams_DEFAULT;

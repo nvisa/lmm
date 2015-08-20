@@ -16,6 +16,8 @@ public:
 	int qualityFactor();
 	void setBufferCount(int cnt, int maxSize = 0);
 	void setMaxJpegSize(int maxSize) { maxJpegSize = maxSize; }
+	int flushCodec();
+	int resetCodec();
 signals:
 	
 public slots:
