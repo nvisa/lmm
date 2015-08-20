@@ -17,6 +17,7 @@ public:
 	virtual BasePipeElement * addPipe(BaseLmmElement *, BaseLmmElement *next = NULL);
 	virtual int start();
 	virtual int stop();
+	BasePipeElement * getPipe(int off);
 
 	/* */
 	int processPipeline();

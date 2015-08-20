@@ -92,6 +92,11 @@ int BaseLmmPipeline::stop()
 	return BaseLmmElement::stop();
 }
 
+BasePipeElement *BaseLmmPipeline::getPipe(int off)
+{
+	return pipes[off];
+}
+
 int BaseLmmPipeline::processPipeline()
 {
 	return processBlocking();
