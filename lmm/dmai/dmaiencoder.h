@@ -46,6 +46,7 @@ public:
 	int genIdr();
 	virtual int resetCodec();
 	virtual int flushCodec();
+	virtual int restartCodec();
 	void aboutToDeleteBuffer(const RawBufferParameters *params);
 
 	/* control API */
@@ -92,7 +93,6 @@ protected:
 	bool dirty;
 	int inputPixFormat;
 
-	virtual int restartCodec();
 	virtual int startCodec(bool alloc = true);
 	virtual int stopCodec();
 	virtual int encode(Buffer_Handle buffer, const RawBuffer source);

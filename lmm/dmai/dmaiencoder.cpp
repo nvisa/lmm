@@ -97,10 +97,7 @@ int DmaiEncoder::flush()
 {
 	mDebug("flusing encoder");
 	if (dirty && hCodec) {
-		dspl.lock();
 		restartCodec();
-		dspl.unlock();
-		dirty = false;
 	}
 	return BaseLmmElement::flush();
 }
@@ -177,13 +174,24 @@ void DmaiEncoder::cleanUpDsp()
 
 int DmaiEncoder::restartCodec()
 {
+	dspl.lock();
+	dirty = false;
 	/* Shut down remaining items */
 	if (hCodec) {
 		mDebug("closing video encoder");
 		Venc1_delete(hCodec);
 		hCodec = NULL;
 	}
-	return startCodec(false);
+	bufferLock.lock();
+	if (hBufTab) {
+		mDebug("deleting buffer tab 1");
+		BufTab_delete(hBufTab);
+		hBufTab = NULL;
+	}
+	bufferLock.unlock();
+	int err = startCodec(false);
+	dspl.unlock();
+	return err;
 }
 
 int DmaiEncoder::startCodec(bool alloc)
