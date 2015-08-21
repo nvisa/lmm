@@ -4,6 +4,8 @@
 
 #include "debug.h"
 
+#include "tools/errorinjector.h"
+
 #include <xdc/std.h>
 #include <ti/sdo/ce/Engine.h>
 #include <ti/sdo/dmai/Buffer.h>
@@ -181,6 +183,15 @@ int JpegEncoder::stopCodec()
 	return 0;
 }
 
+#ifdef ERROR_INJECTION_ENABLED
+static int jpegError(void *enc)
+{
+	ffDebug() << "firing jpeg error" << enc;
+	while (1) {}
+	return 0;
+}
+#endif
+
 int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 {
 	mInfo("start");
@@ -224,6 +235,7 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	mInfo("invoking Ienc1_process: width=%d height=%d",
 		  (int)dim.width, (int)dim.height);
 	/* Encode the video buffer */
+	EI_ERR_POINT(jpegError, this);
 	if (Ienc1_process(hCodec, buffer, hDstBuf) < 0) {
 		mDebug("Failed to encode video buffer");
 		BufferGfx_getDimensions(buffer, &dim);
