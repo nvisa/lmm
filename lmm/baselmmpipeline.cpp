@@ -8,10 +8,12 @@
 #include <errno.h>
 
 BaseLmmPipeline::BaseLmmPipeline(QObject *parent) :
-	BaseLmmElement(parent)
+	BaseLmmElement(parent),
+	pipelineReady(false)
 {
 	addNewInputChannel();
 	el = new QEventLoop(this);
+	pipelineReady = false;
 }
 
 BaseLmmPipeline::~BaseLmmPipeline()
@@ -95,6 +97,16 @@ int BaseLmmPipeline::stop()
 BasePipeElement *BaseLmmPipeline::getPipe(int off)
 {
 	return pipes[off];
+}
+
+void BaseLmmPipeline::setPipelineReady(bool v)
+{
+	pipelineReady = v;
+}
+
+bool BaseLmmPipeline::isPipelineReady()
+{
+	return pipelineReady;
 }
 
 int BaseLmmPipeline::processPipeline()

@@ -18,6 +18,8 @@ public:
 	virtual int start();
 	virtual int stop();
 	BasePipeElement * getPipe(int off);
+	void setPipelineReady(bool v);
+	bool isPipelineReady();
 
 	/* */
 	int processPipeline();
@@ -36,6 +38,7 @@ protected:
 	QMutex thLock;
 	QEventLoop *el;
 	int finishedThreadCount;
+	bool pipelineReady;
 };
 
 #endif // BASELMMPIPELINE_H
