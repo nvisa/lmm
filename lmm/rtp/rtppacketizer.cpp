@@ -36,6 +36,9 @@ RtpPacketizer::RtpPacketizer(QObject *parent) :
 	srcControlPort = 0;
 	useStapA = true;
 	useAbsoluteTimestamp = true;
+	sock = NULL;
+	sock2 = NULL;
+	rawsock = NULL;
 }
 
 Lmm::CodecType RtpPacketizer::codecType()
@@ -251,6 +254,8 @@ void RtpPacketizer::sendSR()
 
 bool RtpPacketizer::initZeroCopy()
 {
+	if (rawsock)
+		delete rawsock;
 	rawsock = new RawNetworkSocket(dstIp, dstDataPort, myIpAddr.toString(), srcDataPort);
 	return rawsock->isActive();
 }
