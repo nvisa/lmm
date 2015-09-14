@@ -17,6 +17,7 @@ public:
 	};
 
 	RawNetworkSocket(QString destinationIp, quint16 destinationPort, QString sourceIp, quint16 sourcePort);
+	~RawNetworkSocket();
 	bool isActive();
 	int send(char *buf, int size);
 	int send(SockBuffer *sbuf, int size);

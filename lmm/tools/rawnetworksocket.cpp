@@ -58,6 +58,17 @@ RawNetworkSocket::RawNetworkSocket(QString destinationIp, quint16 destinationPor
 	nextIndex = -1;
 }
 
+RawNetworkSocket::~RawNetworkSocket()
+{
+	for (int i = 0; i < buffers.size(); i++) {
+		delete [] buffers[i]->data;
+		delete buffers[i];
+	}
+	buffers.clear();
+	close(fd);
+	delete sin;
+}
+
 bool RawNetworkSocket::isActive()
 {
 	if (fd < 0)
