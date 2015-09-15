@@ -39,7 +39,6 @@
 LmmCommon LmmCommon::inst;
 
 int dbgtemp = 0;
-static 	bool quitOnSigInt = true;
 static QList<BaseLmmElement *> registeredElementsForPipe;
 static QMap<int, QList<BaseLmmElement *> > registeredElements;
 
@@ -79,6 +78,12 @@ static void notifyRegistrars(int signal)
 		el->signalReceived(signal);
 }
 
+static void notifyRegistrarsPipe()
+{
+	foreach (BaseLmmElement *el, registeredElementsForPipe)
+		el->signalReceived(SIGPIPE);
+}
+
 static void stopLibrary()
 {
 	LmmThread::stopAll();
@@ -99,24 +104,18 @@ static void signalHandler(int signalNumber)
 			t->printStack();
 		print_trace();
 	}
-	if (signalNumber == SIGSEGV) {
+	int regCount = registeredElements[signalNumber].size();
+	if (signalNumber == SIGPIPE)
+		notifyRegistrarsPipe();
+	else if (regCount)
+		notifyRegistrars(signalNumber);
+	else if (signalNumber == SIGSEGV
+			|| signalNumber == SIGFPE
+			|| signalNumber == SIGABRT
+			|| signalNumber == SIGTERM
+			 || signalNumber == SIGBUS
+			|| (signalNumber == SIGINT))
 		stopLibrary();
-	} else if (signalNumber == SIGINT) {
-		if (quitOnSigInt) {
-			stopLibrary();
-		} else
-			qDebug("%s: sigint is not active", __func__);
-	} else if (signalNumber == SIGTERM) {
-		stopLibrary();
-	} else if (signalNumber == SIGABRT) {
-		stopLibrary();
-	} else if (signalNumber == SIGPIPE) {
-		foreach (BaseLmmElement *el, registeredElementsForPipe)
-			el->signalReceived(signalNumber);
-	} else {
-		stopLibrary();
-	}
-	notifyRegistrars(signalNumber);
 }
 
 LmmCommon::LmmCommon(QObject *parent) :
@@ -147,9 +146,8 @@ int LmmCommon::init()
 	return 0;
 }
 
-int LmmCommon::installSignalHandlers(bool exitOnSigInt)
+int LmmCommon::installSignalHandlers()
 {
-	quitOnSigInt = exitOnSigInt;
 	struct sigaction sigInstaller;
 	sigset_t block_mask;
 
