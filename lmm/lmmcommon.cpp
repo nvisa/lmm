@@ -79,6 +79,13 @@ void notifyRegistrars(int signal)
 		el->signalReceived(signal);
 }
 
+static void stopLibrary()
+{
+	LmmThread::stopAll();
+	LmmCommon::platformCleanUp();
+	exit(0);
+}
+
 static void __attribute__ ((no_instrument_function)) signalHandler(int);
 static void signalHandler(int signalNumber)
 {
@@ -93,32 +100,21 @@ static void signalHandler(int signalNumber)
 		print_trace();
 	}
 	if (signalNumber == SIGSEGV) {
-		LmmThread::stopAll();
-		LmmCommon::platformCleanUp();
-		exit(0);
+		stopLibrary();
 	} else if (signalNumber == SIGINT) {
 		if (quitOnSigInt) {
-			LmmThread::stopAll();
-			LmmCommon::platformCleanUp();
-			qDebug("sigint clean-up done, exiting");
-			exit(0);
+			stopLibrary();
 		} else
 			qDebug("%s: sigint is not active", __func__);
 	} else if (signalNumber == SIGTERM) {
-		LmmThread::stopAll();
-		LmmCommon::platformCleanUp();
-		exit(0);
+		stopLibrary();
 	} else if (signalNumber == SIGABRT) {
-		LmmThread::stopAll();
-		LmmCommon::platformCleanUp();
-		exit(0);
+		stopLibrary();
 	} else if (signalNumber == SIGPIPE) {
 		foreach (BaseLmmElement *el, registeredElementsForPipe)
 			el->signalReceived(signalNumber);
 	} else {
-		LmmThread::stopAll();
-		LmmCommon::platformCleanUp();
-		exit(0);
+		stopLibrary();
 	}
 	notifyRegistrars(signalNumber);
 }
