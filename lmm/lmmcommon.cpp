@@ -72,7 +72,7 @@ void LmmCommon::platformInit()
 		inst.plat->platformInit();
 }
 
-void notifyRegistrars(int signal)
+static void notifyRegistrars(int signal)
 {
 	const QList<BaseLmmElement *> list = registeredElements[signal];
 	foreach (BaseLmmElement *el, list)
