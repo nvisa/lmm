@@ -20,12 +20,20 @@ public:
 		MV_OVERLAY,
 		MV_BOTH,
 	};
+	enum PacketizationMode {
+		PMOD_NORMAL			= 0x01,
+		PMOD_PACKETIZED		= 0x02,
+		PMOD_BOTH			= 0x03,
+	};
 
 	explicit H264Encoder(QObject *parent = 0);
 	int flush();
 
 	bool isPacketized();
 	void setPacketized(bool value);
+	void setPacketizationMode(PacketizationMode mod);
+	PacketizationMode getPacketizationMode() { return pmod; }
+	void outputBoth();
 	int enablePictureTimingSei(bool enable);
 	int setProfile(int v) { profileId = v; return 0; }
 	int getProfile() { return profileId; }
@@ -73,7 +81,7 @@ private:
 	void *frameinfoInterface;
 	MotionVectors mVecs;
 	int motVectSize;
-	bool packetized;
+	PacketizationMode pmod;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec(bool alloc = true);

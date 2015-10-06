@@ -452,7 +452,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	genMetadata = false;
 	frameinfoInterface = NULL;
 	mVecs = MV_NONE;
-	packetized = true;
+	pmod = PMOD_PACKETIZED;
 	enablePictureTimingSei(true);
 }
 
@@ -469,7 +469,7 @@ int H264Encoder::flush()
  */
 bool H264Encoder::isPacketized()
 {
-	return packetized;
+	return pmod & PMOD_PACKETIZED;
 }
 
 /**
@@ -496,7 +496,17 @@ bool H264Encoder::isPacketized()
  */
 void H264Encoder::setPacketized(bool value)
 {
-	packetized = value;
+	if (value)
+		pmod = PMOD_PACKETIZED;
+	else
+		pmod = PMOD_NORMAL;
+}
+
+void H264Encoder::setPacketizationMode(H264Encoder::PacketizationMode mod)
+{
+	pmod = mod;
+	if (pmod == PMOD_BOTH)
+		addNewOutputChannel();
 }
 
 int H264Encoder::enablePictureTimingSei(bool enable)
@@ -835,7 +845,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	}
 
 	uint duration = 1000 / (float)source.constPars()->fps;
-	if (packetized) {
+	if (pmod & PMOD_PACKETIZED) {
 		QList<int> offsets;
 		QList<int> nals;
 		uchar *encdata = (uchar *)Buffer_getUserPtr(hDstBuf);
@@ -875,7 +885,8 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		BufferGfx_resetDimensions(buffer);
 		encodeCount++;
 		BufTab_freeBuf(hDstBuf);
-	} else {
+	}
+	if (pmod & PMOD_NORMAL) {
 		/* insert SEI data */
 		if (seiDataOffset) {
 			insertSeiData(seiDataOffset, hDstBuf, source);
@@ -890,7 +901,10 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		Buffer_setUseMask(hDstBuf, Buffer_getUseMask(hDstBuf) | 0x1);
 		/* Reset the dimensions to what they were originally */
 		BufferGfx_resetDimensions(buffer);
-		newOutputBuffer(0, buf);
+		if (pmod == PMOD_BOTH)
+			newOutputBuffer(1, buf);
+		else
+			newOutputBuffer(0, buf);
 	}
 
 	return 0;
