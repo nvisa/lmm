@@ -13,7 +13,7 @@ public:
 	explicit DM365DmaCopy(QObject *parent = 0, int outCnt = 2);
 	int dmaCopy(void *src, void *dst, int acnt, int bcnt);
 	void setBufferCount(int cnt) { bufferCount = cnt; }
-	void setAllocateSize(int size) { allocSize = size; }
+	void setAllocateSize(int size);
 
 protected:
 	void aboutToDeleteBuffer(const RawBufferParameters *pars);

@@ -100,7 +100,7 @@ int DM365DmaCopy::processBuffer(const RawBuffer &buf)
 		for (int i = 0; i < bufferCount; i++) {
 			if (!allocSize)
 				allocSize = buf.size();
-			DmaiBuffer dmaibuf("video/x-raw-yuv", allocSize, attrs, this);
+			DmaiBuffer dmaibuf(buf.getMimeType(), allocSize, attrs, this);
 			pool << dmaibuf;
 			pool[i].pars()->captureTime = 0;
 			pool[i].pars()->fps = 1;
@@ -131,6 +131,9 @@ int DM365DmaCopy::processBuffer(const RawBuffer &buf)
 		dstBuf.setUsedSize(buf.size());
 	}
 	dstBuf.pars()->captureTime = buf.constPars()->captureTime;
+	dstBuf.pars()->videoWidth = buf.constPars()->videoWidth;
+	dstBuf.pars()->videoHeight = buf.constPars()->videoHeight;
+	dstBuf.pars()->frameType = buf.constPars()->frameType;
 	if (err)
 		return err;
 	if (outputCount == 1)
@@ -152,4 +155,21 @@ RawBuffer DM365DmaCopy::createAndCopy(const RawBuffer &buf)
 						 , (void *)Buffer_getPhysicalPtr((Buffer_Handle)dstBuf.constPars()->dmaiBuffer)
 						 , buf.constPars()->videoWidth, buf.constPars()->videoHeight * 3 / 2);
 	return dstBuf;
+}
+
+void DM365DmaCopy::setAllocateSize(int size)
+{
+	allocSize = size;
+	if (allocSize) {
+		BufferGfx_Attrs *attrs = DmaiBuffer::createGraphicAttrs(0, 0, 0); //some dummy attributes
+		for (int i = 0; i < bufferCount; i++) {
+			DmaiBuffer dmaibuf("video/x-raw-yuv", allocSize, attrs, this);
+			pool << dmaibuf;
+			pool[i].pars()->captureTime = 0;
+			pool[i].pars()->fps = 1;
+			memset(pool[i].data(), 0, allocSize);
+			freeBuffers << DmaiBuffer(dmaibuf.getMimeType(), (Buffer_Handle)dmaibuf.constPars()->dmaiBuffer, this);
+		}
+		delete attrs;
+	}
 }
