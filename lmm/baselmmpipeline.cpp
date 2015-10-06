@@ -62,26 +62,29 @@ int BaseLmmPipeline::start()
 		BasePipeElement *pipe = pipes[i];
 		const struct BasePipeElement::pipe link = pipe->getLink();
 		/* create process thread */
+		QString desc = link.source->objectName();
+		if (desc.isEmpty())
+			desc = link.source->metaObject()->className();
 		if (link.sourceProcessChannel >= 0) {
 			LmmThread *th = new OpThread<BasePipeElement>(pipe, &BasePipeElement::operationProcess,
-														  objectName().append("ProcessThread%1").arg(i));
+														  objectName().append("P%1%2").arg(i).arg(desc));
 			threads.insert(th->threadName(), th);
 			th->start(QThread::LowestPriority);
 		}
 
 		/* create buffer thread */
 		LmmThread *th = new OpThread<BasePipeElement>(pipe, &BasePipeElement::operationBuffer,
-										   objectName().append("BufferThread%1").arg(i));
+										   objectName().append("B%1%2").arg(i).arg(desc));
 		threads.insert(th->threadName(), th);
 		th->start(QThread::LowestPriority);
 	}
 	/* pipeline process thread */
-	QString name = objectName().append("ProcessCheckThread");
+	QString name = objectName().append("PCheck");
 	LmmThread *th = new OpThread<BaseLmmPipeline>(this, &BaseLmmPipeline::processPipeline, name);
 	threads.insert(name, th);
 	th->start(QThread::LowestPriority);
 	/* pipeline output check thread */
-	name = objectName().append("OutputCheckThread");
+	name = objectName().append("OCheck");
 	th = new OpThread<BaseLmmPipeline>(this, &BaseLmmPipeline::checkPipelineOutput, name);
 	threads.insert(name, th);
 	th->start(QThread::LowestPriority);
@@ -107,6 +110,11 @@ void BaseLmmPipeline::setPipelineReady(bool v)
 bool BaseLmmPipeline::isPipelineReady()
 {
 	return pipelineReady;
+}
+
+const QList<LmmThread *> BaseLmmPipeline::getThreads()
+{
+	return threads.values();
 }
 
 int BaseLmmPipeline::processPipeline()

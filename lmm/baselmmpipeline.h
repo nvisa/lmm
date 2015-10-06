@@ -20,6 +20,7 @@ public:
 	BasePipeElement * getPipe(int off);
 	void setPipelineReady(bool v);
 	bool isPipelineReady();
+	const QList<LmmThread *> getThreads();
 
 	/* */
 	int processPipeline();
