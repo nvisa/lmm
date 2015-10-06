@@ -189,7 +189,7 @@ int DmaiEncoder::restartCodec()
 		hBufTab = NULL;
 	}
 	bufferLock.unlock();
-	int err = startCodec(false);
+	int err = startCodec(true);
 	dspl.unlock();
 	return err;
 }
