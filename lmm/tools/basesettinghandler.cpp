@@ -262,7 +262,7 @@ int BaseSettingHandler::readAllFromDisk(QString filename)
 
 int BaseSettingHandler::readIncrementalSettings(QString handler)
 {
-	QStringList keys = changed.allKeys();
+	QStringList keys = changed.childKeys();
 	if (!handler.isEmpty()) {
 		QStringList filtered;
 		for (int i = 0; i < keys.size(); i++)
