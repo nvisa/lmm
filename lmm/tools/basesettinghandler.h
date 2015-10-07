@@ -33,6 +33,7 @@ public:
 	static int saveAllToDisk(QString filename);
 	static int readAllFromDisk(QString filename);
 	static int readIncrementalSettings(QString handler = "");
+	static QHash<QString, QVariant> getSubSettings(const QString &groupName);
 protected:
 	explicit BaseSettingHandler(QString key, QObject *parent = NULL);
 	virtual QVariant get(QString setting) = 0;

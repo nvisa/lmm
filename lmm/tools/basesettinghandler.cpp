@@ -282,3 +282,14 @@ int BaseSettingHandler::readIncrementalSettings(QString handler)
 		setSetting(key, changed.value(key));
 	return 0;
 }
+
+QHash<QString, QVariant> BaseSettingHandler::getSubSettings(const QString &groupName)
+{
+	QHash<QString, QVariant> sets;
+	changed.beginGroup(groupName);
+	const QStringList &keys = changed.childKeys();
+	foreach (const QString &key, keys)
+		sets.insert(key, changed.value(key));
+	changed.endGroup();
+	return sets;
+}
