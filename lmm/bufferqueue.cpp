@@ -74,7 +74,7 @@ QList<RawBuffer> BufferQueue::getLast(int count)
 {
 	QList<RawBuffer> bufs;
 	block.lock();
-	for (int i = buffers.size() - 1; i > buffers.size() - 1 - count; i--)
+	for (int i = buffers.size() - 1; i > buffers.size() - 1 - count && i > -1; i--)
 		bufs << buffers[i];
 	block.unlock();
 	return bufs;
