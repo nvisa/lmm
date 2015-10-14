@@ -20,7 +20,6 @@ public:
 	virtual int stop();
 
 	void sampleNtpTime();
-	void setPassThru(bool v) { passThru = v; }
 	void setDestinationIpAddress(QString ip) { dstIp = ip; }
 	void setRtpSequenceOffset(int value) { rtpSequenceOffset = value; }
 	void setRtpTimestampOffset(int value) { rtpTimestampOffset = value; }
@@ -84,7 +83,6 @@ protected:
 	float frameRate;
 	int streamedBufferCount;
 	QString sdp;
-	bool passThru;
 	int bitrateBufSize;
 	int bitrate;
 	uint totalPacketCount;
