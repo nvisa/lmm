@@ -635,6 +635,7 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 
 	flashAdjusted = false;
 	flashDuration = flashOffset = 0;
+	nonStdInput.enabled = false;
 }
 
 void DM365CameraInput::setInputFps(float fps)
