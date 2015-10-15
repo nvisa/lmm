@@ -60,21 +60,23 @@ int BasePipeElement::operationBuffer()
 		return 0;
 	if (outHook)
 		outHook(buf, outPriv);
-	foreach (const outLink &l, copyLinks)
-		if (!l.reducto || !l.reducto->shouldSkip())
-			l.destination->addBuffer(l.destinationChannel, buf);
+	for (int i = 0; i < copyLinks.size(); i++) {
+		Link *l = &copyLinks[i];
+		if (!l->reducto || !l->reducto->shouldSkip())
+			l->addBuffer(buf);
+	}
 	if (link.reducto->shouldSkip())
 		return 0;
-	return link.destination->addBuffer(link.destinationChannel, buf);
+	return link.addBuffer(buf);
 }
 
 int BasePipeElement::addBuffer(int ch, const RawBuffer &buffer)
 {
 	if (passThru || filterMimes.contains(buffer.getMimeType()))
-		return link.destination->addBuffer(link.destinationChannel, buffer);
+		return link.addBuffer(buffer);
 	if (copyOnUse)
-		return link.source->addBuffer(ch, buffer.makeCopy());
-	return link.source->addBuffer(ch, buffer);
+		return link.addBuffer(ch, buffer.makeCopy());
+	return link.addBuffer(ch, buffer);
 }
 
 void BasePipeElement::setPipe(BaseLmmElement *target, BaseLmmElement *next, int tch, int pch, int nch)
@@ -88,7 +90,7 @@ void BasePipeElement::setPipe(BaseLmmElement *target, BaseLmmElement *next, int 
 	link.destinationChannel = nch;
 }
 
-void BasePipeElement::addNewLink(const outLink &link)
+void BasePipeElement::addNewLink(const Link &link)
 {
 	copyLinks << link;
 }
@@ -127,8 +129,17 @@ int BasePipeElement::processBuffer(const RawBuffer &buf)
 	return -EINVAL;
 }
 
+int BasePipeElement::Link::addBuffer(int ch, const RawBuffer &buffer)
+{
+	return source->addBuffer(ch, buffer);
+}
 
-int BasePipeElement::outLink::setRateReduction(int skip, int outOf)
+int BasePipeElement::Link::addBuffer(const RawBuffer &buffer)
+{
+	return destination->addBuffer(destinationChannel, buffer);
+}
+
+int BasePipeElement::Link::setRateReduction(int skip, int outOf)
 {
 	reducto->enabled = true;
 	reducto->skip = skip;

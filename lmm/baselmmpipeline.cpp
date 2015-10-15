@@ -60,7 +60,7 @@ int BaseLmmPipeline::start()
 
 	for (int i = 0; i < pipes.size(); i++) {
 		BasePipeElement *pipe = pipes[i];
-		const struct BasePipeElement::pipe link = pipe->getLink();
+		const struct BasePipeElement::Link link = pipe->getLink();
 		/* create process thread */
 		QString desc = link.source->objectName();
 		if (desc.isEmpty())

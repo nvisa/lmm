@@ -14,23 +14,24 @@ class BasePipeElement : public BaseLmmElement
 {
 	Q_OBJECT
 public:
-	struct pipe {
+	class Link {
+	public:
+		Link()
+		{
+			reducto = NULL;
+			source = NULL;
+			destination = NULL;
+		}
+
 		BaseLmmElement *source;
 		BaseLmmElement *destination;
 		int sourceChannel;
 		int destinationChannel;
 		int sourceProcessChannel;
 		RateReducto *reducto;
-	};
-	class outLink {
-	public:
-		outLink()
-		{
-			reducto = NULL;
-		}
-		BaseLmmElement *destination;
-		int destinationChannel;
-		RateReducto *reducto;
+
+		int addBuffer(int ch, const RawBuffer &buffer);
+		int addBuffer(const RawBuffer &buffer);
 		int setRateReduction(int skip, int outOf);
 	};
 
@@ -47,8 +48,8 @@ public:
 	void setProcessChannel(int ch) { link.sourceProcessChannel = ch; }
 	void setSource(BaseLmmElement *el) { link.source = el; }
 	void setSourceChannel(int ch) { link.sourceChannel = ch; }
-	void setLink(const pipe &link) { this->link = link; }
-	void addNewLink(const outLink &link);
+	void setLink(const Link &link) { this->link = link; }
+	void addNewLink(const Link &link);
 	void setCopyOnUse(bool v) { copyOnUse = v; }
 	void addOutputHook(pipeHook hook, void *priv);
 	int setRateReduction(int skip, int outOf);
@@ -56,13 +57,13 @@ public:
 
 	virtual void threadFinished(LmmThread *);
 
-	const struct pipe getLink() const { return link; }
+	const struct Link getLink() const { return link; }
 protected:
 	int processBuffer(const RawBuffer &buf);
 
 	BaseLmmPipeline *pipeline;
-	pipe link;
-	QList<outLink> copyLinks;
+	Link link;
+	QList<Link> copyLinks;
 	bool copyOnUse;
 	pipeHook outHook;
 	void *outPriv;
