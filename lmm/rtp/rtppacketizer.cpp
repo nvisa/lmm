@@ -99,6 +99,11 @@ int RtpPacketizer::start()
 			sd = rawsock->socketDescriptor();
 		if (setsockopt(sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 			qDebug() << "error joining multicast group";
+		socklen_t ttl = 10;
+		if (setsockopt(sd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0)
+			ffDebug() << "error setting TTL value for RTP socket";
+		if (setsockopt(sock2->socketDescriptor(), IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0)
+			ffDebug() << "error setting TTL value for RTCP socket";
 		memset(&mreq, 0, sizeof(ip_mreq));
 		mreq.imr_multiaddr.s_addr = inet_addr(qPrintable(dstIp));
 		mreq.imr_interface.s_addr = htons(INADDR_ANY);
