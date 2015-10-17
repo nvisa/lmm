@@ -225,6 +225,11 @@ bool RawBuffer::operator ==(const RawBuffer &other)
 	return false;
 }
 
+qint32 RawBuffer::getUniqueId() const
+{
+	return d->uuid;
+}
+
 RawBufferData::~RawBufferData()
 {
 	if (rawData && !refData)

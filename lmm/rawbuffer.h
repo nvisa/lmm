@@ -7,6 +7,8 @@
 #include <QExplicitlySharedDataPointer>
 #include <QVariant>
 
+#include <stdlib.h>
+
 class BaseLmmElement;
 class RawBufferData;
 class RawBuffer;
@@ -43,6 +45,7 @@ class RawBufferData : public QSharedData
 public:
 	RawBufferData()
 	{
+		uuid = rand();
 		rawData = NULL;
 		refData = false;
 		usedLen = 0;
@@ -63,6 +66,7 @@ public:
 		parameters = other.parameters;
 		myParent = other.myParent;
 		mimeType = other.mimeType;
+		uuid = other.uuid;
 	}
 
 	virtual ~RawBufferData();
@@ -74,6 +78,7 @@ public:
 	int prependPos;
 	int prependLen;
 	int appendLen;
+	int uuid;
 	BaseLmmElement* myParent;
 	QString mimeType;
 	RawBufferParameters *parameters;
@@ -107,6 +112,8 @@ public:
 	friend class RawBufferData;
 
 	virtual bool operator==(const RawBuffer& other);
+
+	qint32 getUniqueId() const;
 signals:
 	
 public slots:
