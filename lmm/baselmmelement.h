@@ -17,6 +17,7 @@ class QSemaphore;
 class LmmThread;
 class RawBufferParameters;
 class QElapsedTimer;
+class ElementIOQueue;
 
 class BaseLmmElement : public QObject
 {
@@ -30,16 +31,11 @@ public:
 	};
 	explicit BaseLmmElement(QObject *parent = 0);
 	virtual int addBuffer(int ch, const RawBuffer &buffer);
-	int addBufferBlocking(int ch, const RawBuffer &buffer);
-	int addBuffersBlocking(int ch, const QList<RawBuffer> list);
-	RawBuffer nextBuffer(int ch);
 	RawBuffer nextBufferBlocking(int ch);
-	QList<RawBuffer> nextBuffers(int ch);
-	QList<RawBuffer> nextBuffersBlocking(int ch);
 	virtual int process(int ch = 0);
 	virtual int process(int ch, const RawBuffer &buf);
 	virtual int processBlocking(int ch = 0);
-	virtual int processBlocking(int ch, const RawBuffer &buf);
+	virtual int processBlocking2(int ch, const RawBuffer &buf);
 	void setStreamTime(StreamTime *t) { streamTime = t; }
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
 	virtual CircularBuffer * getCircularBuffer() { return NULL; }
@@ -48,90 +44,100 @@ public:
 	virtual int stop();
 	virtual int flush();
 	virtual int prepareStop();
-	int sendEOF();
 	virtual int setParameter(QString param, QVariant value);
 	virtual QVariant getParameter(QString param);
 	virtual void aboutToDeleteBuffer(const RawBufferParameters *) {}
 	virtual void signalReceived(int) {}
-	virtual int setTotalInputBufferSize(int size, int hysterisisSize = 0);
-	int waitOutputBuffers(int ch, int lessThan);
 	virtual void threadFinished(LmmThread *) {}
 	void setPassThru(bool v) { passThru = v; }
 
-	/* stat information */
-	void printStats();
-	int getInputBufferCount();
-	virtual int getOutputBufferCount();
-	int getReceivedBufferCount() { return receivedBufferCount; }
-	int getSentBufferCount() { return sentBufferCount; }
-	int getFps() { return elementFps; }
-	UnitTimeStat * getOutputTimeStat() { return outputTimeStat; }
 	UnitTimeStat * getProcessTimeStat() { return processTimeStat; }
-	int getAvailableDuration();
 	void setEnabled(bool val);
 	bool isEnabled();
 	bool isRunning();
-	int getInputSemCount(int ch);
-	int getOutputSemCount(int ch);
 	virtual QList<QVariant> extraDebugInfo();
+
+	void addOutputQueue(ElementIOQueue *q);
+	void addInputQueue(ElementIOQueue *q);
+	ElementIOQueue * getOutputQueue(int ch);
+	ElementIOQueue * getInputQueue(int ch);
+	ElementIOQueue * createIOQueue();
+	int getInputQueueCount();
+	int getOutputQueueCount();
 signals:
 	void needFlushing();
 	void newBufferAvailable();
 public slots:
 protected:
-	void addNewInputChannel();
-	void addNewOutputChannel();
-	int releaseInputSem(int ch, int count = 1);
-	int releaseOutputSem(int ch, int count = 1);
-	bool acquireInputSem(int ch) __attribute__((warn_unused_result));
-	bool acquireOutputSem(int ch) __attribute__((warn_unused_result));
-	RawBuffer takeInputBuffer(int ch);
-	int appendInputBuffer(int ch, const RawBuffer &buf);
 	int prependInputBuffer(int ch, const RawBuffer &buf);
 	virtual int processBuffer(const RawBuffer &buf) = 0;
 	virtual int processBuffer(int ch, const RawBuffer &buf);
-	virtual void updateOutputTimeStats();
-	virtual void calculateFps(const RawBuffer buf);
 	RunningState getState();
 	int setState(RunningState s);
-	virtual int checkSizeLimits();
-	virtual void checkAndWakeInputWaiters();
 	virtual int newOutputBuffer(int ch, const RawBuffer &buf);
 	virtual int newOutputBuffer(int ch, QList<RawBuffer> list);
 
 	StreamTime *streamTime;
 	qint64 streamDuration;
-	int receivedBufferCount;
-	int sentBufferCount;
 	UnitTimeStat *processTimeStat;
 	bool passThru;
-
-	int elementFps;
-	int fpsBufferCount;
-	QElapsedTimer *fpsTiming;
 	bool eofSent;
 private:
-	QList< QList<RawBuffer> > inBufQueue;
-	QList< QList<RawBuffer> > outBufQueue;
 	QList<int> inBufSize;
 	bool enabled;
-	QMutex inputLock;
-	QMutex outputLock;
-	QWaitCondition inputWaiter;
-	QList<QWaitCondition *> outWc;
-	int totalInputBufferSize;
-	int inputHysterisisSize;
-	int outputWakeThreshold;
 
 	QMap<QString, QVariant> parameters;
 
-	UnitTimeStat *outputTimeStat;
-	qint64 lastOutputTimeStat;
 	RunningState state;
 
-	QList<QSemaphore *> bufsem;
-	QList<QSemaphore *> inbufsem;
+	QList<ElementIOQueue *> inq;
+	QMutex inql;
+	QList<ElementIOQueue *> outq;
+	QMutex outql;
 
+};
+
+class ElementIOQueue {
+public:
+	ElementIOQueue();
+
+	int waitBuffers(int lessThan);
+	int addBuffer(const RawBuffer &buffer);
+	int addBuffer(const QList<RawBuffer> &list);
+	int prependBuffer(const RawBuffer &buffer);
+	RawBuffer getBuffer();
+	RawBuffer getBufferNW();
+	int getSemCount();
+	int getBufferCount();
+	void clear();
+	void start();
+	void stop();
+	int setSizeLimit(int size, int hsize);
+	int getFps() { return fps; }
+	int getReceivedCount() { return receivedCount; }
+	int getSentCount() { return sentCount; }
+
+protected:
+	bool acquireSem() __attribute__((warn_unused_result));
+	int checkSizeLimits();
+	void calculateFps();
+
+	QList<RawBuffer> queue;
+	int bufSize;
+	QMutex lock;
+	int totalSize;
+	int receivedCount;
+	int sentCount;
+	QSemaphore * bufSem;
+	int bufSizeLimit;
+	BaseLmmElement::RunningState state;
+	int hysterisisSize;
+	int outputWakeThreshold;
+	QWaitCondition * outWc;
+
+	int fpsBufferCount;
+	QElapsedTimer * fpsTiming;
+	int fps;
 };
 
 #endif // BASELMMELEMENT_H

@@ -1,5 +1,4 @@
 #include "fboutput.h"
-#define DEBUG
 #include "debug.h"
 #include "rawbuffer.h"
 #include "streamtime.h"

@@ -412,13 +412,7 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 		}
 	}
 
-	if (passThru)
-		newOutputBuffer(0, buf);
-	else {
-		sentBufferCount++;
-		calculateFps(buf);
-	}
-
+	newOutputBuffer(0, buf);
 	streamLock.unlock();
 	return 0;
 }
@@ -429,19 +423,6 @@ quint64 RtpPacketizer::packetTimestamp(int stream)
 	if (useAbsoluteTimestamp)
 		return 90ull * streamTime->getCurrentTimeMili();
 	return (90000ll * (streamedBufferCount) / (int)frameRate);
-}
-
-void RtpPacketizer::calculateFps(const RawBuffer buf)
-{
-	fpsBufferCount++;
-	bitrateBufSize += buf.size();
-	if (fpsTiming->elapsed() > 1000) {
-		bitrate = bitrateBufSize * 8 / 1000;
-		int elapsed = fpsTiming->restart();
-		elementFps = fpsBufferCount * 1000 / elapsed;
-		fpsBufferCount = 0;
-		bitrateBufSize = 0;
-	}
 }
 
 void RtpPacketizer::readPendingRtcpDatagrams()

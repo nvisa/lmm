@@ -94,10 +94,10 @@ int SimpleVideoPlayer::stopPlayer()
 
 int SimpleVideoPlayer::demux()
 {
-	if (demuxer->getOutputBufferCount() > 200) {
+	if (demuxer->getOutputQueue(0)->getBufferCount() > 200) {
 		mDebug("demuxed too much, waiting...");
 		waitingDemux = true;
-		if (demuxer->waitOutputBuffers(0, 100)) {
+		if (demuxer->getOutputQueue(0)->waitBuffers(100)) {
 			mDebug("no demuxer buffers anymore");
 			waitingEOF = true;
 			waitingDemux = false;
@@ -109,7 +109,7 @@ int SimpleVideoPlayer::demux()
 	if (err) {
 		waitingEOF = true;
 		mDebug("demuxer finished with err %d, buffer count %d, total %d", err,
-			   demuxer->getOutputBufferCount(), demuxer->getSentBufferCount());
+			   demuxer->getOutputQueue(0)->getBufferCount(), demuxer->getOutputQueue(0)->getSentCount());
 		return err;
 	}
 	return err;

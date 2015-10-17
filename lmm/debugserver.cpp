@@ -56,14 +56,11 @@ void DebugServer::handleMessage(QTcpSocket *client, const QString &cmd,
 		out << 8; //number of properties
 		for (int i = 0; i < elements->size(); i++){
 			BaseLmmElement *el = elements->at(i);
-			out << el->getInputBufferCount();
-			out << el->getOutputBufferCount();
-			out << el->getReceivedBufferCount();
-			out << el->getSentBufferCount();
-			out << el->getFps();
-			out << el->getOutputTimeStat()->min;
-			out << el->getOutputTimeStat()->max;
-			out << el->getOutputTimeStat()->avg;
+			out << el->getInputQueue(0)->getBufferCount();
+			out << el->getOutputQueue(0)->getBufferCount();
+			out << el->getInputQueue(0)->getReceivedCount();
+			out << el->getOutputQueue(0)->getSentCount();
+			out << el->getOutputQueue(0)->getFps();
 		}
 		out << custom;
 		sendMessage(client, "stats", d);

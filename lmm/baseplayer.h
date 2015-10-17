@@ -49,6 +49,36 @@ private:
 	threadOp mfunc;
 };
 
+template <class T>
+class OpThread2 : public LmmThread
+{
+public:
+	typedef int (T::*threadOp)(int);
+	OpThread2(T *parent, threadOp op, QString name, int idx)
+		: LmmThread(name, parent)
+	{
+		enc = parent;
+		mfunc = op;
+		val = idx;
+	}
+	OpThread2(T *parent, threadOp op, QString name, int idx, BaseLmmElement *parElement)
+		: LmmThread(name, parElement)
+	{
+		enc = parent;
+		mfunc = op;
+		val = idx;
+	}
+	int operation()
+	{
+		return (enc->*mfunc)(val);
+	}
+
+private:
+	int val;
+	T *enc;
+	threadOp mfunc;
+};
+
 class BasePlayer : public BaseLmmElement
 {
 	Q_OBJECT

@@ -39,8 +39,6 @@ DM365DmaCopy::DM365DmaCopy(QObject *parent, int outCnt) :
 	bufferCount = 0;
 	allocSize = 0;
 	outputCount = outCnt;
-	if (outputCount == 2)
-		addNewOutputChannel();
 }
 
 int DM365DmaCopy::dmaCopy(void *src, void *dst, int acnt, int bcnt)

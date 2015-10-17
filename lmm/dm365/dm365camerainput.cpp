@@ -624,7 +624,6 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	pixFormat = V4L2_PIX_FMT_NV12;
 	hCapture = NULL;
 	captureBufferCount = 8;
-	addNewOutputChannel();
 
 	ch1HorFlip = false;
 	ch1VerFlip = false;
@@ -772,13 +771,6 @@ QList<QVariant> DM365CameraInput::extraDebugInfo()
 	useLock.unlock();
 	list << sum;
 	return list;
-}
-
-void DM365CameraInput::calculateFps(const RawBuffer buf)
-{
-	if (buf.constPars()->videoWidth == captureWidth &&
-			buf.constPars()->videoHeight == captureHeight)
-		return BaseLmmElement::calculateFps(buf);
 }
 
 void DM365CameraInput::doSensorTweaks()

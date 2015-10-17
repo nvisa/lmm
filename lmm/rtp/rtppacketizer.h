@@ -49,7 +49,6 @@ signals:
 protected slots:
 	void readPendingRtcpDatagrams();
 protected:
-	virtual void calculateFps(const RawBuffer buf);
 	virtual int processBuffer(const RawBuffer &buf);
 	virtual quint64 packetTimestamp(int stream);
 	int sendNalUnit(const uchar *buf, int size, qint64 ts);

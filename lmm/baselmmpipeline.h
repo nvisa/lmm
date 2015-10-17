@@ -13,14 +13,18 @@ class BaseLmmPipeline : public BaseLmmElement
 public:
 	explicit BaseLmmPipeline(QObject *parent = 0);
 	~BaseLmmPipeline();
-	virtual BasePipeElement * appendPipe(BaseLmmElement *el);
-	virtual BasePipeElement * addPipe(BaseLmmElement *, BaseLmmElement *next = NULL);
+	virtual BasePipeElement * appendPipe(BaseLmmElement *) { return NULL; }
+	virtual BasePipeElement * addPipe(BaseLmmElement *, BaseLmmElement * = NULL) { return NULL; }
 	virtual int start();
 	virtual int stop();
-	BasePipeElement * getPipe(int off);
+	int getPipeCount();
+	BaseLmmElement *getPipe(int off);
 	void setPipelineReady(bool v);
 	bool isPipelineReady();
 	const QList<LmmThread *> getThreads();
+
+	/* new API */
+	int append(BaseLmmElement *el);
 
 	/* */
 	int processPipeline();
@@ -34,8 +38,7 @@ protected:
 	virtual int processBuffer(int ch, const RawBuffer &buf);
 
 	QMap<QString, LmmThread *> threads;
-	//QList<BaseLmmElement *> pipelineElements;
-	QList<BasePipeElement *> pipes;
+	QList<BaseLmmElement *> pipesNew;
 	QMutex thLock;
 	QEventLoop *el;
 	int finishedThreadCount;

@@ -57,7 +57,7 @@ public:
 
 	virtual void threadFinished(LmmThread *);
 
-	const struct Link getLink() const { return link; }
+	const Link & getLink() const { return link; }
 protected:
 	int processBuffer(const RawBuffer &buf);
 

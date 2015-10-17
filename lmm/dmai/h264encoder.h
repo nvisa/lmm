@@ -59,7 +59,6 @@ signals:
 	
 public slots:
 protected:
-	void calculateFps(const RawBuffer buf);
 private:
 	int seiBufferSize;
 	IH264VENC_DynamicParams *dynH264Params;

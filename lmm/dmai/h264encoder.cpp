@@ -505,8 +505,6 @@ void H264Encoder::setPacketized(bool value)
 void H264Encoder::setPacketizationMode(H264Encoder::PacketizationMode mod)
 {
 	pmod = mod;
-	if (pmod == PMOD_BOTH)
-		addNewOutputChannel();
 }
 
 int H264Encoder::enablePictureTimingSei(bool enable)
@@ -558,12 +556,6 @@ void H264Encoder::setSeiEnabled(bool value)
 void H264Encoder::setSeiField(const QByteArray ba)
 {
 	customSeiData = ba;
-}
-
-void H264Encoder::calculateFps(const RawBuffer buf)
-{
-	if (buf.constPars()->h264NalType == 1 || buf.constPars()->h264NalType == 5)
-		BaseLmmElement::calculateFps(buf);
 }
 
 typedef struct Venc1_Object {
@@ -942,7 +934,7 @@ int H264Encoder::insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuff
 		 *	half of the MV buffer and the next frame containing
 		 *	the remaining.
 		 */
-		int fcnt = sentBufferCount % 30;
+		int fcnt = getOutputQueue(0)->getSentCount() % 30;
 		if (fcnt == 0) /* open space for mv on next frame */
 			seiBufferSize += motVectSize / 2;
 		else if (fcnt == 1) { /* write half-of-mv to this frame */

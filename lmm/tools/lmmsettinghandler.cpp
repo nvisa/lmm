@@ -49,12 +49,12 @@ QVariant LmmSettingHandler::get(QString setting)
 								"\tinput_sem=%7 output_sem=%8")
 					.arg(i)
 					.arg(el->metaObject()->className())
-					.arg(el->getInputBufferCount())
-					.arg(el->getOutputBufferCount())
-					.arg(el->getReceivedBufferCount())
-					.arg(el->getSentBufferCount())
-					.arg(el->getInputSemCount(0))
-					.arg(el->getOutputSemCount(0))
+					.arg(el->getInputQueue(0)->getBufferCount())
+					.arg(el->getOutputQueue(0)->getBufferCount())
+					.arg(el->getInputQueue(0)->getReceivedCount())
+					.arg(el->getOutputQueue(0)->getSentCount())
+					.arg(el->getInputQueue(0)->getSemCount())
+					.arg(el->getOutputQueue(0)->getSemCount())
 					;
 			list.append(s);
 		}
@@ -68,7 +68,7 @@ QVariant LmmSettingHandler::get(QString setting)
 		QStringList list;
 		for (int i = 0; i < elements.size(); i++) {
 			BaseLmmElement *el = elements[i];
-			QString s = QString("%1: %2").arg(el->metaObject()->className()).arg(el->getFps());
+			QString s = QString("%1: %2").arg(el->metaObject()->className()).arg(el->getOutputQueue(0)->getFps());
 			list.append(s);
 		}
 		return list;
@@ -182,12 +182,12 @@ QVariant LmmSettingHandler::getPlayerSetting(QString setting, BasePlayer *pl)
 								"\tinput_sem=%7 output_sem=%8")
 					.arg(i)
 					.arg(el->metaObject()->className())
-					.arg(el->getInputBufferCount())
-					.arg(el->getOutputBufferCount())
-					.arg(el->getReceivedBufferCount())
-					.arg(el->getSentBufferCount())
-					.arg(el->getInputSemCount(0))
-					.arg(el->getOutputSemCount(0))
+					.arg(el->getInputQueue(0)->getBufferCount())
+					.arg(el->getOutputQueue(0)->getBufferCount())
+					.arg(el->getInputQueue(0)->getReceivedCount())
+					.arg(el->getOutputQueue(0)->getSentCount())
+					.arg(el->getInputQueue(0)->getSemCount())
+					.arg(el->getOutputQueue(0)->getSemCount())
 					;
 			list.append(s);
 		}
@@ -198,7 +198,7 @@ QVariant LmmSettingHandler::getPlayerSetting(QString setting, BasePlayer *pl)
 		QStringList list;
 		for (int i = 0; i < elements.size(); i++) {
 			BaseLmmElement *el = elements[i];
-			QString s = QString("%1: %2: \n").arg(el->metaObject()->className()).arg(el->getFps());
+			QString s = QString("%1: %2: \n").arg(el->metaObject()->className()).arg(el->getOutputQueue(0)->getFps());
 			list.append(s);
 		}
 		return list;

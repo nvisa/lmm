@@ -315,7 +315,7 @@ QString TextOverlay::compileOverlayText(const RawBuffer &buf)
 			args << QDateTime::currentDateTime().toString();
 			break;
 		case FIELD_FRAME_NO:
-			args << QString::number(receivedBufferCount);
+			args << QString::number(getInputQueue(0)->getReceivedCount());
 			break;
 		case FIELD_STATIC_TEXT:
 			args << overlayFieldTexts[i];
@@ -328,7 +328,7 @@ QString TextOverlay::compileOverlayText(const RawBuffer &buf)
 			break;
 		case FIELD_STREAM_FPS:
 			if (streamTime)
-				args << QString::number(getFps());
+				args << QString::number(getOutputQueue(0)->getFps());
 			else
 				args << "-1";
 			break;
