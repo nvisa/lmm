@@ -5,6 +5,12 @@
 #include <QUdpSocket>
 #include <QDataStream>
 
+static void queueEventHook(ElementIOQueue *queue, const RawBuffer &buf, int ev, void *priv)
+{
+	PipelineDebugger *dbg = (PipelineDebugger *)priv;
+	dbg->queueHook(queue, buf, ev);
+}
+
 class UdpMessage
 {
 public:
@@ -61,9 +67,32 @@ public:
 	qint32 key;
 };
 
+class EventData
+{
+public:
+	EventData(qint32 cmd)
+	{
+		mes = new UdpMessage(cmd, 0);
+	}
+
+	void add(ElementIOQueue *q, qint32 bufId, qint32 ev)
+	{
+		lock.lock();
+		mes->s << (qint32)q;
+		mes->s << bufId;
+		mes->s << ev;
+		lock.unlock();
+	}
+
+protected:
+	UdpMessage *mes;
+	QMutex lock;
+};
+
 PipelineDebugger::PipelineDebugger(QObject *parent) :
 	QObject(parent)
 {
+	queueEvents = new EventData(CMD_INFO_QUEUE_EVENTS);
 	sock = new QUdpSocket(this);
 	sock->bind(19000);
 	connect(sock, SIGNAL(readyRead()), SLOT(udpDataReady()));
@@ -72,6 +101,11 @@ PipelineDebugger::PipelineDebugger(QObject *parent) :
 void PipelineDebugger::addPipeline(BaseLmmPipeline *pipeline)
 {
 	pipelines << pipeline;
+}
+
+void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, int ev)
+{
+	queueEvents->add(queue, buf.getUniqueId(), ev);
 }
 
 void PipelineDebugger::udpDataReady()
@@ -123,6 +157,18 @@ const QByteArray PipelineDebugger::processDatagram(const QByteArray &ba)
 			for (int j = 0; j < el->getOutputQueueCount(); j++)
 				out.s << (qint32)el->getOutputQueue(j);
 		}
+
+		QSet<ElementIOQueue *> queues;
+		for (int i = 0; i < cnt; i++) {
+			BaseLmmElement *el = pl->getPipe(i);
+			for (int j = 0; j < el->getInputQueueCount(); j++)
+				queues << el->getInputQueue(j);
+			for (int j = 0; j < el->getOutputQueueCount(); j++)
+				queues << el->getOutputQueue(j);
+		}
+		allQueues = queues.toList();
+		for (int i = 0; i < allQueues.size(); i++)
+			allQueues[i]->setEventHook(queueEventHook, this);
 		break;
 	}
 	case CMD_GET_INFO:

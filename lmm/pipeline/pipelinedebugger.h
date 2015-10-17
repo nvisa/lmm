@@ -2,10 +2,16 @@
 #define PIPELINEDEBUGGER_H
 
 #include <QHash>
+#include <QMutex>
 #include <QObject>
 
+#include <lmm/rawbuffer.h>
+
+class EventData;
 class QUdpSocket;
+class UdpMessage;
 class RemotePipeline;
+class ElementIOQueue;
 class BaseLmmPipeline;
 
 class PipelineDebugger : public QObject
@@ -19,11 +25,14 @@ public:
 
 		CMD_INFO_PIPELINE_COUNT,
 		CMD_INFO_DESCR,
+		CMD_INFO_QUEUE_EVENTS
 	};
 
 	explicit PipelineDebugger(QObject *parent = 0);
 
 	void addPipeline(BaseLmmPipeline *pipeline);
+
+	void queueHook(ElementIOQueue *queue, const RawBuffer &, int ev);
 signals:
 
 public slots:
@@ -33,6 +42,8 @@ public slots:
 protected:
 	QUdpSocket *sock;
 	QList<BaseLmmPipeline *> pipelines;
+	QList<ElementIOQueue *> allQueues;
+	EventData *queueEvents;
 };
 
 #endif // PIPELINEDEBUGGER_H
