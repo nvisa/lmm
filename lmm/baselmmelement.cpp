@@ -633,6 +633,7 @@ int BaseLmmElement::processBuffer(int ch, const RawBuffer &buf)
 
 ElementIOQueue::ElementIOQueue()
 {
+	evHook = NULL;
 	state = BaseLmmElement::INIT;
 
 	bufSem = new QSemaphore;
@@ -673,6 +674,8 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer)
 		lock.unlock();
 		return err;
 	}
+	if (evHook)
+		(*evHook)(this, buffer, EV_ADD, evPriv);
 	queue << buffer;
 	bufSize += buffer.size();
 	receivedCount++;
@@ -720,6 +723,8 @@ RawBuffer ElementIOQueue::getBufferNW()
 	if (buf.size()) {
 		sentCount++;
 		calculateFps();
+		if (evHook)
+			(*evHook)(this, buf, EV_GET, evPriv);
 	}
 
 	return buf;

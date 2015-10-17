@@ -99,6 +99,12 @@ private:
 
 class ElementIOQueue {
 public:
+	typedef void (*eventHook)(ElementIOQueue *, const RawBuffer &, int, void *);
+	enum Events {
+		EV_ADD,
+		EV_GET,
+	};
+
 	ElementIOQueue();
 
 	int waitBuffers(int lessThan);
@@ -116,6 +122,7 @@ public:
 	int getFps() { return fps; }
 	int getReceivedCount() { return receivedCount; }
 	int getSentCount() { return sentCount; }
+	void setEventHook(eventHook hook, void *priv);
 
 protected:
 	bool acquireSem() __attribute__((warn_unused_result));
@@ -138,6 +145,8 @@ protected:
 	int fpsBufferCount;
 	QElapsedTimer * fpsTiming;
 	int fps;
+	eventHook evHook;
+	void *evPriv;
 };
 
 #endif // BASELMMELEMENT_H
