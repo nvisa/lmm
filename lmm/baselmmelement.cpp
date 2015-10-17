@@ -778,12 +778,18 @@ int ElementIOQueue::setSizeLimit(int size, int hsize)
 	return 0;
 }
 
+void ElementIOQueue::setEventHook(ElementIOQueue::eventHook hook, void *priv)
+{
+	evPriv = priv;
+	evHook = hook;
+}
+
 bool ElementIOQueue::acquireSem()
 {
 	if (state == BaseLmmElement::STOPPED)
 		return false;
 	bufSem->acquire();
-	if (state == BaseLmmElement::STARTED)
+	if (state == BaseLmmElement::STOPPED)
 		return false;
 	return true;
 }
