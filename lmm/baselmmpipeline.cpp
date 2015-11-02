@@ -60,6 +60,10 @@ int BaseLmmPipeline::start()
 
 	finishedThreadCount = 0;
 
+	/* connect last elements output to our buffer queue */
+	addOutputQueue(createIOQueue());
+	pipesNew.last()->addOutputQueue(getOutputQueue(0));
+
 	for (int i = 0; i < pipesNew.size(); i++) {
 		/* start element */
 		BaseLmmElement *el = pipesNew[i];
