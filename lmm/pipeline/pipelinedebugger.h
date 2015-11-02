@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QMutex>
 #include <QObject>
+#include <QHostAddress>
 
 #include <lmm/rawbuffer.h>
 
@@ -40,7 +41,10 @@ public slots:
 	const QByteArray processDatagram(const QByteArray &ba);
 
 protected:
+	QMutex sockLock;
 	QUdpSocket *sock;
+	QHostAddress debugPeer;
+	quint16 debugPeerPort;
 	QList<BaseLmmPipeline *> pipelines;
 	QList<ElementIOQueue *> allQueues;
 	EventData *queueEvents;

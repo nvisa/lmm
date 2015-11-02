@@ -56,6 +56,8 @@ public:
 		s << (qint32)0x14757896;
 		s << cmd;
 		s << pidx;
+		this->cmd = cmd;
+		this->pidx = pidx;
 		valid = true;
 	}
 
@@ -75,18 +77,28 @@ public:
 		mes = new UdpMessage(cmd, 0);
 	}
 
-	void add(ElementIOQueue *q, qint32 bufId, qint32 ev)
+	int add(ElementIOQueue *q, qint32 bufId, qint32 ev)
 	{
 		lock.lock();
 		mes->s << (qint32)q;
 		mes->s << bufId;
 		mes->s << ev;
+		msize = mes->s.device()->pos();
 		lock.unlock();
+		return msize;
+	}
+
+	UdpMessage * finalize()
+	{
+		UdpMessage *old = mes;
+		mes = new UdpMessage(mes->cmd, mes->pidx);
+		return old;
 	}
 
 protected:
 	UdpMessage *mes;
 	QMutex lock;
+	int msize;
 };
 
 PipelineDebugger::PipelineDebugger(QObject *parent) :
@@ -105,11 +117,20 @@ void PipelineDebugger::addPipeline(BaseLmmPipeline *pipeline)
 
 void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, int ev)
 {
-	queueEvents->add(queue, buf.getUniqueId(), ev);
+	if (queueEvents->add(queue, buf.getUniqueId(), ev) > 1400) {
+		UdpMessage *mes = queueEvents->finalize();
+		if (!debugPeer.isNull()) {
+			sockLock.lock();
+			sock->writeDatagram(mes->data, debugPeer, debugPeerPort);
+			sockLock.unlock();
+		}
+		delete mes;
+	}
 }
 
 void PipelineDebugger::udpDataReady()
 {
+	sockLock.lock();
 	while (sock->hasPendingDatagrams()) {
 		QByteArray datagram;
 		datagram.resize(sock->pendingDatagramSize());
@@ -119,9 +140,13 @@ void PipelineDebugger::udpDataReady()
 		sock->readDatagram(datagram.data(), datagram.size(),
 								&sender, &senderPort);
 		QByteArray ba = processDatagram(datagram);
-		if (ba.size())
+		if (ba.size()) {
 			sock->writeDatagram(ba, sender, senderPort);
+			debugPeer = sender;
+			debugPeerPort = senderPort;
+		}
 	}
+	sockLock.unlock();
 }
 
 const QByteArray PipelineDebugger::processDatagram(const QByteArray &ba)
