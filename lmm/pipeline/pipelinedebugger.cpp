@@ -72,9 +72,11 @@ public:
 class EventData
 {
 public:
-	EventData(qint32 cmd)
+	EventData(qint32 cmd, uint timestamp)
 	{
 		mes = new UdpMessage(cmd, 0);
+		mes->s << timestamp;
+		t.start();
 	}
 
 	int add(ElementIOQueue *q, qint32 bufId, qint32 ev)
@@ -83,19 +85,25 @@ public:
 		mes->s << (qint32)q;
 		mes->s << bufId;
 		mes->s << ev;
+		mes->s << (qint32)t.elapsed();
 		msize = mes->s.device()->pos();
 		lock.unlock();
 		return msize;
 	}
 
-	UdpMessage * finalize()
+	UdpMessage * finalize(uint timestamp)
 	{
+		lock.lock();
 		UdpMessage *old = mes;
 		mes = new UdpMessage(mes->cmd, mes->pidx);
+		mes->s << timestamp;
+		t.restart();
+		lock.unlock();
 		return old;
 	}
 
 protected:
+	QElapsedTimer t;
 	UdpMessage *mes;
 	QMutex lock;
 	int msize;
@@ -104,7 +112,7 @@ protected:
 PipelineDebugger::PipelineDebugger(QObject *parent) :
 	QObject(parent)
 {
-	queueEvents = new EventData(CMD_INFO_QUEUE_EVENTS);
+	queueEvents = new EventData(CMD_INFO_QUEUE_EVENTS, QDateTime::currentDateTime().toTime_t());
 	sock = new QUdpSocket(this);
 	sock->bind(19000);
 	connect(sock, SIGNAL(readyRead()), SLOT(udpDataReady()));
@@ -117,8 +125,8 @@ void PipelineDebugger::addPipeline(BaseLmmPipeline *pipeline)
 
 void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, int ev)
 {
-	if (queueEvents->add(queue, buf.getUniqueId(), ev) > 1400) {
-		UdpMessage *mes = queueEvents->finalize();
+	if (queueEvents->add(queue, buf.getUniqueId(), ev) > 0) {
+		UdpMessage *mes = queueEvents->finalize(QDateTime::currentDateTime().toTime_t());
 		if (!debugPeer.isNull()) {
 			sockLock.lock();
 			sock->writeDatagram(mes->data, debugPeer, debugPeerPort);
