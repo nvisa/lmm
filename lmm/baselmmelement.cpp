@@ -457,6 +457,7 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer)
 	queue << buffer;
 	bufSize += buffer.size();
 	receivedCount++;
+	calculateFps();
 	lock.unlock();
 	bufSem->release();
 	if (buffer.isEOF())
@@ -500,7 +501,6 @@ RawBuffer ElementIOQueue::getBufferNW()
 	lock.unlock();
 	if (buf.size()) {
 		sentCount++;
-		calculateFps();
 		if (evHook)
 			(*evHook)(this, buf, EV_GET, evPriv);
 	}
