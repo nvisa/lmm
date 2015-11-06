@@ -163,234 +163,14 @@
 	\ingroup lmm
 */
 
-#if 1
-#else
-class ElementIOQueue {
-public:
-	ElementIOQueue()
-	{
-		state = BaseLmmElement::INIT;
-
-		bufSem  << new QSemaphore;
-		queue << QList<RawBuffer>();
-		outWc << new QWaitCondition();
-		bufSize << 0;
-		bufSizeLimit = 0;
-		receivedCount = sentCount = 0;
-
-		fpsTiming << new QElapsedTimer;
-		fpsTiming[0]->start();
-		fps << 0;
-		fpsBufferCount << 0;
+static void createQueues(QList<ElementIOQueue *> *list, int cnt, BaseLmmElement *el)
+{
+	while (list->size() < cnt) {
+		ElementIOQueue *q = el->createIOQueue();
+		q->start();
+		*list << q;
 	}
-
-	int waitBuffers(int ch, int lessThan)
-	{
-		if (state == BaseLmmElement::STOPPED)
-			return -EINVAL;
-		lock.lock();
-		int size = queue[ch].size();
-		if (size >= lessThan) {
-			outputWakeThreshold = lessThan;
-			outWc[ch]->wait(&lock);
-		}
-		lock.unlock();
-		if (state == BaseLmmElement::STOPPED)
-			return -EINVAL;
-		return 0;
-	}
-
-	int addBuffer(int ch, const RawBuffer &buffer)
-	{
-		if (buffer.size() == 0)
-			return -EINVAL;
-		lock.lock();
-		int err = checkSizeLimits();
-		if (err) {
-			lock.unlock();
-			return err;
-		}
-		queue[ch] << buffer;
-		bufSize[ch] += buffer.size();
-		receivedCount++;
-		lock.unlock();
-		bufSem[ch]->release();
-		if (buffer.isEOF())
-			return -ENODATA;
-		return 0;
-	}
-
-	int addBuffer(int ch, const QList<RawBuffer> &list)
-	{
-		for (int i = 0; i < list.size(); i++) {
-			int err = addBuffer(ch, list[i]);
-			if (err)
-				return err;
-		}
-		return 0;
-	}
-
-	int prependBuffer(int ch, const RawBuffer &buffer)
-	{
-		lock.lock();
-		queue[ch].prepend(buffer);
-		bufSize[ch] += buffer.size();
-		bufSem[ch]->release();
-		lock.unlock();
-		return 0;
-	}
-
-	RawBuffer getBuffer(int ch)
-	{
-		if (!acquireSem(ch))
-			return RawBuffer();
-		return getBufferNW(ch);
-	}
-
-	RawBuffer getBufferNW(int ch)
-	{
-		RawBuffer buf;
-		lock.lock();
-		if (queue[ch].size() != 0)
-			buf = queue[ch].takeFirst();
-		lock.unlock();
-		if (buf.size()) {
-			sentCount++;
-			calculateFps(ch);
-		}
-
-		return buf;
-	}
-
-	int getSemCount(int ch)
-	{
-		return bufSem[ch]->available();
-	}
-
-	int getBufferCount(int ch)
-	{
-		lock.lock();
-		int size = queue[ch].size();
-		lock.unlock();
-		return size;
-	}
-
-	void clear()
-	{
-		lock.lock();
-		for (int i = 0; i < bufSem.size(); i++) {
-			bufSem[i]->acquire(bufSem[i]->available());
-			queue[i].clear();
-			bufSize[i] = 0;
-		}
-		lock.unlock();
-	}
-
-	void start()
-	{
-		outputWakeThreshold = 0;
-		receivedCount = sentCount = 0;
-		fpsLock.lock();
-		for (int i = 0; i < fps.size(); i++) {
-			fps[i] = 0;
-			fpsBufferCount[i] = 0;
-			fpsTiming[i]->start();
-		}
-		fpsLock.unlock();
-		state = BaseLmmElement::STARTED;
-	}
-
-	void stop()
-	{
-		state = BaseLmmElement::STOPPED;
-		clear();
-		for (int i = 0; i < bufSem.size(); i++)
-			bufSem[i]->release(50);
-	}
-
-	int setSizeLimit(int size, int hsize)
-	{
-		lock.lock();
-		bufSizeLimit = size;
-		hysterisisSize = hsize;
-		lock.unlock();
-		return 0;
-	}
-
-	int addNewChannel()
-	{
-		bufSem << new QSemaphore;
-		queue << QList<RawBuffer>();
-		bufSize << 0;
-
-		fpsTiming << new QElapsedTimer;
-		fpsTiming.last()->start();
-		fps << 0;
-		fpsBufferCount << 0;
-
-		return 0;
-	}
-
-	int getFps(int ch)
-	{
-		fpsLock.lock();
-		int tmp = fps[ch];
-		fpsLock.unlock();
-		return tmp;
-	}
-
-protected:
-	bool acquireSem(int ch) __attribute__((warn_unused_result))
-	{
-		if (state == BaseLmmElement::STOPPED)
-			return false;
-		bufSem[ch]->acquire();
-		if (state == BaseLmmElement::STARTED)
-			return false;
-		return true;
-	}
-
-	int checkSizeLimits()
-	{
-		if (!bufSizeLimit)
-			return 0; //no size checking
-		int size = bufSize[0];
-		if (size >= bufSizeLimit)
-			return -ENOSPC;
-		return 0;
-	}
-
-	void calculateFps(int ch)
-	{
-		fpsLock.lock();
-		fpsBufferCount[ch]++;
-		if (fpsTiming[ch]->elapsed() > 1000) {
-			int elapsed = fpsTiming[ch]->restart();
-			fps[ch] = fpsBufferCount[ch] * 1000 / elapsed;
-			fpsBufferCount[ch] = 0;
-		}
-		fpsLock.unlock();
-	}
-
-	QList< QList<RawBuffer> > queue;
-	QList<int> bufSize;
-	QMutex lock;
-	int totalSize;
-	int receivedCount;
-	int sentCount;
-	QList<QSemaphore *> bufSem;
-	int bufSizeLimit;
-	BaseLmmElement::RunningState state;
-	int hysterisisSize;
-	int outputWakeThreshold;
-	QList<QWaitCondition *> outWc;
-
-	QList<int> fpsBufferCount;
-	QList<QElapsedTimer *> fpsTiming;
-	QList<int> fps;
-	QMutex fpsLock;
-};
-#endif
+}
 
 BaseLmmElement::BaseLmmElement(QObject *parent) :
 	QObject(parent)
@@ -401,11 +181,13 @@ BaseLmmElement::BaseLmmElement(QObject *parent) :
 	enabled = true;
 	passThru = false;
 	inBufSize << 0;
+	evHook = NULL;
 }
 
 int BaseLmmElement::addBuffer(int ch, const RawBuffer &buffer)
 {
 	inql.lock();
+	createQueues(&inq, ch + 1, this);
 	ElementIOQueue *queue = inq[ch];
 	inql.unlock();
 	return queue->addBuffer(buffer);
@@ -420,6 +202,7 @@ RawBuffer BaseLmmElement::nextBufferBlocking(int ch)
 int BaseLmmElement::process(int ch)
 {
 	inql.lock();
+	createQueues(&inq, ch + 1, this);
 	ElementIOQueue *queue = inq[ch];
 	inql.unlock();
 	RawBuffer buf = queue->getBufferNW();
@@ -435,6 +218,7 @@ int BaseLmmElement::process(int ch)
 int BaseLmmElement::process(int ch, const RawBuffer &buf)
 {
 	inql.lock();
+	createQueues(&inq, ch + 1, this);
 	ElementIOQueue *queue = inq[ch];
 	inql.unlock();
 	int err = queue->addBuffer(buf);
@@ -446,6 +230,7 @@ int BaseLmmElement::process(int ch, const RawBuffer &buf)
 int BaseLmmElement::processBlocking(int ch)
 {
 	inql.lock();
+	createQueues(&inq, ch + 1, this);
 	ElementIOQueue *queue = inq[ch];
 	inql.unlock();
 	RawBuffer buf = queue->getBuffer();
@@ -466,26 +251,11 @@ int BaseLmmElement::processBlocking(int ch)
 	return ret;
 }
 
-int BaseLmmElement::processBlocking2(int ch, const RawBuffer &buf)
-{
-	inql.lock();
-	ElementIOQueue *queue = inq[ch];
-	inql.unlock();
-	int err = queue->addBuffer(buf);
-	if (err)
-		return err;
-	return processBlocking(ch);
-}
-
 int BaseLmmElement::start()
 {
 	eofSent = false;
 	state = STARTED;
 
-	if (inq.size() == 0)
-		inq << createIOQueue();
-	if (outq.size() == 0)
-		outq << createIOQueue();
 	for (int i = 0; i < inq.size(); i++)
 		inq[i]->start();
 	for (int i = 0; i < outq.size(); i++)
@@ -575,16 +345,14 @@ int BaseLmmElement::setState(BaseLmmElement::RunningState s)
 int BaseLmmElement::newOutputBuffer(int ch, const RawBuffer &buf)
 {
 	QMutexLocker l(&outql);
-	while (outq.size() <= ch)
-		outq << createIOQueue();
+	createQueues(&outq, ch + 1, this);
 	return outq[ch]->addBuffer(buf);
 }
 
 int BaseLmmElement::newOutputBuffer(int ch, QList<RawBuffer> list)
 {
 	QMutexLocker l(&outql);
-	while (outq.size() <= ch)
-		outq << createIOQueue();
+	createQueues(&outq, ch + 1, this);
 	return outq[ch]->addBuffer(list);
 }
 
@@ -730,7 +498,7 @@ RawBuffer ElementIOQueue::getBufferNW()
 	return buf;
 }
 
-int ElementIOQueue::getSemCount()
+int ElementIOQueue::getSemCount() const
 {
 	return bufSem->available();
 }

@@ -35,7 +35,6 @@ public:
 	virtual int process(int ch = 0);
 	virtual int process(int ch, const RawBuffer &buf);
 	virtual int processBlocking(int ch = 0);
-	virtual int processBlocking2(int ch, const RawBuffer &buf);
 	void setStreamTime(StreamTime *t) { streamTime = t; }
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
 	virtual CircularBuffer * getCircularBuffer() { return NULL; }
@@ -113,16 +112,17 @@ public:
 	int prependBuffer(const RawBuffer &buffer);
 	RawBuffer getBuffer();
 	RawBuffer getBufferNW();
-	int getSemCount();
+	int getSemCount() const;
 	int getBufferCount();
 	void clear();
 	void start();
 	void stop();
 	int setSizeLimit(int size, int hsize);
-	int getFps() { return fps; }
-	int getReceivedCount() { return receivedCount; }
-	int getSentCount() { return sentCount; }
+	int getFps() const { return fps; }
+	int getReceivedCount() const { return receivedCount; }
+	int getSentCount() const { return sentCount; }
 	void setEventHook(eventHook hook, void *priv);
+	int getTotalSize() { return bufSize; }
 
 protected:
 	bool acquireSem() __attribute__((warn_unused_result));
