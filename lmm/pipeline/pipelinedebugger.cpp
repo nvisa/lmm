@@ -11,6 +11,12 @@ static void queueEventHook(ElementIOQueue *queue, const RawBuffer &buf, int ev, 
 	dbg->queueHook(queue, buf, ev);
 }
 
+static void elementEventHook(BaseLmmElement *el, const RawBuffer &buf, int ev, void *priv)
+{
+	PipelineDebugger *dbg = (PipelineDebugger *)priv;
+	dbg->elementHook(el, buf, ev);
+}
+
 class UdpMessage
 {
 public:
@@ -91,6 +97,18 @@ public:
 		return msize;
 	}
 
+	int add(BaseLmmElement *el, qint32 bufId, qint32 ev)
+	{
+		lock.lock();
+		mes->s << (qint32)el;
+		mes->s << bufId;
+		mes->s << ev;
+		mes->s << (qint32)t.elapsed();
+		msize = mes->s.device()->pos();
+		lock.unlock();
+		return msize;
+	}
+
 	UdpMessage * finalize(uint timestamp)
 	{
 		lock.lock();
@@ -113,6 +131,7 @@ PipelineDebugger::PipelineDebugger(QObject *parent) :
 	QObject(parent)
 {
 	queueEvents = new EventData(CMD_INFO_QUEUE_EVENTS, QDateTime::currentDateTime().toTime_t());
+	elementEvents = new EventData(CMD_INFO_ELEMENT_EVENTS, QDateTime::currentDateTime().toTime_t());
 	sock = new QUdpSocket(this);
 	sock->bind(19000);
 	connect(sock, SIGNAL(readyRead()), SLOT(udpDataReady()));
@@ -127,6 +146,19 @@ void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, in
 {
 	if (queueEvents->add(queue, buf.getUniqueId(), ev) > 0) {
 		UdpMessage *mes = queueEvents->finalize(QDateTime::currentDateTime().toTime_t());
+		if (!debugPeer.isNull()) {
+			sockLock.lock();
+			sock->writeDatagram(mes->data, debugPeer, debugPeerPort);
+			sockLock.unlock();
+		}
+		delete mes;
+	}
+}
+
+void PipelineDebugger::elementHook(BaseLmmElement *el, const RawBuffer &buf, int ev)
+{
+	if (elementEvents->add(el, buf.getUniqueId(), ev) > 0) {
+		UdpMessage *mes = elementEvents->finalize(QDateTime::currentDateTime().toTime_t());
 		if (!debugPeer.isNull()) {
 			sockLock.lock();
 			sock->writeDatagram(mes->data, debugPeer, debugPeerPort);
@@ -181,6 +213,8 @@ const QByteArray PipelineDebugger::processDatagram(const QByteArray &ba)
 
 		for (int i = 0; i < cnt; i++) {
 			BaseLmmElement *el = pl->getPipe(i);
+			el->setEventHook(elementEventHook, this);
+			out.s << (qint32)el;
 			out.s << el->objectName();
 			out.s << QString(el->metaObject()->className());
 			out.s << el->getInputQueueCount();
@@ -191,6 +225,7 @@ const QByteArray PipelineDebugger::processDatagram(const QByteArray &ba)
 				out.s << (qint32)el->getOutputQueue(j);
 		}
 
+		/* create a unique set of queues */
 		QSet<ElementIOQueue *> queues;
 		for (int i = 0; i < cnt; i++) {
 			BaseLmmElement *el = pl->getPipe(i);
@@ -205,6 +240,19 @@ const QByteArray PipelineDebugger::processDatagram(const QByteArray &ba)
 		break;
 	}
 	case CMD_GET_INFO:
+		break;
+	case CMD_GET_QUEUE_STATE:
+		out.setupMessageHeader(CMD_INFO_QUEUE_STATE, in.pidx);
+		out.s << (qint32)allQueues.size();
+		for (int i = 0; i < allQueues.size(); i++) {
+			ElementIOQueue *q = allQueues[i];
+			out.s << (qint32)q;
+			out.s << (qint32)q->getBufferCount();
+			out.s << (qint32)q->getReceivedCount();
+			out.s << (qint32)q->getSentCount();
+			out.s << (qint32)q->getFps();
+			out.s << (qint32)q->getTotalSize();
+		}
 		break;
 	};
 
