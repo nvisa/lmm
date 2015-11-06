@@ -208,6 +208,8 @@ int BaseLmmElement::process(int ch)
 	RawBuffer buf = queue->getBufferNW();
 	if (buf.size()) {
 		processTimeStat->startStat();
+		if (evHook)
+			(*evHook)(this, buf, EV_PROCESS, evPriv);
 		int ret = processBuffer(ch, buf);
 		processTimeStat->addStat();
 		return ret;
@@ -243,6 +245,8 @@ int BaseLmmElement::processBlocking(int ch)
 	}
 	int ret = 0;
 	processTimeStat->startStat();
+	if (evHook)
+		(*evHook)(this, buf, EV_PROCESS, evPriv);
 	if (!ch)
 		ret = processBuffer(buf);
 	else
@@ -390,6 +394,12 @@ QVariant BaseLmmElement::getParameter(QString param)
 	if (parameters.contains(param))
 		return parameters[param];
 	return QVariant();
+}
+
+void BaseLmmElement::setEventHook(BaseLmmElement::eventHook hook, void *priv)
+{
+	evHook = hook;
+	evPriv = priv;
 }
 
 int BaseLmmElement::processBuffer(int ch, const RawBuffer &buf)

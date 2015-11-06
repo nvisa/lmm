@@ -23,6 +23,10 @@ class BaseLmmElement : public QObject
 {
 	Q_OBJECT
 public:
+	typedef void (*eventHook)(BaseLmmElement *, const RawBuffer &, int, void *);
+	enum Events {
+		EV_PROCESS,
+	};
 	enum RunningState {
 		INIT,
 		STARTED,
@@ -49,6 +53,7 @@ public:
 	virtual void signalReceived(int) {}
 	virtual void threadFinished(LmmThread *) {}
 	void setPassThru(bool v) { passThru = v; }
+	void setEventHook(eventHook hook, void *priv);
 
 	UnitTimeStat * getProcessTimeStat() { return processTimeStat; }
 	void setEnabled(bool val);
@@ -94,6 +99,8 @@ private:
 	QList<ElementIOQueue *> outq;
 	QMutex outql;
 
+	eventHook evHook;
+	void *evPriv;
 };
 
 class ElementIOQueue {
