@@ -83,6 +83,8 @@ int BaseLmmPipeline::start()
 		if (desc.isEmpty())
 			desc = el->metaObject()->className();
 		int incnt = el->getInputQueueCount();
+		if (!incnt)
+			incnt = 1; /* we need at least one thread per element */
 		for (int j = 0; j < incnt; j++) {
 			LmmThread *th = new OpThread2<BaseLmmElement>(el, &BaseLmmElement::processBlocking,
 														  objectName().append("P%1%2").arg(j).arg(desc), 0);
