@@ -30,6 +30,7 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 	inputPixFormat = V4L2_PIX_FMT_NV12;
 	dirty = false;
 	hCodec = NULL;
+	numOutputBufs = 5;
 }
 
 DmaiEncoder::~DmaiEncoder()
@@ -58,6 +59,16 @@ void DmaiEncoder::setFrameRate(float fps)
 float DmaiEncoder::getFrameRate()
 {
 	return frameRate;
+}
+
+int DmaiEncoder::getBufferCount()
+{
+	return numOutputBufs;
+}
+
+void DmaiEncoder::setBufferCount(int cnt)
+{
+	numOutputBufs = cnt;
 }
 
 int DmaiEncoder::start()

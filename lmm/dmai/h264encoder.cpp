@@ -22,8 +22,6 @@
 
 #include <QDateTime>
 
-#define VIDEO_PIPE_SIZE 4
-
 extern VUIParamBuffer H264VENC_TI_VUIPARAMBUFFER;
 
 static void printErrorMsg(XDAS_Int32 errorCode)
@@ -1072,7 +1070,7 @@ int H264Encoder::startCodec(bool alloc)
 		}
 
 		/* Create a table of buffers with size based on rounded LineLength */
-		hBufTab = BufTab_create(VIDEO_PIPE_SIZE, bufSize,
+		hBufTab = BufTab_create(numOutputBufs, bufSize,
 								BufferGfx_getBufferAttrs(&gfxAttrs));
 
 		if (hBufTab == NULL) {

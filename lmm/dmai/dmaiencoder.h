@@ -64,6 +64,8 @@ public:
 	int setIntraFrameInterval(int v) { intraFrameInterval = v; dirty = true; return 0; }
 	int setInputPixelFormat(int v) { inputPixFormat = v; return 0; }
 	int getInputPixelFormat() { return inputPixFormat; }
+	int getBufferCount();
+	void setBufferCount(int cnt);
 
 	static void initCodecEngine();
 	static void cleanUpDsp();
