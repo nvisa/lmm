@@ -27,8 +27,6 @@
 
 	\section Hata Ayiklama Mekanizmasi
 
-
-
 	\ingroup lmm
 */
 
@@ -36,7 +34,6 @@ BaseLmmPipeline::BaseLmmPipeline(QObject *parent) :
 	BaseLmmElement(parent),
 	pipelineReady(false)
 {
-	el = new QEventLoop(this);
 	pipelineReady = false;
 	streamTime = new StreamTime;
 }
@@ -59,10 +56,6 @@ int BaseLmmPipeline::start()
 	}
 
 	finishedThreadCount = 0;
-
-	/* connect last elements output to our buffer queue */
-	addOutputQueue(createIOQueue());
-	pipesNew.last()->addOutputQueue(getOutputQueue(0));
 
 	for (int i = 0; i < pipesNew.size(); i++) {
 		/* start element */
@@ -87,7 +80,7 @@ int BaseLmmPipeline::start()
 			incnt = 1; /* we need at least one thread per element */
 		for (int j = 0; j < incnt; j++) {
 			LmmThread *th = new OpThread2<BaseLmmElement>(el, &BaseLmmElement::processBlocking,
-														  objectName().append("P%1%2").arg(j).arg(desc), 0);
+														  objectName().append("P%1%2_%3").arg(j).arg(desc).arg(threads.size()), 0);
 			threads.insert(th->threadName(), th);
 			th->start(QThread::LowestPriority);
 		}
@@ -98,6 +91,17 @@ int BaseLmmPipeline::start()
 
 int BaseLmmPipeline::stop()
 {
+	foreach (BaseLmmElement *el, pipesNew) {
+		mDebug("preparing element %s to stop", el->metaObject()->className());
+		el->stop();
+	}
+
+	const QList<LmmThread *> threads = this->threads.values();
+	foreach (LmmThread *th, threads) {
+		mDebug("stopping thread %s", qPrintable(th->threadName()));
+		th->stop();
+	}
+
 	return BaseLmmElement::stop();
 }
 
@@ -126,35 +130,43 @@ const QList<LmmThread *> BaseLmmPipeline::getThreads()
 	return threads.values();
 }
 
-int BaseLmmPipeline::append(BaseLmmElement *el)
+int BaseLmmPipeline::append(BaseLmmElement *el, int inputCh)
 {
+	el->setParent(this);
 	if (pipesNew.size()) {
-		if (!el->getInputQueueCount())
-			el->addInputQueue(el->createIOQueue());
 		BaseLmmElement *last = pipesNew.last();
-		last->addOutputQueue(el->getInputQueue(0));
+		last->addOutputQueue(el->getInputQueue(inputCh));
 	}
 	pipesNew << el;
 	return 0;
 }
 
-int BaseLmmPipeline::processPipeline()
+int BaseLmmPipeline::appendFinal(BaseLmmElement *el, int inputCh)
 {
-	return processBlocking();
+	int err = append(el, inputCh);
+	if (err)
+		return err;
+	el->addOutputQueue(getOutputQueue(0));
+	return 0;
 }
 
-int BaseLmmPipeline::checkPipelineOutput()
+int BaseLmmPipeline::end()
 {
-	return processBlocking(1);
+	pipesNew.last()->addOutputQueue(getOutputQueue(0));
+	return 0;
 }
 
-void BaseLmmPipeline::waitToFinish()
+void BaseLmmPipeline::waitForFinished(int timeout)
 {
+	timeout *= 1000;
 	thLock.lock();
-	if (finishedThreadCount != threads.size()) {
+	while (finishedThreadCount != threads.size()) {
 		thLock.unlock();
-		el->exec();
-		return;
+		usleep(10000);
+		thLock.lock();
+		timeout -= 10000;
+		if (timeout <= 0)
+			break;
 	}
 	thLock.unlock();
 }
@@ -163,9 +175,7 @@ void BaseLmmPipeline::threadFinished(LmmThread *)
 {
 	thLock.lock();
 	mDebug("thread finished: %d %d", finishedThreadCount, threads.size());
-	if (++finishedThreadCount == threads.size()) {
-		el->quit();
-	}
+	++finishedThreadCount;
 	thLock.unlock();
 }
 

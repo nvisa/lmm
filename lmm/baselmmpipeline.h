@@ -24,13 +24,11 @@ public:
 	const QList<LmmThread *> getThreads();
 
 	/* new API */
-	int append(BaseLmmElement *el);
+	int append(BaseLmmElement *el, int inputCh = 0);
+	int appendFinal(BaseLmmElement *el, int inputCh = 0);
+	int end();
 
-	/* */
-	int processPipeline();
-	int checkPipelineOutput();
-
-	void waitToFinish();
+	void waitForFinished(int timeout);
 
 	virtual void threadFinished(LmmThread *);
 protected:
@@ -40,7 +38,6 @@ protected:
 	QMap<QString, LmmThread *> threads;
 	QList<BaseLmmElement *> pipesNew;
 	QMutex thLock;
-	QEventLoop *el;
 	int finishedThreadCount;
 	bool pipelineReady;
 };
