@@ -27,7 +27,7 @@ TextOverlay::TextOverlay(overlayType t, QObject *parent) :
 	type = t;
 	mmapfd = -1;
 	fontSize = 28;
-	setEnabled(false);
+	setEnabled(true);
 }
 
 int TextOverlay::setFontSize(int size)
