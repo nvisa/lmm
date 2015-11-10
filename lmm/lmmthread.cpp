@@ -85,11 +85,11 @@ void LmmThread::run()
 void LmmThread::stopAll()
 {
 	foreach (LmmThread *th, threads) {
-		qDebug("stopping thread %s", qPrintable(th->name));
+		qDebug("%s: stopping thread %s", __PRETTY_FUNCTION__, qPrintable(th->name));
 		th->stop();
 	}
 	foreach (LmmThread *th, threads) {
-		qDebug("waiting thread %s", qPrintable(th->name));
+		qDebug("%s: waiting thread %s", __PRETTY_FUNCTION__, qPrintable(th->name));
 		th->wait(1000);
 	}
 }
