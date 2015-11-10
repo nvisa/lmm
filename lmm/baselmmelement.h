@@ -51,7 +51,7 @@ public:
 	virtual QVariant getParameter(QString param);
 	virtual void aboutToDeleteBuffer(const RawBufferParameters *) {}
 	virtual void signalReceived(int) {}
-	virtual void threadFinished(LmmThread *) {}
+	virtual void threadFinished(LmmThread *);
 	void setPassThru(bool v) { passThru = v; }
 	void setEventHook(eventHook hook, void *priv);
 
@@ -80,6 +80,7 @@ protected:
 	int setState(RunningState s);
 	virtual int newOutputBuffer(int ch, const RawBuffer &buf);
 	virtual int newOutputBuffer(int ch, QList<RawBuffer> list);
+	void notifyEvent(Events ev, const RawBuffer &buf);
 
 	StreamTime *streamTime;
 	qint64 streamDuration;
@@ -99,6 +100,7 @@ private:
 	QList<ElementIOQueue *> outq;
 	QMutex outql;
 
+	QMutex evLock;
 	eventHook evHook;
 	void *evPriv;
 };
@@ -135,6 +137,7 @@ protected:
 	bool acquireSem() __attribute__((warn_unused_result));
 	int checkSizeLimits();
 	void calculateFps();
+	void notifyEvent(Events ev, const RawBuffer &buf);
 
 	QList<RawBuffer> queue;
 	int bufSize;
@@ -152,6 +155,9 @@ protected:
 	int fpsBufferCount;
 	QElapsedTimer * fpsTiming;
 	int fps;
+
+private:
+	QMutex evLock;
 	eventHook evHook;
 	void *evPriv;
 };

@@ -208,8 +208,7 @@ int BaseLmmElement::process(int ch)
 	RawBuffer buf = queue->getBufferNW();
 	if (buf.size()) {
 		processTimeStat->startStat();
-		if (evHook)
-			(*evHook)(this, buf, EV_PROCESS, evPriv);
+		notifyEvent(EV_PROCESS, buf);
 		int ret = processBuffer(ch, buf);
 		processTimeStat->addStat();
 		return ret;
@@ -245,8 +244,7 @@ int BaseLmmElement::processBlocking(int ch)
 	}
 	int ret = 0;
 	processTimeStat->startStat();
-	if (evHook)
-		(*evHook)(this, buf, EV_PROCESS, evPriv);
+	notifyEvent(EV_PROCESS, buf);
 	if (!ch)
 		ret = processBuffer(buf);
 	else
@@ -303,6 +301,7 @@ void BaseLmmElement::addOutputQueue(ElementIOQueue *q)
 ElementIOQueue *BaseLmmElement::getOutputQueue(int ch)
 {
 	QMutexLocker l(&outql);
+	createQueues(&outq, ch + 1, this);
 	return outq[ch];
 }
 
@@ -315,6 +314,7 @@ void BaseLmmElement::addInputQueue(ElementIOQueue *q)
 ElementIOQueue *BaseLmmElement::getInputQueue(int ch)
 {
 	QMutexLocker l(&inql);
+	createQueues(&inq, ch + 1, this);
 	return inq[ch];
 }
 
@@ -360,6 +360,14 @@ int BaseLmmElement::newOutputBuffer(int ch, QList<RawBuffer> list)
 	return outq[ch]->addBuffer(list);
 }
 
+void BaseLmmElement::notifyEvent(BaseLmmElement::Events ev, const RawBuffer &buf)
+{
+	evLock.lock();
+	if (evHook)
+		(*evHook)(this, buf, ev, evPriv);
+	evLock.unlock();
+}
+
 int BaseLmmElement::flush()
 {
 	for (int i = 0; i < inq.size(); i++)
@@ -394,6 +402,13 @@ QVariant BaseLmmElement::getParameter(QString param)
 	if (parameters.contains(param))
 		return parameters[param];
 	return QVariant();
+}
+
+void BaseLmmElement::threadFinished(LmmThread *th)
+{
+	BaseLmmElement *parentEl = qobject_cast<BaseLmmElement *>(parent());
+	if (parentEl)
+		parentEl->threadFinished(th);
 }
 
 void BaseLmmElement::setEventHook(BaseLmmElement::eventHook hook, void *priv)
@@ -452,13 +467,12 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer)
 		lock.unlock();
 		return err;
 	}
-	if (evHook)
-		(*evHook)(this, buffer, EV_ADD, evPriv);
 	queue << buffer;
 	bufSize += buffer.size();
 	receivedCount++;
 	calculateFps();
 	lock.unlock();
+	notifyEvent(EV_ADD, buffer);
 	bufSem->release();
 	if (buffer.isEOF())
 		return -ENODATA;
@@ -498,11 +512,11 @@ RawBuffer ElementIOQueue::getBufferNW()
 	lock.lock();
 	if (queue.size() != 0)
 		buf = queue.takeFirst();
+	bufSize -= buf.size();
 	lock.unlock();
 	if (buf.size()) {
 		sentCount++;
-		if (evHook)
-			(*evHook)(this, buf, EV_GET, evPriv);
+		notifyEvent(EV_GET, buf);
 	}
 
 	return buf;
@@ -558,8 +572,10 @@ int ElementIOQueue::setSizeLimit(int size, int hsize)
 
 void ElementIOQueue::setEventHook(ElementIOQueue::eventHook hook, void *priv)
 {
+	evLock.lock();
 	evPriv = priv;
 	evHook = hook;
+	evLock.unlock();
 }
 
 bool ElementIOQueue::acquireSem()
@@ -589,4 +605,12 @@ void ElementIOQueue::calculateFps()
 		fps = fpsBufferCount * 1000 / elapsed;
 		fpsBufferCount = 0;
 	}
+}
+
+void ElementIOQueue::notifyEvent(Events ev, const RawBuffer &buf)
+{
+	evLock.lock();
+	if (evHook)
+		(*evHook)(this, buf, ev, evPriv);
+	evLock.unlock();
 }
