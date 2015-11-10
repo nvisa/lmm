@@ -26,6 +26,17 @@ public:
 		initStream();
 	}
 
+	UdpMessage(const UdpMessage &other) :
+		s(&data, QIODevice::WriteOnly)
+	{
+		initStream();
+		data = other.data;
+		valid = other.valid;
+		cmd = other.cmd;
+		pidx = other.pidx;
+		key = other.key;
+	}
+
 	UdpMessage(qint32 cmd, qint32 pidx) :
 		s(&data, QIODevice::WriteOnly)
 	{
@@ -127,6 +138,11 @@ protected:
 	int msize;
 };
 
+struct PipelineInfo {
+	UdpMessage descMes;
+	QList<ElementIOQueue *> allQueues;
+};
+
 PipelineDebugger::PipelineDebugger(QObject *parent) :
 	QObject(parent)
 {
@@ -137,14 +153,18 @@ PipelineDebugger::PipelineDebugger(QObject *parent) :
 	connect(sock, SIGNAL(readyRead()), SLOT(udpDataReady()));
 }
 
-void PipelineDebugger::addPipeline(BaseLmmPipeline *pipeline)
+void PipelineDebugger::addPipeline(BaseLmmPipeline *pl)
 {
-	pipelines << pipeline;
+	pipelines << pl;
+	/*
+	 * we don't setup pipeline here, not all queues may
+	 * be ready at this point
+	 */
 }
 
 void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, int ev)
 {
-	if (queueEvents->add(queue, buf.getUniqueId(), ev) > 0) {
+	if (queueEvents->add(queue, buf.getUniqueId(), ev) > 1400) {
 		UdpMessage *mes = queueEvents->finalize(QDateTime::currentDateTime().toTime_t());
 		if (!debugPeer.isNull()) {
 			sockLock.lock();
@@ -157,7 +177,7 @@ void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, in
 
 void PipelineDebugger::elementHook(BaseLmmElement *el, const RawBuffer &buf, int ev)
 {
-	if (elementEvents->add(el, buf.getUniqueId(), ev) > 0) {
+	if (elementEvents->add(el, buf.getUniqueId(), ev) > 1400) {
 		UdpMessage *mes = elementEvents->finalize(QDateTime::currentDateTime().toTime_t());
 		if (!debugPeer.isNull()) {
 			sockLock.lock();
@@ -198,6 +218,9 @@ const QByteArray PipelineDebugger::processDatagram(const QByteArray &ba)
 		return QByteArray();
 	BaseLmmPipeline *pl = pipelines[in.pidx];
 	ffDebug() << in.cmd << in.pidx << pl;
+	if (!pipelineInfo.contains(in.pidx))
+		setupPipelineInfo(in.pidx);
+	PipelineInfo *info = pipelineInfo[in.pidx];
 
 	UdpMessage out;
 	switch (in.cmd) {
@@ -206,46 +229,17 @@ const QByteArray PipelineDebugger::processDatagram(const QByteArray &ba)
 		out.s << pipelines.size();
 		break;
 	case CMD_GET_DESCR: {
-		out.setupMessageHeader(CMD_INFO_DESCR, in.pidx);
-
-		int cnt = pl->getPipeCount();
-		out.s << (qint32)cnt;
-
-		for (int i = 0; i < cnt; i++) {
-			BaseLmmElement *el = pl->getPipe(i);
-			el->setEventHook(elementEventHook, this);
-			out.s << (qint32)el;
-			out.s << el->objectName();
-			out.s << QString(el->metaObject()->className());
-			out.s << el->getInputQueueCount();
-			for (int j = 0; j < el->getInputQueueCount(); j++)
-				out.s << (qint32)el->getInputQueue(j);
-			out.s << el->getOutputQueueCount();
-			for (int j = 0; j < el->getOutputQueueCount(); j++)
-				out.s << (qint32)el->getOutputQueue(j);
-		}
-
-		/* create a unique set of queues */
-		QSet<ElementIOQueue *> queues;
-		for (int i = 0; i < cnt; i++) {
-			BaseLmmElement *el = pl->getPipe(i);
-			for (int j = 0; j < el->getInputQueueCount(); j++)
-				queues << el->getInputQueue(j);
-			for (int j = 0; j < el->getOutputQueueCount(); j++)
-				queues << el->getOutputQueue(j);
-		}
-		allQueues = queues.toList();
-		for (int i = 0; i < allQueues.size(); i++)
-			allQueues[i]->setEventHook(queueEventHook, this);
+		out.valid = true;
+		out.data = info->descMes.data;
 		break;
 	}
 	case CMD_GET_INFO:
 		break;
 	case CMD_GET_QUEUE_STATE:
 		out.setupMessageHeader(CMD_INFO_QUEUE_STATE, in.pidx);
-		out.s << (qint32)allQueues.size();
-		for (int i = 0; i < allQueues.size(); i++) {
-			ElementIOQueue *q = allQueues[i];
+		out.s << (qint32)info->allQueues.size();
+		for (int i = 0; i < info->allQueues.size(); i++) {
+			ElementIOQueue *q = info->allQueues[i];
 			out.s << (qint32)q;
 			out.s << (qint32)q->getBufferCount();
 			out.s << (qint32)q->getReceivedCount();
@@ -260,4 +254,42 @@ const QByteArray PipelineDebugger::processDatagram(const QByteArray &ba)
 		return out.data;
 
 	return QByteArray();
+}
+
+void PipelineDebugger::setupPipelineInfo(int idx)
+{
+	BaseLmmPipeline *pl = pipelines[idx];
+	PipelineInfo *info = new PipelineInfo;
+	pipelineInfo.insert(idx, info);
+	/* setup pipeline */
+	info->descMes.setupMessageHeader(CMD_INFO_DESCR, pipelineInfo.size() - 1);
+	int cnt = pl->getPipeCount();
+	info->descMes.s << (qint32)cnt;
+
+	for (int i = 0; i < cnt; i++) {
+		BaseLmmElement *el = pl->getPipe(i);
+		el->setEventHook(elementEventHook, this);
+		info->descMes.s << (qint32)el;
+		info->descMes.s << el->objectName();
+		info->descMes.s << QString(el->metaObject()->className());
+		info->descMes.s << el->getInputQueueCount();
+		for (int j = 0; j < el->getInputQueueCount(); j++)
+			info->descMes.s << (qint32)el->getInputQueue(j);
+		info->descMes.s << el->getOutputQueueCount();
+		for (int j = 0; j < el->getOutputQueueCount(); j++)
+			info->descMes.s << (qint32)el->getOutputQueue(j);
+	}
+
+	/* create a unique set of queues */
+	QSet<ElementIOQueue *> queues;
+	for (int i = 0; i < cnt; i++) {
+		BaseLmmElement *el = pl->getPipe(i);
+		for (int j = 0; j < el->getInputQueueCount(); j++)
+			queues << el->getInputQueue(j);
+		for (int j = 0; j < el->getOutputQueueCount(); j++)
+			queues << el->getOutputQueue(j);
+	}
+	info->allQueues = queues.toList();
+	for (int i = 0; i < info->allQueues.size(); i++)
+		info->allQueues[i]->setEventHook(queueEventHook, this);
 }

@@ -14,6 +14,7 @@ class UdpMessage;
 class RemotePipeline;
 class ElementIOQueue;
 class BaseLmmPipeline;
+struct PipelineInfo;
 
 class PipelineDebugger : public QObject
 {
@@ -34,7 +35,7 @@ public:
 
 	explicit PipelineDebugger(QObject *parent = 0);
 
-	void addPipeline(BaseLmmPipeline *pipeline);
+	void addPipeline(BaseLmmPipeline *pl);
 
 	void queueHook(ElementIOQueue *queue, const RawBuffer &, int ev);
 	void elementHook(BaseLmmElement *el, const RawBuffer &buf, int ev);
@@ -45,14 +46,16 @@ public slots:
 	const QByteArray processDatagram(const QByteArray &ba);
 
 protected:
+	void setupPipelineInfo(int idx);
+
 	QMutex sockLock;
 	QUdpSocket *sock;
 	QHostAddress debugPeer;
 	quint16 debugPeerPort;
 	QList<BaseLmmPipeline *> pipelines;
-	QList<ElementIOQueue *> allQueues;
 	EventData *queueEvents;
 	EventData *elementEvents;
+	QHash<int, PipelineInfo *> pipelineInfo;
 };
 
 #endif // PIPELINEDEBUGGER_H
