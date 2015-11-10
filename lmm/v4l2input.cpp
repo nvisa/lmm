@@ -324,7 +324,12 @@ void V4l2Input::aboutToDeleteBuffer(const RawBufferParameters *params)
 
 int V4l2Input::processBlocking(int ch)
 {
-	Q_UNUSED(ch);
+	if (ch) {
+		usleep(1000 * 40);
+		if (getState() == STOPPED)
+			return -EINVAL;
+		return 0;
+	}
 	if (getState() == STOPPED)
 		return -EINVAL;
 	if (eofSent)
