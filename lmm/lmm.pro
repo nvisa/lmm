@@ -51,7 +51,8 @@ SOURCES += \
     rtp/rtpdepacketizer.cpp \
     tools/errorinjector.cpp \
     tools/threadsafelist.cpp \
-    pipeline/pipelinedebugger.cpp
+    pipeline/pipelinedebugger.cpp \
+    pipeline/pipelinemanager.cpp
 
 HEADERS  += \
     filesource.h \
@@ -99,7 +100,8 @@ HEADERS  += \
     rtp/rtpdepacketizer.h \
     tools/errorinjector.h \
     tools/threadsafelist.h \
-    pipeline/pipelinedebugger.h
+    pipeline/pipelinedebugger.h \
+    pipeline/pipelinemanager.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
