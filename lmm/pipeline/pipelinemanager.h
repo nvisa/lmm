@@ -28,6 +28,7 @@ protected:
 	virtual int processBuffer(const RawBuffer &buf);
 	BaseLmmPipeline * addPipeline();
 	virtual int pipelineOutput(BaseLmmPipeline *, const RawBuffer &) { return 0; }
+	QList<BaseLmmElement *> getElements();
 
 private:
 	int pipelineThread();

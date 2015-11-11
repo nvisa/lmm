@@ -71,6 +71,18 @@ BaseLmmPipeline *PipelineManager::addPipeline()
 	return pipeline;
 }
 
+QList<BaseLmmElement *> PipelineManager::getElements()
+{
+	QList<BaseLmmElement *> list;
+	for (int i = 0; i < pipelines.size(); i++) {
+		int cnt = pipelines[i]->getPipeCount();
+		for (int j = 0; j < cnt; j++)
+			if (!list.contains(pipelines[i]->getPipe(j)))
+				list << pipelines[i]->getPipe(j);
+	}
+	return list;
+}
+
 int PipelineManager::pipelineThread()
 {
 	if (quitting)
