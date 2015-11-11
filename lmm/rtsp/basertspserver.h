@@ -4,91 +4,132 @@
 #include <QMap>
 #include <QObject>
 #include <QStringList>
+#include <QHostAddress>
 
 #include <lmm/lmmcommon.h>
 #include <lmm/baselmmelement.h>
 
+class MyTime;
 class QTcpServer;
 class QTcpSocket;
+class RtpChannel;
 class QSignalMapper;
-class BaseRtspSession;
+class BaseRtspServer;
+class RtpTransmitter;
 
-struct RtspSessionParameters {
+class BaseRtspSession : public QObject
+{
+	Q_OBJECT
+public:
+	BaseRtspSession(BaseRtspServer *parent);
+	~BaseRtspSession();
+	int setup(bool mcast, int dPort, int cPort, QString streamName);
+	int play();
+	int teardown();
+	QString rtpInfo();
+	RtpChannel * getRtpChannel() { return rtpCh; }
+
+	enum SessionState {
+		SETUP,
+		PLAY,
+		TEARDOWN
+	};
+	SessionState state;
 	QString transportString;
 	QString sessionId;
 	bool multicast;
 	QString controlUrl;
+	QString streamName;
 	int sourceDataPort;
 	int sourceControlPort;
 	int dataPort;
 	int controlPort;
 	QString peerIp;
 	QString streamIp;
-	QString streamName;
+	int clientCount;
 	uint ssrc;
 	uint ttl;
+	MyTime *timeout;
+	int rtptime;
+	int seq;
+	bool rtspTimeoutEnabled;
+protected slots:
+	void rtpGoodbyeRecved();
+	void rtcpTimedOut();
+private:
+	QHostAddress myIpAddr;
+	BaseRtspServer *server;
+	RtpChannel *rtpCh;
+	RtpTransmitter *rtp;
 };
 
-class BaseRtspServer : public BaseLmmElement
+class BaseRtspServer : public QObject
 {
 	Q_OBJECT
 public:
 	explicit BaseRtspServer(QObject *parent = 0);
-	RtspSessionParameters getSessionParameters(QString id);
-	virtual Lmm::CodecType getSessionCodec(QString streamName) = 0;
-	virtual bool isMulticast(QString streamName) = 0;
-	virtual QString getMulticastAddress(QString streamName);
-	virtual int getMulticastPort(QString streamName);
-	virtual int setEnabled(bool val);
-	int getSessionTimeoutValue(QString id);
-signals:
-	void sessionSettedUp(QString);
-	void sessionPlayed(QString);
-	void sessionTearedDown(QString);
+	QString getMulticastAddress(QString streamName);
+	int getMulticastPort(QString streamName);
+	int setEnabled(bool val);
+	QString getMulticastAddressBase();
+	void setMulticastAddressBase(const QString &addr);
+	void addStream(const QString streamName, bool multicast, RtpTransmitter *rtp, int port = 0);
+
 private slots:
 	void newRtspConnection();
 	void clientDisconnected(QObject*obj);
 	void clientError(QObject*);
 	void clientDataReady(QObject*obj);
+
+protected:
+	friend class BaseRtspSession;
+
+	bool isMulticast(QString streamName); //protected
+	RtpTransmitter * getSessionTransmitter(const QString &streamName); //protected
+	void closeSession(QString sessionId);
+
 private:
+	struct StreamDescription {
+		QString streamUrlSuffix;
+		bool multicast;
+		RtpTransmitter *rtp;
+		int port;
+	};
+
 	QTcpServer *server;
 	QSignalMapper *mapperDis, *mapperErr, *mapperRead;
 	QMap<QTcpSocket *, QString> msgbuffer;
 	QMap<QString, BaseRtspSession *> sessions;
 	QString currentPeerIp;
-protected:
-	virtual QStringList createRtspErrorResponse(int errcode, QString lsep);
-	virtual QStringList createDescribeResponse(int cseq, QString url, QString lsep);
-	virtual QStringList handleRtspMessage(QString mes, QString lsep);
-	virtual void sendRtspMessage(QTcpSocket *sock, const QByteArray &mes);
-	virtual void sendRtspMessage(QTcpSocket *sock, QStringList &lines, const QString &lsep);
-	virtual QStringList createSdp(QString url);
-	virtual QString detectLineSeperator(QString mes);
-	virtual QString getField(const QStringList lines, QString desc);
-	virtual BaseRtspSession * findMulticastSession(QString streamName);
-	virtual bool isSessionMulticast(QString sid);
-
-	/* command handling */
-	virtual QStringList handleCommandOptions(QStringList lines, QString lsep);
-	virtual QStringList handleCommandDescribe(QStringList lines, QString lsep);
-	virtual QStringList handleCommandSetup(QStringList lines, QString lsep);
-	virtual QStringList handleCommandPlay(QStringList lines, QString lsep);
-	virtual QStringList handleCommandTeardown(QStringList lines, QString lsep);
-	virtual QStringList handleCommandGetParameter(QStringList lines, QString lsep);
-
-	/* extra setup by inherited classes */
-	virtual int sessionSetupExtra(QString) { return 0; }
-	virtual int sessionPlayExtra(QString) { return 0; }
-	virtual int sessionTeardownExtra(QString) { return 0; }
-
-	virtual uint getSessionBaseTimestamp(QString sid) = 0;
-	virtual uint getSessionBaseSequence(QString sid) = 0;
-
-	void closeSession(QString sessionId);
-
 	QString lastUserAgent;
 	QMap<QString, QString> currentCmdFields;
 	bool enabled;
+	QString multicastAddressBase;
+	QHostAddress myIpAddr;
+	QHostAddress myNetmask;
+	QHash<QString, StreamDescription> streamDescriptions;
+
+	QStringList createRtspErrorResponse(int errcode, QString lsep);
+	QStringList createDescribeResponse(int cseq, QString url, QString lsep);
+	QStringList handleRtspMessage(QString mes, QString lsep);
+	void sendRtspMessage(QTcpSocket *sock, const QByteArray &mes);
+	void sendRtspMessage(QTcpSocket *sock, QStringList &lines, const QString &lsep);
+	QStringList createSdp(QString url);
+	QString detectLineSeperator(QString mes);
+	QString getField(const QStringList lines, QString desc);
+	BaseRtspSession * findMulticastSession(QString streamName);
+	bool isSessionMulticast(QString sid);
+
+	/* command handling */
+	QStringList handleCommandOptions(QStringList lines, QString lsep);
+	QStringList handleCommandDescribe(QStringList lines, QString lsep);
+	QStringList handleCommandSetup(QStringList lines, QString lsep);
+	QStringList handleCommandPlay(QStringList lines, QString lsep);
+	QStringList handleCommandTeardown(QStringList lines, QString lsep);
+	QStringList handleCommandGetParameter(QStringList lines, QString lsep);
+
+	uint getSessionBaseTimestamp(QString sid);
+	uint getSessionBaseSequence(QString sid);
 };
 
 #endif // BASERTSPSERVER_H

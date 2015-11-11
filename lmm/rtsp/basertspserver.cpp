@@ -1,5 +1,6 @@
 #include "basertspserver.h"
 #include "rawbuffer.h"
+#include "rtp/rtptransmitter.h"
 
 #include "debug.h"
 
@@ -102,125 +103,15 @@ protected:
 	QMutex l;
 };
 
-class BaseRtspSession
-{
-public:
-	BaseRtspSession(BaseRtspServer *parent)
-	{
-		server = parent;
-		state = TEARDOWN;
-		/* Let's find our IP address */
-		foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
-			if (iface.name() != "eth0")
-				continue;
-			if (iface.addressEntries().size()) {
-				myIpAddr = iface.addressEntries().at(0).ip();
-				break;
-			}
-		}
-		clientCount = 1;
-		rtspTimeoutEnabled = false;
-	}
-	~BaseRtspSession()
-	{
-	}
-
-	int setup(bool mcast, int dPort, int cPort, QString streamName)
-	{
-		multicast = mcast;
-		dataPort = dPort;
-		controlPort = cPort;
-
-		/* local port detection */
-		QUdpSocket sock;
-		sock.bind(QHostAddress(myIpAddr), 0);
-		if (sock.localPort() & 0x1) {
-			sourceDataPort = sock.localPort() - 1;
-			sourceControlPort = sock.localPort();
-		} else {
-			sourceDataPort = sock.localPort();
-			sourceControlPort = sock.localPort() + 1;
-		}
-		/* for multicast streams, RTCP port should be same for server and clients */
-		if (mcast)
-			sourceControlPort = cPort;
-
-		if (server->getSessionCodec(streamName) != Lmm::CODEC_H264
-				|| server->getSessionCodec(streamName) == Lmm::CODEC_JPEG)
-			return -EINVAL;
-
-		if (multicast) {
-			transportString = QString("Transport: RTP/AVP;multicast;destination=%3;port=%1-%2;ttl=%4;mode=play")
-					.arg(dataPort).arg(controlPort).arg(streamIp).arg(ttl);
-		} else {
-			transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=%5;mode=play")
-					.arg(dataPort).arg(controlPort).arg(sourceDataPort)
-					.arg(sourceControlPort).arg(ssrc, 0, 16);
-		}
-		/* create session identifier */
-		sessionId = QUuid::createUuid().toString().split("-")[4].remove("}");
-		state = SETUP;
-		return 0;
-	}
-	QString rtpInfo()
-	{
-		return QString("url=rtsp://%1/%2;seq=%4;rtptime=%3").
-				arg(myIpAddr.toString()).
-				arg(streamName).arg(rtptime).arg(seq);
-	}
-	int play()
-	{
-		if (state != PLAY) {
-			state = PLAY;
-		}
-		return 0;
-	}
-	int teardown()
-	{
-		if (state == PLAY) {
-			state = TEARDOWN;
-		}
-		return 0;
-	}
-
-public:
-	enum SessionState {
-		SETUP,
-		PLAY,
-		TEARDOWN
-	};
-	SessionState state;
-	QString transportString;
-	QString sessionId;
-	bool multicast;
-	QString controlUrl;
-	QString streamName;
-	int sourceDataPort;
-	int sourceControlPort;
-	int dataPort;
-	int controlPort;
-	QString peerIp;
-	QString streamIp;
-	int clientCount;
-	uint ssrc;
-	uint ttl;
-	MyTime timeout;
-	int rtptime;
-	int seq;
-	bool rtspTimeoutEnabled;
-private:
-	QHostAddress myIpAddr;
-	BaseRtspServer *server;
-};
-
 static inline QString createDateHeader()
 {
 	return QString("Date: %1 GMT").arg(QDateTime::currentDateTime().toUTC().toString("ddd, dd MMM yyyy hh:mm:ss"));
 }
 
 BaseRtspServer::BaseRtspServer(QObject *parent) :
-	BaseLmmElement(parent)
+	QObject(parent)
 {
+	multicastAddressBase = "224.1.1.1";
 	enabled = true;
 	server = new QTcpServer(this);
 	if (!server->listen(QHostAddress::Any, 554))
@@ -232,40 +123,67 @@ BaseRtspServer::BaseRtspServer(QObject *parent) :
 	connect(mapperDis, SIGNAL(mapped(QObject*)), SLOT(clientDisconnected(QObject*)));
 	connect(mapperErr, SIGNAL(mapped(QObject*)), SLOT(clientError(QObject*)));
 	connect(mapperRead, SIGNAL(mapped(QObject*)), SLOT(clientDataReady(QObject*)));
+
+	QString ifname = "eth0";
+	foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
+		if (iface.name() != ifname)
+			continue;
+		if (iface.addressEntries().size()) {
+			myIpAddr = iface.addressEntries().at(0).ip();
+			myNetmask = iface.addressEntries().at(0).netmask();
+			break;
+		}
+	}
 }
 
-RtspSessionParameters BaseRtspServer::getSessionParameters(QString id)
+QString BaseRtspServer::getMulticastAddressBase()
 {
-	BaseRtspSession *ses = sessions[id];
-	RtspSessionParameters sp;
-	sp.controlPort = ses->controlPort;
-	sp.controlUrl = ses->controlUrl;
-	sp.dataPort = ses->dataPort;
-	sp.multicast = ses->multicast;
-	sp.sessionId = ses->sessionId;
-	sp.sourceControlPort = ses->sourceControlPort;
-	sp.sourceDataPort = ses->sourceDataPort;
-	sp.transportString = ses->transportString;
-	sp.peerIp = ses->peerIp;
-	sp.streamIp = ses->streamIp;
-	sp.streamName = ses->streamName;
-	sp.ssrc = ses->ssrc;
-	sp.ttl = ses->ttl;
-	return sp;
+	return multicastAddressBase;
+}
+
+void BaseRtspServer::setMulticastAddressBase(const QString &addr)
+{
+	multicastAddressBase = addr;
+}
+
+void BaseRtspServer::addStream(const QString streamName, bool multicast, RtpTransmitter *rtp, int port)
+{
+	StreamDescription desc;
+	desc.streamUrlSuffix = streamName;
+	desc.multicast = multicast;
+	desc.rtp = rtp;
+	desc.port = port;
+	streamDescriptions.insert(streamName, desc);
+}
+
+bool BaseRtspServer::isMulticast(QString streamName)
+{
+	if (streamDescriptions.contains(streamName))
+		return streamDescriptions[streamName].multicast;
+	return false;
+}
+
+RtpTransmitter *BaseRtspServer::getSessionTransmitter(const QString &streamName)
+{
+	if (streamDescriptions.contains(streamName))
+		return streamDescriptions[streamName].rtp;
+	return NULL;
 }
 
 QString BaseRtspServer::getMulticastAddress(QString)
 {
-	return "224.1.1.1";
+	QHostAddress ipAddr = myIpAddr;
+	QHostAddress netmask = myNetmask;
+	quint32 addr = (netmask.toIPv4Address() & QHostAddress(multicastAddressBase).toIPv4Address())
+			| (~netmask.toIPv4Address() & ipAddr.toIPv4Address());
+	return QHostAddress(addr).toString();
 }
 
 int BaseRtspServer::getMulticastPort(QString streamName)
 {
-	if (streamName == "stream1m")
-		return 15678;
-	if (streamName == "stream2m")
-		return 15688;
-	return 15698;
+	if (streamDescriptions.contains(streamName))
+		return streamDescriptions[streamName].port;
+	return 0;
 }
 
 int BaseRtspServer::setEnabled(bool val)
@@ -288,13 +206,6 @@ int BaseRtspServer::setEnabled(bool val)
 		sendRtspMessage(sock, resp, lsep);*/
 	}
 	return 0;
-}
-
-int BaseRtspServer::getSessionTimeoutValue(QString id)
-{
-	if (!sessions[id]->rtspTimeoutEnabled)
-		return 0;
-	return sessions[id]->timeout.elapsed();
 }
 
 QString BaseRtspServer::detectLineSeperator(QString mes)
@@ -451,6 +362,7 @@ QStringList BaseRtspServer::handleCommandOptions(QStringList lines, QString lsep
 
 QStringList BaseRtspServer::handleCommandDescribe(QStringList lines, QString lsep)
 {
+	Q_UNUSED(lines);
 	QStringList resp;
 	mDebug("handling describe directive");
 	QString url = currentCmdFields["url"];
@@ -520,14 +432,6 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 				return createRtspErrorResponse(err, lsep);
 			}
 			sessions.insert(ses->sessionId, ses);
-			err = sessionSetupExtra(ses->sessionId);
-			if (err) {
-				mDebug("cannot setup session in sub-class, error is %d", err);
-				sessions.remove(ses->sessionId);
-				delete ses;
-				return createRtspErrorResponse(err, lsep);
-			}
-			emit sessionSettedUp(ses->sessionId);
 		} else {
 			ses->clientCount++;
 		}
@@ -545,7 +449,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		 * we are not defining timeout value, so default
 		 * value of 60 seconds is used.
 		 */
-		ses->timeout.start();
+		ses->timeout->start();
 	} else {
 		mDebug("not enough fields in setup url");
 		return createRtspErrorResponse(400, lsep);
@@ -568,13 +472,11 @@ QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 			int err = ses->play();
 			if (err)
 				return createRtspErrorResponse(err, lsep);
-			sessionPlayExtra(ses->sessionId);
 			ses->seq = getSessionBaseSequence(ses->sessionId);
 			ses->rtptime = getSessionBaseTimestamp(ses->sessionId);
-			emit sessionPlayed(ses->sessionId);
 		}
 		/* kick time-out value */
-		ses->timeout.restart();
+		ses->timeout->restart();
 		/* create response */
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("CSeq: %1").arg(cseq);
@@ -600,7 +502,7 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 		url.append("/");
 	QString sid = getField(lines, "Session");
 	if (sessions.contains(sid)) {
-		closeSession(sid);
+		//closeSession(sid);
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("CSeq: %1").arg(cseq);
 		resp << createDateHeader();
@@ -624,7 +526,7 @@ QStringList BaseRtspServer::handleCommandGetParameter(QStringList lines, QString
 	QString sid = getField(lines, "Session");
 	if (sessions.contains(sid)) {
 		BaseRtspSession *ses = sessions[sid];
-		ses->timeout.restart();
+		ses->timeout->restart();
 		ses->rtspTimeoutEnabled = true;
 
 		resp << "RTSP/1.0 200 OK";
@@ -638,17 +540,30 @@ QStringList BaseRtspServer::handleCommandGetParameter(QStringList lines, QString
 	return resp;
 }
 
+uint BaseRtspServer::getSessionBaseTimestamp(QString sid)
+{
+	if (!sessions.contains(sid))
+		return 0;
+	return sessions[sid]->getRtpChannel()->baseTs;
+}
+
+uint BaseRtspServer::getSessionBaseSequence(QString sid)
+{
+	if (!sessions.contains(sid))
+		return 0;
+	return sessions[sid]->getRtpChannel()->seq;
+}
+
 void BaseRtspServer::closeSession(QString sessionId)
 {
+	mDebug("closing session %s", qPrintable(sessionId));
 	if (!sessions.contains(sessionId))
 		return;
 	BaseRtspSession *ses = sessions[sessionId];
 	if (ses->clientCount == 1) {
 		ses->teardown();
-		sessionTeardownExtra(sessionId);
-		emit sessionTearedDown(sessionId);
 		sessions.remove(sessionId);
-		delete ses;
+		ses->deleteLater();
 	} else
 		ses->clientCount--;
 }
@@ -709,7 +624,10 @@ QStringList BaseRtspServer::createSdp(QString url)
 	QStringList fields = url.split("/", QString::SkipEmptyParts);
 	QString stream = fields[2];
 	QStringList sdp;
-	Lmm::CodecType codec = getSessionCodec(stream);
+	RtpTransmitter *rtp = getSessionTransmitter(stream);
+	if (!rtp)
+		return sdp;
+	Lmm::CodecType codec = rtp->getCodec();
 	/* According to RFC2326 C.1.7 we should report 0.0.0.0 as dest address */
 	QString dstIp = "0.0.0.0";
 	bool multicast = isMulticast(stream);
@@ -740,4 +658,125 @@ QStringList BaseRtspServer::createSdp(QString url)
 	}
 
 	return sdp;
+}
+
+BaseRtspSession::BaseRtspSession(BaseRtspServer *parent)
+	: QObject(parent)
+{
+	timeout = new MyTime;
+	server = parent;
+	state = TEARDOWN;
+	/* Let's find our IP address */
+	foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
+		if (iface.name() != "eth0")
+			continue;
+		if (iface.addressEntries().size()) {
+			myIpAddr = iface.addressEntries().at(0).ip();
+			break;
+		}
+	}
+	clientCount = 1;
+	rtspTimeoutEnabled = false;
+	rtpCh = NULL;
+}
+
+BaseRtspSession::~BaseRtspSession()
+{
+}
+
+int BaseRtspSession::setup(bool mcast, int dPort, int cPort, QString streamName)
+{
+	multicast = mcast;
+	dataPort = dPort;
+	controlPort = cPort;
+
+	/* local port detection */
+	QUdpSocket sock;
+	sock.bind(QHostAddress(myIpAddr), 0);
+	if (sock.localPort() & 0x1) {
+		sourceDataPort = sock.localPort() - 1;
+		sourceControlPort = sock.localPort();
+	} else {
+		sourceDataPort = sock.localPort();
+		sourceControlPort = sock.localPort() + 1;
+	}
+	/* for multicast streams, RTCP port should be same for server and clients */
+	if (mcast)
+		sourceControlPort = cPort;
+
+	/* create the new rtp channel */
+	rtp = server->getSessionTransmitter(streamName);
+	if (!rtp)
+		return -ENOENT;
+	rtpCh = rtp->addChannel();
+	rtp->setupChannel(rtpCh, streamIp, dataPort, controlPort, sourceDataPort, sourceControlPort, ssrc);
+	connect(rtpCh, SIGNAL(goodbyeRecved()), SLOT(rtpGoodbyeRecved()));
+	connect(rtpCh, SIGNAL(sessionTimedOut()), SLOT(rtcpTimedOut()));
+
+	if (rtp->getCodec() != Lmm::CODEC_H264)
+		return -EINVAL;
+
+	if (multicast) {
+		transportString = QString("Transport: RTP/AVP;multicast;destination=%3;port=%1-%2;ttl=%4;mode=play")
+				.arg(dataPort).arg(controlPort).arg(streamIp).arg(ttl);
+		/*int cnt = rtp->getChannelCount();
+		for (int i = 0; i < cnt; i++) {
+			RtpChannel *ch = rtp->getChannel(i);
+			if (ch->dstIp == streamIp &&
+					ch->dstDataPort == dataPort &&
+					ch->dstControlPort == controlPort) {
+				rtpCh = ch;
+				break;
+			}
+		}*/
+	} else {
+		transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=%5;mode=play")
+				.arg(dataPort).arg(controlPort).arg(sourceDataPort)
+				.arg(sourceControlPort).arg(ssrc, 0, 16);
+	}
+
+	/* create session identifier */
+	sessionId = QUuid::createUuid().toString().split("-")[4].remove("}");
+	state = SETUP;
+
+	return 0;
+}
+
+QString BaseRtspSession::rtpInfo()
+{
+	return QString("url=rtsp://%1/%2;seq=%4;rtptime=%3").
+			arg(myIpAddr.toString()).
+			arg(streamName).arg(rtptime).arg(seq);
+}
+
+void BaseRtspSession::rtpGoodbyeRecved()
+{
+	mDebug("RTCP goodbye received for session '%s'", qPrintable(sessionId));
+	server->closeSession(sessionId);
+}
+
+void BaseRtspSession::rtcpTimedOut()
+{
+	mDebug("RTCP timed out for session '%s'", qPrintable(sessionId));
+	server->closeSession(sessionId);
+}
+
+int BaseRtspSession::play()
+{
+	if (state != PLAY) {
+		state = PLAY;
+		rtp->playChannel(rtpCh);
+	}
+	return 0;
+}
+
+int BaseRtspSession::teardown()
+{
+	if (state == PLAY) {
+		rtp->teardownChannel(rtpCh);
+		rtp->removeChannel(rtpCh);
+		rtpCh = NULL;
+		state = TEARDOWN;
+	}
+	return 0;
 }
