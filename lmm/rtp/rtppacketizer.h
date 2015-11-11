@@ -89,6 +89,6 @@ protected:
 	bool sampleNtpRtp;
 	bool zeroCopy;
 	RawNetworkSocket *rawsock;
-};
+} __attribute__ ((deprecated));
 
 #endif // RTPPACKETIZER_H
