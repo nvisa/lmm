@@ -78,10 +78,11 @@ bool RawNetworkSocket::isActive()
 
 int RawNetworkSocket::send(char *buf, int size)
 {
-	char *datagram = buffers[0]->data;
+	SockBuffer *sbuf = getNextFreeBuffer();
+	char *datagram = sbuf->data;
 	char *data = datagram + sizeof(struct iphdr) + sizeof(struct udphdr);
 	memcpy(data , buf, size);
-	return sendData(buffers[0]->data, size);
+	return sendData(sbuf->data, size);
 }
 
 int RawNetworkSocket::send(RawNetworkSocket::SockBuffer *sbuf, int size)
@@ -100,7 +101,6 @@ RawNetworkSocket::SockBuffer * RawNetworkSocket::getNextFreeBuffer()
 	if (nextIndex >= buffers.size())
 		nextIndex = 0;
 	return buffers[nextIndex];
-	// + sizeof(struct iphdr) + sizeof(struct udphdr);
 }
 
 int RawNetworkSocket::socketDescriptor()
@@ -116,7 +116,7 @@ int RawNetworkSocket::init()
 
 	sin = new sockaddr_in;
 	sin->sin_family = AF_INET;
-	sin->sin_port = htons(80);
+	sin->sin_port = htons(srcPort);
 	sin->sin_addr.s_addr = inet_addr(qPrintable(dstIp));
 
 	return fd;
