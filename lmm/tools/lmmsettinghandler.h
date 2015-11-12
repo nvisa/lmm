@@ -11,9 +11,8 @@ class LmmSettingHandler : public BaseSettingHandler
 public:
 	explicit LmmSettingHandler(QObject *parent = 0);
 protected:
-	QVariant get(QString setting);
-	int set(QString setting, QVariant value);
-	bool shouldCache(QString setting);
+	QVariant get(const QString &setting);
+	int set(const QString &setting, const QVariant &value);
 	QVariant getPlayerSetting(QString setting, BasePlayer *pl);
 };
 

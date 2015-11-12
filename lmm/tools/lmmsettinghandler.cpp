@@ -15,99 +15,8 @@ LmmSettingHandler::LmmSettingHandler(QObject *parent) :
 {
 }
 
-QVariant LmmSettingHandler::get(QString setting)
+QVariant LmmSettingHandler::get(const QString &setting)
 {
-	if (starts("lmm_settings.players.")) {
-		int index = setting.split(".")[2].toInt();
-		BasePlayer *pl = (BasePlayer *)getTarget(QString("BasePlayer%1").arg(index));
-		if (pl)
-			return getPlayerSetting(setting, pl);
-	}
-	if (equals("lmm_settings.stats.thread_status")) {
-		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer0");
-		if (!pl)
-			return QVariant();
-		QList<LmmThread *> threads = pl->getThreads();
-		QStringList list;
-		foreach(LmmThread *t, threads) {
-			list.append(QString("%1: %2 %3 %4").arg(t->threadName()).arg((int)t->getStatus())
-						.arg(t->elapsed()).arg(t->getAverageRunTime()));
-		}
-		return list;
-	}
-	if (equals("lmm_settings.stats.buffer_status")) {
-		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer0");
-		if (!pl)
-			return QVariant();
-		QList<BaseLmmElement *> elements = pl->getElements();
-		QStringList list;
-		for (int i = 0; i < elements.size(); i++) {
-			BaseLmmElement *el = elements[i];
-			QString s = QString("%1: %2: \n"
-								"\tinput_queue=%3 output_queue=%4\n"
-								"\trecved=%5 sent=%6\n"
-								"\tinput_sem=%7 output_sem=%8")
-					.arg(i)
-					.arg(el->metaObject()->className())
-					.arg(el->getInputQueue(0)->getBufferCount())
-					.arg(el->getOutputQueue(0)->getBufferCount())
-					.arg(el->getInputQueue(0)->getReceivedCount())
-					.arg(el->getOutputQueue(0)->getSentCount())
-					.arg(el->getInputQueue(0)->getSemCount())
-					.arg(el->getOutputQueue(0)->getSemCount())
-					;
-			list.append(s);
-		}
-		return list;
-	}
-	if (equals("lmm_settings.stats.elements.fps")) {
-		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer0");
-		if (!pl)
-			return QVariant();
-		QList<BaseLmmElement *> elements = pl->getElements();
-		QStringList list;
-		for (int i = 0; i < elements.size(); i++) {
-			BaseLmmElement *el = elements[i];
-			QString s = QString("%1: %2").arg(el->metaObject()->className()).arg(el->getOutputQueue(0)->getFps());
-			list.append(s);
-		}
-		return list;
-	}
-	if (equals("lmm_settings.stats.elements.process_time")) {
-		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer0");
-		if (!pl)
-			return QVariant();
-		QList<BaseLmmElement *> elements = pl->getElements();
-		QStringList list;
-		for (int i = 0; i < elements.size(); i++) {
-			BaseLmmElement *el = elements[i];
-			UnitTimeStat *stat = el->getProcessTimeStat();
-			QString s = QString("%1: %2,%3,%4").arg(el->metaObject()->className())
-					.arg(stat->min).arg(stat->max).arg(stat->avg);
-			list.append(s);
-		}
-		return list;
-	}
-	if (equals("lmm_settings.stats.extra_debug_info")) {
-		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer0");
-		if (!pl)
-			return QVariant();
-		QList<BaseLmmElement *> elements = pl->getElements();
-		QStringList list;
-		for (int i = 0; i < elements.size(); i++) {
-			BaseLmmElement *el = elements[i];
-			QList<QVariant> list2 = el->extraDebugInfo();
-			QString s = QString("%1:extra").arg(el->metaObject()->className());
-			foreach (const QVariant &var, list2) {
-				if (var.canConvert(QVariant::StringList))
-					s.append(QString(",%1").arg(var.toStringList().join(";")));
-				else
-					s.append(QString(",%1").arg(var.toString()));
-			}
-			list.append(s);
-		}
-		return list;
-	}
 	if (equals("lmm_settings.stats.cpu_load")) {
 		return CpuLoad::getCpuLoad();
 	}
@@ -120,16 +29,10 @@ QVariant LmmSettingHandler::get(QString setting)
 	if (equals("lmm_settings.stats.system_uptime")) {
 		return SystemInfo::getUptime();
 	}
-	if (equals("lmm_settings.stats.prog_uptime")) {
-		BasePlayer *pl = (BasePlayer *)getTarget("BasePlayer");
-		if (!pl)
-			return QVariant();
-		return pl->getStreamTime()->getElapsedWallTime();
-	}
 	return QVariant();
 }
 
-int LmmSettingHandler::set(QString setting, QVariant value)
+int LmmSettingHandler::set(const QString &setting, const QVariant &value)
 {
 	if (starts("lmm_settings.fi")) {
 		if (equals("lmm_settings.fi.add"))
@@ -139,14 +42,6 @@ int LmmSettingHandler::set(QString setting, QVariant value)
 		return -EROFS;
 	}
 	return 0;
-}
-
-bool LmmSettingHandler::shouldCache(QString setting)
-{
-	return false;
-	if (starts("lmm_settings.stats"))
-		return false;
-	return BaseSettingHandler::shouldCache(setting);
 }
 
 const QStringList toStringList(const QList<QVariant> in)
