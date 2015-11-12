@@ -55,6 +55,9 @@ public:
 
 	IH264VENC_DynamicParams * getDynamicParams() { return dynH264Params; }
 	int setDynamicParamsNextLoop(bool v) { setDynamicParams = v; return 0; }
+
+	int setSetting(const QString &setting, const QVariant &value);
+	QVariant getSetting(const QString &setting);
 signals:
 	
 public slots:

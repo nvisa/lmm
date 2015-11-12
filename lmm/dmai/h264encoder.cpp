@@ -7,6 +7,7 @@
 #include "tools/cpuload.h"
 #include "tools/systeminfo.h"
 #include "h264parser.h"
+#include "tools/basesettinghandler.h"
 
 #include <xdc/std.h>
 #include <ti/sdo/ce/Engine.h>
@@ -452,6 +453,8 @@ H264Encoder::H264Encoder(QObject *parent) :
 	mVecs = MV_NONE;
 	pmod = PMOD_PACKETIZED;
 	enablePictureTimingSei(true);
+
+	BaseSettingHandler::addHandler("video_encoding", this);
 }
 
 int H264Encoder::flush()
@@ -554,6 +557,234 @@ void H264Encoder::setSeiEnabled(bool value)
 void H264Encoder::setSeiField(const QByteArray ba)
 {
 	customSeiData = ba;
+}
+
+int H264Encoder::setSetting(const QString &setting, const QVariant &value)
+{
+	H264Encoder *enc1 = this;
+	if (strcontains(".h264.") && !enc1->getDynamicParams())
+		return -EINVAL;
+	else if (equals(".apply")) {
+		return enc1->flush();
+	} else if (ends("._flush_encoder")) {
+		enc1->flush();
+		return -EROFS;
+	} else if (ends(".global_fps")) {
+		return 0;
+	} else if (ends(".sei_active")) {
+		enc1->setSeiEnabled(value.toBool());
+	} else if (ends(".max_frame_rate")) {
+		return enc1->setMaxFrameRate(value.toInt());
+	} else if (ends(".frame_rate")) {
+		enc1->setFrameRate(value.toInt());
+	} else if (ends(".bitrate_control_method")) {
+		return enc1->setBitrateControl(DmaiEncoder::RateControl(value.toInt()));
+	} else if (ends(".bitrate")) {
+		return enc1->setBitrate(value.toInt());
+	} else if (ends(".intraframe_interval")) {
+		return enc1->setIntraFrameInterval(value.toInt());
+	} else if (ends(".profile")) {
+		return enc1->setProfile(value.toInt());
+	} else if (ends(".roi.rect")) {
+		QStringList f = value.toString().split("x", QString::SkipEmptyParts);
+		if (f.size() != 4)
+			return -EINVAL;
+		return enc1->setRoi(QRect(f[0].toInt(), f[1].toInt(), f[2].toInt(), f[3].toInt()), enc1->getRoiMark());
+	} else if (ends(".roi.mark")) {
+		enc1->setRoiMark(value.toBool());
+	} /* extended dynamic h.264 parameters */
+	else if (ends(".h264.sliceSize"))
+		enc1->getDynamicParams()->sliceSize = value.toUInt();
+	else if (ends(".h264.airRate"))
+		enc1->getDynamicParams()->airRate = value.toUInt();
+	else if (ends(".h264.intraFrameQP"))
+		enc1->getDynamicParams()->intraFrameQP = value.toUInt();
+	else if (ends(".h264.interPFrameQP"))
+		enc1->getDynamicParams()->interPFrameQP = value.toUInt();
+	else if (ends(".h264.initQ"))
+		enc1->getDynamicParams()->initQ = value.toUInt();
+	else if (ends(".h264.rcQMax"))
+		enc1->getDynamicParams()->rcQMax = value.toUInt();
+	else if (ends(".h264.rcQMin"))
+		enc1->getDynamicParams()->rcQMin = value.toUInt();
+	else if (ends(".h264.rcQMaxI"))
+		enc1->getDynamicParams()->rcQMaxI = value.toUInt();
+	else if (ends(".h264.rcQMinI"))
+		enc1->getDynamicParams()->rcQMinI = value.toUInt();
+	else if (ends(".h264.rcAlgo"))
+		enc1->getDynamicParams()->rcAlgo = value.toUInt();
+	else if (ends(".h264.lfDisableIdc"))
+		enc1->getDynamicParams()->lfDisableIdc = value.toUInt();
+	else if (ends(".h264.maxDelay"))
+		enc1->getDynamicParams()->maxDelay = value.toUInt();
+	else if (ends(".h264.aspectRatioX"))
+		enc1->getDynamicParams()->aspectRatioX = value.toUInt();
+	else if (ends(".h264.aspectRatioY"))
+		enc1->getDynamicParams()->aspectRatioY = value.toUInt();
+	else if (ends(".h264.enableBufSEI"))
+		enc1->getDynamicParams()->enableBufSEI = value.toUInt();
+	else if (ends(".h264.enablePicTimSEI"))
+		enc1->getDynamicParams()->enablePicTimSEI = value.toUInt();
+	else if (ends(".h264.perceptualRC"))
+		enc1->getDynamicParams()->perceptualRC = value.toUInt();
+	else if (ends(".h264.idrFrameInterval"))
+		enc1->getDynamicParams()->idrFrameInterval = value.toUInt();
+	else if (ends(".h264.mvSADoutFlag"))
+		enc1->getDynamicParams()->mvSADoutFlag = value.toUInt();
+	else if (ends(".h264.resetHDVICPeveryFrame"))
+		enc1->getDynamicParams()->resetHDVICPeveryFrame = value.toUInt();
+	else if (ends(".h264.enableROI"))
+		enc1->getDynamicParams()->enableROI = value.toUInt();
+	else if (ends(".h264.metaDataGenerateConsume"))
+		enc1->getDynamicParams()->metaDataGenerateConsume = value.toUInt();
+	else if (ends(".h264.maxBitrateCVBR"))
+		enc1->getDynamicParams()->maxBitrateCVBR = value.toUInt();
+	else if (ends(".h264.interlaceRefMode"))
+		enc1->getDynamicParams()->interlaceRefMode = value.toUInt();
+	else if (ends(".h264.enableGDR"))
+		enc1->getDynamicParams()->enableGDR = value.toUInt();
+	else if (ends(".h264.GDRduration"))
+		enc1->getDynamicParams()->GDRduration = value.toUInt();
+	else if (ends(".h264.GDRinterval"))
+		enc1->getDynamicParams()->GDRinterval = value.toUInt();
+	else if (ends(".h264.LongTermRefreshInterval"))
+		enc1->getDynamicParams()->LongTermRefreshInterval = value.toUInt();
+	else if (ends(".h264.UseLongTermFrame"))
+		enc1->getDynamicParams()->UseLongTermFrame = value.toUInt();
+	else if (ends(".h264.SetLongTermFrame"))
+		enc1->getDynamicParams()->SetLongTermFrame = value.toUInt();
+	else if (ends(".h264.CVBRsensitivity"))
+		enc1->getDynamicParams()->CVBRsensitivity = value.toUInt();
+	else if (ends(".h264.CVBRminbitrate"))
+		enc1->getDynamicParams()->CVBRminbitrate = value.toUInt();
+	else if (ends(".h264.LBRmaxpicsize"))
+		enc1->getDynamicParams()->LBRmaxpicsize = value.toUInt();
+	else if (ends(".h264.LBRminpicsize"))
+		enc1->getDynamicParams()->LBRminpicsize = value.toUInt();
+	else if (ends(".h264.LBRskipcontrol"))
+		enc1->getDynamicParams()->LBRskipcontrol = value.toUInt();
+	else if (ends(".h264.maxHighCmpxIntCVBR"))
+		enc1->getDynamicParams()->maxHighCmpxIntCVBR = value.toUInt();
+	else if (ends(".h264.disableMVDCostFactor"))
+		enc1->getDynamicParams()->disableMVDCostFactor = value.toUInt();
+	else
+		return -ENOENT;
+	return 0;
+}
+
+QVariant H264Encoder::getSetting(const QString &setting)
+{
+	H264Encoder *enc1 = this;
+	if (ends(".max_frame_rate")) {
+		return enc1->getMaxFrameRate();
+	}
+	if (ends(".frame_rate")) {
+		return enc1->getFrameRate();
+	}
+	if (ends(".codec_name")) {
+		return "H.264";
+	}
+	if (ends(".resolution")) {
+		int w = enc1->getParameter("videoWidth").toInt();
+		int h = enc1->getParameter("videoHeight").toInt();
+		return QString("%1x%2").arg(w).arg(h);
+	}
+	if (ends(".bitrate_control_method")) {
+		return enc1->getBitrateControlMethod();
+	}
+	if (ends(".bitrate")) {
+		return enc1->getBitrate();
+	}
+	if (ends(".intraframe_interval")) {
+		return enc1->getIntraFrameInterval();
+	}
+	if (ends(".profile")) {
+		return enc1->getProfile();
+	}
+	if (ends(".roi.rect")) {
+		QRect r = enc1->getRoi();
+		return QString("%1x%2x%3x%4").arg(r.x()).arg(r.y()).arg(r.width()).arg(r.height());
+	}
+	if (ends(".roi.mark")) {
+		return enc1->getRoiMark();
+	}
+	/* extended dynamic h.264 parameters */
+	if (ends(".h264.sliceSize"))
+		return (qint32)enc1->getDynamicParams()->sliceSize;
+	if (ends(".h264.airRate"))
+		return (qint32)enc1->getDynamicParams()->airRate;
+	if (ends(".h264.intraFrameQP"))
+		return (qint32)enc1->getDynamicParams()->intraFrameQP;
+	if (ends(".h264.interPFrameQP"))
+		return (qint32)enc1->getDynamicParams()->interPFrameQP;
+	if (ends(".h264.initQ"))
+		return (qint32)enc1->getDynamicParams()->initQ;
+	if (ends(".h264.rcQMax"))
+		return (qint32)enc1->getDynamicParams()->rcQMax;
+	if (ends(".h264.rcQMin"))
+		return (qint32)enc1->getDynamicParams()->rcQMin;
+	if (ends(".h264.rcQMaxI"))
+		return (qint32)enc1->getDynamicParams()->rcQMaxI;
+	if (ends(".h264.rcQMinI"))
+		return (qint32)enc1->getDynamicParams()->rcQMinI;
+	if (ends(".h264.rcAlgo"))
+		return (qint32)enc1->getDynamicParams()->rcAlgo;
+	if (ends(".h264.lfDisableIdc"))
+		return (qint32)enc1->getDynamicParams()->lfDisableIdc;
+	if (ends(".h264.maxDelay"))
+		return (qint32)enc1->getDynamicParams()->maxDelay;
+	if (ends(".h264.aspectRatioX"))
+		return (qint32)enc1->getDynamicParams()->aspectRatioX;
+	if (ends(".h264.aspectRatioY"))
+		return (qint32)enc1->getDynamicParams()->aspectRatioY;
+	if (ends(".h264.enableBufSEI"))
+		return (qint32)enc1->getDynamicParams()->enableBufSEI;
+	if (ends(".h264.enablePicTimSEI"))
+		return (qint32)enc1->getDynamicParams()->enablePicTimSEI;
+	if (ends(".h264.perceptualRC"))
+		return (qint32)enc1->getDynamicParams()->perceptualRC;
+	if (ends(".h264.idrFrameInterval"))
+		return (qint32)enc1->getDynamicParams()->idrFrameInterval;
+	if (ends(".h264.mvSADoutFlag"))
+		return (qint32)enc1->getDynamicParams()->mvSADoutFlag;
+	if (ends(".h264.resetHDVICPeveryFrame"))
+		return (qint32)enc1->getDynamicParams()->resetHDVICPeveryFrame;
+	if (ends(".h264.enableROI"))
+		return (qint32)enc1->getDynamicParams()->enableROI;
+	if (ends(".h264.metaDataGenerateConsume"))
+		return (qint32)enc1->getDynamicParams()->metaDataGenerateConsume;
+	if (ends(".h264.maxBitrateCVBR"))
+		return (qint32)enc1->getDynamicParams()->maxBitrateCVBR;
+	if (ends(".h264.interlaceRefMode"))
+		return (qint32)enc1->getDynamicParams()->interlaceRefMode;
+	if (ends(".h264.enableGDR"))
+		return (qint32)enc1->getDynamicParams()->enableGDR;
+	if (ends(".h264.GDRduration"))
+		return (qint32)enc1->getDynamicParams()->GDRduration;
+	if (ends(".h264.GDRinterval"))
+		return (qint32)enc1->getDynamicParams()->GDRinterval;
+	if (ends(".h264.LongTermRefreshInterval"))
+		return (qint32)enc1->getDynamicParams()->LongTermRefreshInterval;
+	if (ends(".h264.UseLongTermFrame"))
+		return (qint32)enc1->getDynamicParams()->UseLongTermFrame;
+	if (ends(".h264.SetLongTermFrame"))
+		return (qint32)enc1->getDynamicParams()->SetLongTermFrame;
+	if (ends(".h264.CVBRsensitivity"))
+		return (qint32)enc1->getDynamicParams()->CVBRsensitivity;
+	if (ends(".h264.CVBRminbitrate"))
+		return (qint32)enc1->getDynamicParams()->CVBRminbitrate;
+	if (ends(".h264.LBRmaxpicsize"))
+		return (qint32)enc1->getDynamicParams()->LBRmaxpicsize;
+	if (ends(".h264.LBRminpicsize"))
+		return (qint32)enc1->getDynamicParams()->LBRminpicsize;
+	if (ends(".h264.LBRskipcontrol"))
+		return (qint32)enc1->getDynamicParams()->LBRskipcontrol;
+	if (ends(".h264.maxHighCmpxIntCVBR"))
+		return (qint32)enc1->getDynamicParams()->maxHighCmpxIntCVBR;
+	if (ends(".h264.disableMVDCostFactor"))
+		return (qint32)enc1->getDynamicParams()->disableMVDCostFactor;
+
+	return QVariant();
 }
 
 typedef struct Venc1_Object {

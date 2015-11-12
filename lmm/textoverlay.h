@@ -48,6 +48,9 @@ public:
 	int start();
 	int stop();
 	int overlayInPlace(const RawBuffer &buffer);
+
+	int setSetting(const QString &setting, const QVariant &value);
+	QVariant getSetting(const QString &setting);
 protected:
 	int processBuffer(const RawBuffer &buffer);
 signals:

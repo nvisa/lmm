@@ -18,7 +18,6 @@ BasePlayer::BasePlayer(QObject *parent) :
 	lock.lock();
 	setObjectName(QString("BasePlayer%1").arg(instCount++));
 	lock.unlock();
-	BaseSettingHandler::addTarget(this);
 	timer.start(1000);
 	manCons = createManagementConsole();
 }
