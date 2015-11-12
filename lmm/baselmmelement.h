@@ -68,6 +68,10 @@ public:
 	ElementIOQueue * createIOQueue();
 	int getInputQueueCount();
 	int getOutputQueueCount();
+
+	/* for settings framework */
+	virtual int setSetting(const QString &setting, const QVariant &value);
+	virtual QVariant getSetting(const QString &setting);
 signals:
 	void needFlushing();
 	void newBufferAvailable();

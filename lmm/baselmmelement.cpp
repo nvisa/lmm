@@ -335,6 +335,19 @@ int BaseLmmElement::getOutputQueueCount()
 	return outq.size();
 }
 
+int BaseLmmElement::setSetting(const QString &setting, const QVariant &value)
+{
+	Q_UNUSED(value);
+	Q_UNUSED(setting);
+	return 0;
+}
+
+QVariant BaseLmmElement::getSetting(const QString &setting)
+{
+	Q_UNUSED(setting);
+	return QVariant();
+}
+
 BaseLmmElement::RunningState BaseLmmElement::getState()
 {
 	return state;
