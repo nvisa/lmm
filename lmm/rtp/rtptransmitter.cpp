@@ -567,7 +567,7 @@ void RtpChannel::timeout()
 {
 	if (state == 0)
 		return;
-	if (rrTime->elapsed() > 10000)
+	if (rrTime->elapsed() > 60000)
 		emit sessionTimedOut();
 }
 
