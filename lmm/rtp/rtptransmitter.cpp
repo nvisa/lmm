@@ -600,6 +600,7 @@ void RtpChannel::readPendingRtcpDatagrams()
 		/* we may receive our own messages when using multicast */
 		if (sender == myIpAddr)
 			continue;
+#if 0
 		const uchar *data = (const uchar *)datagram.data();
 		uint left = datagram.size();
 		while (left > 0) {
@@ -613,6 +614,9 @@ void RtpChannel::readPendingRtcpDatagrams()
 			left -= (length + 1) * 4;
 			data += (length + 1) * 4;
 		}
+#else
+		rrTime->restart();
+#endif
 	}
 	sockLock.unlock();
 	if (flags & 0x1)
