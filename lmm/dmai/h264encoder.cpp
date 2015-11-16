@@ -963,7 +963,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		 * and we don't need to encode any more
 		 */
 		mInfo("cannot get new buf from buftab");
-		return -ENOENT;
+		return -EAGAIN;
 	}
 
 	BufferGfx_Dimensions dim;
