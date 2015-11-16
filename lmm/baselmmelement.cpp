@@ -242,6 +242,8 @@ int BaseLmmElement::processBlocking(int ch)
 		newOutputBuffer(ch, buf);
 		return -ENODATA;
 	}
+
+tryagain:
 	int ret = 0;
 	processTimeStat->startStat();
 	notifyEvent(EV_PROCESS, buf);
@@ -250,6 +252,10 @@ int BaseLmmElement::processBlocking(int ch)
 	else
 		ret = processBuffer(ch, buf);
 	processTimeStat->addStat();
+
+	if (ret == -EAGAIN)
+		goto tryagain;
+
 	return ret;
 }
 
