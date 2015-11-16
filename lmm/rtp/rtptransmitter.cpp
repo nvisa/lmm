@@ -61,7 +61,7 @@ protected:
 RtpTransmitter::RtpTransmitter(QObject *parent) :
 	BaseLmmElement(parent)
 {
-	useStapA = true;
+	useStapA = false;
 	maxPayloadSize = 1460;
 	sampleNtpRtp = false;
 
