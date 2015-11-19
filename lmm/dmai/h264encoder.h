@@ -84,6 +84,7 @@ private:
 	MotionVectors mVecs;
 	int motVectSize;
 	PacketizationMode pmod;
+	QMutex seiLock;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec(bool alloc = true);

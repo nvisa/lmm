@@ -556,7 +556,9 @@ void H264Encoder::setSeiEnabled(bool value)
 
 void H264Encoder::setSeiField(const QByteArray ba)
 {
+	seiLock.lock();
 	customSeiData = ba;
+	seiLock.unlock();
 }
 
 int H264Encoder::setSetting(const QString &setting, const QVariant &value)
@@ -1342,7 +1344,9 @@ int H264Encoder::createSeiData(QByteArray *ba, const RawBuffer source)
 	QDataStream out(ba, QIODevice::WriteOnly);
 	int start = out.device()->pos();
 	out.setByteOrder(QDataStream::LittleEndian);
+	seiLock.lock();
 	append(customSeiData);
+	seiLock.unlock();
 	return out.device()->pos() - start;
 }
 
