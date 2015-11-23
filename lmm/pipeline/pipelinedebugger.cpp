@@ -2,8 +2,12 @@
 #include "baselmmpipeline.h"
 #include "debug.h"
 
+#include <QDateTime>
 #include <QUdpSocket>
 #include <QDataStream>
+#include <QElapsedTimer>
+
+#include <stdint.h>
 
 static void queueEventHook(ElementIOQueue *queue, const RawBuffer &buf, int ev, void *priv)
 {
@@ -99,7 +103,7 @@ public:
 	int add(ElementIOQueue *q, qint32 bufId, qint32 ev)
 	{
 		lock.lock();
-		mes->s << (qint32)q;
+		mes->s << (qint64)q;
 		mes->s << bufId;
 		mes->s << ev;
 		mes->s << (qint32)t.elapsed();
@@ -111,7 +115,7 @@ public:
 	int add(BaseLmmElement *el, qint32 bufId, qint32 ev)
 	{
 		lock.lock();
-		mes->s << (qint32)el;
+		mes->s << (qint64)el;
 		mes->s << bufId;
 		mes->s << ev;
 		mes->s << (qint32)t.elapsed();
@@ -240,7 +244,7 @@ const QByteArray PipelineDebugger::processDatagram(const QByteArray &ba)
 		out.s << (qint32)info->allQueues.size();
 		for (int i = 0; i < info->allQueues.size(); i++) {
 			ElementIOQueue *q = info->allQueues[i];
-			out.s << (qint32)q;
+			out.s << (qint64)q;
 			out.s << (qint32)q->getBufferCount();
 			out.s << (qint32)q->getReceivedCount();
 			out.s << (qint32)q->getSentCount();
@@ -269,15 +273,15 @@ void PipelineDebugger::setupPipelineInfo(int idx)
 	for (int i = 0; i < cnt; i++) {
 		BaseLmmElement *el = pl->getPipe(i);
 		el->setEventHook(elementEventHook, this);
-		info->descMes.s << (qint32)el;
+		info->descMes.s << (qint64)el;
 		info->descMes.s << el->objectName();
 		info->descMes.s << QString(el->metaObject()->className());
 		info->descMes.s << el->getInputQueueCount();
 		for (int j = 0; j < el->getInputQueueCount(); j++)
-			info->descMes.s << (qint32)el->getInputQueue(j);
+			info->descMes.s << (qint64)el->getInputQueue(j);
 		info->descMes.s << el->getOutputQueueCount();
 		for (int j = 0; j < el->getOutputQueueCount(); j++)
-			info->descMes.s << (qint32)el->getOutputQueue(j);
+			info->descMes.s << (qint64)el->getOutputQueue(j);
 	}
 
 	/* create a unique set of queues */

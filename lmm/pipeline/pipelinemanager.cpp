@@ -19,8 +19,6 @@ PipelineManager::PipelineManager(QObject *parent) :
 {
 	quitting = false;
 	dbg = new PipelineDebugger;
-
-	LmmCommon::registerForSignal(SIGINT, this);
 }
 
 int PipelineManager::start()
