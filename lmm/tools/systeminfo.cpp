@@ -104,6 +104,25 @@ int SystemInfo::getTFP410DevId()
 	return ver;
 }
 
+int SystemInfo::getTVP5158Version(int addr)
+{
+	int fd = open("/dev/i2c-1", O_RDWR);
+
+	/* With force, let the user read from/write to the registers
+		 even when a driver is also running */
+	if (ioctl(fd, I2C_SLAVE_FORCE, addr) < 0) {
+		fprintf(stderr,
+				"Error: Could not set address to 0x%02x: %s\n",
+				addr, strerror(errno));
+		return -errno;
+	}
+
+	short ver = i2c_smbus_read_byte_data(fd, 0x8) << 8;
+	ver |= i2c_smbus_read_byte_data(fd, 0x9);
+	::close(fd);
+	return ver;
+}
+
 #else
 
 int SystemInfo::getTVPVersion()
@@ -171,23 +190,4 @@ int SystemInfo::getProcFreeMemInfo()
 int SystemInfo::getFreeMemory()
 {
 	return inst.getProcFreeMemInfo();
-}
-
-int SystemInfo::getTVP5158Version(int addr)
-{
-	int fd = open("/dev/i2c-1", O_RDWR);
-
-	/* With force, let the user read from/write to the registers
-		 even when a driver is also running */
-	if (ioctl(fd, I2C_SLAVE_FORCE, addr) < 0) {
-		fprintf(stderr,
-				"Error: Could not set address to 0x%02x: %s\n",
-				addr, strerror(errno));
-		return -errno;
-	}
-
-	short ver = i2c_smbus_read_byte_data(fd, 0x8) << 8;
-	ver |= i2c_smbus_read_byte_data(fd, 0x9);
-	::close(fd);
-	return ver;
 }

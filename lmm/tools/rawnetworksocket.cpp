@@ -9,6 +9,7 @@
 #include <netinet/udp.h>
 #include <netinet/ip.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 /*
 	96 bit (12 bytes) pseudo header needed for udp header checksum calculation

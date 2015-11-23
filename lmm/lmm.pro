@@ -4,6 +4,8 @@ CONFIG += staticlib
 
 QT += network
 
+greaterThan(QT_MAJOR_VERSION, 4): QT += concurrent
+
 include (build_config.pri)
 
 SOURCES += \

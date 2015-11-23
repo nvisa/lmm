@@ -196,7 +196,7 @@ int DebugClient::sendCommand(DebugClient::Command cmd, QVariant par)
 	int err = 0;
 	if (cmd == CMD_SYNC_TIME)
 		err = DebugServer::sendMessage(client, "syncTime",
-								 par.toDateTime().toString().toAscii());
+								 par.toDateTime().toString().toLatin1());
 	if (cmd == CMD_APP_SPECIFIC)
 		err = DebugServer::sendMessage(client, "application", par.toByteArray());
 	if (err < 0) {

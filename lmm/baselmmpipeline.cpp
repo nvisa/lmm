@@ -6,6 +6,7 @@
 #include <QEventLoop>
 
 #include <errno.h>
+#include <unistd.h>
 
 /**
 	\class BaseLmmPipeline

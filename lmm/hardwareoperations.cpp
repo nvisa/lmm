@@ -69,6 +69,7 @@ bool HardwareOperations::writeRegister(unsigned int addr, unsigned int value)
 
 uint HardwareOperations::readRegister(unsigned int addr)
 {
+#if defined(__arm__)
 	unsigned int *reg = (unsigned int *)memmap(addr);
 	if (!reg)
 		return 0;
@@ -76,6 +77,10 @@ uint HardwareOperations::readRegister(unsigned int addr)
 	uint value = *reg;
 	munmap(reg, MAP_SIZE);
 	return value;
+#else
+	(void)addr;
+	return 0;
+#endif
 }
 
 HardwareOperations::HardwareOperations(QObject *parent) :

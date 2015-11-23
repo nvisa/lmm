@@ -21,7 +21,9 @@ QStringList __dbg_classes_logv;
 
 void changeDebug(QString debug, int defaultLevel)
 {
+#if QT_VERSION < 0x050000
 	QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
+#endif
 	QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
 #ifdef DEBUG_TIMING
 	__debugTimer.start();
@@ -181,12 +183,14 @@ void setDebuggingMode(int mode, QString networkAddr)
 			debugFile.close();
 		mutex.unlock();
 	}
+#if QT_VERSION < 0x050000
 	if (mode == 0)
 		qInstallMsgHandler(0);
 	else if (mode == 1)
 		qInstallMsgHandler(messageHandlerFile);
 	else if (mode == 2)
 		qInstallMsgHandler(messageHandlerNetwork);
+#endif
 	/*else if (mode == 3)
 		qInstallMsgHandler(messageHandlerWebSock);*/
 }
