@@ -537,6 +537,8 @@ RawBuffer ElementIOQueue::getBufferNW()
 		sentCount++;
 		notifyEvent(EV_GET, buf);
 	}
+	if (buf.isEOF())
+		addBuffer(buf);
 
 	return buf;
 }
