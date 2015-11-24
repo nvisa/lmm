@@ -66,6 +66,7 @@ BaseLmmPipeline *PipelineManager::addPipeline()
 	pipeline->setObjectName(QString("Pipeline%1").arg(pipelines.size()));
 	pipelines << pipeline;
 	dbg->addPipeline(pipeline);
+	connect(pipeline, SIGNAL(playbackFinished()), SLOT(pipelineFinished()));
 	return pipeline;
 }
 
