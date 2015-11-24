@@ -24,6 +24,8 @@ public:
 	const QList<LmmThread *> getThreads();
 
 	/* new API */
+	int appendJoin(BaseLmmElement *el, QList<BaseLmmElement *> joins, int inputCh = 0);
+	int insert(BaseLmmElement *src, BaseLmmElement *el, int outputCh = 0);
 	int append(BaseLmmElement *el, int inputCh = 0);
 	int appendFinal(BaseLmmElement *el, int inputCh = 0);
 	int end();

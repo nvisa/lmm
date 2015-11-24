@@ -131,6 +131,23 @@ const QList<LmmThread *> BaseLmmPipeline::getThreads()
 	return threads.values();
 }
 
+int BaseLmmPipeline::appendJoin(BaseLmmElement *el, QList<BaseLmmElement *> joins, int inputCh)
+{
+	el->setParent(this);
+	for (int i = 0; i < joins.size(); i++)
+		joins[i]->addOutputQueue(el->getInputQueue(inputCh));
+	pipesNew << el;
+	return 0;
+}
+
+int BaseLmmPipeline::insert(BaseLmmElement *src, BaseLmmElement *el, int outputCh)
+{
+	el->setParent(this);
+	el->addInputQueue(src->getOutputQueue(outputCh));
+	pipesNew << el;
+	return 0;
+}
+
 int BaseLmmPipeline::append(BaseLmmElement *el, int inputCh)
 {
 	el->setParent(this);
