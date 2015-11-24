@@ -33,6 +33,8 @@ public:
 	void waitForFinished(int timeout);
 
 	virtual void threadFinished(LmmThread *);
+signals:
+	void playbackFinished();
 protected:
 	virtual int processBuffer(const RawBuffer &buf);
 	virtual int processBuffer(int ch, const RawBuffer &buf);

@@ -195,6 +195,8 @@ void BaseLmmPipeline::threadFinished(LmmThread *)
 	mDebug("thread finished: %d %d", finishedThreadCount, threads.size());
 	++finishedThreadCount;
 	thLock.unlock();
+	if (finishedThreadCount == threads.size())
+		emit playbackFinished();
 }
 
 int BaseLmmPipeline::processBuffer(const RawBuffer &buf)
