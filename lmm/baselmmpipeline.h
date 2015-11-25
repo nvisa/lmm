@@ -29,6 +29,7 @@ public:
 	int append(BaseLmmElement *el, int inputCh = 0);
 	int appendFinal(BaseLmmElement *el, int inputCh = 0);
 	int end();
+	int end(QList<BaseLmmElement *> joins);
 
 	void waitForFinished(int timeout);
 

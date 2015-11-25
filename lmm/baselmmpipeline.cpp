@@ -174,6 +174,13 @@ int BaseLmmPipeline::end()
 	return 0;
 }
 
+int BaseLmmPipeline::end(QList<BaseLmmElement *> joins)
+{
+	for (int i = 0; i < joins.size(); i++)
+		joins[i]->addOutputQueue(getOutputQueue(0));
+	return 0;
+}
+
 void BaseLmmPipeline::waitForFinished(int timeout)
 {
 	timeout *= 1000;
