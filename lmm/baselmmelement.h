@@ -111,7 +111,7 @@ private:
 
 class ElementIOQueue {
 public:
-	typedef void (*eventHook)(ElementIOQueue *, const RawBuffer &, int, void *);
+	typedef void (*eventHook)(ElementIOQueue *, const RawBuffer &, int, BaseLmmElement *, void *);
 	enum Events {
 		EV_ADD,
 		EV_GET,
@@ -120,11 +120,11 @@ public:
 	ElementIOQueue();
 
 	int waitBuffers(int lessThan);
-	int addBuffer(const RawBuffer &buffer);
-	int addBuffer(const QList<RawBuffer> &list);
+	int addBuffer(const RawBuffer &buffer, BaseLmmElement *src);
+	int addBuffer(const QList<RawBuffer> &list, BaseLmmElement *src);
 	int prependBuffer(const RawBuffer &buffer);
-	RawBuffer getBuffer();
-	RawBuffer getBufferNW();
+	RawBuffer getBuffer(BaseLmmElement *src);
+	RawBuffer getBufferNW(BaseLmmElement *src);
 	int getSemCount() const;
 	int getBufferCount();
 	void clear();
@@ -141,7 +141,7 @@ protected:
 	bool acquireSem() __attribute__((warn_unused_result));
 	int checkSizeLimits();
 	void calculateFps();
-	void notifyEvent(Events ev, const RawBuffer &buf);
+	void notifyEvent(Events ev, const RawBuffer &buf, BaseLmmElement *src);
 
 	QList<RawBuffer> queue;
 	int bufSize;
