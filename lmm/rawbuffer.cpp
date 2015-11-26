@@ -114,12 +114,6 @@ RawBuffer::~RawBuffer()
 {
 }
 
-RawBuffer RawBuffer::eof(BaseLmmElement *parent)
-{
-	RawBuffer buf("application/eof", 1, parent);
-	return buf;
-}
-
 RawBuffer RawBuffer::makeCopy(bool noPointers) const
 {
 	RawBuffer buf(getMimeType(), constData(), size());
@@ -201,11 +195,6 @@ int RawBuffer::setUsedSize(int size)
 QString RawBuffer::getMimeType() const
 {
 	return d->mimeType;
-}
-
-bool RawBuffer::isEOF() const
-{
-	return d->mimeType == "application/eof";
 }
 
 RawBufferParameters *RawBuffer::pars()

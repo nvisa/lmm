@@ -92,7 +92,6 @@ public:
 	explicit RawBuffer(QString mimeType, int size, BaseLmmElement *parent = 0);
 	RawBuffer(const RawBuffer &other);
 	virtual ~RawBuffer();
-	static RawBuffer eof(BaseLmmElement *parent = 0);
 	RawBuffer makeCopy(bool noPointers = true) const;
 	int setParameters(const RawBufferParameters *pars, bool noPointers = true);
 
@@ -105,7 +104,6 @@ public:
 	int size() const;
 	int setUsedSize(int size);
 	QString getMimeType() const;
-	bool isEOF() const;
 	RawBufferParameters * pars();
 	const RawBufferParameters * constPars() const;
 
