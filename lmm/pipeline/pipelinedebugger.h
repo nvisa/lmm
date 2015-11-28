@@ -37,7 +37,7 @@ public:
 
 	void addPipeline(BaseLmmPipeline *pl);
 
-	void queueHook(ElementIOQueue *queue, const RawBuffer &, int ev);
+	void queueHook(ElementIOQueue *queue, const RawBuffer &, int ev, BaseLmmElement *src);
 	void elementHook(BaseLmmElement *el, const RawBuffer &buf, int ev);
 signals:
 

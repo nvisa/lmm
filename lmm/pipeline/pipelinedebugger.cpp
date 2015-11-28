@@ -9,10 +9,10 @@
 
 #include <stdint.h>
 
-static void queueEventHook(ElementIOQueue *queue, const RawBuffer &buf, int ev, void *priv)
+static void queueEventHook(ElementIOQueue *queue, const RawBuffer &buf, int ev, BaseLmmElement *src, void *priv)
 {
 	PipelineDebugger *dbg = (PipelineDebugger *)priv;
-	dbg->queueHook(queue, buf, ev);
+	dbg->queueHook(queue, buf, ev, src);
 }
 
 static void elementEventHook(BaseLmmElement *el, const RawBuffer &buf, int ev, void *priv)
@@ -100,12 +100,13 @@ public:
 		t.start();
 	}
 
-	int add(ElementIOQueue *q, qint32 bufId, qint32 ev)
+	int add(ElementIOQueue *q, qint32 bufId, qint32 ev, BaseLmmElement *src)
 	{
 		lock.lock();
 		mes->s << (qint64)q;
 		mes->s << bufId;
 		mes->s << ev;
+		mes->s << (qint64)src;
 		mes->s << (qint32)t.elapsed();
 		msize = mes->s.device()->pos();
 		lock.unlock();
@@ -166,9 +167,9 @@ void PipelineDebugger::addPipeline(BaseLmmPipeline *pl)
 	 */
 }
 
-void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, int ev)
+void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, int ev, BaseLmmElement *src)
 {
-	if (queueEvents->add(queue, buf.getUniqueId(), ev) > 1400) {
+	if (queueEvents->add(queue, buf.getUniqueId(), ev, src) > 1400) {
 		UdpMessage *mes = queueEvents->finalize(QDateTime::currentDateTime().toTime_t());
 		if (!debugPeer.isNull()) {
 			sockLock.lock();
