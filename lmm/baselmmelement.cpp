@@ -237,11 +237,6 @@ int BaseLmmElement::processBlocking(int ch)
 	RawBuffer buf = queue->getBuffer(this);
 	if (!buf.size())
 		return -ENOENT;
-	if (buf.isEOF()) {
-		mDebug("new eof received, forwarding and quitting");
-		newOutputBuffer(ch, buf);
-		return -ENODATA;
-	}
 
 tryagain:
 	int ret = 0;
@@ -535,8 +530,6 @@ RawBuffer ElementIOQueue::getBufferNW(BaseLmmElement *src)
 		sentCount++;
 		notifyEvent(EV_GET, buf, src);
 	}
-	if (buf.isEOF())
-		addBuffer(buf);
 
 	return buf;
 }
