@@ -8,7 +8,7 @@ QT       += core gui sql
 
 TEMPLATE = subdirs
 CONFIG += ordered
-SUBDIRS = lmm
+SUBDIRS = lmm tests
 
 RESOURCES += \
     art.qrc
