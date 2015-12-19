@@ -11,6 +11,18 @@ class BaseLmmPipeline : public BaseLmmElement
 {
 	Q_OBJECT
 public:
+	class PipelineStats {
+	public:
+		PipelineStats()
+		{
+			outCount = 0;
+			lastStreamBufferNo = 0;
+		}
+
+		int outCount;
+		int lastStreamBufferNo;
+	};
+
 	explicit BaseLmmPipeline(QObject *parent = 0);
 	~BaseLmmPipeline();
 	virtual BasePipeElement * appendPipe(BaseLmmElement *) { return NULL; }
@@ -22,6 +34,8 @@ public:
 	void setPipelineReady(bool v);
 	bool isPipelineReady();
 	const QList<LmmThread *> getThreads();
+	const PipelineStats getStats() const { return stats; }
+	void updateStats(const RawBuffer &buf);
 
 	/* new API */
 	int append(BaseLmmElement *el, int inputCh = 0);
@@ -40,6 +54,8 @@ protected:
 	QMutex thLock;
 	int finishedThreadCount;
 	bool pipelineReady;
+	PipelineStats stats;
+
 };
 
 #endif // BASELMMPIPELINE_H

@@ -131,6 +131,12 @@ const QList<LmmThread *> BaseLmmPipeline::getThreads()
 	return threads.values();
 }
 
+void BaseLmmPipeline::updateStats(const RawBuffer &buf)
+{
+	stats.outCount++;
+	stats.lastStreamBufferNo = buf.constPars()->streamBufferNo;
+}
+
 int BaseLmmPipeline::append(BaseLmmElement *el, int inputCh)
 {
 	el->setParent(this);
