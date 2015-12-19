@@ -18,12 +18,14 @@ public:
 		targetFrameCount = 0;
 		targetFrameWidth = 0;
 		targetFrameHeight = 0;
+		h264EncoderBufferCount = 5;
 	}
 
 	/* target values */
 	int targetFrameCount;
 	int targetFrameWidth;
 	int targetFrameHeight;
+	int h264EncoderBufferCount;
 };
 
 class PipelineFixtureGeneral : public testing::TestWithParam<std::vector<PipelineTestPars> >, public PipelineManager
@@ -42,12 +44,15 @@ public:
 		int outCount;
 		int lastFrameWidth;
 		int lastFrameHeight;
+		int lastFrameSize;
 	};
 
-	/* */
-	void setupParameters();
+	void setupPipeline(int ptype);
 
 	int createCapturePipeline1();
+	int createEncodePipeline1();
+	int createEncodePipeline2();
+	int createEncodePipeline3();
 
 	QHash<BaseLmmPipeline *, TestStats> tstats;
 	QList<PipelineTestPars> ppars;
