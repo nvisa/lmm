@@ -46,6 +46,8 @@ int PipelineManager::stop()
 		pipelines[i]->stop();
 	for (int i = 0; i < pipelines.size(); i++)
 		pipelines[i]->waitForFinished(100);
+	for (int i = 0; i < pipelines.size(); i++)
+		dbg->removePipeline(pipelines[i]);
 	return BaseLmmElement::stop();
 }
 
