@@ -18,7 +18,7 @@ PipelineManager::PipelineManager(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	quitting = false;
-	dbg = new PipelineDebugger;
+	dbg = PipelineDebugger::GetInstance();
 }
 
 int PipelineManager::start()
@@ -47,6 +47,16 @@ int PipelineManager::stop()
 	for (int i = 0; i < pipelines.size(); i++)
 		pipelines[i]->waitForFinished(100);
 	return BaseLmmElement::stop();
+}
+
+int PipelineManager::getPipelineCount()
+{
+	return pipelines.size();
+}
+
+BaseLmmPipeline *PipelineManager::getPipeline(int ind)
+{
+	return pipelines[ind];
 }
 
 void PipelineManager::signalReceived(int sig)
@@ -91,5 +101,7 @@ int PipelineManager::pipelineThread()
 		pipelineLock.unlock();
 	}
 	RawBuffer buf = currentPipeline->nextBufferBlocking(0);
+	if (buf.size())
+		currentPipeline->updateStats(buf);
 	return pipelineOutput(currentPipeline, buf);
 }

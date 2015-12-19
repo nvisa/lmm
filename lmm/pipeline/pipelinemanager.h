@@ -20,6 +20,9 @@ public:
 
 	virtual int start();
 	virtual int stop();
+
+	int getPipelineCount();
+	BaseLmmPipeline * getPipeline(int ind);
 signals:
 
 public slots:
