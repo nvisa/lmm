@@ -34,8 +34,11 @@ public:
 	};
 
 	explicit PipelineDebugger(QObject *parent = 0);
+	static PipelineDebugger * GetInstance();
 
 	void addPipeline(BaseLmmPipeline *pl);
+	int getPipelineCount();
+	BaseLmmPipeline * getPipeline(int ind);
 
 	void queueHook(ElementIOQueue *queue, const RawBuffer &, int ev);
 	void elementHook(BaseLmmElement *el, const RawBuffer &buf, int ev);
@@ -56,6 +59,7 @@ protected:
 	EventData *queueEvents;
 	EventData *elementEvents;
 	QHash<int, PipelineInfo *> pipelineInfo;
+	static PipelineDebugger *inst;
 };
 
 #endif // PIPELINEDEBUGGER_H

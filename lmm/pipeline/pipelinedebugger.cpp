@@ -9,6 +9,8 @@
 
 #include <stdint.h>
 
+PipelineDebugger * PipelineDebugger::inst = NULL;
+
 static void queueEventHook(ElementIOQueue *queue, const RawBuffer &buf, int ev, void *priv)
 {
 	PipelineDebugger *dbg = (PipelineDebugger *)priv;
@@ -157,6 +159,13 @@ PipelineDebugger::PipelineDebugger(QObject *parent) :
 	connect(sock, SIGNAL(readyRead()), SLOT(udpDataReady()));
 }
 
+PipelineDebugger *PipelineDebugger::GetInstance()
+{
+	if (!inst)
+		inst = new PipelineDebugger;
+	return inst;
+}
+
 void PipelineDebugger::addPipeline(BaseLmmPipeline *pl)
 {
 	pipelines << pl;
@@ -164,6 +173,16 @@ void PipelineDebugger::addPipeline(BaseLmmPipeline *pl)
 	 * we don't setup pipeline here, not all queues may
 	 * be ready at this point
 	 */
+}
+
+int PipelineDebugger::getPipelineCount()
+{
+	return pipelines.size();
+}
+
+BaseLmmPipeline *PipelineDebugger::getPipeline(int ind)
+{
+	return pipelines[ind];
 }
 
 void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, int ev)
