@@ -185,6 +185,11 @@ BaseLmmPipeline *PipelineDebugger::getPipeline(int ind)
 	return pipelines[ind];
 }
 
+void PipelineDebugger::removePipeline(BaseLmmPipeline *pl)
+{
+	pipelines.removeAll(pl);
+}
+
 void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, int ev)
 {
 	if (queueEvents->add(queue, buf.getUniqueId(), ev) > 1400) {

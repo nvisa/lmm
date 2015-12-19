@@ -39,6 +39,7 @@ public:
 	void addPipeline(BaseLmmPipeline *pl);
 	int getPipelineCount();
 	BaseLmmPipeline * getPipeline(int ind);
+	void removePipeline(BaseLmmPipeline *pl);
 
 	void queueHook(ElementIOQueue *queue, const RawBuffer &, int ev);
 	void elementHook(BaseLmmElement *el, const RawBuffer &buf, int ev);
