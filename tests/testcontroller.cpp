@@ -18,7 +18,7 @@ TestController::TestController() :
 	targetFrameCount = 0;
 }
 
-TestController *TestController::instance()
+TestController * TestController::instance()
 {
 	if (!inst)
 		inst = new TestController;

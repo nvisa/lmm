@@ -5,6 +5,7 @@
 #include <lmm/baselmmelement.h>
 #include <lmm/baselmmpipeline.h>
 #include <lmm/dmai/h264encoder.h>
+#include <lmm/dmai/videotestsource.h>
 #include <lmm/dm365/dm365camerainput.h>
 #include <lmm/pipeline/pipelinemanager.h>
 
@@ -41,6 +42,7 @@ static std::vector<PipelineTestPars> getTestPars(const QString &group, int parse
 	pars[0].targetFrameWidth = sets.value("targetFrameWidth0").toInt();
 	pars[0].targetFrameHeight = sets.value("targetFrameHeight0").toInt();
 	pars[0].h264EncoderBufferCount = sets.value("h264EncoderBufferCount0").toInt();
+	pars[0].targetFps = sets.value("targetFps0").toInt();
 	pars[1].targetFrameCount = pars[0].targetFrameCount;
 	pars[1].targetFrameWidth = sets.value("targetFrameWidth1").toInt();
 	pars[1].targetFrameHeight = sets.value("targetFrameWidth1").toInt();
@@ -160,7 +162,40 @@ int PipelineFixtureGeneral::createEncodePipeline2()
 
 int PipelineFixtureGeneral::createEncodePipeline3()
 {
+	QSize sz0(ppars[0].targetFrameWidth, ppars[0].targetFrameHeight);
+	VideoTestSource *tsrc = new VideoTestSource;
+	setElSize(tsrc, sz0);
+	tsrc->setTestPattern(VideoTestSource::COLORBARS);
+	tsrc->setFps(ppars[0].targetFps);
 
+	H264Encoder *enc264High = new H264Encoder;
+	enc264High->setFrameRate(ppars[0].targetFps < 120 ? ppars[0].targetFps : 120);
+	enc264High->setSeiEnabled(false);
+	enc264High->setPacketized(false);
+	enc264High->setObjectName("H264EncoderHigh");
+	enc264High->setProfile(0);
+	enc264High->setBufferCount(ppars[0].h264EncoderBufferCount);
+	setElSize(enc264High, sz0);
+
+	H264Encoder *enc264High2 = new H264Encoder;
+	enc264High2->setFrameRate(ppars[0].targetFps < 120 ? ppars[0].targetFps : 120);
+	enc264High2->setSeiEnabled(false);
+	enc264High2->setPacketized(false);
+	enc264High2->setObjectName("H264EncoderHigh2");
+	enc264High2->setProfile(0);
+	enc264High2->setBufferCount(ppars[0].h264EncoderBufferCount);
+	setElSize(enc264High2, sz0);
+
+	BaseLmmPipeline *p1 = addPipeline();
+	p1->append(tsrc);
+	p1->append(enc264High);
+#if 0
+	BaseLmmPipeline *p2 = addPipeline();
+	enc264High2->addInputQueue(tsrc->getOutputQueue(0));
+	p2->append(enc264High2);
+#endif
+
+	return 0;
 }
 
 int PipelineFixtureGeneral::pipelineOutput(BaseLmmPipeline *pl, const RawBuffer &buf)
@@ -216,10 +251,12 @@ TEST_P(PipelineFixtureGeneral, EncodeTest2) {
 	EXPECT_GE(ptstat(1).outCount, ppars[1].targetFrameCount);
 	EXPECT_LT(ptstat(0).lastFrameSize, 300 * 1024);
 	EXPECT_LT(ptstat(1).lastFrameSize, 75 * 1024);
-	EXPECT_GT(getPipeline(0)->getPipe(0)->getOutputQueue(0)->getFps(), 20);
+	EXPECT_GT(getPipeline(0)->getPipe(0)->getOutputQueue(0)->getFps(), ppars[0].targetFps);
 }
 
 TEST_P(PipelineFixtureGeneral, EncodeTest3) {
+	ASSERT_TRUE(QFile::exists("/etc/lmm/patterns/720p/colorbars.png"));
+
 	setupPipeline(3);
 
 	/* start pipeline and wait till finished */
@@ -228,8 +265,12 @@ TEST_P(PipelineFixtureGeneral, EncodeTest3) {
 
 	/* check return values */
 	EXPECT_GE(ptstat(0).outCount, ppars[0].targetFrameCount);
-	EXPECT_GE(ptstat(1).outCount, ppars[1].targetFrameCount);
-	EXPECT_GT(getPipeline(0)->getPipe(0)->getOutputQueue(0)->getFps(), 200);
+	EXPECT_EQ(ptstat(0).lastFrameWidth, ppars[0].targetFrameWidth);
+	EXPECT_EQ(ptstat(0).lastFrameHeight, ppars[0].targetFrameHeight);
+	int fpsTotal = 0;
+	for (int i = 0; i < getPipelineCount(); i++)
+		fpsTotal += getPipeline(i)->getOutputQueue(0)->getFps();
+	EXPECT_GT(fpsTotal, ppars[0].targetFps);
 }
 
 INST_TEST_CASE("FunctionalityTests", 0);

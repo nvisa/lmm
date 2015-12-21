@@ -19,9 +19,11 @@ public:
 		targetFrameWidth = 0;
 		targetFrameHeight = 0;
 		h264EncoderBufferCount = 5;
+		targetFps = 30;
 	}
 
 	/* target values */
+	int targetFps;
 	int targetFrameCount;
 	int targetFrameWidth;
 	int targetFrameHeight;

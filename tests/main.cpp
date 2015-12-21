@@ -47,9 +47,10 @@ int main(int argc, char **argv)
 			sets.setValue("targetFrameHeight1", 288);
 			sets.setValue("h264EncoderBufferCount0", 10);
 			sets.setValue("h264EncoderBufferCount1", 10);
+			sets.setValue("targetFps0", 30);
+			sets.setValue("targetFps1", 30);
 
 			/* global parameters */
-			sets.setValue("pipelineType", i);
 		}
 		sets.endArray();
 		sets.endGroup();
