@@ -71,7 +71,7 @@ RawBuffer LmmBufferPool::take(bool keepRef)
 	if (finalized)
 		return RawBuffer::eof();
 	mutex.lock();
-	if (buffersFree.size() == 0) {
+	while (buffersFree.size() == 0) {
 		wc.wait(&mutex);
 		if (finalized) {
 			mutex.unlock();
