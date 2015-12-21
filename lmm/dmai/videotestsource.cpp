@@ -46,30 +46,7 @@
 	\sa DM365CameraInput
 */
 
-#define NUM_OF_BUFFERS 3
-
-class TimeoutThread : public LmmThread
-{
-public:
-	TimeoutThread(int sleepTime, VideoTestSource *el) : LmmThread("VideoTestSourceTimeoutThread")
-	{
-		stime = sleepTime;
-		parent = el;
-	}
-protected:
-	int operation()
-	{
-		QThread::msleep(stime);
-		RawBuffer buf("unknown", 1);
-		parent->addBuffer(0, buf);
-		int err = parent->process();
-		if (err)
-			return err;
-		return 0;
-	}
-	int stime;
-	VideoTestSource *parent;
-};
+#define NUM_OF_BUFFERS 300
 
 VideoTestSource::VideoTestSource(QObject *parent) :
 	BaseLmmElement(parent)
@@ -253,6 +230,18 @@ void VideoTestSource::setYUVVideo(QString filename, bool loop)
 	}
 }
 
+int VideoTestSource::processBlocking(int ch)
+{
+	if (getState() == STOPPED)
+		return -EINVAL;
+	//QElapsedTimer t; t.start();
+	//while (t.elapsed() * 1000 < bufferTime)
+	//usleep(bufferTime);
+	int err = processBuffer(RawBuffer("", ch));
+	//ffDebug() << t.elapsed() << streamTime->getCurrentTime();
+	return err;
+}
+
 int VideoTestSource::processBuffer(const RawBuffer &buf)
 {
 	mInfo("creating next frame");
@@ -273,7 +262,8 @@ int VideoTestSource::processBuffer(const RawBuffer &buf)
 		imageBuf = addNoise(imageBuf);
 	imageBuf.pars()->captureTime = streamTime->getCurrentTime();
 	imageBuf.pars()->fps = targetFps;
-	return newOutputBuffer(0, imageBuf);
+	int ch = buf.size();
+	return newOutputBuffer(ch, imageBuf);
 }
 
 void VideoTestSource::addBufferToPool(RawBuffer buf)
@@ -295,16 +285,12 @@ int VideoTestSource::flush()
 
 int VideoTestSource::start()
 {
-	tt = new TimeoutThread(bufferTime / 1000, this);
-	tt->start();
 	return BaseLmmElement::start();
 }
 
 int VideoTestSource::stop()
 {
-	pool->finalize();
-	tt->stop();
-	tt->deleteLater();
+	//pool->finalize();
 	return BaseLmmElement::stop();
 }
 

@@ -43,6 +43,7 @@ public:
 	void setYUVFile(QString filename);
 	void setYUVVideo(QString filename, bool loop = false);
 
+	int processBlocking(int ch = 0);
 	void aboutToDeleteBuffer(const RawBufferParameters *params);
 	int flush();
 	int start();
@@ -71,7 +72,6 @@ private:
 	bool loopVideoFile;
 	LmmBufferPool *pool;
 
-	friend class TimeoutThread;
 	QImage getPatternImage(TestPattern p);
 	DmaiBuffer addNoise(DmaiBuffer imageBuf);
 	bool checkCache(TestPattern p, BufferGfx_Attrs *attr);
