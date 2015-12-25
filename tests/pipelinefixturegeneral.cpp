@@ -5,6 +5,7 @@
 #include <lmm/baselmmelement.h>
 #include <lmm/baselmmpipeline.h>
 #include <lmm/dmai/h264encoder.h>
+#include <lmm/rtp/rtptransmitter.h>
 #include <lmm/dmai/videotestsource.h>
 #include <lmm/dm365/dm365camerainput.h>
 #include <lmm/pipeline/pipelinemanager.h>
@@ -76,8 +77,10 @@ void PipelineFixtureGeneral::setupPipeline(int ptype)
 		createEncodePipeline2();
 	else if (ptype == 3)
 		createEncodePipeline3();
+	else if (ptype == 4)
+		createEncodePipeline4();
 	else
-		return;
+		assert(0);
 
 	for (int i = 0; i < getPipelineCount(); i++)
 		getPipeline(i)->end();
@@ -177,15 +180,6 @@ int PipelineFixtureGeneral::createEncodePipeline3()
 	enc264High->setBufferCount(ppars[0].h264EncoderBufferCount);
 	setElSize(enc264High, sz0);
 
-	H264Encoder *enc264High2 = new H264Encoder;
-	enc264High2->setFrameRate(ppars[0].targetFps < 120 ? ppars[0].targetFps : 120);
-	enc264High2->setSeiEnabled(false);
-	enc264High2->setPacketized(false);
-	enc264High2->setObjectName("H264EncoderHigh2");
-	enc264High2->setProfile(0);
-	enc264High2->setBufferCount(ppars[0].h264EncoderBufferCount);
-	setElSize(enc264High2, sz0);
-
 	BaseLmmPipeline *p1 = addPipeline();
 	p1->append(tsrc);
 	p1->append(enc264High);
@@ -194,6 +188,24 @@ int PipelineFixtureGeneral::createEncodePipeline3()
 	enc264High2->addInputQueue(tsrc->getOutputQueue(0));
 	p2->append(enc264High2);
 #endif
+
+	return 0;
+}
+
+int PipelineFixtureGeneral::createEncodePipeline4()
+{
+	createEncodePipeline3();
+
+	RtpTransmitter *rtp = new RtpTransmitter(this);
+	RtpChannel *rtpCh = rtp->addChannel();
+	srand(time(NULL));
+	int port = rand() % 10000 + 20000;
+	port = port / 2 * 2;
+	rtp->setupChannel(rtpCh, "192.168.1.3", port, port + 1, port, port + 1, 0x1237123);
+	rtp->playChannel(rtpCh);
+
+	BaseLmmPipeline *p1 = getPipeline(0);
+	p1->append(rtp);
 
 	return 0;
 }
@@ -258,6 +270,25 @@ TEST_P(PipelineFixtureGeneral, EncodeTest3) {
 	ASSERT_TRUE(QFile::exists("/etc/lmm/patterns/720p/colorbars.png"));
 
 	setupPipeline(3);
+
+	/* start pipeline and wait till finished */
+	start();
+	while (isRunning()) {}
+
+	/* check return values */
+	EXPECT_GE(ptstat(0).outCount, ppars[0].targetFrameCount);
+	EXPECT_EQ(ptstat(0).lastFrameWidth, ppars[0].targetFrameWidth);
+	EXPECT_EQ(ptstat(0).lastFrameHeight, ppars[0].targetFrameHeight);
+	int fpsTotal = 0;
+	for (int i = 0; i < getPipelineCount(); i++)
+		fpsTotal += getPipeline(i)->getOutputQueue(0)->getFps();
+	EXPECT_GT(fpsTotal, ppars[0].targetFps);
+}
+
+TEST_P(PipelineFixtureGeneral, EncodeTest4) {
+	ASSERT_TRUE(QFile::exists("/etc/lmm/patterns/720p/colorbars.png"));
+
+	setupPipeline(4);
 
 	/* start pipeline and wait till finished */
 	start();

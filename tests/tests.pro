@@ -7,7 +7,9 @@ QT += network
 
 SOURCES += main.cpp \
     testcontroller.cpp \
-    pipelinefixturegeneral.cpp
+    pipelinefixturegeneral.cpp \
+    btcpsocket.cpp \
+    btcpserver.cpp
 
 include (build_config.pri)
 
@@ -26,4 +28,6 @@ DEPENDPATH += $${INCLUDEPATH}
 HEADERS += \
     testcontroller.h \
     pipelinefixturegeneral.h \
-    common.h
+    common.h \
+    btcpsocket.h \
+    btcpserver.h

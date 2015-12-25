@@ -26,7 +26,8 @@ public:
 	{
 		QThread::sleep(1);
 		int err = RUN_ALL_TESTS();
-		qDebug() << "tests finished with err" << err;
+		ffDebug() << "tests finished with err" << err;
+		QCoreApplication::exit(0);
 	}
 };
 
