@@ -259,6 +259,11 @@ tryagain:
 	return ret;
 }
 
+StreamTime *BaseLmmElement::getStreamTime()
+{
+	return streamTime;
+}
+
 int BaseLmmElement::start()
 {
 	eofSent = false;

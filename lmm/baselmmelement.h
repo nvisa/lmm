@@ -40,6 +40,7 @@ public:
 	virtual int process(int ch, const RawBuffer &buf);
 	virtual int processBlocking(int ch = 0);
 	void setStreamTime(StreamTime *t) { streamTime = t; }
+	StreamTime * getStreamTime();
 	void setStreamDuration(qint64 duration) { streamDuration = duration; }
 	virtual CircularBuffer * getCircularBuffer() { return NULL; }
 	virtual qint64 getLatency() { return 0; }
