@@ -56,6 +56,7 @@ public:
 	int createEncodePipeline2();
 	int createEncodePipeline3();
 	int createEncodePipeline4();
+	int createEncodePipeline5();
 
 	QHash<BaseLmmPipeline *, TestStats> tstats;
 	QList<PipelineTestPars> ppars;

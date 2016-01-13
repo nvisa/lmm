@@ -5,6 +5,7 @@
 #include <lmm/baselmmelement.h>
 #include <lmm/baselmmpipeline.h>
 #include <lmm/dmai/h264encoder.h>
+#include <lmm/dmai/seiinserter.h>
 #include <lmm/rtp/rtptransmitter.h>
 #include <lmm/dmai/videotestsource.h>
 #include <lmm/dm365/dm365camerainput.h>
@@ -21,6 +22,15 @@
 #define ptstat(__x) tstats[getPipeline(__x)]
 #define INST_TEST_CASE(_name, _x) \
 	INSTANTIATE_TEST_CASE_P(PipelineTestInstance##_x, PipelineFixtureGeneral, testing::Values(getTestPars(_name, _x)));
+
+static void exportText(const QString &text, const QString &content)
+{
+	QFile f(text);
+	if (!f.open(QIODevice::WriteOnly))
+		return;
+	f.write(content.toUtf8());
+	f.close();
+}
 
 static inline void setElSize(BaseLmmElement *el, QSize sz)
 {
@@ -79,6 +89,8 @@ void PipelineFixtureGeneral::setupPipeline(int ptype)
 		createEncodePipeline3();
 	else if (ptype == 4)
 		createEncodePipeline4();
+	else if (ptype == 5)
+		createEncodePipeline5();
 	else
 		assert(0);
 
@@ -210,6 +222,44 @@ int PipelineFixtureGeneral::createEncodePipeline4()
 	return 0;
 }
 
+int PipelineFixtureGeneral::createEncodePipeline5()
+{
+	QSize sz0(ppars[0].targetFrameWidth, ppars[0].targetFrameHeight);
+	VideoTestSource *tsrc = new VideoTestSource;
+	setElSize(tsrc, sz0);
+	tsrc->setTestPattern(VideoTestSource::COLORBARS);
+	tsrc->setFps(ppars[0].targetFps);
+
+	SeiInserter *sei = new SeiInserter;
+	sei->setSeiProps(SeiInserter::ALARM_ONLINE, QByteArray(1024, 's'));
+
+	H264Encoder *enc264High = new H264Encoder;
+	enc264High->setFrameRate(ppars[0].targetFps < 120 ? ppars[0].targetFps : 120);
+	enc264High->setSeiEnabled(true);
+	enc264High->setPacketized(true);
+	enc264High->setObjectName("H264EncoderHigh");
+	enc264High->setProfile(0);
+	enc264High->setBufferCount(ppars[0].h264EncoderBufferCount);
+	setElSize(enc264High, sz0);
+
+	RtpTransmitter *rtp = new RtpTransmitter(this);
+	RtpChannel *rtpCh = rtp->addChannel();
+	srand(time(NULL));
+	int port = rand() % 10000 + 20000;
+	port = port / 2 * 2;
+	rtp->setupChannel(rtpCh, "192.168.1.3", port, port + 1, port, port + 1, 0x1237123);
+	rtp->playChannel(rtpCh);
+	exportText("stream.sdp", rtpCh->getSdp());
+
+	BaseLmmPipeline *p1 = addPipeline();
+	p1->append(tsrc);
+	p1->append(sei);
+	p1->append(enc264High);
+	//p1->append(rtp);
+
+	return 0;
+}
+
 int PipelineFixtureGeneral::pipelineOutput(BaseLmmPipeline *pl, const RawBuffer &buf)
 {
 	tstats[pl].outCount++;
@@ -289,6 +339,25 @@ TEST_P(PipelineFixtureGeneral, EncodeTest4) {
 	ASSERT_TRUE(QFile::exists("/etc/lmm/patterns/720p/colorbars.png"));
 
 	setupPipeline(4);
+
+	/* start pipeline and wait till finished */
+	start();
+	while (isRunning()) {}
+
+	/* check return values */
+	EXPECT_GE(ptstat(0).outCount, ppars[0].targetFrameCount);
+	EXPECT_EQ(ptstat(0).lastFrameWidth, ppars[0].targetFrameWidth);
+	EXPECT_EQ(ptstat(0).lastFrameHeight, ppars[0].targetFrameHeight);
+	int fpsTotal = 0;
+	for (int i = 0; i < getPipelineCount(); i++)
+		fpsTotal += getPipeline(i)->getOutputQueue(0)->getFps();
+	EXPECT_GT(fpsTotal, ppars[0].targetFps);
+}
+
+TEST_P(PipelineFixtureGeneral, EncodeTest5) {
+	ASSERT_TRUE(QFile::exists("/etc/lmm/patterns/720p/colorbars.png"));
+
+	setupPipeline(5);
 
 	/* start pipeline and wait till finished */
 	start();

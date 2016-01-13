@@ -9,6 +9,7 @@
 #include <lmm/baselmmelement.h>
 #include <lmm/baselmmpipeline.h>
 #include <lmm/pipeline/pipelinemanager.h>
+#include <lmm/pipeline/pipelinedebugger.h>
 
 #include <lmm/dm365/dm365camerainput.h>
 
@@ -64,6 +65,9 @@ int main(int argc, char **argv)
 
 	testing::UnitTest::GetInstance()->listeners().Append(TestController::instance());
 	LmmCommon::init();
+
+	/* make sure that pipelinedebugger is created in the correct instance */
+	PipelineDebugger::GetInstance();
 
 	TestThread t;
 	t.start();
