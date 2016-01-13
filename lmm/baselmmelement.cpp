@@ -190,13 +190,13 @@ int BaseLmmElement::addBuffer(int ch, const RawBuffer &buffer)
 	createQueues(&inq, ch + 1, this);
 	ElementIOQueue *queue = inq[ch];
 	inql.unlock();
-	return queue->addBuffer(buffer);
+	return queue->addBuffer(buffer, this);
 }
 
 RawBuffer BaseLmmElement::nextBufferBlocking(int ch)
 {
 	QMutexLocker l(&outql);
-	return outq[ch]->getBuffer();
+	return outq[ch]->getBuffer(this);
 }
 
 int BaseLmmElement::process(int ch)
@@ -205,7 +205,7 @@ int BaseLmmElement::process(int ch)
 	createQueues(&inq, ch + 1, this);
 	ElementIOQueue *queue = inq[ch];
 	inql.unlock();
-	RawBuffer buf = queue->getBufferNW();
+	RawBuffer buf = queue->getBufferNW(this);
 	if (buf.size()) {
 		processTimeStat->startStat();
 		notifyEvent(EV_PROCESS, buf);
@@ -222,7 +222,7 @@ int BaseLmmElement::process(int ch, const RawBuffer &buf)
 	createQueues(&inq, ch + 1, this);
 	ElementIOQueue *queue = inq[ch];
 	inql.unlock();
-	int err = queue->addBuffer(buf);
+	int err = queue->addBuffer(buf, this);
 	if (err)
 		return err;
 	return process(ch);
@@ -234,14 +234,9 @@ int BaseLmmElement::processBlocking(int ch)
 	createQueues(&inq, ch + 1, this);
 	ElementIOQueue *queue = inq[ch];
 	inql.unlock();
-	RawBuffer buf = queue->getBuffer();
+	RawBuffer buf = queue->getBuffer(this);
 	if (!buf.size())
 		return -ENOENT;
-	if (buf.isEOF()) {
-		mDebug("new eof received, forwarding and quitting");
-		newOutputBuffer(ch, buf);
-		return -ENODATA;
-	}
 
 tryagain:
 	int ret = 0;
@@ -374,14 +369,14 @@ int BaseLmmElement::newOutputBuffer(int ch, const RawBuffer &buf)
 {
 	QMutexLocker l(&outql);
 	createQueues(&outq, ch + 1, this);
-	return outq[ch]->addBuffer(buf);
+	return outq[ch]->addBuffer(buf, this);
 }
 
 int BaseLmmElement::newOutputBuffer(int ch, QList<RawBuffer> list)
 {
 	QMutexLocker l(&outql);
 	createQueues(&outq, ch + 1, this);
-	return outq[ch]->addBuffer(list);
+	return outq[ch]->addBuffer(list, this);
 }
 
 void BaseLmmElement::notifyEvent(BaseLmmElement::Events ev, const RawBuffer &buf)
@@ -481,7 +476,7 @@ int ElementIOQueue::waitBuffers(int lessThan)
 	return 0;
 }
 
-int ElementIOQueue::addBuffer(const RawBuffer &buffer)
+int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 {
 	if (buffer.size() == 0)
 		return -EINVAL;
@@ -496,17 +491,15 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer)
 	receivedCount++;
 	calculateFps();
 	lock.unlock();
-	notifyEvent(EV_ADD, buffer);
+	notifyEvent(EV_ADD, buffer, src);
 	bufSem->release();
-	if (buffer.isEOF())
-		return -ENODATA;
 	return 0;
 }
 
-int ElementIOQueue::addBuffer(const QList<RawBuffer> &list)
+int ElementIOQueue::addBuffer(const QList<RawBuffer> &list, BaseLmmElement *src)
 {
 	for (int i = 0; i < list.size(); i++) {
-		int err = addBuffer(list[i]);
+		int err = addBuffer(list[i], src);
 		if (err)
 			return err;
 	}
@@ -523,14 +516,14 @@ int ElementIOQueue::prependBuffer(const RawBuffer &buffer)
 	return 0;
 }
 
-RawBuffer ElementIOQueue::getBuffer()
+RawBuffer ElementIOQueue::getBuffer(BaseLmmElement *src)
 {
 	if (!acquireSem())
 		return RawBuffer();
-	return getBufferNW();
+	return getBufferNW(src);
 }
 
-RawBuffer ElementIOQueue::getBufferNW()
+RawBuffer ElementIOQueue::getBufferNW(BaseLmmElement *src)
 {
 	RawBuffer buf;
 	lock.lock();
@@ -540,7 +533,7 @@ RawBuffer ElementIOQueue::getBufferNW()
 	lock.unlock();
 	if (buf.size()) {
 		sentCount++;
-		notifyEvent(EV_GET, buf);
+		notifyEvent(EV_GET, buf, src);
 	}
 
 	return buf;
@@ -631,10 +624,10 @@ void ElementIOQueue::calculateFps()
 	}
 }
 
-void ElementIOQueue::notifyEvent(Events ev, const RawBuffer &buf)
+void ElementIOQueue::notifyEvent(Events ev, const RawBuffer &buf, BaseLmmElement *src)
 {
 	evLock.lock();
 	if (evHook)
-		(*evHook)(this, buf, ev, evPriv);
+		(*evHook)(this, buf, ev, src, evPriv);
 	evLock.unlock();
 }

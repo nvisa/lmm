@@ -38,13 +38,18 @@ public:
 	void updateStats(const RawBuffer &buf);
 
 	/* new API */
+	int appendJoin(BaseLmmElement *el, QList<BaseLmmElement *> joins, int inputCh = 0);
+	int insert(BaseLmmElement *src, BaseLmmElement *el, int outputCh = 0);
 	int append(BaseLmmElement *el, int inputCh = 0);
 	int appendFinal(BaseLmmElement *el, int inputCh = 0);
 	int end();
+	int end(QList<BaseLmmElement *> joins);
 
 	void waitForFinished(int timeout);
 
 	virtual void threadFinished(LmmThread *);
+signals:
+	void playbackFinished();
 protected:
 	virtual int processBuffer(const RawBuffer &buf);
 	virtual int processBuffer(int ch, const RawBuffer &buf);

@@ -25,7 +25,8 @@ public:
 	BaseLmmPipeline * getPipeline(int ind);
 signals:
 
-public slots:
+protected slots:
+	virtual void pipelineFinished() {}
 protected:
 	virtual void signalReceived(int sig);
 	virtual int processBuffer(const RawBuffer &buf);

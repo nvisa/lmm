@@ -131,10 +131,28 @@ const QList<LmmThread *> BaseLmmPipeline::getThreads()
 	return threads.values();
 }
 
+
 void BaseLmmPipeline::updateStats(const RawBuffer &buf)
 {
 	stats.outCount++;
 	stats.lastStreamBufferNo = buf.constPars()->streamBufferNo;
+}
+
+int BaseLmmPipeline::appendJoin(BaseLmmElement *el, QList<BaseLmmElement *> joins, int inputCh)
+{
+	el->setParent(this);
+	for (int i = 0; i < joins.size(); i++)
+		joins[i]->addOutputQueue(el->getInputQueue(inputCh));
+	pipesNew << el;
+	return 0;
+}
+
+int BaseLmmPipeline::insert(BaseLmmElement *src, BaseLmmElement *el, int outputCh)
+{
+	el->setParent(this);
+	el->addInputQueue(src->getOutputQueue(outputCh));
+	pipesNew << el;
+	return 0;
 }
 
 int BaseLmmPipeline::append(BaseLmmElement *el, int inputCh)
@@ -163,6 +181,13 @@ int BaseLmmPipeline::end()
 	return 0;
 }
 
+int BaseLmmPipeline::end(QList<BaseLmmElement *> joins)
+{
+	for (int i = 0; i < joins.size(); i++)
+		joins[i]->addOutputQueue(getOutputQueue(0));
+	return 0;
+}
+
 void BaseLmmPipeline::waitForFinished(int timeout)
 {
 	timeout *= 1000;
@@ -184,6 +209,8 @@ void BaseLmmPipeline::threadFinished(LmmThread *)
 	mDebug("thread finished: %d %d", finishedThreadCount, threads.size());
 	++finishedThreadCount;
 	thLock.unlock();
+	if (finishedThreadCount == threads.size())
+		emit playbackFinished();
 }
 
 int BaseLmmPipeline::processBuffer(const RawBuffer &buf)
