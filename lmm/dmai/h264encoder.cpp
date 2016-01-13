@@ -443,7 +443,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	DmaiEncoder(parent)
 {
 	setDynamicParams = false;
-	seiBufferSize = 4096 * 4;
+	seiEnabled = false;
 	dirty = false;
 	encodeFps = 30;
 	profileId = 0;
@@ -548,17 +548,7 @@ void H264Encoder::setFrameRate(float fps)
 
 void H264Encoder::setSeiEnabled(bool value)
 {
-	if (value)
-		seiBufferSize = 4096 * 4;
-	else
-		seiBufferSize = 0;
-}
-
-void H264Encoder::setSeiField(const QByteArray ba)
-{
-	seiLock.lock();
-	customSeiData = ba;
-	seiLock.unlock();
+	seiEnabled = value;
 }
 
 int H264Encoder::setSetting(const QString &setting, const QVariant &value)
@@ -1036,6 +1026,9 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			}
 		}
 	}
+	int seiBufferSize = 0;
+	if (seiEnabled)
+		seiBufferSize = source.constPars()->metaData.size() + 20;
 	if (Venc1_processL(hCodec, buffer, hDstBuf, seiBufferSize, &seiDataOffset,
 					   timeStamp, roiParameter((uchar *)Buffer_getUserPtr(buffer)),
 					   genMetadata, useMetadata ? frameinfoInterface : NULL, metadataBuf,
@@ -1135,6 +1128,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 
 int H264Encoder::insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuffer source)
 {
+	int seiBufferSize = source.constPars()->metaData.size() + 20;
 	mInfo("inserting %d bytes sei user data at offset %d, total size is %d",
 		   seiBufferSize, seiDataOffset, (int)Buffer_getNumBytesUsed(hDstBuf));
 	char *seidata = (char *)Buffer_getUserPtr(hDstBuf) + seiDataOffset;
@@ -1146,11 +1140,7 @@ int H264Encoder::insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuff
 	/* NOTE: vlc doesn't like '0' at byte 18 */
 	seidata[18] = 0x1; //version
 	seidata[19] = 0x1; //version
-	QByteArray ba(seidata + 20, seiBufferSize - 20);
-	QElapsedTimer t2; t2.start();
-	int seiAllocSize = seiBufferSize;
-	seiBufferSize = createSeiData(&ba, source) + 20;
-	memcpy(seidata + 20, ba.constData(), seiAllocSize - 20);
+	memcpy(seidata + 20, source.constPars()->metaData.constData(), seiBufferSize - 20);
 	if ((mVecs == MV_SEI || mVecs == MV_BOTH)) {
 		/*
 		 * There are limits on the MV insertion,
@@ -1177,7 +1167,6 @@ int H264Encoder::insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuff
 			memcpy(seidata + 20 + seiBufferSize - 20, motVectBuf + motVectSize / 2, motVectSize / 2);
 		}
 	}
-	mInfo("sei addition took %lld msecs", t2.elapsed());
 	return 0;
 }
 
@@ -1187,8 +1176,8 @@ int H264Encoder::startCodec(bool alloc)
 		   "Rate control: %d\n\t"
 		   "Target bitrate: %d\n\t"
 		   "Intra frame interval: %d\n\t"
-		   "SEI buffer size: %d\n\t"
-		   , maxFrameRate, rateControl, videoBitRate, intraFrameInterval, seiBufferSize);
+		   "SEI enabled: %d\n\t"
+		   , maxFrameRate, rateControl, videoBitRate, intraFrameInterval, seiEnabled);
 	generateIdrFrame = false;
 	timeStamp = 0;
 	vuiparambuf = new VUIParamBuffer;
@@ -1336,18 +1325,6 @@ int H264Encoder::startCodec(bool alloc)
 int H264Encoder::stopCodec()
 {
 	return DmaiEncoder::stopCodec();
-}
-
-#define append(__x) out << __x;
-int H264Encoder::createSeiData(QByteArray *ba, const RawBuffer source)
-{
-	QDataStream out(ba, QIODevice::WriteOnly);
-	int start = out.device()->pos();
-	out.setByteOrder(QDataStream::LittleEndian);
-	seiLock.lock();
-	append(customSeiData);
-	seiLock.unlock();
-	return out.device()->pos() - start;
 }
 
 int H264Encoder::setDefaultParams(IH264VENC_Params *params)

@@ -50,9 +50,6 @@ public:
 	MotionVectors getMotionVectorExtraction() { return mVecs; }
 	void setSeiEnabled(bool value);
 
-	/* sei information */
-	void setSeiField(const QByteArray ba);
-
 	IH264VENC_DynamicParams * getDynamicParams() { return dynH264Params; }
 	int setDynamicParamsNextLoop(bool v) { setDynamicParams = v; return 0; }
 
@@ -63,9 +60,7 @@ signals:
 public slots:
 protected:
 private:
-	int seiBufferSize;
 	IH264VENC_DynamicParams *dynH264Params;
-	QByteArray customSeiData;
 	bool setDynamicParams;
 
 	int enableBufSei;
@@ -84,12 +79,11 @@ private:
 	MotionVectors mVecs;
 	int motVectSize;
 	PacketizationMode pmod;
-	QMutex seiLock;
+	bool seiEnabled;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec(bool alloc = true);
 	int stopCodec();
-	int createSeiData(QByteArray *ba, const RawBuffer source);
 	int insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuffer source);
 	/* codec parameters api */
 	int setDefaultParams(IH264VENC_Params *params);
