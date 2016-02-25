@@ -158,7 +158,8 @@ int DmaiEncoder::processBuffer(const RawBuffer &buf)
 		goto out;
 	return 0;
 out:
-	mDebug("error %d", err);
+	if (err != -EAGAIN)
+		mDebug("error %d", err);
 	return err;
 }
 
