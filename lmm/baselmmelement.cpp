@@ -241,7 +241,6 @@ int BaseLmmElement::processBlocking(int ch)
 tryagain:
 	int ret = 0;
 	processTimeStat->startStat();
-	notifyEvent(EV_PROCESS, buf);
 	if (!ch)
 		ret = processBuffer(buf);
 	else
@@ -250,6 +249,8 @@ tryagain:
 
 	if (ret == -EAGAIN)
 		goto tryagain;
+
+	notifyEvent(EV_PROCESS, buf);
 
 	return ret;
 }
