@@ -19,6 +19,16 @@
 #define RTP_VERSION 2
 #define NTP_OFFSET 2208988800ULL  //ntp is from 1900 instead of 1970
 
+static inline ushort get16(const uchar *data)
+{
+	return (data[0] << 8) | data[1];
+}
+
+static inline uint get32(const uchar *data)
+{
+	return (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+}
+
 static qint64 getCurrentTime()
 {
 	struct timeval tv;
@@ -610,7 +620,9 @@ void RtpChannel::readPendingRtcpDatagrams()
 				flags |= 0x2;
 			else
 				break; /* un-supported message packet */
-			ushort length = (data[2] << 8) | data[3];
+			ushort length = get16(&data[2]);
+			uint ssrc = get32(&data[4]);
+			Q_UNUSED(ssrc);
 			left -= (length + 1) * 4;
 			data += (length + 1) * 4;
 		}
