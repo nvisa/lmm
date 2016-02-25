@@ -237,7 +237,9 @@ int VideoTestSource::processBlocking(int ch)
 	//QElapsedTimer t; t.start();
 	//while (t.elapsed() * 1000 < bufferTime)
 	//usleep(bufferTime);
-	int err = processBuffer(RawBuffer("", ch));
+	RawBuffer buf("", ch);
+	notifyEvent(EV_PROCESS, buf);
+	int err = processBuffer(buf);
 	//ffDebug() << t.elapsed() << streamTime->getCurrentTime();
 	return err;
 }
@@ -246,8 +248,6 @@ int VideoTestSource::processBuffer(const RawBuffer &buf)
 {
 	mInfo("creating next frame");
 	RawBuffer imageBuf = pool->take(false);
-	if (imageBuf.isEOF())
-		return -ENODATA;
 	if (pattern == RAW_YUV_VIDEO) {
 		if (videoFile.isOpen() == false)
 			return -EINVAL;
