@@ -55,7 +55,8 @@ SOURCES += \
     tools/threadsafelist.cpp \
     pipeline/pipelinedebugger.cpp \
     pipeline/pipelinemanager.cpp \
-    rtp/rtptransmitter.cpp
+    rtp/rtptransmitter.cpp \
+    players/basestreamer.cpp \
 
 HEADERS  += \
     filesource.h \
@@ -105,7 +106,8 @@ HEADERS  += \
     tools/threadsafelist.h \
     pipeline/pipelinedebugger.h \
     pipeline/pipelinemanager.h \
-    rtp/rtptransmitter.h
+    rtp/rtptransmitter.h \
+    players/basestreamer.h \
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
@@ -258,38 +260,7 @@ zynq {
     CONFIG += arm
 }
 
-dm365 {
-    include(dm365/tipaths.pri)
-    DEFINES += CONFIG_DM365
-    SOURCES += \
-        dm365/dm365camerainput.cpp \
-        dm365/dm365videooutput.cpp \
-        dm365/platformcommondm365.cpp \
-	dm365/dm365dmacopy.cpp \
-	dm365/vicp.c \
-	dm365/SemMP_posix.c \
-
-
-    HEADERS += dm365/dm365camerainput.h \
-        dm365/dm365videooutput.h \
-        dm365/platformcommondm365.h \
-	dm365/dm365dmacopy.h \
-	dm365/vicp.h \
-	dm365/irqk.h \
-
-    xdc.files += dm365/tipaths.pri
-    xdc.files += dm365/dm365.pri
-    xdc.files += dm365/config.bld
-    xdc.files += dm365/dm365.cfg
-	xdc.files += dm365/ih264venc.h
-    xdc.path = /usr/local/include/lmm/dm365
-    CONFIG += arm
-
-    OTHER_FILES += \
-        dm365/dm365.pri \
-        dm365/dm365.cfg \
-        dm365/config.bld
-}
+dm365 { include(dm365/dm365.pri) }
 
 dm6446 {
     include(dm6446/tipaths.pri)
