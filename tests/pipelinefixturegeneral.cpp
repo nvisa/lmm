@@ -236,7 +236,7 @@ int PipelineFixtureGeneral::createEncodePipeline5()
 	H264Encoder *enc264High = new H264Encoder;
 	enc264High->setFrameRate(ppars[0].targetFps < 120 ? ppars[0].targetFps : 120);
 	enc264High->setSeiEnabled(true);
-	enc264High->setPacketized(true);
+	enc264High->setPacketized(false);
 	enc264High->setObjectName("H264EncoderHigh");
 	enc264High->setProfile(0);
 	enc264High->setBufferCount(ppars[0].h264EncoderBufferCount);
@@ -255,7 +255,7 @@ int PipelineFixtureGeneral::createEncodePipeline5()
 	p1->append(tsrc);
 	p1->append(sei);
 	p1->append(enc264High);
-	//p1->append(rtp);
+	p1->append(rtp);
 
 	return 0;
 }
