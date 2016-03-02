@@ -5,6 +5,7 @@
 
 struct AVPacket;
 struct AVFrame;
+struct AVCodecContext;
 
 class FFmpegBufferData : public RawBufferData
 {
@@ -24,6 +25,7 @@ public:
 	AVPacket *packet;
 	AVFrame *frame;
 	uchar *frameData;
+	AVCodecContext *codecCtx;
 	int frameSize;
 };
 
@@ -34,6 +36,8 @@ public:
 	FFmpegBuffer(QString mimeType, int width, int height, BaseLmmElement *parent = 0);
 	AVPacket * getAVPacket();
 	AVFrame * getAVFrame();
+	AVCodecContext * getCodecContext();
+	void setCodecContext(AVCodecContext *ctx);
 };
 
 #endif // FFMPEGBUFFER_H

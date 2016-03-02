@@ -5,6 +5,7 @@
 #include "ffmpegbuffer.h"
 #include "streamtime.h"
 #include "debug.h"
+#include "tools/unittimestat.h"
 
 extern "C" {
 	#include <libavformat/avformat.h>
@@ -96,8 +97,6 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	videoStream = NULL;
 	libavAnalayzeDuration = 5000000; /* this is ffmpeg default */
 
-	addNewOutputChannel();
-
 	demuxNumber = demuxPriv.size();
 
 #ifdef URL_RDONLY
@@ -173,7 +172,7 @@ int BaseLmmDemux::findStreamInfo()
 
 	context->max_analyze_duration = libavAnalayzeDuration;
 	conlock.unlock();
-	err = av_find_stream_info(context);
+	err = avformat_find_stream_info(context, NULL);
 	if (err < 0)
 		return err;
 	mDebug("%d streams, %d programs present in the file", context->nb_streams, context->nb_programs);
@@ -252,9 +251,9 @@ int BaseLmmDemux::demuxOne()
 	if (!packet) {
 		conlock.unlock();
 		if (demuxVideo)
-			newOutputBuffer(0, RawBuffer::eof());
+			newOutputBuffer(0, RawBuffer());
 		if (demuxAudio)
-			newOutputBuffer(1, RawBuffer::eof());
+			newOutputBuffer(1, RawBuffer());
 		return -ENOENT;
 	}
 	if (packet->stream_index == audioStreamIndex) {
@@ -268,6 +267,7 @@ int BaseLmmDemux::demuxOne()
 				buf.pars()->pts = -1;
 			}
 			buf.pars()->streamBufferNo = demuxedCount++;
+			buf.setCodecContext(getAudioCodecContext());
 			newOutputBuffer(1, buf);
 		} else
 			deletePacket(packet);
@@ -293,6 +293,7 @@ int BaseLmmDemux::demuxOne()
 				buf.pars()->videoWidth = ctx->width;
 				buf.pars()->videoHeight = ctx->height;
 			}
+			buf.setCodecContext(getVideoCodecContext());
 			newOutputBuffer(0, buf);
 		} else
 			deletePacket(packet);
@@ -304,6 +305,24 @@ int BaseLmmDemux::demuxOne()
 int BaseLmmDemux::processBuffer(const RawBuffer &buf)
 {
 	return demuxOne();
+}
+
+int BaseLmmDemux::getDemuxedCount()
+{
+	return demuxedCount;
+}
+
+int BaseLmmDemux::processBlocking(int ch)
+{
+	int ret = 0;
+	processTimeStat->startStat();
+	//notifyEvent(EV_PROCESS, buf);
+	ret = demuxOne();
+	processTimeStat->addStat();
+	if (ret == -EAGAIN)
+		return processBlocking(ch);
+
+	return ret;
 }
 
 AVCodecContext * BaseLmmDemux::getVideoCodecContext()
@@ -357,10 +376,10 @@ int BaseLmmDemux::readPacket(uint8_t *buffer, int buf_size)
 	return copied;
 #else
 	int copied = 0, left = buf_size;
-	if (!acquireInputSem(0)) {
+	/*if (!acquireInputSem(0)) {
 		return -EINVAL;
-	}
-	RawBuffer buf = takeInputBuffer(0);
+	}*/
+	RawBuffer buf ;//= takeInputBuffer(0);
 	if (buf.size() > left) {
 		memcpy(buffer + copied, buf.constData(), left);
 		/* some data will left, put back to input buffers */
@@ -399,7 +418,7 @@ int BaseLmmDemux::start()
 {
 	if (context) {
 		conlock.lock();
-		av_close_input_file(context);
+		avformat_close_input(&context);
 		context = NULL;
 		mDebug("bye bye to context");
 		conlock.unlock();
@@ -418,7 +437,7 @@ int BaseLmmDemux::stop()
 	if (sourceUrlName.contains("rtsp")) {
 		unblockContext = true;
 		conlock.lock();
-		av_close_input_file(context);
+		avformat_close_input(&context);
 		context = NULL;
 		conlock.unlock();
 	}

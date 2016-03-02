@@ -51,10 +51,10 @@ int FFmpegDecoder::startDecoding()
 		sws_freeContext(swsCtx);
 	}
 	if (avFrame) {
-		avcodec_free_frame(&avFrame);
+		av_frame_free(&avFrame);
 		avFrame = NULL;
 	}
-	avFrame = avcodec_alloc_frame();
+	avFrame = av_frame_alloc();
 	swsCtx = NULL;
 	decodeCount = 0;
 	return 0;
@@ -75,6 +75,13 @@ int FFmpegDecoder::decode(RawBuffer buf)
 	AVPacket *packet = ffbuf->getAVPacket();
 	if (onlyKeyframe && (packet->flags & AV_PKT_FLAG_KEY) == 0)
 		return 0;
+	if (!codecCtx) {
+		int err = setStream(ffbuf->getCodecContext());
+		if (err) {
+			mDebug("error %d setting codec context", err);
+			return err;
+		}
+	}
 	if (codec->type == AVMEDIA_TYPE_VIDEO) {
 		int finished;
 		int bytes = avcodec_decode_video2(codecCtx, avFrame, &finished, packet);
@@ -110,7 +117,7 @@ int FFmpegDecoder::decode(RawBuffer buf)
 
 int FFmpegDecoder::convertColorSpace(RawBuffer buf)
 {
-	if (codecCtx->pix_fmt == PIX_FMT_YUV420P || codecCtx->pix_fmt == PIX_FMT_YUVJ420P) {
+	if (codecCtx->pix_fmt == AV_PIX_FMT_YUV420P || codecCtx->pix_fmt == AV_PIX_FMT_YUVJ420P) {
 		mInfo("decoded video frame");
 		if (!swsCtx) {
 			mDebug("getting sw scale context");
@@ -123,11 +130,11 @@ int FFmpegDecoder::convertColorSpace(RawBuffer buf)
 					outWidth = codecCtx->width;
 			}
 			if (rgbOut)
-				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<PixelFormat>(codecCtx->pix_fmt),
+				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<AVPixelFormat>(codecCtx->pix_fmt),
 									outWidth, outHeight, AV_PIX_FMT_RGB24, SWS_BICUBIC
 									, NULL, NULL, NULL);
 			else
-				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<PixelFormat>(codecCtx->pix_fmt),
+				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<AVPixelFormat>(codecCtx->pix_fmt),
 									outWidth, outHeight, AV_PIX_FMT_GRAY8, SWS_BICUBIC
 									, NULL, NULL, NULL);
 			QString mime = "video/x-raw-rgb";
@@ -198,6 +205,7 @@ void FFmpegDecoder::print_vector(int x, int y, int dx, int dy)
 
 void FFmpegDecoder::printMotionVectors(AVFrame *pict)
 {
+#if 0
 	AVCodecContext *ctx = codecCtx;
 	const int mb_width  = (ctx->width + 15) / 16;
 	const int mb_height = (ctx->height + 15) / 16;
@@ -303,6 +311,7 @@ void FFmpegDecoder::printMotionVectors(AVFrame *pict)
 		}
 		//printf("====\n");
 	}
+#endif
 }
 
 void FFmpegDecoder::aboutToDeleteBuffer(const RawBufferParameters *params)

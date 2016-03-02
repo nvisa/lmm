@@ -205,7 +205,7 @@ int BaseLmmMux::stop()
 		context = NULL;
 	}
 	if (inputContext) {
-		av_close_input_file(inputContext);
+		avformat_close_input(&inputContext);
 		inputContext = NULL;
 	}
 	mutex.unlock();
@@ -235,7 +235,7 @@ int BaseLmmMux::findInputStreamInfo()
 		}
 	}
 	inputContext->max_analyze_duration = libavAnalayzeDuration;
-	int err = av_find_stream_info(inputContext);
+	int err = avformat_find_stream_info(inputContext, NULL);
 	if (err < 0) {
 		mDebug("cannot find input stream info");
 		return err;
@@ -462,6 +462,7 @@ int BaseLmmMux::writePacket(const uint8_t *buffer, int buf_size)
  */
 int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 {
+#if 0
 	mInfo("will read %d bytes into ffmpeg buffer", buf_size);
 	/* This routine may be called before the stream started */
 	int copied = 0, left = buf_size;
@@ -486,6 +487,9 @@ int BaseLmmMux::readPacket(uint8_t *buffer, int buf_size)
 	}
 	mInfo("read %d bytes into ffmpeg buffer", copied);
 	return copied;
+#else
+	return -EINVAL;
+#endif
 }
 
 /**
@@ -548,7 +552,7 @@ int BaseLmmMux::initMuxer()
 	mInfo("allocated output context");
 
 	/* Let's add video stream */
-	AVStream *st = av_new_stream(context, 0);
+	AVStream *st = avformat_new_stream(context, 0);
 	if (!st) {
 		mDebug("cannot create video stream");
 		err = -ENOENT;

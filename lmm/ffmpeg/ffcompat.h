@@ -26,7 +26,7 @@ static void avformat_free_context(AVFormatContext *c)
 #endif
 
 #ifndef AV_PIX_FMT_GRAY8
-#define AV_PIX_FMT_GRAY8 PIX_FMT_GRAY8
+#define AV_PIX_FMT_GRAY8 AV_PIX_FMT_GRAY8
 #endif
 
 #ifndef URL_RDONLY

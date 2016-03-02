@@ -27,6 +27,8 @@ public:
 	virtual int seekTo(qint64 pos);
 	virtual int demuxOne();
 	virtual int processBuffer(const RawBuffer &buf);
+	int getDemuxedCount();
+	int processBlocking(int ch = 0);
 	AVCodecContext * getVideoCodecContext();
 	AVCodecContext * getAudioCodecContext();
 	bool isAvformatContextDone() { return unblockContext; }
