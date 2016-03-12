@@ -57,6 +57,7 @@ SOURCES += \
     pipeline/pipelinemanager.cpp \
     rtp/rtptransmitter.cpp \
     players/basestreamer.cpp \
+    tools/lmmprocessbus.cpp
 
 HEADERS  += \
     filesource.h \
@@ -108,6 +109,7 @@ HEADERS  += \
     pipeline/pipelinemanager.h \
     rtp/rtptransmitter.h \
     players/basestreamer.h \
+    tools/lmmprocessbus.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
