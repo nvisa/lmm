@@ -23,9 +23,7 @@
 #define CMD_ID_SET_INT			10
 #define CMD_ID_SET_INT_R		11
 #define CMD_ID_SET_STRING		12
-#define CMD_ID_SET_STRING_R		13
 #define CMD_ID_SET_VARIANT		14
-#define CMD_ID_SET_VARIANT_R	15
 
 #define messageDataStream(__x, __y, __z) \
 	QDataStream out(&ba, QIODevice::WriteOnly); \
@@ -42,6 +40,12 @@
 	qint32 len = out.device()->pos(); \
 	out.device()->seek(8); \
 	out << len
+
+static void dump(const QByteArray &ba)
+{
+	for (int i = 0; i < ba.size(); i++)
+		qDebug("0x%x: 0x%x", i, ba.at(i));
+}
 
 LmmProcessBus::LmmProcessBus(LmmPBusInterface *interface, QObject *parent) :
 	QObject(parent),
@@ -295,7 +299,7 @@ QByteArray LmmProcessBus::processMessageCommon(QDataStream &in, qint32 sender, q
 			QVariant val; in >> val;
 			return createIntMessage(CMD_ID_SET_INT_R, sender, iface->setVariant(fld, val), uid);
 		}
-	} else if (cmd == CMD_ID_GET_INT_R || cmd == CMD_ID_LOOKUP_PID) {
+	} else if (cmd == CMD_ID_GET_INT_R || cmd == CMD_ID_LOOKUP_PID || cmd == CMD_ID_SET_INT_R) {
 		qint32 val; in >> val;
 		responseInt[uid] = val;
 		notifyWaiters(uid);
