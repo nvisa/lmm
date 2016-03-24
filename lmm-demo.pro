@@ -8,9 +8,12 @@ QT       += core gui sql
 
 TEMPLATE = subdirs
 CONFIG += ordered
-SUBDIRS = lmm \
-    dm365_ipstr \
-    tests
+SUBDIRS = lmm
+
+dm365 {
+    SUBDIRS += dm365_ipstr \
+        tests
+}
 
 RESOURCES += \
     art.qrc

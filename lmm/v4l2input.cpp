@@ -475,8 +475,10 @@ void V4l2Input::listControls(const QString &filename)
 	listSubdevControls(fd, V4L2_CTRL_CLASS_IMAGE_PROC);
 	listSubdevControls(fd, V4L2_CTRL_CLASS_DV);
 	listSubdevControls(fd, V4L2_CTRL_CLASS_FM_RX);
+#ifdef V4L2_CTRL_CLASS_RF_TUNER
 	listSubdevControls(fd, V4L2_CTRL_CLASS_RF_TUNER);
 	listSubdevControls(fd, V4L2_CTRL_CLASS_DETECT);
+#endif
 #endif
 
 	close(fd);
