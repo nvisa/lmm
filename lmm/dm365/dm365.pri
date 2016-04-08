@@ -9,7 +9,8 @@ SOURCES += \
     dm365/SemMP_posix.c \
     dm365/ipcamerastreamer.cpp \
     dm365/simple1080pstreamer.cpp \
-    dm365/simplertpstreamer.cpp
+    dm365/simplertpstreamer.cpp \
+    dm365/cvbsstreamer.cpp
 
 HEADERS += dm365/dm365camerainput.h \
     dm365/dm365videooutput.h \
@@ -19,7 +20,8 @@ HEADERS += dm365/dm365camerainput.h \
     dm365/irqk.h \
     dm365/ipcamerastreamer.h \
     dm365/simple1080pstreamer.h \
-    dm365/simplertpstreamer.h
+    dm365/simplertpstreamer.h \
+    dm365/cvbsstreamer.h
 
 xdc.files += dm365/tipaths.pri
 xdc.files += dm365/dm365_xdc.pri
