@@ -7,9 +7,7 @@ QT += network
 
 SOURCES += main.cpp \
     testcontroller.cpp \
-    pipelinefixturegeneral.cpp \
-    btcpsocket.cpp \
-    btcpserver.cpp
+    pipelinefixturegeneral.cpp
 
 include (build_config.pri)
 
@@ -22,12 +20,11 @@ lessThan(QT_VERSION, 4.7) {
 
 include($$INSTALL_PREFIX/usr/local/include/lmm/lmm.pri)
 include($$INSTALL_PREFIX/usr/local/include/lmm/dm365/dm365_xdc.pri)
+LIBS += $$INSTALL_PREFIX/usr/local/lib/libEncoderCommonLibrary.a
 
 DEPENDPATH += $${INCLUDEPATH}
 
 HEADERS += \
     testcontroller.h \
     pipelinefixturegeneral.h \
-    common.h \
-    btcpsocket.h \
-    btcpserver.h
+    common.h

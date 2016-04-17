@@ -1,5 +1,4 @@
 #include "testcontroller.h"
-#include "btcpserver.h"
 
 #include <QTimer>
 #include <QTcpSocket>
@@ -12,6 +11,8 @@
 #include <lmm/baselmmpipeline.h>
 #include <lmm/pipeline/pipelinemanager.h>
 #include <lmm/pipeline/pipelinedebugger.h>
+
+#include <ecl/net/btcpserver.h>
 
 #define dsInit() \
 	QByteArray ba; \
