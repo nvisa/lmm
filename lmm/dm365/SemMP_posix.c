@@ -420,7 +420,7 @@ static Int enterCS(Int key)
      *  access. If this call fails, we assume it's because another process
      *  has created it. In that case we loop until we can create it.
      */
-    id = semget((key_t)key, 1, 0666 | IPC_CREAT | IPC_EXCL);
+	id = semget((key_t)key, 1, 0666 | IPC_CREAT);
 
     while (id == -1) {
         /* Yield */
@@ -439,7 +439,7 @@ static Int enterCS(Int key)
          *  Wait til the semaphore is removed by the other process so we
          *  can get it for ourself.
          */
-        id = semget((key_t)key, 1, 0666 | IPC_CREAT | IPC_EXCL);
+		id = semget((key_t)key, 1, 0666 | IPC_CREAT);
     }
 
     GT_1trace(curTrace, GT_ENTER, "Leaving enterCS> id[0x%x]\n", id);
