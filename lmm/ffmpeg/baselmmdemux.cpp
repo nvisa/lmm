@@ -266,7 +266,7 @@ int BaseLmmDemux::demuxOne()
 			} else {
 				buf.pars()->pts = -1;
 			}
-			buf.pars()->streamBufferNo = demuxedCount++;
+			buf.pars()->streamBufferNo = demuxedCount[audioStreamIndex]++;
 			buf.setCodecContext(getAudioCodecContext());
 			newOutputBuffer(1, buf);
 		} else
@@ -283,7 +283,7 @@ int BaseLmmDemux::demuxOne()
 			} else {
 				buf.pars()->pts = -1;
 			}
-			buf.pars()->streamBufferNo = demuxedCount++;
+			buf.pars()->streamBufferNo = demuxedCount[videoStreamIndex]++;
 			if (packet->flags & AV_PKT_FLAG_KEY)
 				buf.pars()->frameType = 0;
 			else
@@ -309,7 +309,7 @@ int BaseLmmDemux::processBuffer(const RawBuffer &buf)
 
 int BaseLmmDemux::getDemuxedCount()
 {
-	return demuxedCount;
+	return demuxedCount[videoStreamIndex];
 }
 
 int BaseLmmDemux::processBlocking(int ch)
@@ -424,7 +424,7 @@ int BaseLmmDemux::start()
 		conlock.unlock();
 	}
 	unblockContext = false;
-	demuxedCount = 0;
+	demuxedCount.clear();
 	streamPosition = 0;
 	videoStreamIndex = audioStreamIndex = -1;
 	audioStream = videoStream = NULL;

@@ -63,7 +63,7 @@ protected:
 	QMutex conlock;
 	int avioBufferSize;
 	uchar *avioBuffer;
-	int demuxedCount;
+	QHash<int, int> demuxedCount;
 	bool unblockContext;
 	/*
 	 * In older FFmpeg releases AVIOContext is typedef to
