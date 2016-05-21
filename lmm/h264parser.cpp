@@ -42,7 +42,7 @@ enum h264_nal_sei_type
 	NAL_SEI_FULL_MOTION_CONSTRAINED_SLICE_GROUP_SET
 };
 
-H264Parser::H264Parser(QObject *parent) :
+SimpleH264Parser::SimpleH264Parser(QObject *parent) :
 	BaseLmmParser(parent)
 {
 	h264Mode = H264_OUTPUT_NALU;
@@ -100,25 +100,25 @@ static const uint8_t * findNextStartCodeIn(const uint8_t *p, const uint8_t *end)
  * Return pointer contains the start code as well. If it cannot find start
  * code it returns the end of the given buffer minus 4.
  */
-const uchar * H264Parser::findNextStartCode(const uchar *p, const uchar *end){
+const uchar * SimpleH264Parser::findNextStartCode(const uchar *p, const uchar *end){
 	const uint8_t *out= findNextStartCodeIn(p, end);
 	if(p<out && out<end && !out[-1]) out--;
 	return out;
 }
 
-void H264Parser::setExtractSei()
+void SimpleH264Parser::setExtractSei()
 {
 	extractSei = true;
 }
 
-H264SeiInfo H264Parser::getSeiData(int bufferNo)
+H264SeiInfo SimpleH264Parser::getSeiData(int bufferNo)
 {
 	if (seiData.contains(bufferNo))
 		return seiData.take(bufferNo);
 	return H264SeiInfo();
 }
 
-int H264Parser::parse(const uchar *data, int size)
+int SimpleH264Parser::parse(const uchar *data, int size)
 {
 	if (packState == 0)
 		return findNextStartCode(data, size);
@@ -189,7 +189,7 @@ int H264Parser::parse(const uchar *data, int size)
 	return 0;
 }
 
-H264SeiInfo H264Parser::parseNoStart(const uchar *data)
+H264SeiInfo SimpleH264Parser::parseNoStart(const uchar *data)
 {
 	H264SeiInfo sinfo;
 	sinfo.offset = -1;
@@ -220,7 +220,7 @@ H264SeiInfo H264Parser::parseNoStart(const uchar *data)
 	return sinfo;
 }
 
-int H264Parser::processBuffer(const RawBuffer &buf)
+int SimpleH264Parser::processBuffer(const RawBuffer &buf)
 {
 	if (insertSpsPps && spsBuf.size() == 0) {
 		const uchar *d = (const uchar *)buf.constData();
@@ -291,7 +291,7 @@ int H264Parser::processBuffer(const RawBuffer &buf)
 	return 0;
 }
 
-void H264Parser::extractSeiData(RawBuffer buf)
+void SimpleH264Parser::extractSeiData(RawBuffer buf)
 {
 	const uchar *start = (const uchar *)buf.constData();
 	const uchar *d = start;
@@ -311,7 +311,7 @@ void H264Parser::extractSeiData(RawBuffer buf)
 	}
 }
 
-int H264Parser::findNextStartCode(const uchar *data, int size)
+int SimpleH264Parser::findNextStartCode(const uchar *data, int size)
 {
 	for (int i = 0; i < size - 2; i++) {
 		if (data[i] == 0 && data[i + 1] == 0 && data[i + 2] == 1) {
@@ -327,7 +327,7 @@ int H264Parser::findNextStartCode(const uchar *data, int size)
 	return 0;
 }
 
-int H264Parser::getNalType(const uchar *data)
+int SimpleH264Parser::getNalType(const uchar *data)
 {
 	return data[4] & 0x1f;
 }

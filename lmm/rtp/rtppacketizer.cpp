@@ -322,10 +322,10 @@ int RtpPacketizer::processBuffer(const RawBuffer &buf)
 		uchar *rtpbuf = NULL;
 		qint64 ts = packetTimestamp(0);
 		while (1) {
-			const uchar *first = H264Parser::findNextStartCode(data, data + size);
+			const uchar *first = SimpleH264Parser::findNextStartCode(data, data + size);
 			if (first >= end)
 				break;
-			const uchar *next = H264Parser::findNextStartCode(first + 4, first + size - 4);
+			const uchar *next = SimpleH264Parser::findNextStartCode(first + 4, first + size - 4);
 			if (next >= end) {
 				mDebug("unexpected end of buffer, ignoring");
 				break;

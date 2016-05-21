@@ -1,5 +1,5 @@
-#ifndef H264PARSER_H
-#define H264PARSER_H
+#ifndef SIMPLEH264PARSER_H
+#define SIMPLEH264PARSER_H
 
 #include "baselmmparser.h"
 
@@ -18,11 +18,11 @@ public:
 	QByteArray payload;
 };
 
-class H264Parser : public BaseLmmParser
+class SimpleH264Parser : public BaseLmmParser
 {
 	Q_OBJECT
 public:
-	explicit H264Parser(QObject *parent = 0);
+	explicit SimpleH264Parser(QObject *parent = 0);
 	static const uchar * findNextStartCode(const uchar *p, const uchar *end);
 	static int getNalType(const uchar *data);
 	void setSpsPpsInsertion(bool v) { insertSpsPps = v; }
@@ -57,4 +57,4 @@ protected:
 	QMap<int, H264SeiInfo> seiData;
 };
 
-#endif // H264PARSER_H
+#endif // SIMPLEH264PARSER_H
