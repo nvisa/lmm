@@ -18,6 +18,7 @@ FFmpegDecoder::FFmpegDecoder(QObject *parent) :
 	BaseLmmDecoder(parent)
 {
 	rgbOut = true;
+	bgrOut = false;
 	codecCtx = NULL;
 	outWidth = 0;
 	outHeight = 0;
@@ -133,12 +134,18 @@ int FFmpegDecoder::convertColorSpace(RawBuffer buf)
 				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<AVPixelFormat>(codecCtx->pix_fmt),
 									outWidth, outHeight, AV_PIX_FMT_RGB24, SWS_BICUBIC
 									, NULL, NULL, NULL);
+			else if (bgrOut)
+				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<AVPixelFormat>(codecCtx->pix_fmt),
+									outWidth, outHeight, AV_PIX_FMT_BGR24, SWS_BICUBIC
+									, NULL, NULL, NULL);
 			else
 				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<AVPixelFormat>(codecCtx->pix_fmt),
 									outWidth, outHeight, AV_PIX_FMT_GRAY8, SWS_BICUBIC
 									, NULL, NULL, NULL);
 			QString mime = "video/x-raw-rgb";
-			if (!rgbOut)
+			if (bgrOut)
+				mime = "video/x-raw-bgr";
+			else if (!rgbOut)
 				mime = "video/x-raw-gray";
 			for (int i = 0; i < 15; i++) {
 				mInfo("allocating sw scale buffer %d with size %dx%d", i, outWidth, outHeight);
@@ -159,6 +166,9 @@ int FFmpegDecoder::convertColorSpace(RawBuffer buf)
 		if (rgbOut) {
 			outbuf = RawBuffer(QString("video/x-raw-rgb"),
 							 (const void *)poolbuf.data(), poolbuf.size(), this);
+		} else if (bgrOut) {
+				outbuf = RawBuffer(QString("video/x-raw-bgr"),
+								 (const void *)poolbuf.data(), poolbuf.size(), this);
 		} else {
 			/*int lsz = avFrame->linesize[0];
 			for (int i = 0; i < codecCtx->height; i++)
@@ -169,6 +179,8 @@ int FFmpegDecoder::convertColorSpace(RawBuffer buf)
 		outbuf.pars()->videoHeight = outHeight;
 		if (rgbOut)
 			outbuf.pars()->avPixelFormat = AV_PIX_FMT_RGB24;
+		else if (bgrOut)
+			outbuf.pars()->avPixelFormat = AV_PIX_FMT_BGR24;
 		else
 			outbuf.pars()->avPixelFormat = AV_PIX_FMT_GRAY8;
 		outbuf.pars()->avFrame = (quintptr *)frame;

@@ -43,7 +43,8 @@ int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 	RawBuffer outbuf;
 
 	int stride = w;
-	if (inPixFmt == AV_PIX_FMT_RGB24)
+	if (inPixFmt == AV_PIX_FMT_RGB24
+			|| inPixFmt == AV_PIX_FMT_BGR24)
 		stride = w * 3;
 	int srcStride[3] = { stride, stride, stride };
 	const uchar *in = (const uchar *)buf.constData();

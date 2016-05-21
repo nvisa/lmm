@@ -47,6 +47,11 @@ FFmpegBuffer::FFmpegBuffer(QString mimeType, int width, int height, BaseLmmEleme
 		avpicture_fill((AVPicture *)dd->frame, dd->frameData, AV_PIX_FMT_GRAY8,
 					   width, height);
 		dd->frameSize = width * height * 1;
+	} else if (mimeType == "video/x-raw-bgr") {
+		dd->frameData = new uchar[width * height * 3];
+		avpicture_fill((AVPicture *)dd->frame, dd->frameData, AV_PIX_FMT_BGR24,
+					   width, height);
+		dd->frameSize = width * height * 3;
 	}
 
 	setRefData(d->mimeType, dd->frameData, dd->frameSize);

@@ -24,6 +24,7 @@ public:
 	virtual int stopDecoding();
 	virtual void aboutToDeleteBuffer(const RawBufferParameters *params);
 	void setRgbOutput(bool val) { rgbOut = val; }
+	void setBgrOutput(bool val) { bgrOut = val; }
 	void setOutputScale(int w, int h, bool keepAspect) { outWidth = w; outHeight = h; keepAspectRatio = keepAspect; }
 	void decodeOnlyKeyframe(bool v) { onlyKeyframe = v; }
 protected:
@@ -41,6 +42,7 @@ private:
 	LmmBufferPool *pool;
 	QMap<int, RawBuffer> poolBuffers;
 	bool rgbOut;
+	bool bgrOut;
 	int outWidth;
 	int outHeight;
 	int keepAspectRatio;
