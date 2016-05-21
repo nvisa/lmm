@@ -384,7 +384,7 @@ int BaseLmmDemux::readPacket(uint8_t *buffer, int buf_size)
 		memcpy(buffer + copied, buf.constData(), left);
 		/* some data will left, put back to input buffers */
 		RawBuffer newbuf(mimeType(), (uchar *)buf.constData() + left, buf.size() - left);
-		prependInputBuffer(0, newbuf);
+		//prependInputBuffer(0, newbuf);
 		copied += left;
 		left -= left;
 	} else {
