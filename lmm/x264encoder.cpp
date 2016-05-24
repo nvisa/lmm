@@ -8,6 +8,7 @@ extern "C" {
 }
 
 #include <errno.h>
+#include <linux/videodev2.h>
 
 struct x264EncoderPriv {
 	x264_picture_t *pic;
@@ -18,6 +19,7 @@ struct x264EncoderPriv {
 	int w;
 	int h;
 	int stride;
+	int pixelFormat;
 };
 
 x264Encoder::x264Encoder(QObject *parent) :
@@ -28,13 +30,14 @@ x264Encoder::x264Encoder(QObject *parent) :
 	priv->w = 640;
 	priv->h = 360;
 	priv->stride = priv->w * 1;
+	priv->pixelFormat = X264_CSP_I420;
 }
 
 int x264Encoder::start()
 {
 	if (x264_param_default_preset(&priv->param, "ultrafast", NULL) < 0)
 		return -EINVAL;
-	priv->param.i_csp = X264_CSP_I420;
+	priv->param.i_csp = priv->pixelFormat;
 	priv->param.i_width  = priv->w;
 	priv->param.i_height = priv->h;
 	priv->param.b_vfr_input = 0;
@@ -51,11 +54,19 @@ int x264Encoder::start()
 		return -EINVAL;
 
 	x264_picture_init(priv->pic);
-	priv->pic->img.i_csp = X264_CSP_I420;
-	priv->pic->img.i_plane = 3;
-	priv->pic->img.i_stride[0] = priv->stride;
-	priv->pic->img.i_stride[1] = priv->stride / 2;
-	priv->pic->img.i_stride[2] = priv->stride / 2;
+	priv->pic->img.i_csp = priv->pixelFormat;
+	if (priv->pixelFormat == X264_CSP_I420) {
+		priv->pic->img.i_plane = 3;
+		priv->pic->img.i_stride[0] = priv->stride;
+		priv->pic->img.i_stride[1] = priv->stride / 2;
+		priv->pic->img.i_stride[2] = priv->stride / 2;
+	} else if (priv->pixelFormat == X264_CSP_NV12) {
+		priv->pic->img.i_plane = 3;
+		priv->pic->img.i_stride[0] = priv->stride;
+		priv->pic->img.i_stride[1] = priv->stride;
+		priv->pic->img.i_stride[2] = priv->stride;
+	} else
+		return -EINVAL;
 	if (x264_picture_alloc(&priv->picout, priv->param.i_csp, priv->param.i_width, priv->param.i_height) < 0)
 		return -ENOMEM;
 
@@ -68,6 +79,34 @@ int x264Encoder::start()
 int x264Encoder::stop()
 {
 	return BaseLmmElement::stop();
+}
+
+int x264Encoder::setVideoResolution(const QSize &sz)
+{
+	int pfmt = 0;
+	if (priv) {
+		pfmt = priv->pixelFormat;
+		if (priv->pic)
+			delete priv->pic;
+		delete priv;
+	}
+	priv = new x264EncoderPriv;
+	priv->pic = new x264_picture_t;
+	priv->w = sz.width();
+	priv->h = sz.height();
+	priv->stride = priv->w * 1;
+	priv->pixelFormat = pfmt;
+}
+
+int x264Encoder::setPixelFormat(int fmt)
+{
+	if (fmt == V4L2_PIX_FMT_NV12)
+		priv->pixelFormat = X264_CSP_NV12;
+	else if (fmt == V4L2_PIX_FMT_YUV420)
+		priv->pixelFormat = X264_CSP_I420;
+	else
+		return -EINVAL;
+	return 0;
 }
 
 int x264Encoder::processBuffer(const RawBuffer &buf)
