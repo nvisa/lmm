@@ -14,6 +14,3 @@ dm365 {
     SUBDIRS += dm365_ipstr \
         tests
 }
-
-RESOURCES += \
-    art.qrc
