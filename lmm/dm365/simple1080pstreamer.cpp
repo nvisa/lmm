@@ -8,6 +8,7 @@
 #include <lmm/dmai/jpegencoder.h>
 #include <lmm/dmai/h264encoder.h>
 #include <lmm/dm365/dm365dmacopy.h>
+#include <lmm/rtp/rtptransmitter.h>
 #include <lmm/rtsp/basertspserver.h>
 #include <lmm/dm365/dm365camerainput.h>
 #include <lmm/dm365/dm365videooutput.h>
@@ -25,13 +26,15 @@ Simple1080pStreamer::Simple1080pStreamer(QObject *parent) :
 	sensorMode(false)
 {
 	camIn = new DM365CameraInput;
+	camIn->setSize(0, QSize(1920, 1080));
 	elements << camIn;
 
-	int videoFps = 30;
+	int videoFps = 25;
 	QSize sz0 = camIn->getSize(0);
 	//QSize sz1 = camIn->getSize(1);
 
 	enc264High = new H264Encoder;
+	enc264High->setFrameRate(videoFps);
 	enc264High->setSeiEnabled(false);
 	enc264High->setPacketized(true);
 	enc264High->setObjectName("H264EncoderHigh");
@@ -64,13 +67,16 @@ Simple1080pStreamer::Simple1080pStreamer(QObject *parent) :
 	setElSize(textOverlay, sz0);
 	elements << textOverlay;*/
 
+	RtpTransmitter *rtpHigh = new RtpTransmitter(this);
+	elements << rtpHigh;
+
 	/* setup pipelines */
 	BaseLmmPipeline *p1 = addPipeline();
-	BaseLmmPipeline *p2 = addPipeline();
 	/* construct pipeline1 */
-	p1->appendPipe(camIn);
+	p1->append(camIn);
 	//p1->appendPipe(textOverlay)->setPassThru(true);
-	p1->appendPipe(enc264High);
+	p1->append(enc264High);
+	p1->append(rtpHigh);
 	p1->end();
 	/*
 	 * If encoder is not packetized, we need to copy buffers,
@@ -79,12 +85,14 @@ Simple1080pStreamer::Simple1080pStreamer(QObject *parent) :
 	//p1->appendPipe(rtsp)->setCopyOnUse(!enc264High->isPacketized());
 
 	/* construct pipeline2 */
-	BasePipeElement *pipe1 = p2->appendPipe(camIn);
-	pipe1->setProcessChannel(-1); /* camera will be processed in 1st pipeline */
-	pipe1->setSourceChannel(1);
+	BaseLmmPipeline *p2 = addPipeline();
+	p2->append(camIn);
 	p2->end();
 
-	ffDebug() << "this is done";
+	/* rtsp server */
+	BaseRtspServer *rtsp = new BaseRtspServer(this);
+	rtsp->addStream("stream1", false, rtpHigh);
+	rtsp->addStream("stream1m", true, rtpHigh, 15678);
 }
 
 QList<RawBuffer> Simple1080pStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
