@@ -108,14 +108,14 @@ static inline QString createDateHeader()
 	return QString("Date: %1 GMT").arg(QDateTime::currentDateTime().toUTC().toString("ddd, dd MMM yyyy hh:mm:ss"));
 }
 
-BaseRtspServer::BaseRtspServer(QObject *parent) :
+BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	QObject(parent)
 {
 	multicastAddressBase = "224.1.1.1";
 	enabled = true;
 	server = new QTcpServer(this);
-	if (!server->listen(QHostAddress::Any, 554))
-		mDebug("unable to bind to tcp port 554");
+	if (!server->listen(QHostAddress::Any, port))
+		mDebug("unable to bind to tcp port %d", port);
 	connect(server, SIGNAL(newConnection()), SLOT(newRtspConnection()));
 	mapperDis = new QSignalMapper(this);
 	mapperErr = new QSignalMapper(this);

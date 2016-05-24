@@ -67,7 +67,7 @@ class BaseRtspServer : public QObject
 {
 	Q_OBJECT
 public:
-	explicit BaseRtspServer(QObject *parent = 0);
+	explicit BaseRtspServer(QObject *parent = 0, int port = 554);
 	QString getMulticastAddress(QString streamName);
 	int getMulticastPort(QString streamName);
 	int setEnabled(bool val);
