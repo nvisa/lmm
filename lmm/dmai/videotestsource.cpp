@@ -46,7 +46,7 @@
 	\sa DM365CameraInput
 */
 
-#define NUM_OF_BUFFERS 300
+#define NUM_OF_BUFFERS 3
 
 VideoTestSource::VideoTestSource(QObject *parent) :
 	BaseLmmElement(parent)
@@ -234,9 +234,9 @@ int VideoTestSource::processBlocking(int ch)
 {
 	if (getState() == STOPPED)
 		return -EINVAL;
-	//QElapsedTimer t; t.start();
-	//while (t.elapsed() * 1000 < bufferTime)
-	//usleep(bufferTime);
+	QElapsedTimer t; t.start();
+	while (t.elapsed() * 1000 < bufferTime)
+		usleep(bufferTime);
 	RawBuffer buf("", ch);
 	notifyEvent(EV_PROCESS, buf);
 	int err = processBuffer(buf);
