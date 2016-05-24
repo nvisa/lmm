@@ -214,13 +214,17 @@ void RtpTransmitter::packetizeAndSend(const RawBuffer &buf)
 		if (end - next == 4)
 			next = end;
 
+		int dOff = 4;
+		if (first[2] == 1)
+			dOff = 3;
+
 		if (!useStapA) {
 			/* while sending we omit NAL start-code */
-			channelsSendNal(first + 4, next - first - 4, ts);
+			channelsSendNal(first + dOff, next - first - dOff, ts);
 		} else {
 			/* Use STAP-A messages */
-			const uchar *buf = first + 4;
-			int usize = next - first - 4;
+			const uchar *buf = first + dOff;
+			int usize = next - first - dOff;
 
 			if (usize + 3 > maxPayloadSize) {
 				mInfo("too big for stap-a(%d bytes), fuaing", usize);
