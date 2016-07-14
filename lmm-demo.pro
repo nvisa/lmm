@@ -10,7 +10,8 @@ TEMPLATE = subdirs
 CONFIG += ordered
 SUBDIRS = lmm
 
-dm365 {
+linux-gnueabi-oe-g++ {
+    #This should be a dm365 build
     SUBDIRS += dm365_ipstr \
         tests
 }

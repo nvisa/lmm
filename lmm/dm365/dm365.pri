@@ -28,7 +28,7 @@ xdc.files += dm365/dm365_xdc.pri
 xdc.files += dm365/config.bld
 xdc.files += dm365/dm365.cfg
 xdc.files += dm365/ih264venc.h
-xdc.path = /usr/local/include/lmm/dm365
+xdc.path = $$INSTALL_PREFIX/usr/local/include/lmm/dm365
 
 CONFIG += arm
 

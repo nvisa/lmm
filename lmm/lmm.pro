@@ -279,7 +279,7 @@ dm6446 {
     xdc.files += dm6446/dm6446.pri
     xdc.files += dm6446/config.bld
     xdc.files += dm6446/dm6446.cfg
-    xdc.path = /usr/local/include/lmm/dm6446
+    xdc.path = $$INSTALL_PREFIX/usr/local/include/lmm/dm6446
     CONFIG += arm
 
     OTHER_FILES += \
@@ -329,7 +329,7 @@ dm8168 {
 
 	xdc.files += dm8168/tipaths.pri
 	xdc.files += dm8168/dm8168.pri
-	xdc.path = /usr/local/include/lmm/dm8168
+        xdc.path = $$INSTALL_PREFIX/usr/local/include/lmm/dm8168
 	CONFIG += arm
 
 	OTHER_FILES += \
@@ -351,16 +351,16 @@ arm {
 INCLUDEPATH += ..
 
 headers.files = lmm.pri
-headers.path = /usr/local/include/lmm
+headers.path = $$INSTALL_PREFIX/usr/local/include/lmm
 
-target.path = /usr/local/lib
+target.path = $$INSTALL_PREFIX/usr/local/lib
 
 INSTALLS += target headers xdc
 
 #Following for installs each module into its own subdirectory
 #without this all files will be installed into 1 folder
 for(h, HEADERS) {
-    file=$$join(h, "", "/usr/local/include/lmm/")
+    file=$$join(h, "", "$$INSTALL_PREFIX/usr/local/include/lmm/")
     dir=$$dirname(file)
     base=$$basename(dir)
     !contains(paths, $$dir) {
