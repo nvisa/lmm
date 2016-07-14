@@ -19,10 +19,10 @@ SOURCES += main.cpp
 include (build_config.pri)
 
 lessThan(QT_VERSION, 4.7) {
-    INCLUDEPATH += $$INSTALL_PREFIX/usr/local/include/lmm/compat
+    INCLUDEPATH += $$PWD/../lmm/compat
 }
 
-include($$INSTALL_PREFIX/usr/local/include/lmm/dm365/dm365_xdc.pri)
+include($$PWD/../lmm/dm365/dm365_xdc.pri)
 
 INCLUDEPATH += $$INSTALL_PREFIX/usr/local/include
 LIBS += $$INSTALL_PREFIX/usr/local/lib/libEncoderCommonLibrary.a
