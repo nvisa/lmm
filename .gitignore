@@ -5,3 +5,4 @@ lmm/doc/latex/
 lmm/build_config.pri
 lmm/version.h
 tmp/
+lmm/zynq/

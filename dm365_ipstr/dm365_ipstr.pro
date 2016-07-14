@@ -25,4 +25,6 @@ lessThan(QT_VERSION, 4.7) {
 include($$INSTALL_PREFIX/usr/local/include/lmm/lmm.pri)
 include($$INSTALL_PREFIX/usr/local/include/lmm/dm365/dm365_xdc.pri)
 
+LIBS += $$INSTALL_PREFIX/usr/local/lib/libEncoderCommonLibrary.a
+
 DEPENDPATH += $${INCLUDEPATH}
