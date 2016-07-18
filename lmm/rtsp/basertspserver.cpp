@@ -502,7 +502,7 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 		url.append("/");
 	QString sid = getField(lines, "Session");
 	if (sessions.contains(sid)) {
-		//closeSession(sid);
+		closeSession(sid);
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("CSeq: %1").arg(cseq);
 		resp << createDateHeader();
