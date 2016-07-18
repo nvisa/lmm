@@ -757,7 +757,16 @@ void BaseRtspSession::rtpGoodbyeRecved()
 
 void BaseRtspSession::rtcpTimedOut()
 {
-	mDebug("RTCP timed out for session '%s'", qPrintable(sessionId));
+	if (!rtspTimeoutEnabled) {
+		/* we don't use RTSP timeout, so we can close session */
+		mDebug("RTCP timed out for session '%s'", qPrintable(sessionId));
+		server->closeSession(sessionId);
+		return;
+	}
+	if (timeout->elapsed() < 60000)
+		/* we use RTSP timeout and it is not timed-out yet */
+		return;
+	mDebug("both RTSP and RTCP timed-out, closing session '%s'", qPrintable(sessionId));
 	server->closeSession(sessionId);
 }
 
