@@ -2,7 +2,6 @@
 #include "debug.h"
 
 #include <lmm/dmai/h264encoder.h>
-#include <lmm/tools/basesettinghandler.h>
 
 #include <QFile>
 #include <QDateTime>
@@ -17,8 +16,6 @@ SeiInserter::SeiInserter(QObject *parent) :
 	seiAlarm = (AlarmProps){ALARM_IDLE, 0 ,300, 3000, 5000};
 	seiActDur = 200;
 	seiTimerStarted = false;
-
-	BaseSettingHandler::addHandler("video_metadata", this);
 }
 
 int SeiInserter::setSeiProps(SeiInserter::AlarmType type, const QByteArray &data)
@@ -82,47 +79,4 @@ void SeiInserter::setAlarmID()
 {
 	seiAlarm.alarmNumber = alarmID;
 	alarmID++;
-}
-
-int SeiInserter::setSetting(const QString &setting, const QVariant &value)
-{
-	if (equals("video_metadata.sei._current_configuration")) {
-		int seiDuration, alarmDuration, seiOffTime, insMode, seiActDur;
-		insMode = BaseSettingHandler::getCache("video_metadata.sei.insertmode").toInt();
-		seiDuration = BaseSettingHandler::getCache("video_metadata.sei.activeduration").toInt();
-		alarmDuration = BaseSettingHandler::getCache("video_metadata.sei.alarmduration").toInt();
-		seiOffTime = BaseSettingHandler::getCache("video_metadata.sei.offtime").toInt();
-		seiActDur = BaseSettingHandler::getCache("video_metadata.sei.packetactivetime").toInt();
-		mDebug("seiMode = %d, seiDuration = %d, alarmDuration = %d, seiOffTime = %d", insMode, seiDuration, alarmDuration, seiOffTime);
-		this->seiActDur = seiActDur;
-		return 0;
-	} else if (starts("video_metadata.sei.")) {
-		return 0;
-	}
-
-	return -ENOENT;
-}
-
-QVariant SeiInserter::getSetting(const QString &setting)
-{
-	if (equals("video_metadata.sei.insertmode")) {
-		return 0;
-	}
-	if (equals("video_metadata.sei.insertmode")) {
-		return seiAlarm.alarmType;
-	}
-	if (equals("video_metadata.sei.activeduration")) {
-		return seiAlarm.seiDuration;
-	}
-	if (equals("video_metadata.sei.alarmduration")) {
-		return seiAlarm.alarmDuration;
-	}
-	if (equals("video_metadata.sei.offtime")) {
-		return seiAlarm.seiOfftime;
-	}
-	if (equals("video_metadata.sei.packetactivetime")) {
-		return seiActDur;
-	}
-
-	return QVariant();
 }

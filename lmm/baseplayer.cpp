@@ -1,6 +1,5 @@
 #include "baseplayer.h"
 #include "tools/remoteconsole.h"
-#include "tools/basesettinghandler.h"
 
 #include <lmm/debug.h>
 #include <lmm/streamtime.h>

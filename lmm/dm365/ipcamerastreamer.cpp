@@ -12,7 +12,6 @@
 #include <lmm/rtsp/basertspserver.h>
 #include <lmm/dm365/dm365camerainput.h>
 #include <lmm/dm365/dm365videooutput.h>
-#include <lmm/tools/basesettinghandler.h>
 #include <lmm/pipeline/basepipeelement.h>
 
 #include <QFile>
@@ -52,12 +51,14 @@ IPCameraStreamer::IPCameraStreamer(QObject *parent) :
 	BaseStreamer(parent)
 {
 	ImplementationSettings sets;
-	const QHash<QString, QVariant> _sets = BaseSettingHandler::getSubSettings("Implementation"); Q_UNUSED(_sets);
+#if 0
+	Q_UNUSED(sets);
 	/* set-up defaults */
 	setIntFromIni("h264_queue_size", sets.h264QueueSize);
 	setIntFromIni("h264_queue_alloc_size", sets.h264QueueAllocSize);
 	setIntFromIni("raw_queue_size", sets.rawQueueSize);
 	setIntFromIni("raw_queue_size2", sets.rawQueueSize2);
+#endif
 
 	camIn = new DM365CameraInput();
 	int videoFps = 30;

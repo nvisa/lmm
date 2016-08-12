@@ -3,7 +3,6 @@
 #include "streamtime.h"
 #include "tools/cpuload.h"
 #include "debug.h"
-#include "tools/basesettinghandler.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -28,8 +27,6 @@ TextOverlay::TextOverlay(overlayType t, QObject *parent) :
 	mmapfd = -1;
 	fontSize = 28;
 	setEnabled(true);
-
-	BaseSettingHandler::addHandler("text_overlay", this);
 }
 
 int TextOverlay::setFontSize(int size)
@@ -212,86 +209,6 @@ int TextOverlay::overlayInPlace(const RawBuffer &buffer)
 	return 0;
 }
 
-int TextOverlay::setSetting(const QString &setting, const QVariant &value)
-{
-	TextOverlay *overlay = this;
-	mInfo("%s: %s", qPrintable(setting), qPrintable(value.toString()));
-	if (equals("enabled")) {
-		overlay->setEnabled(value.toInt());
-	} else if (equals("position")) {
-		QStringList l = value.toString().split("x");
-		return overlay->setOverlayPosition(QPoint(l.first().toInt(), l.last().toInt()));
-	} else if (equals("font_size")) {
-		return overlay->setFontSize(value.toInt());
-	} else if (equals("font_size_index")) {
-		const QStringList list = overlay->getFontSizes();
-		if (value.toInt() < list.size())
-			overlay->setFontSize(list[value.toInt()].toInt());
-	} else if (equals("overlay_text")) {
-		return overlay->setOverlayText(value.toString());
-	} else if (equals("fields.count")) {
-		overlay->clearFields();
-		for (int i = 0; i < value.toInt(); i++)
-			overlay->addOverlayField(TextOverlay::FIELD_STATIC_TEXT);
-	} else if (starts("fields.type")) {
-		int f = QString(setting).remove("fields.type").toInt();
-		return overlay->setOverlayField(f, (TextOverlay::overlayTextFields)value.toInt());
-	} else if (starts("fields.text")) {
-		int f = QString(setting).remove("fields.text").toInt();
-		return overlay->setOverlayFieldText(f, value.toString());
-	} else if (starts("fields.list")) {
-		return -EPERM;
-	} else
-		return -ENOENT;
-	return 0;
-}
-
-QVariant TextOverlay::getSetting(const QString &setting)
-{
-	TextOverlay *overlay = this;
-	if (equals("enabled"))
-		return overlay->isEnabled() ? "1" : "0";
-	if (equals("position"))
-		return QString("%1x%2").arg(overlay->getOverlayPosition().x())
-				.arg(overlay->getOverlayPosition().y());
-	if (equals("font_size_list")) {
-		return overlay->getFontSizes();
-	}
-	if (equals("font_size"))
-		return overlay->getFontSize();
-	if (equals("font_size_index"))
-		return overlay->getFontSizes().indexOf(QString::number(overlay->getFontSize()));
-	if (equals("overlay_text"))
-		return overlay->getOverlayText();
-	if (equals("fields.count"))
-		return overlay->getFieldCount();
-	if (starts("fields.type")) {
-		int f = QString(setting).remove("fields.type").toInt();
-		if (f < overlay->getFieldCount())
-			return overlay->getOverlayField(f);
-	}
-	if (starts("fields.text")) {
-		int f = QString(setting).remove("fields.text").toInt();
-		if (f < overlay->getFieldCount())
-			return overlay->getOverlayFieldText(f);
-	}
-	if (equals("fields.list")) {
-		QStringList list;
-		list << "Current Date";
-		list << "Current Time";
-		list << "Current Date + Time";
-		list << "Frame No";
-		list << "Static Text";
-		list << "Stream Time";
-		list << "Stream FPS";
-		list << "CPU Load";
-		list << "Capture Time";
-		list << "System setting";
-		return list;
-	}
-	return QVariant();
-}
-
 void TextOverlay::yuvSwOverlay(RawBuffer buffer)
 {
 	int pixfmt = buffer.pars()->v4l2PixelFormat;
@@ -416,9 +333,6 @@ QString TextOverlay::compileOverlayText(const RawBuffer &buf)
 			break;
 		case FIELD_AVG_CPU_LOAD:
 			args << QString::number(CpuLoad::getAverageCpuLoad());
-			break;
-		case FIELD_SETTING:
-			args << BaseSettingHandler::getSetting("video_encoding.0.profile").toString();
 			break;
 		case FIELD_FRAME_TIME: {
 			qint64 epoch = buf.constPars()->captureTime;

@@ -23,7 +23,6 @@
 #include "baselmmelement.h"
 #include "hardwareoperations.h"
 #include "debug.h"
-#include "tools/lmmsettinghandler.h"
 #include "tools/cpuload.h"
 
 #include <signal.h>
@@ -141,7 +140,6 @@ int LmmCommon::init()
 #ifdef CONFIG_GSTREAMER
 	gst_init(NULL, NULL);
 #endif
-	new LmmSettingHandler;
 	CpuLoad::getCpuLoad();
 	return 0;
 }

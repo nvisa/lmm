@@ -20,8 +20,6 @@ public:
 	};
 
 	int setSeiProps(AlarmType type, const QByteArray &data);
-	int setSetting(const QString &setting, const QVariant &value);
-	QVariant getSetting(const QString &setting);
 
 protected:
 	int processBuffer(const RawBuffer &buf);

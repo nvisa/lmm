@@ -5,7 +5,6 @@
 #include "hardwareoperations.h"
 #include "rawbuffer.h"
 #include "debug.h"
-#include "tools/basesettinghandler.h"
 
 #include <errno.h>
 #include <sys/ioctl.h>
@@ -636,8 +635,6 @@ DM365CameraInput::DM365CameraInput(QObject *parent) :
 	flashAdjusted = false;
 	flashDuration = flashOffset = 0;
 	nonStdInput.enabled = false;
-
-	BaseSettingHandler::addHandler("camera_device", this);
 }
 
 void DM365CameraInput::setInputFps(float fps)
@@ -1265,84 +1262,6 @@ int DM365CameraInput::startStreaming()
 	if (inputType == SENSOR)
 		doSensorTweaks();
 	return err;
-}
-
-int DM365CameraInput::setSetting(const QString &setting, const QVariant &value)
-{
-	DM365CameraInput *inp = this;
-	if (equals("camera_device.flash_duration")) {
-		inp->setFlashTimingDuration(value.toUInt());
-		return 0;
-	} else if (equals("camera_device.flash_vsync_offset")) {
-		inp->setFlashTimingOffset(value.toUInt());
-		return 0;
-	} else if (equals("camera_device.input_fps")) {
-		inp->setInputFps(value.toFloat());
-		return 0;
-	} else  if (equals("camera_device.output_fps")) {
-		inp->setOutputFps(value.toFloat());
-		return 0;
-	} else if (equals("camera_device.available_devices")) {
-		return -EPERM;
-	} else if (equals("camera_device.ch1.vertical_flip")) {
-		inp->setVerticalFlip(0, value.toBool());
-	} else if (equals("camera_device.ch1.horizontal_flip")) {
-		inp->setHorizontalFlip(0, value.toBool());
-	} else if (equals("camera_device.ch1.width")) {
-	} else if (equals("camera_device.ch1.height")) {
-	} else if (equals("camera_device.ch1.apply")) {
-		QSize s(BaseSettingHandler::getCache("camera_device.ch1.width").toInt(),
-				BaseSettingHandler::getCache("camera_device.ch1.height").toInt());
-		inp->setSize(0, s);
-	} else if (equals("camera_device.ch2.vertical_flip")) {
-		inp->setVerticalFlip(1, value.toBool());
-	} else if (equals("camera_device.ch2.horizontal_flip")) {
-		inp->setHorizontalFlip(1, value.toBool());
-	} else if (equals("camera_device.ch2.width")) {
-	} else if (equals("camera_device.ch2.height")) {
-	} else if (equals("camera_device.ch2.apply")) {
-		QSize s(BaseSettingHandler::getCache("camera_device.ch2.width").toInt(),
-				BaseSettingHandler::getCache("camera_device.ch2.height").toInt());
-		inp->setSize(1, s);
-	} else if (equals("camera_device.white_balance_algo"))
-		return inp->setWhiteBalanceAlgo((DM365CameraInput::whiteBalanceAlgo)value.toInt());
-
-	return 0;
-}
-
-QVariant DM365CameraInput::getSetting(const QString &setting)
-{
-	DM365CameraInput *inp = this;
-	if (equals("camera_device.input_fps")) {
-		return inp->getInputFps();
-	}
-	if (equals("camera_device.output_fps")) {
-		return inp->getOutputFps();
-	}
-	if (equals("camera_device.flash_duration")) {
-		return inp->getFlashTimingDuration();
-	}
-	if (equals("camera_device.flash_vsync_offset")) {
-		return inp->getFlashTimingOffset();
-	}
-	if (equals("camera_device.ch1.width")) {
-		return inp->getSize(0).width();
-	}
-	if (equals("camera_device.ch1.height")) {
-		return inp->getSize(0).height();
-	}
-	if (equals("camera_device.ch2.width")) {
-		return inp->getSize(1).width();
-	}
-	if (equals("camera_device.ch2.height")) {
-		return inp->getSize(1).height();
-	}
-	if (equals("camera_device.white_balance_algo"))
-		return inp->getWhiteBalanceAlgo();
-	if (equals("camera_device.aew_buffer"))
-		return QString::fromUtf8(inp->getAewBuffer().toBase64());
-
-	return QVariant();
 }
 
 int DM365CameraInput::stopStreaming()

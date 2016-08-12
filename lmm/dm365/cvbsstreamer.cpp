@@ -12,7 +12,6 @@
 #include <lmm/rtsp/basertspserver.h>
 #include <lmm/dm365/dm365camerainput.h>
 #include <lmm/dm365/dm365videooutput.h>
-#include <lmm/tools/basesettinghandler.h>
 #include <lmm/pipeline/basepipeelement.h>
 
 static inline void setElSize(BaseLmmElement *el, QSize sz)

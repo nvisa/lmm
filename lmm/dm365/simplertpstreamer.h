@@ -13,7 +13,7 @@ class SimpleRtpStreamer : public BaseStreamer
 {
 	Q_OBJECT
 public:
-	explicit SimpleRtpStreamer(QObject *parent = 0);
+	explicit SimpleRtpStreamer(const QString &dstIp, QObject *parent = 0);
 	virtual int start();
 protected:
 	virtual int startStreamer();
@@ -26,6 +26,7 @@ protected:
 	H264Encoder *enc264High;
 	SeiInserter *seiInserterHigh;
 	FileOutput *fout;
+	QString targetIp;
 };
 
 #endif // SIMPLERTPSTREAMER_H

@@ -1,5 +1,4 @@
 #include "remoteconsole.h"
-#include "basesettinghandler.h"
 #include "debug.h"
 
 #include <QUdpSocket>
@@ -43,6 +42,7 @@ static QString cerror(int code = 0)
 
 QString RemoteConsole::processMessage(QString mes)
 {
+#if 0
 	if (mes.trimmed().isEmpty())
 		return cerror();
 	QString resp;
@@ -56,4 +56,6 @@ QString RemoteConsole::processMessage(QString mes)
 		resp = QString("set:%1:%2").arg(set).arg(err);
 	}
 	return resp;
+#endif
+	return mes;
 }

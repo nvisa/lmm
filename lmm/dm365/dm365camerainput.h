@@ -69,8 +69,6 @@ public:
 
 	int startStreaming();
 
-	int setSetting(const QString &setting, const QVariant &value);
-	QVariant getSetting(const QString &setting);
 signals:
 	
 public slots:

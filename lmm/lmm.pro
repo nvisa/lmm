@@ -34,15 +34,13 @@ SOURCES += \
     v4l2output.cpp \
     buffersyncer.cpp \
     lmmbufferpool.cpp \
-	udpsource.cpp \
-	baselmmparser.cpp \
-	h264parser.cpp \
+    udpsource.cpp \
+    baselmmparser.cpp \
+    h264parser.cpp \
     rtp/rtppacketizer.cpp \
     baseplayer.cpp \
     tools/remoteconsole.cpp \
-    tools/basesettinghandler.cpp \
-	tools/lmmsettinghandler.cpp \
-	tools/cpuload.cpp \
+    tools/cpuload.cpp \
     players/simplevideoplayer.cpp \
     tools/rawnetworksocket.cpp \
     baselmmpipeline.cpp \
@@ -86,16 +84,14 @@ HEADERS  += \
     v4l2output.h \
     buffersyncer.h \
     lmmbufferpool.h \
-	udpsource.h \
-	baselmmparser.h \
-	h264parser.h \
+    udpsource.h \
+    baselmmparser.h \
+    h264parser.h \
     rtp/rtppacketizer.h \
     baseplayer.h \
     tools/remoteconsole.h \
-    tools/basesettinghandler.h \
-	tools/lmmsettinghandler.h \
-	tools/cpuload.h \
-	players/simplevideoplayer.h \
+    tools/cpuload.h \
+    players/simplevideoplayer.h \
     tools/rawnetworksocket.h \
     baselmmpipeline.h \
     pipeline/basepipeelement.h \

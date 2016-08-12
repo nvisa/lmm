@@ -45,8 +45,6 @@ public:
 	void aboutToDeleteBuffer(const RawBufferParameters *params);
 	int flush();
 
-	int setSetting(const QString &setting, const QVariant &value);
-	QVariant getSetting(const QString &setting);
 signals:
 
 private slots:

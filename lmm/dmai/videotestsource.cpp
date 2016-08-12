@@ -3,7 +3,6 @@
 #include "dmai/dmaibuffer.h"
 #include "lmmthread.h"
 #include "lmmbufferpool.h"
-#include "tools/basesettinghandler.h"
 
 #include "debug.h"
 
@@ -292,40 +291,6 @@ int VideoTestSource::stop()
 {
 	//pool->finalize();
 	return BaseLmmElement::stop();
-}
-
-int VideoTestSource::setSetting(const QString &setting, const QVariant &value)
-{
-	if (equals("camera_device.current_pattern")) {
-		return setTestPattern((VideoTestSource::TestPattern)value.toInt());
-	} else
-		return -ENOENT;
-
-	return 0;
-}
-
-QVariant VideoTestSource::getSetting(const QString &setting)
-{
-	if (equals("camera_device.available_patterns")) {
-		QStringList l;
-		l << "COLORBARS";
-		l << "COLORCHART";
-		l << "COLORSQUARES";
-		l << "GRADIENT_16";
-		l << "HEX_9X5";
-		l << "LINEAR_ZONEPLATE";
-		l << "SQUARE_WEDGES";
-		l << "STAR_BARS_144";
-		l << "STAR_BARS_FULL";
-		l << "STAR_SINE_144";
-		l << "TRT";
-		l << "ZONE_HARDEDGE";
-		return l;
-	} else if (equals("camera_device.current_pattern")) {
-		return getPattern();
-	}
-
-	return QVariant();
 }
 
 QImage VideoTestSource::getPatternImage(VideoTestSource::TestPattern p)

@@ -7,7 +7,6 @@
 #include <lmm/rtp/rtppacketizer.h>
 #include <lmm/rtsp/basertspserver.h>
 #include <lmm/dm365/dm365camerainput.h>
-#include <lmm/tools/basesettinghandler.h>
 #include <lmm/pipeline/basepipeelement.h>
 #include <lmm/fileoutput.h>
 
@@ -17,9 +16,10 @@ static inline void setElSize(BaseLmmElement *el, QSize sz)
 	el->setParameter("videoHeight", sz.height());
 }
 
-SimpleRtpStreamer::SimpleRtpStreamer(QObject *parent) :
+SimpleRtpStreamer::SimpleRtpStreamer(const QString &dstIp, QObject *parent) :
 	BaseStreamer(parent)
 {
+	targetIp = dstIp;
 	camIn = new DM365CameraInput;
 	elements << camIn;
 
@@ -68,7 +68,7 @@ SimpleRtpStreamer::SimpleRtpStreamer(QObject *parent) :
 
 int SimpleRtpStreamer::start()
 {
-	QString ip = BaseSettingHandler::getSetting("network_stream.rtp.0.dst.ip").toString();
+	QString ip = targetIp;
 	if (ip.isEmpty())
 		ip = "192.168.2.2";
 	ffDebug() << "*****************************" << ip;
