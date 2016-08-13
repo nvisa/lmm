@@ -27,7 +27,6 @@ SOURCES += \
     lmmthread.cpp \
     tools/unittimestat.cpp \
     tools/videoutils.cpp \
-    tools/systeminfo.cpp \
     rtsp/basertspserver.cpp \
     debug.cpp \
     hardwareoperations.cpp \
@@ -76,7 +75,6 @@ HEADERS  += \
     lmmthread.h \
     tools/unittimestat.h \
     tools/videoutils.h \
-    tools/systeminfo.h \
     rtsp/basertspserver.h \
     debug.h \
     hardwareoperations.h \

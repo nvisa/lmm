@@ -5,7 +5,6 @@
 #include "dm365/ih264venc.h"
 #include "streamtime.h"
 #include "tools/cpuload.h"
-#include "tools/systeminfo.h"
 #include "h264parser.h"
 
 #include <xdc/std.h>

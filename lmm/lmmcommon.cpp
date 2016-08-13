@@ -21,7 +21,6 @@
 #include <gst/gst.h>
 #endif
 #include "baselmmelement.h"
-#include "hardwareoperations.h"
 #include "debug.h"
 #include "tools/cpuload.h"
 
@@ -190,7 +189,6 @@ QString LmmCommon::getLiveMediaVersion()
 {
 	return LIVEMEDIA_LIBRARY_VERSION_STRING;
 }
-
 
 #ifdef CONFIG_VLC
 	#include <vlc/libvlc.h>
