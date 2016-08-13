@@ -14,7 +14,9 @@ CONFIG   -= app_bundle
 
 TEMPLATE = app
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    mpegdashserver.cpp \
+    genericstreamer.cpp
 
 include (build_config.pri)
 
@@ -29,3 +31,7 @@ LIBS += $$INSTALL_PREFIX/usr/local/lib/libEncoderCommonLibrary.a
 PRE_TARGETDEPS += $$INSTALL_PREFIX/usr/local/lib/libEncoderCommonLibrary.a
 
 DEPENDPATH += $${INCLUDEPATH}
+
+HEADERS += \
+    mpegdashserver.h \
+    genericstreamer.h
