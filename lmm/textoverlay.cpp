@@ -110,10 +110,12 @@ int TextOverlay::stop()
 int TextOverlay::processBuffer(const RawBuffer &buffer)
 {
 	/* we modify buffers in-place */
-	if (type == CHAR_MAP)
-		yuvSwMapOverlay(buffer);
-	else if (type == PIXEL_MAP)
-		yuvSwPixmapOverlay(buffer);
+	if (isEnabled()) {
+		if (type == CHAR_MAP)
+			yuvSwMapOverlay(buffer);
+		else if (type == PIXEL_MAP)
+			yuvSwPixmapOverlay(buffer);
+	}
 	newOutputBuffer(0, buffer);
 	return 0;
 }
