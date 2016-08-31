@@ -15,6 +15,7 @@ class CircularBuffer;
 class UnitTimeStat;
 class QSemaphore;
 class LmmThread;
+class RateReducto;
 class RawBufferParameters;
 class QElapsedTimer;
 class ElementIOQueue;
@@ -137,6 +138,7 @@ public:
 	int getSentCount() const { return sentCount; }
 	void setEventHook(eventHook hook, void *priv);
 	int getTotalSize() { return bufSize; }
+	int setRateReduction(int skip, int outOf);
 
 protected:
 	bool acquireSem() __attribute__((warn_unused_result));
@@ -160,6 +162,7 @@ protected:
 	int fpsBufferCount;
 	QElapsedTimer * fpsTiming;
 	int fps;
+	RateReducto *rc;
 
 private:
 	QMutex evLock;

@@ -163,6 +163,36 @@
 	\ingroup lmm
 */
 
+class RateReducto {
+public:
+	RateReducto(int skip, int outOf)
+	{
+		enabled = true;
+		this->skip = skip;
+		total = outOf;
+		reset();
+	}
+	void reset()
+	{
+		current = 0;
+	}
+	bool shouldSkip()
+	{
+		if (!enabled)
+			return false;
+		if (current++ < skip)
+			return true;
+		if (current >= total - 1)
+			reset();
+		return false;
+	}
+
+	int skip;
+	int total;
+	bool enabled;
+	int current;
+};
+
 static void createQueues(QList<ElementIOQueue *> *list, int cnt, BaseLmmElement *el)
 {
 	while (list->size() < cnt) {
@@ -459,6 +489,8 @@ ElementIOQueue::ElementIOQueue()
 	fpsTiming->start();
 	fps = 0;
 	fpsBufferCount = 0;
+
+	rc = NULL;
 }
 
 int ElementIOQueue::waitBuffers(int lessThan)
@@ -487,13 +519,21 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 		lock.unlock();
 		return err;
 	}
-	queue << buffer;
-	bufSize += buffer.size();
+
+	bool skip = false;
+	if (rc)
+		skip = rc->shouldSkip();
+
+	if (!skip) {
+		queue << buffer;
+		bufSize += buffer.size();
+	}
 	receivedCount++;
 	calculateFps();
 	lock.unlock();
 	notifyEvent(EV_ADD, buffer, src);
-	bufSem->release();
+	if (!skip)
+		bufSem->release();
 	return 0;
 }
 
@@ -594,6 +634,14 @@ void ElementIOQueue::setEventHook(ElementIOQueue::eventHook hook, void *priv)
 	evPriv = priv;
 	evHook = hook;
 	evLock.unlock();
+}
+
+int ElementIOQueue::setRateReduction(int skip, int outOf)
+{
+	if (!rc)
+		delete rc;
+	rc = new RateReducto(skip, outOf);
+	return 0;
 }
 
 bool ElementIOQueue::acquireSem()
