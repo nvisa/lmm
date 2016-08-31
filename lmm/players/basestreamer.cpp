@@ -36,12 +36,6 @@ QList<RawBuffer> BaseStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 
 	return QList<RawBuffer>();
 }
 
-QSize BaseStreamer::getInputSize(int input)
-{
-	Q_UNUSED(input);
-	return QSize(0, 0);
-}
-
 int BaseStreamer::start()
 {
 	/*float fpsOut = BaseSettingHandler::getSetting("camera_device.output_fps").toFloat();

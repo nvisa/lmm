@@ -31,7 +31,6 @@ protected:
 	QList<BaseLmmElement *> elements;
 
 	void signalReceived(int sig);
-	virtual QSize getInputSize(int input);
 };
 
 #endif // BASESTREAMER_H
