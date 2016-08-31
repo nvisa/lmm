@@ -31,7 +31,7 @@ public:
 	};
 	explicit TextOverlay(overlayType t = CHAR_MAP, QObject *parent = 0);
 	int setFontSize(int size);
-	int setOverlayPosition(QPoint topLeft) { overlayPos = topLeft; return 0; }
+	int setOverlayPosition(QPoint topLeft);
 	int setOverlayText(QString text);
 	void clearFields();
 	void addOverlayField(overlayTextFields f, QString val = "");

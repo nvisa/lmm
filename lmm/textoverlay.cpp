@@ -26,6 +26,7 @@ TextOverlay::TextOverlay(overlayType t, QObject *parent) :
 	type = t;
 	mmapfd = -1;
 	fontSize = 28;
+	fontHeight = 0;
 	setEnabled(true);
 }
 
@@ -41,6 +42,12 @@ int TextOverlay::setFontSize(int size)
 	mDebug("new size is %d", size);
 	maplock.unlock();
 	return 0;
+}
+
+int TextOverlay::setOverlayPosition(QPoint topLeft)
+{
+	 overlayPos = topLeft;
+	 return 0;
 }
 
 int TextOverlay::setOverlayText(QString text)
@@ -291,10 +298,10 @@ void TextOverlay::yuvSwPixmapOverlay(RawBuffer buffer)
 		/* check for buffer overflows */
 		if (overlayPos.x() + w > linelen)
 			break;
-		foreach (int i, map) {
-			val = i & 0xff;
-			x = (i >> 8) & 0x7ff;
-			y = (i >> 19) & 0x7ff;
+		foreach (int j, map) {
+			val = j & 0xff;
+			x = (j >> 8) & 0x7ff;
+			y = (j >> 19) & 0x7ff;
 			dst[linelen * y + x] = val;
 		}
 		dst += w;
