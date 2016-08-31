@@ -127,6 +127,8 @@ int DM365DmaCopy::processBuffer(const RawBuffer &buf)
 							 , (void *)Buffer_getPhysicalPtr((Buffer_Handle)dstBuf.constPars()->dmaiBuffer)
 							 , 1024, buf.size() / 1024 + 1);
 		dstBuf.setUsedSize(buf.size());
+		if (allocSize < buf.size())
+			mDebug("memory buffer too short for input buffer: %d < %d", allocSize, buf.size());
 	}
 	dstBuf.pars()->captureTime = buf.constPars()->captureTime;
 	dstBuf.pars()->videoWidth = buf.constPars()->videoWidth;
