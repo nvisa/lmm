@@ -67,7 +67,6 @@ Simple1080pStreamer::Simple1080pStreamer(QObject *parent) :
 	elements << textOverlay;*/
 
 	RtpTransmitter *rtpHigh = new RtpTransmitter(this);
-	elements << rtpHigh;
 
 	/* setup pipelines */
 	BaseLmmPipeline *p1 = addPipeline();
