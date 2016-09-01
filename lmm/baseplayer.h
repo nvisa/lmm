@@ -8,8 +8,6 @@
 #include <QUrl>
 #include <QTimer>
 
-class RemoteConsole;
-
 #define createOpThread(__func, __name, __class) { \
 	LmmThread *th = new OpThread<__class>(this, __func, __name); \
 	threads.insert(__name, th); \
@@ -108,13 +106,11 @@ protected:
 	QList<BaseLmmElement *> elements;
 	QTimer timer;
 	QUrl sourceUrl;
-	RemoteConsole *manCons;
 
 	virtual int startElement(BaseLmmElement *el);
 	virtual int startPlayer() = 0;
 	virtual int stopPlayer() = 0;
 	virtual int elementStarted(BaseLmmElement *el);
-	virtual RemoteConsole * createManagementConsole();
 	int processBuffer(const RawBuffer &);
 	virtual void timeoutHandler() {}
 

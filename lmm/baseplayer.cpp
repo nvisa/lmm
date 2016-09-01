@@ -1,5 +1,4 @@
 #include "baseplayer.h"
-#include "tools/remoteconsole.h"
 
 #include <lmm/debug.h>
 #include <lmm/streamtime.h>
@@ -18,7 +17,6 @@ BasePlayer::BasePlayer(QObject *parent) :
 	setObjectName(QString("BasePlayer%1").arg(instCount++));
 	lock.unlock();
 	timer.start(1000);
-	manCons = createManagementConsole();
 }
 
 int BasePlayer::startElement(BaseLmmElement *el)
@@ -161,11 +159,6 @@ void BasePlayer::timeout()
 int BasePlayer::elementStarted(BaseLmmElement *el)
 {
 	return 0;
-}
-
-RemoteConsole *BasePlayer::createManagementConsole()
-{
-	return new RemoteConsole(8944 + instCount, this);
 }
 
 int BasePlayer::processBuffer(const RawBuffer &)
