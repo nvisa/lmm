@@ -38,7 +38,6 @@ SOURCES += \
     h264parser.cpp \
     rtp/rtppacketizer.cpp \
     baseplayer.cpp \
-    tools/remoteconsole.cpp \
     tools/cpuload.cpp \
     players/simplevideoplayer.cpp \
     tools/rawnetworksocket.cpp \
@@ -87,7 +86,6 @@ HEADERS  += \
     h264parser.h \
     rtp/rtppacketizer.h \
     baseplayer.h \
-    tools/remoteconsole.h \
     tools/cpuload.h \
     players/simplevideoplayer.h \
     tools/rawnetworksocket.h \
