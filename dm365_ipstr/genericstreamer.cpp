@@ -140,11 +140,27 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	rtpLow = new RtpTransmitter(this);
 
 	BaseLmmPipeline *p2 = addPipeline();
+	bool enabled0 = s->get("config.pipeline.0.enabled").toBool();
+	bool enabled1 = s->get("config.pipeline.1.enabled").toBool();
 	p2->append(camIn);
-	p2->append(rawQueue2);
-	p2->append(enc264Low);
-	p2->append(rtpLow);
+	if (enabled0 && enabled1) {
+		p2->append(rawQueue2);
+		p2->append(enc264Low);
+		p2->append(rtpLow);
+	}
 	p2->end();
+
+	if (!enabled0) {
+		ElementIOQueue *q1 = camIn->getOutputQueue(0);
+		ElementIOQueue *q2 = camIn->getOutputQueue(1);
+		camIn->setOutputQueue(0, q2);
+		camIn->setOutputQueue(1, q1);
+
+		enc264High->setParameter("videoWidth", w1);
+		enc264High->setParameter("videoHeight", h1);
+		enc264Low->setParameter("videoWidth", w0);
+		enc264Low->setParameter("videoHeight", h0);
+	}
 
 	/* all input and output queues are created at this point so we adjust frame rates here */
 	if (s->get("config.pipeline.1.frame_skip.enabled").toBool()) {
