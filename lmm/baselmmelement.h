@@ -65,6 +65,8 @@ public:
 
 	void addOutputQueue(ElementIOQueue *q);
 	void addInputQueue(ElementIOQueue *q);
+	void setInputQueue(int ch, ElementIOQueue *q);
+	void setOutputQueue(int ch, ElementIOQueue *q);
 	ElementIOQueue * getOutputQueue(int ch);
 	ElementIOQueue * getInputQueue(int ch);
 	ElementIOQueue * createIOQueue();

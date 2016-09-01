@@ -348,6 +348,18 @@ void BaseLmmElement::addInputQueue(ElementIOQueue *q)
 	inq << q;
 }
 
+void BaseLmmElement::setInputQueue(int ch, ElementIOQueue *q)
+{
+	QMutexLocker l(&inql);
+	inq[ch] = q;
+}
+
+void BaseLmmElement::setOutputQueue(int ch, ElementIOQueue *q)
+{
+	QMutexLocker l(&outql);
+	outq[ch] = q;
+}
+
 ElementIOQueue *BaseLmmElement::getInputQueue(int ch)
 {
 	QMutexLocker l(&inql);
