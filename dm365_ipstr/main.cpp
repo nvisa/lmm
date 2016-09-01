@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 
 	LmmCommon::init();
 	ApplicationSettings *sets = ApplicationSettings::instance();
-	sets->load("/etc/dm365_ipstr.json");
+	sets->load("/etc/encsoft/dm365_ipstr.json");
 
 	if (sets->get("config.remote_control.enabled").toBool()) {
 		fDebug("starting remote control");
