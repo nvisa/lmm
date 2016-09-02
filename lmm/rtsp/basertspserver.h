@@ -68,12 +68,12 @@ class BaseRtspServer : public QObject
 	Q_OBJECT
 public:
 	explicit BaseRtspServer(QObject *parent = 0, int port = 554);
-	QString getMulticastAddress(QString streamName);
+	QString getMulticastAddress(const QString &streamName);
 	int getMulticastPort(QString streamName);
 	int setEnabled(bool val);
 	QString getMulticastAddressBase();
 	void setMulticastAddressBase(const QString &addr);
-	void addStream(const QString streamName, bool multicast, RtpTransmitter *rtp, int port = 0);
+	void addStream(const QString streamName, bool multicast, RtpTransmitter *rtp, int port = 0, const QString &mcastAddress = "");
 
 private slots:
 	void newRtspConnection();
@@ -94,6 +94,7 @@ private:
 		bool multicast;
 		RtpTransmitter *rtp;
 		int port;
+		QString multicastAddr;
 	};
 
 	QTcpServer *server;

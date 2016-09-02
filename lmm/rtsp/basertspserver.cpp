@@ -146,13 +146,14 @@ void BaseRtspServer::setMulticastAddressBase(const QString &addr)
 	multicastAddressBase = addr;
 }
 
-void BaseRtspServer::addStream(const QString streamName, bool multicast, RtpTransmitter *rtp, int port)
+void BaseRtspServer::addStream(const QString streamName, bool multicast, RtpTransmitter *rtp, int port, const QString &mcastAddress)
 {
 	StreamDescription desc;
 	desc.streamUrlSuffix = streamName;
 	desc.multicast = multicast;
 	desc.rtp = rtp;
 	desc.port = port;
+	desc.multicastAddr = mcastAddress;
 	streamDescriptions.insert(streamName, desc);
 }
 
@@ -170,8 +171,12 @@ RtpTransmitter *BaseRtspServer::getSessionTransmitter(const QString &streamName)
 	return NULL;
 }
 
-QString BaseRtspServer::getMulticastAddress(QString)
+QString BaseRtspServer::getMulticastAddress(const QString &streamName)
 {
+	if (streamDescriptions.contains(streamName) &&
+		!streamDescriptions[streamName].multicastAddr.isEmpty())
+			return streamDescriptions[streamName].multicastAddr;
+
 	QHostAddress ipAddr = myIpAddr;
 	QHostAddress netmask = myNetmask;
 	quint32 addr = (netmask.toIPv4Address() & QHostAddress(multicastAddressBase).toIPv4Address())
