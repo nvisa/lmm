@@ -96,6 +96,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	rtpHigh = new RtpTransmitter(this);
 
 	BaseLmmPipeline *p1 = addPipeline();
+
 	p1->append(camIn);
 	p1->append(textOverlay);
 	p1->append(rawQueue);
@@ -172,7 +173,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	/* rtsp server */
 	BaseRtspServer *rtsp = new BaseRtspServer(this);
 	rtsp->addStream("stream1", false, rtpHigh);
-	rtsp->addStream("stream1m", true, rtpHigh, 15678);
+	rtsp->addStream("stream1m", true, rtpHigh, s->get("video_encoding.ch.0.onvif.multicast_port").toInt(),
+					s->get("video_encoding.ch.0.onvif.multicast_address").toString());
 	rtsp->addStream("stream2", false, rtpLow);
-	rtsp->addStream("stream2m", true, rtpLow, 15688);
+	rtsp->addStream("stream2m", true, rtpLow, s->get("video_encoding.ch.1.onvif.multicast_port").toInt(),
+					s->get("video_encoding.ch.1.onvif.multicast_address").toString());
 }
