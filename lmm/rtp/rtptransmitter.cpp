@@ -74,6 +74,7 @@ RtpTransmitter::RtpTransmitter(QObject *parent) :
 	useStapA = false;
 	maxPayloadSize = 1460;
 	sampleNtpRtp = false;
+	ttl = 10;
 
 	frameRate = 30.0;
 	useAbsoluteTimestamp = true;
@@ -97,6 +98,7 @@ void RtpTransmitter::sampleNtpTime()
 RtpChannel * RtpTransmitter::addChannel()
 {
 	RtpChannel *ch = new RtpChannel(maxPayloadSize, myIpAddr);
+	ch->ttl = ttl;
 	QMutexLocker l(&streamLock);
 	channels << ch;
 	return ch;
@@ -160,6 +162,11 @@ int RtpTransmitter::teardownChannel(RtpChannel *ch)
 {
 	QMutexLocker l(&streamLock);
 	return ch->teardown();
+}
+
+void RtpTransmitter::setMulticastTTL(socklen_t ttl)
+{
+	this->ttl = ttl;
 }
 
 int RtpTransmitter::processBuffer(const RawBuffer &buf)
@@ -404,7 +411,6 @@ int RtpChannel::setup(const QString &target, int dport, int dcport, int sport, i
 			sd = rawsock->socketDescriptor();
 		if (setsockopt(sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 			ffDebug() << "error joining multicast group";
-		socklen_t ttl = 10;
 		if (setsockopt(sd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0)
 			ffDebug() << "error setting TTL value for RTP socket";
 		if (setsockopt(sock2->socketDescriptor(), IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0)

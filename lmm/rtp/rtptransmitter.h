@@ -33,6 +33,7 @@ public:
 	MyTime *rtcpTime;
 	MyTime *rrTime;
 	QString dstIp;
+	socklen_t ttl;
 
 signals:
 	void goodbyeRecved();
@@ -83,6 +84,7 @@ public:
 	int setupChannel(RtpChannel *ch, const QString &target, int dport, int dcport, int sport, int scport, uint ssrc);
 	int playChannel(RtpChannel *ch);
 	int teardownChannel(RtpChannel *ch);
+	void setMulticastTTL(socklen_t ttl);
 public slots:
 	void sampleNtpTime();
 protected:
@@ -107,6 +109,7 @@ protected:
 	bool useStapA;
 	int maxPayloadSize;
 	QMutex streamLock;
+	socklen_t ttl;
 };
 
 #endif // RTPTRANSMITTER_H
