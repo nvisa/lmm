@@ -94,6 +94,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	rawQueue->setQueueSize(s->get("config.pipeline.0.queues.1.queue_size").toInt());
 
 	rtpHigh = new RtpTransmitter(this);
+	rtpHigh->setMulticastTTL(s->get("video_encoding.ch.0.onvif.multicast_ttl").toInt());
 
 	BaseLmmPipeline *p1 = addPipeline();
 
@@ -139,6 +140,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	rawQueue2->setQueueSize(s->get("config.pipeline.0.queues.2.queue_size").toInt());
 
 	rtpLow = new RtpTransmitter(this);
+	rtpLow->setMulticastTTL(s->get("video_encoding.ch.1.onvif.multicast_ttl").toInt());
 
 	BaseLmmPipeline *p2 = addPipeline();
 	bool enabled0 = s->get("config.pipeline.0.enabled").toBool();
