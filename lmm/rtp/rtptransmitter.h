@@ -85,6 +85,7 @@ public:
 	int playChannel(RtpChannel *ch);
 	int teardownChannel(RtpChannel *ch);
 	void setMulticastTTL(socklen_t ttl);
+	void setMaximumPayloadSize(int value);
 public slots:
 	void sampleNtpTime();
 protected:

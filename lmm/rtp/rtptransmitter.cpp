@@ -169,6 +169,11 @@ void RtpTransmitter::setMulticastTTL(socklen_t ttl)
 	this->ttl = ttl;
 }
 
+void RtpTransmitter::setMaximumPayloadSize(int value)
+{
+	maxPayloadSize = value;
+}
+
 int RtpTransmitter::processBuffer(const RawBuffer &buf)
 {
 	streamLock.lock();
