@@ -19,6 +19,7 @@ class GenericStreamer : public BaseStreamer
 public:
 	explicit GenericStreamer(QObject *parent = 0);
 
+	virtual QList<RawBuffer> getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount);
 signals:
 
 public slots:

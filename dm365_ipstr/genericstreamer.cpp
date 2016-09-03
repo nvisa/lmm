@@ -1,4 +1,5 @@
 #include "genericstreamer.h"
+#include "jpegshotserver.h"
 
 #include <ecl/debug.h>
 #include <ecl/settings/applicationsettings.h>
@@ -8,6 +9,7 @@
 #include <lmm/baselmmpipeline.h>
 #include <lmm/dmai/seiinserter.h>
 #include <lmm/dmai/h264encoder.h>
+#include <lmm/dmai/jpegencoder.h>
 #include <lmm/rtp/rtptransmitter.h>
 #include <lmm/dm365/dm365dmacopy.h>
 #include <lmm/rtsp/basertspserver.h>
@@ -180,4 +182,56 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	rtsp->addStream("stream2", false, rtpLow);
 	rtsp->addStream("stream2m", true, rtpLow, s->get("video_encoding.ch.1.onvif.multicast_port").toInt(),
 					s->get("video_encoding.ch.1.onvif.multicast_address").toString());
+
+	encJpegHigh = new JpegEncoder;
+	encJpegHigh->setQualityFactor(s->get("jpeg_encoding.ch.0.qfact").toInt());
+	encJpegHigh->setMaxJpegSize(s->get("jpeg_encoding.ch.0.max_size").toInt());
+	encJpegHigh->setParameter("videoWidth", w0);
+	encJpegHigh->setParameter("videoHeight", h0);
+	encJpegHigh->setStreamTime(p1->getStreamTime());
+	encJpegHigh->start();
+	encJpegLow = new JpegEncoder;
+	encJpegLow->setQualityFactor(s->get("jpeg_encoding.ch.1.qfact").toInt());
+	encJpegLow->setMaxJpegSize(s->get("jpeg_encoding.ch.1.max_size").toInt());
+	encJpegLow->setParameter("videoWidth", w1);
+	encJpegLow->setParameter("videoHeight", h1);
+	encJpegLow->setStreamTime(p2->getStreamTime());
+	encJpegLow->start();
+	if (s->get("jpeg_encoding.jpeg_server.enabled").toBool())
+		new JpegShotServer(this, s->get("jpeg_encoding.jpeg_server.port").toInt(), this);
+}
+
+QList<RawBuffer> GenericStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
+{
+	if (codec == Lmm::CODEC_H264) {
+		QList<RawBuffer> bufs;
+		if (ts)
+			bufs = h264Queue->findBuffers(ts, frameCount);
+		else
+			bufs = h264Queue->getLast(frameCount);
+		return bufs;
+	}
+
+	/* raw or jpeg snapshot */
+	JpegEncoder *enc = encJpegHigh;
+	BufferQueue *queue = rawQueue;
+	if (ch == 1) {
+		queue = rawQueue2;
+		enc = encJpegLow;
+	}
+	QList<RawBuffer> bufs;
+	if (ts)
+		bufs = queue->findBuffers(ts, frameCount);
+	else
+		bufs = queue->getLast(frameCount);
+	if (codec == Lmm::CODEC_RAW)
+		return bufs;
+	QList<RawBuffer> bufs2;
+	/* we use while loop so that encoded buffers can be released */
+	while (bufs.size()) {
+		enc->addBuffer(0, bufs.takeFirst());
+		enc->processBlocking();
+		bufs2 << enc->nextBufferBlocking(0);
+	}
+	return bufs2;
 }

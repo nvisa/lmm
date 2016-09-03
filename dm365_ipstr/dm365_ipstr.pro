@@ -16,7 +16,10 @@ TEMPLATE = app
 
 SOURCES += main.cpp \
     mpegdashserver.cpp \
-    genericstreamer.cpp
+    genericstreamer.cpp \
+    jpegshotserver.cpp \
+    simplezip.cpp \
+    miniz.c
 
 include (build_config.pri)
 
@@ -34,4 +37,6 @@ DEPENDPATH += $${INCLUDEPATH}
 
 HEADERS += \
     mpegdashserver.h \
-    genericstreamer.h
+    genericstreamer.h \
+    jpegshotserver.h \
+    simplezip.h
