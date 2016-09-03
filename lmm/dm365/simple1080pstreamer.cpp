@@ -26,7 +26,6 @@ Simple1080pStreamer::Simple1080pStreamer(QObject *parent) :
 {
 	camIn = new DM365CameraInput;
 	camIn->setSize(0, QSize(1920, 1080));
-	elements << camIn;
 
 	int videoFps = 25;
 	QSize sz0 = camIn->getSize(0);
@@ -54,7 +53,6 @@ Simple1080pStreamer::Simple1080pStreamer(QObject *parent) :
 	 */
 	enc264High->setProfile(0);
 	setElSize(enc264High, sz0);
-	elements << enc264High;
 
 	seiInserterHigh = new SeiInserter(enc264High);
 	seiInserterHigh->setObjectName("SeiInserterHigh");

@@ -21,7 +21,6 @@ SimpleRtpStreamer::SimpleRtpStreamer(const QString &dstIp, QObject *parent) :
 {
 	targetIp = dstIp;
 	camIn = new DM365CameraInput;
-	elements << camIn;
 
 	int videoFps = 30;
 	QSize sz0 = camIn->getSize(0);
@@ -47,11 +46,9 @@ SimpleRtpStreamer::SimpleRtpStreamer(const QString &dstIp, QObject *parent) :
 	 */
 	enc264High->setProfile(2);
 	setElSize(enc264High, sz0);
-	elements << enc264High;
 
 	seiInserterHigh = new SeiInserter(enc264High);
 	seiInserterHigh->setObjectName("SeiInserterHigh");
-	elements << seiInserterHigh;
 
 	//rtp = rtsp->getMuxers().first();
 	//rtp->setDestinationIpAddress(ip);
@@ -63,7 +60,6 @@ SimpleRtpStreamer::SimpleRtpStreamer(const QString &dstIp, QObject *parent) :
 
 	fout = new FileOutput;
 	fout->setFileName("ref.h264");
-	elements << fout;
 }
 
 int SimpleRtpStreamer::start()

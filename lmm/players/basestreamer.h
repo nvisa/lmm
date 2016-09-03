@@ -28,7 +28,6 @@ protected slots:
 
 protected:
 	BaseRtspServer *rtsp;
-	QList<BaseLmmElement *> elements;
 
 	void signalReceived(int sig);
 };

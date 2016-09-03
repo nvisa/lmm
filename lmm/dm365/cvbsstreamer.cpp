@@ -28,7 +28,6 @@ CVBSStreamer::CVBSStreamer(QObject *parent) :
 	camIn->setInputType(DM365CameraInput::COMPOSITE1);
 	camIn->setSize(0, QSize(736, 576));
 	camIn->setSize(1, QSize(320, 240));
-	elements << camIn;
 
 	int videoFps = 25;
 	QSize sz0 = camIn->getSize(0);
@@ -56,10 +55,8 @@ CVBSStreamer::CVBSStreamer(QObject *parent) :
 	 */
 	enc264High->setProfile(0);
 	setElSize(enc264High, sz0);
-	elements << enc264High;
 
 	RtpTransmitter *rtpHigh = new RtpTransmitter(this);
-	elements << rtpHigh;
 
 	/* setup pipelines */
 	BaseLmmPipeline *p1 = addPipeline();
