@@ -140,7 +140,7 @@ public:
 	int getSentCount() const { return sentCount; }
 	void setEventHook(eventHook hook, void *priv);
 	int getTotalSize() { return bufSize; }
-	int setRateReduction(int skip, int outOf);
+	int setRateReduction(float inFps, float outFps);
 
 protected:
 	bool acquireSem() __attribute__((warn_unused_result));

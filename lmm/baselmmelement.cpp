@@ -172,25 +172,54 @@ public:
 		total = outOf;
 		reset();
 	}
+
+	RateReducto(QPair<float, float> fps)
+	{
+		enabled = true;
+		inT = 1.0 / fps.first;
+		outT = 1.0 / fps.second;
+		skip = 0;
+		total = fps.first;
+		t = 0;
+		reset();
+	}
+
 	void reset()
 	{
 		current = 0;
+		t = 0;
 	}
+
 	bool shouldSkip()
 	{
 		if (!enabled)
 			return false;
-		if (current++ < skip)
-			return true;
-		if (current >= total - 1)
+		if (skip) {
+			if (current++ < skip)
+				return true;
+			if (current >= total - 1)
+				reset();
+			return false;
+		}
+
+		/* other algorithm */
+		if (current++ >= total)
 			reset();
-		return false;
+		t += inT;
+		if (t > outT) {
+			t -= outT;
+			return false;
+		}
+		return true;
 	}
 
 	int skip;
 	int total;
 	bool enabled;
 	int current;
+	float inT;
+	float outT;
+	float t;
 };
 
 static void createQueues(QList<ElementIOQueue *> *list, int cnt, BaseLmmElement *el)
@@ -648,11 +677,11 @@ void ElementIOQueue::setEventHook(ElementIOQueue::eventHook hook, void *priv)
 	evLock.unlock();
 }
 
-int ElementIOQueue::setRateReduction(int skip, int outOf)
+int ElementIOQueue::setRateReduction(float inFps, float outFps)
 {
 	if (!rc)
 		delete rc;
-	rc = new RateReducto(skip, outOf);
+	rc = new RateReducto(QPair<float, float>(inFps, outFps));
 	return 0;
 }
 
