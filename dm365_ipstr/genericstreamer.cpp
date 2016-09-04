@@ -18,14 +18,7 @@
 float getVideoFps(int pipeline)
 {
 	ApplicationSettings *s = ApplicationSettings::instance();
-	float videoFps = s->get("camera_device.output_fps").toInt();
-	if (s->get(QString("config.pipeline.%1.frame_skip.enabled").arg(pipeline)).toBool()) {
-		int skip = s->get(QString("config.pipeline.%1.frame_skip.skip").arg(pipeline)).toInt();
-		int outOf = s->get(QString("config.pipeline.%1.frame_skip.out_of").arg(pipeline)).toInt();
-		videoFps *= (outOf - skip);
-		videoFps /= outOf;
-	}
-	return videoFps;
+	return s->get(QString("config.pipeline.%1.frame_skip.out_fps").arg(pipeline)).toFloat();
 }
 
 GenericStreamer::GenericStreamer(QObject *parent) :
@@ -113,9 +106,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 
 	/* all input and output queues are created at this point so we adjust frame rates here */
 	if (s->get("config.pipeline.0.frame_skip.enabled").toBool()) {
-		int skip = s->get("config.pipeline.0.frame_skip.skip").toInt();
-		int outOf = s->get("config.pipeline.0.frame_skip.out_of").toInt();
-		textOverlay->getInputQueue(0)->setRateReduction(skip, outOf);
+		int inFps = s->get("config.pipeline.0.frame_skip.in_fps").toFloat();
+		int outFps = s->get("config.pipeline.0.frame_skip.out_fps").toFloat();
+		textOverlay->getInputQueue(0)->setRateReduction(inFps, outFps);
 	}
 
 	/* pipeline 2 */
@@ -171,9 +164,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 
 	/* all input and output queues are created at this point so we adjust frame rates here */
 	if (s->get("config.pipeline.1.frame_skip.enabled").toBool()) {
-		int skip = s->get("config.pipeline.1.frame_skip.skip").toInt();
-		int outOf = s->get("config.pipeline.1.frame_skip.out_of").toInt();
-		rawQueue2->getInputQueue(0)->setRateReduction(skip, outOf);
+		int inFps = s->get("config.pipeline.1.frame_skip.in_fps").toFloat();
+		int outFps = s->get("config.pipeline.1.frame_skip.out_fps").toFloat();
+		rawQueue2->getInputQueue(0)->setRateReduction(inFps, outFps);
 	}
 
 	/* rtsp server */
