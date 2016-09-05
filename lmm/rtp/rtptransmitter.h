@@ -34,6 +34,7 @@ public:
 	MyTime *rrTime;
 	QString dstIp;
 	socklen_t ttl;
+	int bufferCount;
 
 signals:
 	void goodbyeRecved();
@@ -111,6 +112,7 @@ protected:
 	int maxPayloadSize;
 	QMutex streamLock;
 	socklen_t ttl;
+	bool waitIdrFrame;
 };
 
 #endif // RTPTRANSMITTER_H

@@ -358,6 +358,7 @@ RtpChannel::RtpChannel(int psize, const QHostAddress &myIpAddr)
 	timer = new QTimer;
 	connect(timer, SIGNAL(timeout()), SLOT(timeout()));
 	timer->start(1000);
+	bufferCount = 0;
 }
 
 RtpChannel::~RtpChannel()
@@ -460,6 +461,11 @@ int RtpChannel::sendNalUnit(const uchar *buf, int size, qint64 ts)
 	}
 	uchar type = buf[0] & 0x1F;
 	uchar nri = buf[0] & 0x60;
+	if (!bufferCount) {
+		if (type != 7) //wait sps
+			return 0;
+	}
+	bufferCount++;
 	if (type >= 13) {
 		mDebug("undefined nal type %d, not sending", type);
 		return 0;
