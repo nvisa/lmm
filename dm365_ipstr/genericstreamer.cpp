@@ -2,6 +2,7 @@
 #include "jpegshotserver.h"
 
 #include <ecl/debug.h>
+#include <ecl/drivers/hardwareoperations.h>
 #include <ecl/settings/applicationsettings.h>
 
 #include <lmm/textoverlay.h>
@@ -194,6 +195,11 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	encJpegLow->start();
 	if (s->get("jpeg_encoding.jpeg_server.enabled").toBool())
 		new JpegShotServer(this, s->get("jpeg_encoding.jpeg_server.port").toInt(), this);
+
+	if (s->get("camera_device.invert_clock").toBool())
+		HardwareOperations::writeRegister(0x1c40044, 0x1c);
+	else
+		HardwareOperations::writeRegister(0x1c40044, 0x18);
 }
 
 QList<RawBuffer> GenericStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
