@@ -1,15 +1,15 @@
-x86 {
-	INSTALL_PREFIX=/home/caglar/myfs/work/source-codes/bilkon/build_x86
-	CONFIG += vlc
-	CONFIG += gstreamer
-}
+linux-gnueabi-oe-g++ {
+    message("building dm365")
+    #This is our default build config
+    INSTALL_PREFIX=$$OUT_PWD/../../
+    DEFINES += DEBUG INFO LOG LOGV DEBUG_TIMING
+    CONFIG += dmai staticlib dm365
+} else:linux-g++-64 {
+    message("building x86")
+    #This is our default build config
+    INSTALL_PREFIX=$$OUT_PWD/../../
+    DEFINES += DEBUG INFO LOG LOGV DEBUG_TIMING
+    CONFIG += staticlib x264 x11 ffmpeg x86
 
-dm365 {
-	INSTALL_PREFIX=/home/caglar/myfs/work/source-codes/bilkon/build_dm365
-	CONFIG += ffmpeg vlc live555 gstreamer
-}
-
-dm6446 {
-	INSTALL_PREFIX=/home/caglar/myfs/work/source-codes/bilkon/build_dm6446
-	CONFIG += gstreamer
+    INCLUDEPATH += /home/amenmd/myfs/source-codes/oss/ffmpeg/ffmpeg/ffmpeg_build/include/
 }
