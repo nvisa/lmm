@@ -16,6 +16,8 @@ namespace Lmm {
 		CODEC_MPEG4,
 		CODEC_H264,
 		CODEC_JPEG,
+		CODEC_PCM_L16, /* Linear PCM 16-bit audio */
+		CODEC_PCM_ALAW, /* Linear PCM 8-bit alaw audio */
 		CODEC_RAW
 	};
 	enum AspectRatio {
