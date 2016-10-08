@@ -18,7 +18,7 @@ class RtpChannel : public QObject
 public:
 	RtpChannel(int psize, const QHostAddress &myIpAddr);
 	~RtpChannel();
-	QString getSdp();
+	QString getSdp(Lmm::CodecType codec);
 
 	int seq;
 	uint ssrc;
@@ -50,6 +50,7 @@ protected:
 	int teardown();
 	int setup(const QString &target, int dport, int dcport, int sport, int scport, uint ssrc);
 	int sendNalUnit(const uchar *buf, int size, qint64 ts);
+	int sendPcmData(const uchar *buf, int size, qint64 ts);
 	void sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 tsRef);
 	void sendSR();
 	RawNetworkSocket::SockBuffer * getSBuf();
@@ -67,13 +68,14 @@ protected:
 	uint totalOctetCount;
 	int state; /* 0: init/stop, 1:setup, 2:play */
 	QTimer *timer;
+	int payloadType;
 };
 
 class RtpTransmitter : public BaseLmmElement
 {
 	Q_OBJECT
 public:
-	explicit RtpTransmitter(QObject *parent = 0);
+	explicit RtpTransmitter(QObject *parent = 0, Lmm::CodecType codec = Lmm::CODEC_H264);
 
 	RtpChannel * addChannel();
 	int getChannelCount();
@@ -93,6 +95,7 @@ protected:
 	int processBuffer(const RawBuffer &buf);
 	quint64 packetTimestamp();
 	void packetizeAndSend(const RawBuffer &buf);
+	void sendPcmData(const RawBuffer &buf);
 
 	/* channel operations */
 	void channelsSetTimestamp(qint64 current, qint64 packet);
@@ -113,6 +116,7 @@ protected:
 	QMutex streamLock;
 	socklen_t ttl;
 	bool waitIdrFrame;
+	Lmm::CodecType mediaCodec;
 };
 
 #endif // RTPTRANSMITTER_H

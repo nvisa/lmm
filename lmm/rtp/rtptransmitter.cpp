@@ -68,9 +68,10 @@ protected:
 	QMutex l;
 };
 
-RtpTransmitter::RtpTransmitter(QObject *parent) :
+RtpTransmitter::RtpTransmitter(QObject *parent, Lmm::CodecType codec) :
 	BaseLmmElement(parent)
 {
+	mediaCodec = codec;
 	useStapA = false;
 	maxPayloadSize = 1460;
 	sampleNtpRtp = false;
@@ -97,7 +98,13 @@ void RtpTransmitter::sampleNtpTime()
 
 RtpChannel * RtpTransmitter::addChannel()
 {
+	int pt = 96;
+	Lmm::CodecType codec = getCodec();
+	if (codec == Lmm::CODEC_PCM_L16
+			|| codec == Lmm::CODEC_PCM_ALAW)
+		pt = 97;
 	RtpChannel *ch = new RtpChannel(maxPayloadSize, myIpAddr);
+	ch->payloadType = pt;
 	ch->ttl = ttl;
 	QMutexLocker l(&streamLock);
 	channels << ch;
@@ -127,7 +134,7 @@ void RtpTransmitter::removeChannel(RtpChannel *ch)
 
 Lmm::CodecType RtpTransmitter::getCodec()
 {
-	return Lmm::CODEC_H264;
+	return mediaCodec;
 }
 
 int RtpTransmitter::start()
@@ -187,7 +194,11 @@ int RtpTransmitter::processBuffer(const RawBuffer &buf)
 	channelsCheckRtcp();
 
 	/* rtp part */
-	packetizeAndSend(buf);
+	if (getCodec() == Lmm::CODEC_H264)
+		packetizeAndSend(buf);
+	else if (getCodec() == Lmm::CODEC_PCM_L16 ||
+			 getCodec() == Lmm::CODEC_PCM_ALAW)
+		sendPcmData(buf);
 
 	streamLock.unlock();
 	streamedBufferCount++;
@@ -196,9 +207,16 @@ int RtpTransmitter::processBuffer(const RawBuffer &buf)
 
 quint64 RtpTransmitter::packetTimestamp()
 {
-	if (useAbsoluteTimestamp)
-		return 90ull * streamTime->getCurrentTimeMili();
-	return (90000ll * (streamedBufferCount) / (int)frameRate);
+	if (mediaCodec == Lmm::CODEC_H264) {
+		if (useAbsoluteTimestamp)
+			return 90ull * streamTime->getCurrentTimeMili();
+		return (90000ll * (streamedBufferCount) / (int)frameRate);
+	} else if (mediaCodec == Lmm::CODEC_PCM_L16 || mediaCodec == Lmm::CODEC_PCM_ALAW) {
+		if (useAbsoluteTimestamp)
+			return 8ull * streamTime->getCurrentTimeMili();
+		return (8000ll * streamedBufferCount / 50);
+	}
+	return 0;
 }
 
 void RtpTransmitter::packetizeAndSend(const RawBuffer &buf)
@@ -302,6 +320,30 @@ void RtpTransmitter::packetizeAndSend(const RawBuffer &buf)
 		stapSize = 0;
 		nriMax = 0;
 		stapBuf = NULL;
+	}
+}
+
+void RtpTransmitter::sendPcmData(const RawBuffer &buf)
+{
+	if (!channels.size())
+		return;
+	int tsScaler = 1;
+	if (getCodec() == Lmm::CODEC_PCM_L16)
+		tsScaler = 2;
+	else if (getCodec() == Lmm::CODEC_PCM_ALAW)
+		tsScaler = 1;
+	qint64 ts = streamedBufferCount * buf.size() / tsScaler;
+	for (int i = 0; i < channels.size(); i++) {
+		const uchar *data = (const uchar *)buf.constData();
+		int size = buf.size();
+		while (size > maxPayloadSize) {
+			channels[i]->sendPcmData(data, maxPayloadSize, ts);
+			data += maxPayloadSize;
+			size -= maxPayloadSize;
+			ts += maxPayloadSize / tsScaler;
+		}
+		channels[i]->sendPcmData(data, size, ts);
+		//channels[i]->sendPcmData((const uchar *)buf.constData(), buf.size(), packetTimestamp());
 	}
 }
 
@@ -495,13 +537,44 @@ int RtpChannel::sendNalUnit(const uchar *buf, int size, qint64 ts)
 	return 0;
 }
 
+int RtpChannel::sendPcmData(const uchar *buf, int size, qint64 ts)
+{
+	if (state != 2)
+		return 0;
+	RawNetworkSocket::SockBuffer *sbuf = NULL;
+	uchar *rtpbuf;
+	if (zeroCopy) {
+		sbuf = rawsock->getNextFreeBuffer();
+		rtpbuf = (uchar *)sbuf->payload;
+	} else {
+		rtpbuf = tempRtpBuf;
+	}
+	bufferCount++;
+
+	if (size <= maxPayloadSize) {
+		memcpy(rtpbuf + 12, buf, size);
+		sendRtpData(rtpbuf, size, 1, sbuf, ts);
+	} else {
+		uchar *dstbuf = rtpbuf + 12;
+		while (size > maxPayloadSize) {
+			memcpy(&dstbuf[0], buf, maxPayloadSize);
+			sendRtpData(rtpbuf, maxPayloadSize, 0, sbuf, ts);
+			buf += maxPayloadSize;
+			size -= maxPayloadSize;
+		}
+		memcpy(&dstbuf[0], buf, size);
+		sendRtpData(rtpbuf, size, 1, sbuf, ts);
+	}
+	return 0;
+}
+
 void RtpChannel::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 tsRef)
 {
 	if (state != 2)
 		return;
 	uint ts = baseTs + tsRef;
 	buf[0] = RTP_VERSION << 6;
-	buf[1] = last << 7 | 96;
+	buf[1] = last << 7 | payloadType;
 	buf[2] = seq >> 8;
 	buf[3] = seq & 0xff;
 	buf[4] = (ts >> 24) & 0xff;
@@ -578,20 +651,33 @@ void RtpChannel::sendSR()
 	rtcpTime->restart();
 }
 
-QString RtpChannel::getSdp()
+QString RtpChannel::getSdp(Lmm::CodecType codec)
 {
-	QStringList lines;
-	lines << "v=0";
-	lines << "o=- 0 0 IN IP4 127.0.0.1";
-	lines << "s=No Name";
-	lines << QString("c=IN IP4 %1").arg(dstIp);
-	lines << "t=0 0";
-	lines << "a=tool:libavformat 52.102.0";
-	lines << QString("m=video %1 RTP/AVP 96").arg(dstDataPort);
-	lines << "a=rtpmap:96 H264/90000";
-	lines << "a=fmtp:96 packetization-mode=1";
-	lines << "";
-	return lines.join("\n");
+	QStringList sdp;
+
+	sdp << "v=0";
+	sdp << "o=- 0 0 IN IP4 127.0.0.1";
+	sdp << "c=IN IP4 " + dstIp;
+	sdp << "a=tool:lmm 2.0.0";
+	sdp << "s=No Name";
+	sdp << "t=0 0";
+
+	if (codec == Lmm::CODEC_H264) {
+		sdp << QString("m=video %1 RTP/AVP 96").arg(dstDataPort);
+		sdp << "a=rtpmap:96 H264/90000";
+		sdp << "a=fmtp:96 packetization-mode=1";
+	} else if (codec == Lmm::CODEC_JPEG) {
+		sdp << "m=video 15678 RTP/AVP 26";
+	} else if (codec == Lmm::CODEC_PCM_L16) {
+		sdp << QString("m=audio %1 RTP/AVP 97").arg(dstDataPort);
+		sdp << "a=rtpmap:97 L16/8000/1";
+	} else if (codec == Lmm::CODEC_PCM_ALAW) {
+		sdp << QString("m=audio %1 RTP/AVP 97").arg(dstDataPort);
+		sdp << "a=rtpmap:97 PCMA/8000/1";
+	}
+
+	sdp << "";
+	return sdp.join("\n");
 }
 
 void RtpChannel::timeout()
