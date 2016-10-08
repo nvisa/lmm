@@ -31,6 +31,9 @@ public:
 	int mute(bool mute);
 	/* return os delay in microseconds */
 	int delay();
+	int channelCount();
+	int getRate();
+	int getSampleSize();
 
 	int currentVolumeLevel();
 	int setCurrentVolumeLevel(int per);

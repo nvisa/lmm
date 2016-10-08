@@ -240,9 +240,9 @@ write_error:
 
 int Alsa::read(void *buf, int length)
 {
-	//int ch = 2;
+	int ch = channelCount();
 	mutex.lock();
-	int err = snd_pcm_readi(handle, buf, length);// / bytesPerSample / ch);
+	int err = snd_pcm_readi(handle, buf, length / bytesPerSample / ch);
 	mutex.unlock();
 	if (err == -EPIPE) {
 
@@ -251,7 +251,7 @@ int Alsa::read(void *buf, int length)
 		mDebug("read error %d: %s", err, snd_strerror(err));
 		return err;
 	}
-	return err;
+	return err * bytesPerSample * ch;
 }
 
 int Alsa::readDriverDelay()
@@ -408,6 +408,21 @@ int Alsa::mute(bool mute)
 int Alsa::delay()
 {
 	return driverDelay;
+}
+
+int Alsa::channelCount()
+{
+	return channels;
+}
+
+int Alsa::getRate()
+{
+	return sampleRate;
+}
+
+int Alsa::getSampleSize()
+{
+	return bytesPerSample;
 }
 
 int Alsa::currentVolumeLevel()
