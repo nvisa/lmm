@@ -23,7 +23,7 @@ class BaseRtspSession : public QObject
 public:
 	BaseRtspSession(BaseRtspServer *parent);
 	~BaseRtspSession();
-	int setup(bool mcast, int dPort, int cPort, QString streamName);
+	int setup(bool mcast, int dPort, int cPort, const QString &streamName, const QString &media);
 	int play();
 	int teardown();
 	QString rtpInfo();
@@ -40,6 +40,7 @@ public:
 	bool multicast;
 	QString controlUrl;
 	QString streamName;
+	QString mediaName;
 	int sourceDataPort;
 	int sourceControlPort;
 	int dataPort;
@@ -53,6 +54,7 @@ public:
 	int rtptime;
 	int seq;
 	bool rtspTimeoutEnabled;
+	QList<BaseRtspSession *> siblings;
 protected slots:
 	void rtpGoodbyeRecved();
 	void rtcpTimedOut();
@@ -68,12 +70,14 @@ class BaseRtspServer : public QObject
 	Q_OBJECT
 public:
 	explicit BaseRtspServer(QObject *parent = 0, int port = 554);
-	QString getMulticastAddress(const QString &streamName);
-	int getMulticastPort(QString streamName);
+	QString getMulticastAddress(const QString &streamName, const QString &media);
+	int getMulticastPort(QString streamName, const QString &media);
 	int setEnabled(bool val);
 	QString getMulticastAddressBase();
 	void setMulticastAddressBase(const QString &addr);
+	void addStream(const QString streamName, bool multicast, int port = 0, const QString &mcastAddress = "");
 	void addStream(const QString streamName, bool multicast, RtpTransmitter *rtp, int port = 0, const QString &mcastAddress = "");
+	void addMedia2Stream(const QString &mediaName, const QString &streamName, bool multicast, RtpTransmitter *rtp, int port = 0, const QString &mcastAddress = "");
 
 private slots:
 	void newRtspConnection();
@@ -84,8 +88,8 @@ private slots:
 protected:
 	friend class BaseRtspSession;
 
-	bool isMulticast(QString streamName); //protected
-	RtpTransmitter * getSessionTransmitter(const QString &streamName); //protected
+	bool isMulticast(QString streamName, const QString &media); //protected
+	RtpTransmitter * getSessionTransmitter(const QString &streamName, const QString &media); //protected
 	void closeSession(QString sessionId);
 
 private:
@@ -95,6 +99,7 @@ private:
 		RtpTransmitter *rtp;
 		int port;
 		QString multicastAddr;
+		QHash<QString, StreamDescription> media;
 	};
 
 	QTcpServer *server;
@@ -118,8 +123,9 @@ private:
 	QStringList createSdp(QString url);
 	QString detectLineSeperator(QString mes);
 	QString getField(const QStringList lines, QString desc);
-	BaseRtspSession * findMulticastSession(QString streamName);
+	BaseRtspSession * findMulticastSession(const QString &streamName, const QString &media);
 	bool isSessionMulticast(QString sid);
+	const StreamDescription getStreamDesc(const QString &streamName, const QString &mediaName);
 
 	/* command handling */
 	QStringList handleCommandOptions(QStringList lines, QString lsep);

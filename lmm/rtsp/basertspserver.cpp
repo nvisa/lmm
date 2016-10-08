@@ -146,6 +146,40 @@ void BaseRtspServer::setMulticastAddressBase(const QString &addr)
 	multicastAddressBase = addr;
 }
 
+/**
+ * @brief BaseRtspServer::addStream
+ * @param streamName
+ * @param multicast
+ * @param port
+ * @param mcastAddress
+ *
+ * This function adds a new stream to RTSP server. New stream is empty and doesn't contain any media implementations. So
+ * this new stream will basically be useless until you add new media using addMedia2Stream() function.
+ *
+ * All media belonging to this stream will use the provided multicast information.
+ */
+void BaseRtspServer::addStream(const QString streamName, bool multicast, int port, const QString &mcastAddress)
+{
+	StreamDescription desc;
+	desc.rtp = NULL;
+	desc.multicast = multicast;
+	desc.port = port;
+	desc.multicastAddr = mcastAddress;
+	desc.streamUrlSuffix = streamName;
+	streamDescriptions.insert(streamName, desc);
+}
+
+/**
+ * @brief BaseRtspServer::addStream
+ * @param streamName
+ * @param multicast
+ * @param rtp
+ * @param port
+ * @param mcastAddress
+ *
+ * This is an overloaded function which adds a given RtpTransmitter as a new media to the newly created stream. Media name and
+ * the stream name will be the same.
+ */
 void BaseRtspServer::addStream(const QString streamName, bool multicast, RtpTransmitter *rtp, int port, const QString &mcastAddress)
 {
 	StreamDescription desc;
@@ -154,28 +188,71 @@ void BaseRtspServer::addStream(const QString streamName, bool multicast, RtpTran
 	desc.rtp = rtp;
 	desc.port = port;
 	desc.multicastAddr = mcastAddress;
+	desc.media.insert(streamName, desc);
 	streamDescriptions.insert(streamName, desc);
 }
 
-bool BaseRtspServer::isMulticast(QString streamName)
+void BaseRtspServer::addMedia2Stream(const QString &mediaName, const QString &streamName, bool multicast, RtpTransmitter *rtp, int port, const QString &mcastAddress)
 {
-	if (streamDescriptions.contains(streamName))
-		return streamDescriptions[streamName].multicast;
-	return false;
+	StreamDescription desc;
+	desc.streamUrlSuffix = mediaName;
+	desc.multicast = multicast;
+	desc.rtp = rtp;
+	desc.port = port;
+	desc.multicastAddr = mcastAddress;
+	streamDescriptions[streamName].media.insert(mediaName, desc);
 }
 
-RtpTransmitter *BaseRtspServer::getSessionTransmitter(const QString &streamName)
+const BaseRtspServer::StreamDescription BaseRtspServer::getStreamDesc(const QString &streamName, const QString &mediaName)
 {
-	if (streamDescriptions.contains(streamName))
-		return streamDescriptions[streamName].rtp;
-	return NULL;
+	if (!streamDescriptions.contains(streamName))
+		return StreamDescription();
+	if (!streamDescriptions[streamName].media.contains(mediaName))
+		return streamDescriptions[streamName];
+	return streamDescriptions[streamName].media[mediaName];
 }
 
-QString BaseRtspServer::getMulticastAddress(const QString &streamName)
+/**
+ * @brief BaseRtspServer::isMulticast
+ * @param streamName Name of the desired stream.
+ * @param media Specific media name in the stream, can be empty.
+ * @return
+ *
+ * In case media is empty, this function returns stream-level defined multicast information.
+ */
+bool BaseRtspServer::isMulticast(QString streamName, const QString &media)
 {
-	if (streamDescriptions.contains(streamName) &&
-		!streamDescriptions[streamName].multicastAddr.isEmpty())
-			return streamDescriptions[streamName].multicastAddr;
+	const StreamDescription &desc = getStreamDesc(streamName, media);
+	if (desc.streamUrlSuffix.isEmpty())
+		return false;
+	return desc.multicast;
+}
+
+RtpTransmitter * BaseRtspServer::getSessionTransmitter(const QString &streamName, const QString &media)
+{
+	const StreamDescription &desc = getStreamDesc(streamName, media);
+	if (desc.streamUrlSuffix.isEmpty())
+		return NULL;
+	return desc.rtp;
+}
+
+/**
+ * @brief BaseRtspServer::getMulticastAddress
+ * @param streamName
+ * @param media
+ * @return
+ *
+ * This function behaves much like isMulticast() function.
+ *
+ * \sa isMulticast(), getMulticastAddress(), getMulticastPort()
+ */
+QString BaseRtspServer::getMulticastAddress(const QString &streamName, const QString &media)
+{
+	const StreamDescription &desc = getStreamDesc(streamName, media);
+	if (desc.streamUrlSuffix.isEmpty())
+		return "";
+	if (!desc.multicastAddr.isEmpty())
+		return desc.multicastAddr;
 
 	QHostAddress ipAddr = myIpAddr;
 	QHostAddress netmask = myNetmask;
@@ -184,11 +261,22 @@ QString BaseRtspServer::getMulticastAddress(const QString &streamName)
 	return QHostAddress(addr).toString();
 }
 
-int BaseRtspServer::getMulticastPort(QString streamName)
+/**
+ * @brief BaseRtspServer::getMulticastPort
+ * @param streamName
+ * @param media
+ * @return
+ *
+ * This function behaves much like isMulticast() function.
+ *
+ * \sa isMulticast(), getMulticastAddress(), getMulticastAddress()
+ */
+int BaseRtspServer::getMulticastPort(QString streamName, const QString &media)
 {
-	if (streamDescriptions.contains(streamName))
-		return streamDescriptions[streamName].port;
-	return 0;
+	const StreamDescription &desc = getStreamDesc(streamName, media);
+	if (desc.streamUrlSuffix.isEmpty())
+		return 0;
+	return desc.port;
 }
 
 int BaseRtspServer::setEnabled(bool val)
@@ -242,13 +330,13 @@ QString BaseRtspServer::getField(const QStringList lines, QString desc)
 	return "";
 }
 
-BaseRtspSession * BaseRtspServer::findMulticastSession(QString streamName)
+BaseRtspSession * BaseRtspServer::findMulticastSession(const QString &streamName, const QString &media)
 {
 	QMapIterator<QString, BaseRtspSession *> it(sessions);
 	while (it.hasNext()) {
 		it.next();
 		BaseRtspSession *s = it.value();
-		if (s->multicast && s->streamName == streamName)
+		if (s->multicast && s->streamName == streamName && s->mediaName == media)
 			return s;
 	}
 	return NULL;
@@ -388,9 +476,14 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 	if (!enabled)
 		return createRtspErrorResponse(503, lsep);
 	QStringList fields = cbase.split("/", QString::SkipEmptyParts);
+	if (fields.size() < 3)
+		return createRtspErrorResponse(451, lsep);
 	QString stream = fields[2];
+	QString media;
+	if (fields.size() > 3)
+		media = fields[3];
 	if (fields.size() >= 3) {
-		bool multicast = isMulticast(stream);
+		bool multicast = isMulticast(stream, media);
 		int cseq = currentCmdFields["CSeq"].toInt();
 		int dataPort = 0, controlPort = 0;
 		foreach(QString line, lines) {
@@ -418,19 +511,20 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 					controlPort = dataPort + 1;
 			}
 		}
-		BaseRtspSession *ses = findMulticastSession(stream);
+		BaseRtspSession *ses = findMulticastSession(stream, media);
 		if (!ses) {
 			ses = new BaseRtspSession(this);
 			ses->peerIp = currentPeerIp;
 			if (multicast)
-				ses->streamIp = getMulticastAddress(stream);
+				ses->streamIp = getMulticastAddress(stream, media);
 			else
 				ses->streamIp = ses->peerIp;
 			ses->controlUrl = cbase;
 			ses->streamName = stream;
+			ses->mediaName = media;
 			ses->ssrc = rand();
 			ses->ttl = 10;
-			int err = ses->setup(multicast, dataPort, controlPort, stream);
+			int err = ses->setup(multicast, dataPort, controlPort, stream, media);
 			if (err) {
 				mDebug("cannot create session, error is %d", err);
 				delete ses;
@@ -468,6 +562,13 @@ QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 	QString url = currentCmdFields["url"];
 	if (!url.endsWith("/"))
 		url.append("/");
+	QStringList fields = url.split("/", QString::SkipEmptyParts);
+	if (fields.size() < 3)
+		return createRtspErrorResponse(451, lsep);
+	QString stream = fields[2];
+	QString media;
+	if (fields.size() > 3)
+		media = fields[3];
 	mDebug("handling play directive: %s", qPrintable(url));
 	QString sid = getField(lines, "Session");
 	if (sessions.contains(sid)) {
@@ -492,6 +593,32 @@ QStringList BaseRtspServer::handleCommandPlay(QStringList lines, QString lsep)
 		resp << "Content-Length: 0";
 		resp << "Cache-Control: no-cache";
 		resp << lsep;
+
+		if (media.isEmpty()) {
+			/* check for aggregate PLAY operations */
+			QMapIterator<QString, BaseRtspSession *> mi(sessions);
+			while (mi.hasNext()) {
+				mi.next();
+				BaseRtspSession *sibling = mi.value();
+				if (sibling->state == BaseRtspSession::PLAY)
+					continue;
+				if (sibling->streamName != stream)
+					continue;
+				if (sibling->mediaName == media)
+					continue;
+				/* not playing *different* media session within our stream, so let's start it */
+				if (sibling->clientCount == 1) {
+					int err = sibling->play();
+					if (err)
+						return createRtspErrorResponse(err, lsep);
+					sibling->seq = getSessionBaseSequence(sibling->sessionId);
+					sibling->rtptime = getSessionBaseTimestamp(sibling->sessionId);
+				}
+				/* kick time-out value */
+				sibling->timeout->restart();
+				ses->siblings << sibling;
+			}
+		}
 	} else
 		return createRtspErrorResponse(404, lsep);
 	return resp;
@@ -505,8 +632,21 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 	QString url = currentCmdFields["url"];
 	if (!url.endsWith("/"))
 		url.append("/");
+	QStringList fields = url.split("/", QString::SkipEmptyParts);
+	if (fields.size() < 3)
+		return createRtspErrorResponse(451, lsep);
+	QString stream = fields[2];
+	QString media;
+	if (fields.size() > 3)
+		media = fields[3];
 	QString sid = getField(lines, "Session");
 	if (sessions.contains(sid)) {
+		if (media.isEmpty()) {
+			/* check for aggregate TEARDOWN operations */
+			foreach (BaseRtspSession *sibling, sessions[sid]->siblings)
+				closeSession(sibling->sessionId);
+		}
+
 		closeSession(sid);
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("CSeq: %1").arg(cseq);
@@ -533,6 +673,11 @@ QStringList BaseRtspServer::handleCommandGetParameter(QStringList lines, QString
 		BaseRtspSession *ses = sessions[sid];
 		ses->timeout->restart();
 		ses->rtspTimeoutEnabled = true;
+		/* we need to kick-out related sessions as well */
+		foreach (BaseRtspSession *sibling, ses->siblings) {
+			sibling->timeout->restart();
+			sibling->rtspTimeoutEnabled = true;
+		}
 
 		resp << "RTSP/1.0 200 OK";
 		resp << QString("CSeq: %1").arg(cseq);
@@ -629,37 +774,46 @@ QStringList BaseRtspServer::createSdp(QString url)
 	QStringList fields = url.split("/", QString::SkipEmptyParts);
 	QString stream = fields[2];
 	QStringList sdp;
-	RtpTransmitter *rtp = getSessionTransmitter(stream);
-	if (!rtp)
-		return sdp;
-	Lmm::CodecType codec = rtp->getCodec();
+
 	/* According to RFC2326 C.1.7 we should report 0.0.0.0 as dest address */
 	QString dstIp = "0.0.0.0";
-	bool multicast = isMulticast(stream);
+	bool multicast = isMulticast(stream, "");
 	int streamPort = 0;
 	if (multicast) {
-		dstIp = getMulticastAddress(stream) + "/255";
-		streamPort = getMulticastPort(stream);
+		dstIp = getMulticastAddress(stream, "") + "/255";
+		streamPort = getMulticastPort(stream, "");
 	}
-	if (codec == Lmm::CODEC_H264) {
-		sdp << "v=0";
-		sdp << "o=- 0 0 IN IP4 127.0.0.1";
-		sdp << "s=No Name";
-		sdp << "c=IN IP4 " + dstIp;
-		sdp << "t=0 0";
-		sdp << "a=tool:libavformat 52.102.0";
-		sdp << QString("m=video %1 RTP/AVP 96").arg(streamPort);
-		sdp << "a=rtpmap:96 H264/90000";
-		sdp << "a=fmtp:96 packetization-mode=1";
-		sdp << QString("a=control:%1").arg(url);
-	} else if (codec == Lmm::CODEC_JPEG) {
-		sdp << "v=0";
-		sdp << "o=- 0 0 IN IP4 127.0.0.1";
-		sdp << "s=No Name";
-		sdp << "c=IN IP4 " + dstIp;
-		sdp << "t=0 0";
-		sdp << "a=tool:libavformat 52.102.0";
-		sdp << "m=video 15678 RTP/AVP 26";
+
+	sdp << "v=0";
+	sdp << "o=- 0 0 IN IP4 127.0.0.1";
+	sdp << "c=IN IP4 " + dstIp;
+	sdp << "a=tool:lmm 2.0.0";
+	sdp << "s=No Name";
+	sdp << QString("a=control:rtsp://%1/%2").arg(myIpAddr.toString()).arg(stream);
+
+	QHashIterator<QString, StreamDescription> hi(streamDescriptions[stream].media);
+	while (hi.hasNext()) {
+		hi.next();
+		const StreamDescription &desc = hi.value();
+		Lmm::CodecType codec = desc.rtp->getCodec();
+		if (codec == Lmm::CODEC_H264) {
+			sdp << QString("m=video %1 RTP/AVP 96").arg(streamPort);
+			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
+			sdp << "a=rtpmap:96 H264/90000";
+			sdp << "a=fmtp:96 packetization-mode=1";
+			//sdp << QString("a=control:%1").arg(desc.streamUrlSuffix);
+		} else if (codec == Lmm::CODEC_JPEG) {
+			sdp << "m=video 15678 RTP/AVP 26";
+		} else if (codec == Lmm::CODEC_PCM_L16) {
+			sdp << QString("m=audio %1 RTP/AVP 97").arg(streamPort);
+			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
+			sdp << "a=rtpmap:97 L16/8000/1";
+			//sdp << QString("a=control:%1").arg(desc.streamUrlSuffix);
+		} else if (codec == Lmm::CODEC_PCM_ALAW) {
+			sdp << QString("m=audio %1 RTP/AVP 97").arg(streamPort);
+			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
+			sdp << "a=rtpmap:97 PCMA/8000/1";
+		}
 	}
 
 	return sdp;
@@ -689,7 +843,7 @@ BaseRtspSession::~BaseRtspSession()
 {
 }
 
-int BaseRtspSession::setup(bool mcast, int dPort, int cPort, QString streamName)
+int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &streamName, const QString &media)
 {
 	multicast = mcast;
 	dataPort = dPort;
@@ -710,16 +864,13 @@ int BaseRtspSession::setup(bool mcast, int dPort, int cPort, QString streamName)
 		sourceControlPort = cPort;
 
 	/* create the new rtp channel */
-	rtp = server->getSessionTransmitter(streamName);
+	rtp = server->getSessionTransmitter(streamName, media);
 	if (!rtp)
 		return -ENOENT;
 	rtpCh = rtp->addChannel();
 	rtp->setupChannel(rtpCh, streamIp, dataPort, controlPort, sourceDataPort, sourceControlPort, ssrc);
 	connect(rtpCh, SIGNAL(goodbyeRecved()), SLOT(rtpGoodbyeRecved()));
 	connect(rtpCh, SIGNAL(sessionTimedOut()), SLOT(rtcpTimedOut()));
-
-	if (rtp->getCodec() != Lmm::CODEC_H264)
-		return -EINVAL;
 
 	if (multicast) {
 		transportString = QString("Transport: RTP/AVP;multicast;destination=%3;port=%1-%2;ttl=%4;mode=play")
