@@ -437,6 +437,18 @@ int BaseLmmElement::setState(BaseLmmElement::RunningState s)
 	return 0;
 }
 
+int BaseLmmElement::newOutputBuffer(const RawBuffer &buf)
+{
+	int err;
+	QMutexLocker l(&outql);
+	for (int i = 0; i < outq.size(); i++) {
+		err = outq[i]->addBuffer(buf, this);
+		if (err)
+			return err;
+	}
+	return 0;
+}
+
 int BaseLmmElement::newOutputBuffer(int ch, const RawBuffer &buf)
 {
 	QMutexLocker l(&outql);

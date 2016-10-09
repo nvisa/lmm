@@ -86,6 +86,7 @@ protected:
 	virtual int processBuffer(int ch, const RawBuffer &buf);
 	RunningState getState();
 	int setState(RunningState s);
+	virtual int newOutputBuffer(const RawBuffer &buf);
 	virtual int newOutputBuffer(int ch, const RawBuffer &buf);
 	virtual int newOutputBuffer(int ch, QList<RawBuffer> list);
 	void notifyEvent(Events ev, const RawBuffer &buf);
