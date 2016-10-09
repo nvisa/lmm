@@ -155,6 +155,16 @@ int BaseLmmPipeline::insert(BaseLmmElement *src, BaseLmmElement *el, int outputC
 	return 0;
 }
 
+/**
+ * @brief BaseLmmPipeline::append
+ * @param el
+ * @param inputCh
+ * @return
+ *
+ * This function appends given element to the pipeline. A new output queue is added
+ * to the current tail of the pipeline and that added queue is connected to given
+ * input queue of this element.
+ */
 int BaseLmmPipeline::append(BaseLmmElement *el, int inputCh)
 {
 	el->setParent(this);
@@ -166,6 +176,20 @@ int BaseLmmPipeline::append(BaseLmmElement *el, int inputCh)
 	return 0;
 }
 
+/**
+ * @brief BaseLmmPipeline::appendFinal
+ * @param el
+ * @param inputCh
+ * @return
+ *
+ * Append given element and finalizes pipeline setup.
+ *
+ * This function is short-cut for:
+ *
+ *   BaseLmmElement *el;
+ *   p->append(el);
+ *   p->end();
+ */
 int BaseLmmPipeline::appendFinal(BaseLmmElement *el, int inputCh)
 {
 	int err = append(el, inputCh);
@@ -175,6 +199,12 @@ int BaseLmmPipeline::appendFinal(BaseLmmElement *el, int inputCh)
 	return 0;
 }
 
+/**
+ * @brief BaseLmmPipeline::end
+ * @return
+ *
+ * Finalizes pipeline setup.
+ */
 int BaseLmmPipeline::end()
 {
 	pipesNew.last()->addOutputQueue(getOutputQueue(0));
