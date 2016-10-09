@@ -19,7 +19,8 @@ SOURCES += main.cpp \
     genericstreamer.cpp \
     jpegshotserver.cpp \
     simplezip.cpp \
-    miniz.c
+    miniz.c \
+    mjpegserver.cpp
 
 include (build_config.pri)
 
@@ -39,4 +40,5 @@ HEADERS += \
     mpegdashserver.h \
     genericstreamer.h \
     jpegshotserver.h \
-    simplezip.h
+    simplezip.h \
+    mjpegserver.h
