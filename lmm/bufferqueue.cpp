@@ -104,7 +104,7 @@ int BufferQueue::processBuffer(const RawBuffer &buf)
 		const RawBuffer outbuf = buffers.takeFirst();
 		totalSize -= outbuf.size();
 		block.unlock();
-		return newOutputBuffer(0, outbuf);
+		return newOutputBuffer(outbuf);
 	}
 	block.unlock();
 	return 0;
