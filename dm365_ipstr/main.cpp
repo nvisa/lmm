@@ -18,6 +18,7 @@ int main(int argc, char *argv[])
 	QCoreApplication a(argc, argv);
 
 	LmmCommon::init();
+	ecl::initDebug();
 	ApplicationSettings *sets = ApplicationSettings::instance();
 	sets->load("/etc/encsoft/dm365_ipstr.json");
 
