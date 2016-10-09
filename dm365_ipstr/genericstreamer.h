@@ -40,6 +40,7 @@ protected:
 	SeiInserter *seiInserterHigh;
 	RtpTransmitter *rtpLow;
 	RtpTransmitter *rtpHigh;
+	RtpTransmitter *rtpPcm;
 };
 
 #endif // GENERICSTREAMER_H

@@ -1,5 +1,8 @@
 #include "genericstreamer.h"
 #include "jpegshotserver.h"
+#include "mjpegserver.h"
+
+#include <lmm/alsa/alsainput.h>
 
 #include <ecl/debug.h>
 #include <ecl/drivers/hardwareoperations.h>
@@ -151,6 +154,59 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	}
 	p2->end();
 
+	/* audio pipeline */
+	if (s->get("config.pipeline.2.enabled").toBool()) {
+		BaseLmmPipeline *p3 = addPipeline();
+		Lmm::CodecType acodec = Lmm::CODEC_PCM_ALAW;
+		QString codecName = s->get("config.pipeline.2.audio_codec").toString();
+		if (codecName == "g711")
+			acodec = Lmm::CODEC_PCM_ALAW;
+		else if (codecName == "L16")
+			acodec = Lmm::CODEC_PCM_L16;
+		AlsaInput *alsaIn = new AlsaInput(acodec, this);
+		alsaIn->setParameter("audioRate", s->get("config.pipeline.2.alsa_config.rate").toInt());
+		alsaIn->setParameter("sampleCount", s->get("config.pipeline.2.alsa_config.buffer_size").toInt());
+		alsaIn->setParameter("channelCount", s->get("config.pipeline.2.alsa_config.channels").toInt());
+		p3->append(alsaIn);
+		rtpPcm = new RtpTransmitter(this, acodec);
+		p3->append(rtpPcm);
+		p3->end();
+	}
+
+	encJpegHigh = new JpegEncoder;
+	encJpegHigh->setQualityFactor(s->get("jpeg_encoding.ch.0.qfact").toInt());
+	encJpegHigh->setMaxJpegSize(s->get("jpeg_encoding.ch.0.max_size").toInt());
+	encJpegHigh->setParameter("videoWidth", w0);
+	encJpegHigh->setParameter("videoHeight", h0);
+	encJpegHigh->setStreamTime(p1->getStreamTime());
+	encJpegHigh->start();
+	encJpegLow = new JpegEncoder;
+	encJpegLow->setQualityFactor(s->get("jpeg_encoding.ch.1.qfact").toInt());
+	encJpegLow->setMaxJpegSize(s->get("jpeg_encoding.ch.1.max_size").toInt());
+	encJpegLow->setParameter("videoWidth", w1);
+	encJpegLow->setParameter("videoHeight", h1);
+	encJpegLow->setStreamTime(p2->getStreamTime());
+	encJpegLow->start();
+	if (s->get("jpeg_encoding.jpeg_server.enabled").toBool())
+		new JpegShotServer(this, s->get("jpeg_encoding.jpeg_server.port").toInt(), this);
+
+	/* mjpeg pipeline(s) */
+	if (s->get("config.pipeline.3.enabled").toBool()) {
+		BaseLmmPipeline *p4 = addPipeline();
+		p4->append(rawQueue);
+		p4->append(encJpegHigh);
+		p4->append(new MjpegElement(s->get("config.pipeline.3.port").toInt()));
+		p4->end();
+	}
+	if (s->get("config.pipeline.4.enabled").toBool()) {
+		BaseLmmPipeline *p5 = addPipeline();
+		p5->append(rawQueue2);
+		p5->append(encJpegLow);
+		p5->append(new MjpegElement(s->get("config.pipeline.4.port").toInt()));
+		p5->end();
+	}
+
+	/* TODO: things get messy for JPEG functionality if first channel is disabled */
 	if (!enabled0) {
 		ElementIOQueue *q1 = camIn->getOutputQueue(0);
 		ElementIOQueue *q2 = camIn->getOutputQueue(1);
@@ -171,30 +227,45 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	}
 
 	/* rtsp server */
+	QString rtspConfig = s->get("video_encoding.rtsp.stream_config").toString();
+	mDebug("using '%s' RTSP config", qPrintable(rtspConfig));
 	BaseRtspServer *rtsp = new BaseRtspServer(this);
-	rtsp->addStream("stream1", false, rtpHigh);
-	rtsp->addStream("stream1m", true, rtpHigh, s->get("video_encoding.ch.0.onvif.multicast_port").toInt(),
-					s->get("video_encoding.ch.0.onvif.multicast_address").toString());
-	rtsp->addStream("stream2", false, rtpLow);
-	rtsp->addStream("stream2m", true, rtpLow, s->get("video_encoding.ch.1.onvif.multicast_port").toInt(),
-					s->get("video_encoding.ch.1.onvif.multicast_address").toString());
 
-	encJpegHigh = new JpegEncoder;
-	encJpegHigh->setQualityFactor(s->get("jpeg_encoding.ch.0.qfact").toInt());
-	encJpegHigh->setMaxJpegSize(s->get("jpeg_encoding.ch.0.max_size").toInt());
-	encJpegHigh->setParameter("videoWidth", w0);
-	encJpegHigh->setParameter("videoHeight", h0);
-	encJpegHigh->setStreamTime(p1->getStreamTime());
-	encJpegHigh->start();
-	encJpegLow = new JpegEncoder;
-	encJpegLow->setQualityFactor(s->get("jpeg_encoding.ch.1.qfact").toInt());
-	encJpegLow->setMaxJpegSize(s->get("jpeg_encoding.ch.1.max_size").toInt());
-	encJpegLow->setParameter("videoWidth", w1);
-	encJpegLow->setParameter("videoHeight", h1);
-	encJpegLow->setStreamTime(p2->getStreamTime());
-	encJpegLow->start();
-	if (s->get("jpeg_encoding.jpeg_server.enabled").toBool())
-		new JpegShotServer(this, s->get("jpeg_encoding.jpeg_server.port").toInt(), this);
+	if (rtspConfig == "legacy") {
+		rtsp->addStream("stream1", false, rtpHigh);
+		rtsp->addStream("stream1m", true, rtpHigh, s->get("video_encoding.ch.0.onvif.multicast_port").toInt(),
+						s->get("video_encoding.ch.0.onvif.multicast_address").toString());
+		rtsp->addStream("stream2", false, rtpLow);
+		rtsp->addStream("stream2m", true, rtpLow, s->get("video_encoding.ch.1.onvif.multicast_port").toInt(),
+						s->get("video_encoding.ch.1.onvif.multicast_address").toString());
+	} else if (rtspConfig == "multi") {
+		rtsp->addStream("stream1", false);
+		rtsp->addMedia2Stream("videoTrack", "stream1", false, rtpHigh);
+		rtsp->addMedia2Stream("audioTrack", "stream1", false, rtpPcm);
+		rtsp->addStream("stream1v", false, rtpHigh);
+		rtsp->addStream("stream1a", false, rtpPcm);
+
+		int port = s->get("video_encoding.ch.0.onvif.multicast_port").toInt();
+		QString mcastAddr = s->get("video_encoding.ch.0.onvif.multicast_address").toString();
+		rtsp->addStream("stream1m", true);
+		rtsp->addMedia2Stream("videoTrack", "stream1m", true, rtpHigh, port, mcastAddr);
+		rtsp->addMedia2Stream("audioTrack", "stream1m", true, rtpPcm, port + 2, mcastAddr);
+		rtsp->addStream("stream1vm", true, rtpHigh, port, mcastAddr);
+		rtsp->addStream("stream1am", true, rtpPcm, port + 2, mcastAddr);
+
+		rtsp->addStream("stream2", false);
+		rtsp->addMedia2Stream("videoTrack", "stream2", false, rtpLow);
+		rtsp->addMedia2Stream("audioTrack", "stream2", false, rtpPcm);
+		rtsp->addStream("stream2v", false, rtpLow);
+
+		port = s->get("video_encoding.ch.1.onvif.multicast_port").toInt();
+		mcastAddr = s->get("video_encoding.ch.1.onvif.multicast_address").toString();
+		rtsp->addStream("stream2m", true);
+		rtsp->addMedia2Stream("videoTrack", "stream2m", true, rtpLow, port, mcastAddr);
+		rtsp->addMedia2Stream("audioTrack", "stream2m", true, rtpPcm, port + 2, mcastAddr);
+		rtsp->addStream("stream2vm", true, rtpLow, port, mcastAddr);
+	}
+
 
 	if (s->get("camera_device.invert_clock").toBool())
 		HardwareOperations::writeRegister(0x1c40044, 0x1c);
