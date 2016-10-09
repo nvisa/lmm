@@ -239,7 +239,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 		rtsp->addStream("stream2m", true, rtpLow, s->get("video_encoding.ch.1.onvif.multicast_port").toInt(),
 						s->get("video_encoding.ch.1.onvif.multicast_address").toString());
 	} else if (rtspConfig == "multi") {
-		rtsp->addStream("stream1", false);
+		rtsp->addStream("stream1", false, rtpHigh); /* by default we will setup video */
 		rtsp->addMedia2Stream("videoTrack", "stream1", false, rtpHigh);
 		rtsp->addMedia2Stream("audioTrack", "stream1", false, rtpPcm);
 		rtsp->addStream("stream1v", false, rtpHigh);
