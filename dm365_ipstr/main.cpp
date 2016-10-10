@@ -1,6 +1,7 @@
 #include <QStringList>
 #include <QCoreApplication>
 
+#include <lmm/version.h>
 #include <lmm/dm365/cvbsstreamer.h>
 #include <lmm/dm365/ipcamerastreamer.h>
 #include <lmm/dm365/simplertpstreamer.h>
@@ -16,6 +17,11 @@
 int main(int argc, char *argv[])
 {
 	QCoreApplication a(argc, argv);
+
+	if (a.arguments().contains("--version")) {
+		qDebug() << VERSION_INFO;
+		return 0;
+	}
 
 	LmmCommon::init();
 	ecl::initDebug();
