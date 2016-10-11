@@ -3,7 +3,7 @@ linux-gnueabi-oe-g++ {
     #This is our default build config
     INSTALL_PREFIX=$$OUT_PWD/../../
     DEFINES += DEBUG INFO LOG LOGV DEBUG_TIMING
-    CONFIG += dmai staticlib dm365
+    CONFIG += dmai staticlib dm365 alsa
 } else:linux-g++-64 {
     message("building x86")
     #This is our default build config
