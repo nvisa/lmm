@@ -193,6 +193,11 @@ int AlsaInput::processBlocking(int ch)
 		return -EINVAL;
 	RawBuffer buf("audio/x-raw-int,", bufferSize);
 	int err = alsaIn->read(buf.data(), bufferSize);
+	/* alsa errors shouldn't stop our processing */
+	if (err < 0) {
+		mDebug("read error '%d' occurred, trying to continue", err);
+		err = 0;
+	}
 
 	if (outputFormat == Lmm::CODEC_PCM_ALAW) {
 		/* ASSUMPTION: input is 16-bit LE */
