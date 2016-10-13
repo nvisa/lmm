@@ -188,7 +188,6 @@ void BaseRtspServer::addStream(const QString streamName, bool multicast, RtpTran
 	desc.rtp = rtp;
 	desc.port = port;
 	desc.multicastAddr = mcastAddress;
-	desc.media.insert(streamName, desc);
 	streamDescriptions.insert(streamName, desc);
 }
 
