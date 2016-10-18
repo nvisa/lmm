@@ -723,7 +723,7 @@ void ElementIOQueue::calculateFps()
 	fpsBufferCount++;
 	if (fpsTiming->elapsed() > 1000) {
 		int elapsed = fpsTiming->restart();
-		fps = fpsBufferCount * 1000 / elapsed;
+		fps = fpsBufferCount * 1000.0 / elapsed;
 		fpsBufferCount = 0;
 	}
 }

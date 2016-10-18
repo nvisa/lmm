@@ -137,7 +137,7 @@ public:
 	void start();
 	void stop();
 	int setSizeLimit(int size, int hsize);
-	int getFps() const { return fps; }
+	float getFps() const { return fps; }
 	int getReceivedCount() const { return receivedCount; }
 	int getSentCount() const { return sentCount; }
 	void setEventHook(eventHook hook, void *priv);
@@ -165,7 +165,7 @@ protected:
 
 	int fpsBufferCount;
 	QElapsedTimer * fpsTiming;
-	int fps;
+	float fps;
 	RateReducto *rc;
 
 private:
