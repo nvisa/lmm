@@ -582,9 +582,9 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 	if (!skip) {
 		queue << buffer;
 		bufSize += buffer.size();
+		calculateFps();
 	}
 	receivedCount++;
-	calculateFps();
 	lock.unlock();
 	notifyEvent(EV_ADD, buffer, src);
 	if (!skip)
