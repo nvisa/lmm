@@ -140,10 +140,23 @@ void MjpegServer::transmitImage(const RawBuffer &buf)
 	lock.unlock();
 }
 
+int MjpegServer::getClientCount()
+{
+	lock.lock();
+	int cnt = clients.count();
+	lock.unlock();
+	return cnt;
+}
+
 MjpegElement::MjpegElement(int port, QObject *parent) :
 	BaseLmmElement(parent)
 {
 	server = new MjpegServer(port, this);
+}
+
+bool MjpegElement::isActive()
+{
+	return server->getClientCount() ? true : false;
 }
 
 int MjpegElement::processBuffer(const RawBuffer &buf)

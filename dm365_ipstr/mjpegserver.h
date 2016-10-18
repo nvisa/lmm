@@ -3,6 +3,7 @@
 
 #include <lmm/rawbuffer.h>
 #include <lmm/baselmmelement.h>
+#include <lmm/interfaces/streamcontrolelementinterface.h>
 
 #include <ecl/net/simplehttpserver.h>
 
@@ -20,6 +21,7 @@ public:
 	explicit MjpegServer(BaseStreamer *s, int channel, int port, float fps, QObject *parent = 0);
 
 	void transmitImage(const RawBuffer &buf);
+	int getClientCount();
 protected slots:
 	void timeout();
 	void clientDisconnected();
@@ -35,11 +37,12 @@ protected:
 	int pullPeriod;
 };
 
-class MjpegElement : public BaseLmmElement
+class MjpegElement : public BaseLmmElement, public StreamControlElementInterface
 {
 	Q_OBJECT
 public:
 	explicit MjpegElement(int port, QObject *parent = 0);
+	bool isActive();
 
 protected:
 	int processBuffer(const RawBuffer &buf);
