@@ -53,7 +53,8 @@ SOURCES += \
     pipeline/pipelinemanager.cpp \
     rtp/rtptransmitter.cpp \
     players/basestreamer.cpp \
-    genericvideotestsource.cpp
+    genericvideotestsource.cpp \
+    interfaces/streamcontrolelementinterface.cpp
 
 HEADERS  += \
     filesource.h \
@@ -101,7 +102,8 @@ HEADERS  += \
     pipeline/pipelinemanager.h \
     rtp/rtptransmitter.h \
     players/basestreamer.h \
-    genericvideotestsource.h
+    genericvideotestsource.h \
+    interfaces/streamcontrolelementinterface.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
