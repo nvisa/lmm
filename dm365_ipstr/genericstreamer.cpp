@@ -18,6 +18,11 @@
 #include <lmm/dm365/dm365dmacopy.h>
 #include <lmm/rtsp/basertspserver.h>
 #include <lmm/dm365/dm365camerainput.h>
+#include <lmm/interfaces/streamcontrolelementinterface.h>
+
+#include <errno.h>
+
+#define getss(nodedef) gets(s, pre, nodedef)
 
 float getVideoFps(int pipeline)
 {
@@ -25,10 +30,20 @@ float getVideoFps(int pipeline)
 	return s->get(QString("config.pipeline.%1.frame_skip.out_fps").arg(pipeline)).toFloat();
 }
 
+static QVariant gets(ApplicationSettings *s, const QString &prefix, const QString &nodedef)
+{
+	return s->get(QString("%1.%2").arg(prefix).arg(nodedef));
+}
+
 GenericStreamer::GenericStreamer(QObject *parent) :
 	BaseStreamer(parent)
 {
 	ApplicationSettings *s = ApplicationSettings::instance();
+
+	/* rtsp server */
+	QString rtspConfig = s->get("video_encoding.rtsp.stream_config").toString();
+	mDebug("using '%s' RTSP config", qPrintable(rtspConfig));
+	BaseRtspServer *rtsp = new BaseRtspServer(this);
 
 	/* camera input settings */
 	int vbp = s->get("camera_device.input_vbp").toInt();
@@ -37,235 +52,138 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	int h0 = s->get("camera_device.ch.0.height").toInt();
 	int w1 = s->get("camera_device.ch.1.width").toInt();
 	int h1 = s->get("camera_device.ch.1.height").toInt();
+	int wa[] = {w0, w1};
+	int ha[] = {h0, h1};
 	camIn = new DM365CameraInput();
 	camIn->setNonStdOffsets(vbp, hbp);
 	camIn->setSize(0, QSize(w0, h0));
 	camIn->setSize(1, QSize(w1, h1));
 
-	/* overlay element, only for High res channel */
-	textOverlay = new TextOverlay(TextOverlay::PIXEL_MAP);
-	textOverlay->setObjectName("TextOverlay");
-	/* overlay settings */
-	textOverlay->setEnabled(s->get("text_overlay.enabled").toBool());
-	QPoint pt;
-	pt.setX(s->get("text_overlay.position.x").toInt());
-	pt.setY(s->get("text_overlay.position.y").toInt());
-	textOverlay->setOverlayPosition(pt);
-	textOverlay->setFontSize(s->get("text_overlay.font_size").toInt());
-	textOverlay->setOverlayText(s->get("text_overlay.overlay_text").toString());
-	int cnt = s->get("text_overlay.fields.count").toInt();
+	QHash<QString, BaseLmmElement *> allElements;
+	int err = 0;
+	int cnt = s->getArraySize("config.pipeline");
 	for (int i = 0; i < cnt; i++) {
-		QString pre = QString("text_overlay.field.%1").arg(i);
-		textOverlay->addOverlayField((TextOverlay::overlayTextFields)(s->get(pre + ".type").toInt()),
-									 s->get(pre + ".text").toString());
+		QString p = QString("config.pipeline.%1").arg(i);
+
+		if (!s->get(QString("%1.enabled").arg(p)).toBool())
+			continue;
+
+		mDebug("setting-up pipeline %d", i);
+
+		int streamControlIndex = -1;
+		StreamControlElementInterface *controlElement = NULL;
+		QList<BaseLmmElement *> elements;
+		int ecnt = s->getArraySize(QString("%1.elements").arg(p));
+		for (int j = 0; j < ecnt; j++) {
+			QString pre = QString("%1.elements.%2").arg(p).arg(j);
+			QString type = gets(s, pre, "type").toString();
+			QString name = gets(s, pre, "object_name").toString();
+			bool enabled = gets(s, pre, "enabled").toBool();
+			if (!enabled)
+				continue;
+
+			BaseLmmElement *el = NULL;
+
+			if (allElements.contains(name)) {
+				el = allElements[name];
+			} else if (type == "TextOverlay") {
+				el = createTextOverlay(name, s);
+			} else if (type == "H264Encoder") {
+				int ch = getss("channel").toInt();
+				el = createH264Encoder(name, s, ch, wa[ch], ha[ch]);
+			} else if (type == "JpegEncoder") {
+				int ch = getss("channel").toInt();
+				el = createJpegEncoder(name, s, ch, wa[ch], ha[ch]);
+				el->start();
+			} else if (type == "MjpegElement") {
+				MjpegElement *mjpeg = new MjpegElement(getss("port").toInt(), this);
+				el = mjpeg;
+
+				if (getss("stream_control.enabled").toBool()) {
+					int elCount = s->getArraySize(QString("%1.stream_control.targets").arg(pre));
+					for (int k = 0; k < elCount; k++) {
+						pre = QString("%1.elements.%2.stream_control.targets.%3").arg(p).arg(j).arg(k);
+						streamControlIndex = getss("control_element_index").toInt();
+						controlElement = mjpeg;
+					}
+				}
+			} else if (type == "SeiInserter") {
+				BaseLmmElement *encel = elements[getss("encoder_index").toInt()];
+				H264Encoder *enc = qobject_cast<H264Encoder *>(encel);
+				if (!enc) {
+					mDebug("wrong encoder element definiton for SEI inserter");
+					err = -EINVAL;
+					break;
+				}
+				el = new SeiInserter(enc);
+			} else if (type == "DM365DmaCopy") {
+				DM365DmaCopy *dma = new DM365DmaCopy(this, getss("output_count").toInt());
+				dma->setBufferCount(getss("buffer_count").toInt());
+				dma->setAllocateSize(getss("alloc_size").toInt());
+				el = dma;
+			} else if (type == "BufferQueue") {
+				BufferQueue *bq = new BufferQueue(this);
+				bq->setQueueSize(getss("queue_size").toInt());
+				el = bq;
+			} else if (type == "RtpTransmitter") {
+				RtpTransmitter *rtp = new RtpTransmitter(this);
+				rtp->setMulticastTTL(getss("multicast_ttl").toInt());
+				rtp->setMaximumPayloadSize(getss("rtp_max_payload_size").toInt());
+				el = rtp;
+
+				int streamCount = s->getArraySize(QString("%1.rtsp").arg(pre));
+				for (int k = 0; k < streamCount; k++) {
+					pre = QString("%1.elements.%2.rtsp.%3").arg(p).arg(j).arg(k);
+					rtsp->addStream(getss("stream").toString(), getss("multicast").toBool(), rtp,
+									getss("port").toInt(),
+									getss("multicast_address").toString());
+					rtsp->addMedia2Stream(getss("media").toString(),
+										  getss("stream").toString(),
+										  getss("multicast").toBool(),
+										  rtp,
+										  getss("port").toInt(),
+										  getss("multicast_address").toString());
+
+				}
+				pre = QString("%1.elements.%2").arg(p).arg(j);
+
+				if (getss("stream_control.enabled").toBool()) {
+					int elCount = s->getArraySize(QString("%1.stream_control.targets").arg(pre));
+					for (int k = 0; k < elCount; k++) {
+						pre = QString("%1.elements.%2.stream_control.targets.%3").arg(p).arg(j).arg(k);
+						streamControlIndex = getss("control_element_index").toInt();
+						controlElement = rtp;
+					}
+				}
+			} else if (type == "DM365CameraInput") {
+				el = camIn;
+			}
+
+			if (!el) {
+				mDebug("no suitable element for node %d (%s)", j, qPrintable(type));
+				err = -ENOENT;
+				break;
+			}
+			if (!name.isEmpty())
+				el->setObjectName(name);
+			mDebug("adding element %s with type %s to pipeline %d", qPrintable(name), qPrintable(type), i);
+			elements << el;
+			allElements.insert(name, el);
+		}
+
+		BaseLmmPipeline *pl = addPipeline();
+		for (int j = 0; j < elements.size(); j++)
+			pl->append(elements[j]);
+		pl->end();
+		streamControl.insert(pl, streamControlIndex);
+		streamControlElement.insert(pl, controlElement);
 	}
 
-	enc264High = new H264Encoder;
-	enc264High->setObjectName("H264EncoderHigh");
-	/* first encoder settings */
-	int rateControl = s->get("video_encoding.ch.0.rate_control").toInt();
-	int bufCnt = s->get("video_encoding.ch.0.buffer_count").toInt();
-	int bitrate = s->get("video_encoding.ch.0.bitrate").toInt();
-	int profile = s->get("video_encoding.ch.0.encoding_profile").toInt();
-	enc264High->setBitrateControl(DmaiEncoder::RateControl(rateControl));
-	enc264High->setBitrate(w0 * h0 * getVideoFps(0) * 3 * 0.07);
-	if (bitrate)
-		enc264High->setBitrate(bitrate);
-	enc264High->setParameter("videoWidth", w0);
-	enc264High->setParameter("videoHeight", h0);
-	enc264High->setBufferCount(bufCnt);
-	enc264High->setProfile(profile);
-	enc264High->setSeiEnabled(s->get("video_encoding.ch.0.sei_enabled").toBool());
-	enc264High->setPacketized(s->get("video_encoding.ch.0.packetized").toBool());
-	enc264High->setFrameRate(getVideoFps(0));
-	enc264High->setIntraFrameInterval(s->get("video_encoding.ch.0.intraframe_interval").toInt());
-
-	seiInserterHigh = new SeiInserter(enc264High);
-	seiInserterHigh->setObjectName("SeiInserterHigh");
-
-	cloner = new DM365DmaCopy(this, 1);
-	cloner->setBufferCount(s->get("config.pipeline.0.cloner.buffer_count").toInt());
-	cloner->setAllocateSize(s->get("config.pipeline.0.cloner.alloc_size").toInt());
-
-	h264Queue = new BufferQueue(this);
-	h264Queue->setQueueSize(s->get("config.pipeline.0.queues.0.queue_size").toInt());
-	rawQueue = new BufferQueue(this);
-	rawQueue->setQueueSize(s->get("config.pipeline.0.queues.1.queue_size").toInt());
-
-	rtpHigh = new RtpTransmitter(this);
-	rtpHigh->setMulticastTTL(s->get("video_encoding.ch.0.onvif.multicast_ttl").toInt());
-	rtpHigh->setMaximumPayloadSize(s->get("video_encoding.ch.0.onvif.rtp_max_payload_size").toInt());
-
-	BaseLmmPipeline *p1 = addPipeline();
-
-	p1->append(camIn);
-	p1->append(textOverlay);
-	p1->append(rawQueue);
-	p1->append(enc264High);
-	p1->append(seiInserterHigh);
-	p1->append(cloner);
-	p1->append(h264Queue);
-	p1->append(rtpHigh);
-	p1->end();
-
-	/* all input and output queues are created at this point so we adjust frame rates here */
 	if (s->get("config.pipeline.0.frame_skip.enabled").toBool()) {
-		int inFps = s->get("config.pipeline.0.frame_skip.in_fps").toFloat();
-		int outFps = s->get("config.pipeline.0.frame_skip.out_fps").toFloat();
-		textOverlay->getInputQueue(0)->setRateReduction(inFps, outFps);
+		float inFps = s->get("config.pipeline.0.frame_skip.in_fps").toFloat();
+		float outFps = s->get("config.pipeline.0.frame_skip.out_fps").toFloat();
+		camIn->getOutputQueue(0)->setRateReduction(inFps, outFps);
 	}
-
-	/* pipeline 2 */
-	enc264Low = new H264Encoder;
-	enc264Low->setObjectName("H264EncoderLow");
-	/* second encoder settings */
-	rateControl = s->get("video_encoding.ch.1.rate_control").toInt();
-	bufCnt = s->get("video_encoding.ch.1.buffer_count").toInt();
-	bitrate = s->get("video_encoding.ch.1.bitrate").toInt();
-	profile = s->get("video_encoding.ch.1.encoding_profile").toInt();
-	enc264Low->setBitrateControl(DmaiEncoder::RateControl(rateControl));
-	enc264Low->setBitrate(w0 * h0 * getVideoFps(1) * 3 * 0.07);
-	if (bitrate)
-		enc264Low->setBitrate(bitrate);
-	enc264Low->setParameter("videoWidth", w1);
-	enc264Low->setParameter("videoHeight", h1);
-	enc264Low->setBufferCount(bufCnt);
-	enc264Low->setProfile(profile);
-	enc264Low->setSeiEnabled(s->get("video_encoding.ch.1.sei_enabled").toBool());
-	enc264Low->setPacketized(s->get("video_encoding.ch.1.packetized").toBool());
-	enc264Low->setFrameRate(getVideoFps(1));
-	enc264Low->setIntraFrameInterval(s->get("video_encoding.ch.1.intraframe_interval").toInt());
-
-	rawQueue2 = new BufferQueue(this);
-	rawQueue2->setQueueSize(s->get("config.pipeline.0.queues.2.queue_size").toInt());
-
-	rtpLow = new RtpTransmitter(this);
-	rtpLow->setMulticastTTL(s->get("video_encoding.ch.1.onvif.multicast_ttl").toInt());
-	rtpLow->setMaximumPayloadSize(s->get("video_encoding.ch.1.onvif.rtp_max_payload_size").toInt());
-
-	BaseLmmPipeline *p2 = addPipeline();
-	bool enabled0 = s->get("config.pipeline.0.enabled").toBool();
-	bool enabled1 = s->get("config.pipeline.1.enabled").toBool();
-	p2->append(camIn);
-	if (enabled0 && enabled1) {
-		p2->append(rawQueue2);
-		p2->append(enc264Low);
-		p2->append(rtpLow);
-	}
-	p2->end();
-
-	/* audio pipeline */
-	if (s->get("config.pipeline.2.enabled").toBool()) {
-		BaseLmmPipeline *p3 = addPipeline();
-		Lmm::CodecType acodec = Lmm::CODEC_PCM_ALAW;
-		QString codecName = s->get("config.pipeline.2.audio_codec").toString();
-		if (codecName == "g711")
-			acodec = Lmm::CODEC_PCM_ALAW;
-		else if (codecName == "L16")
-			acodec = Lmm::CODEC_PCM_L16;
-		AlsaInput *alsaIn = new AlsaInput(acodec, this);
-		alsaIn->setParameter("audioRate", s->get("config.pipeline.2.alsa_config.rate").toInt());
-		alsaIn->setParameter("sampleCount", s->get("config.pipeline.2.alsa_config.buffer_size").toInt());
-		alsaIn->setParameter("channelCount", s->get("config.pipeline.2.alsa_config.channels").toInt());
-		p3->append(alsaIn);
-		rtpPcm = new RtpTransmitter(this, acodec);
-		p3->append(rtpPcm);
-		p3->end();
-	}
-
-	encJpegHigh = new JpegEncoder;
-	encJpegHigh->setQualityFactor(s->get("jpeg_encoding.ch.0.qfact").toInt());
-	encJpegHigh->setMaxJpegSize(s->get("jpeg_encoding.ch.0.max_size").toInt());
-	encJpegHigh->setParameter("videoWidth", w0);
-	encJpegHigh->setParameter("videoHeight", h0);
-	encJpegHigh->setStreamTime(p1->getStreamTime());
-	encJpegHigh->start();
-	encJpegLow = new JpegEncoder;
-	encJpegLow->setQualityFactor(s->get("jpeg_encoding.ch.1.qfact").toInt());
-	encJpegLow->setMaxJpegSize(s->get("jpeg_encoding.ch.1.max_size").toInt());
-	encJpegLow->setParameter("videoWidth", w1);
-	encJpegLow->setParameter("videoHeight", h1);
-	encJpegLow->setStreamTime(p2->getStreamTime());
-	encJpegLow->start();
-	if (s->get("jpeg_encoding.jpeg_server.enabled").toBool())
-		new JpegShotServer(this, s->get("jpeg_encoding.jpeg_server.port").toInt(), this);
-
-	/* mjpeg pipeline(s) */
-	if (s->get("config.pipeline.3.enabled").toBool()) {
-		BaseLmmPipeline *p4 = addPipeline();
-		p4->append(rawQueue);
-		p4->append(encJpegHigh);
-		p4->append(new MjpegElement(s->get("config.pipeline.3.port").toInt()));
-		p4->end();
-	}
-	if (s->get("config.pipeline.4.enabled").toBool()) {
-		BaseLmmPipeline *p5 = addPipeline();
-		p5->append(rawQueue2);
-		p5->append(encJpegLow);
-		p5->append(new MjpegElement(s->get("config.pipeline.4.port").toInt()));
-		p5->end();
-	}
-
-	/* TODO: things get messy for JPEG functionality if first channel is disabled */
-	if (!enabled0) {
-		ElementIOQueue *q1 = camIn->getOutputQueue(0);
-		ElementIOQueue *q2 = camIn->getOutputQueue(1);
-		camIn->setOutputQueue(0, q2);
-		camIn->setOutputQueue(1, q1);
-
-		enc264High->setParameter("videoWidth", w1);
-		enc264High->setParameter("videoHeight", h1);
-		enc264Low->setParameter("videoWidth", w0);
-		enc264Low->setParameter("videoHeight", h0);
-	}
-
-	/* all input and output queues are created at this point so we adjust frame rates here */
-	if (s->get("config.pipeline.1.frame_skip.enabled").toBool()) {
-		int inFps = s->get("config.pipeline.1.frame_skip.in_fps").toFloat();
-		int outFps = s->get("config.pipeline.1.frame_skip.out_fps").toFloat();
-		rawQueue2->getInputQueue(0)->setRateReduction(inFps, outFps);
-	}
-
-	/* rtsp server */
-	QString rtspConfig = s->get("video_encoding.rtsp.stream_config").toString();
-	mDebug("using '%s' RTSP config", qPrintable(rtspConfig));
-	BaseRtspServer *rtsp = new BaseRtspServer(this);
-
-	if (rtspConfig == "legacy") {
-		rtsp->addStream("stream1", false, rtpHigh);
-		rtsp->addStream("stream1m", true, rtpHigh, s->get("video_encoding.ch.0.onvif.multicast_port").toInt(),
-						s->get("video_encoding.ch.0.onvif.multicast_address").toString());
-		rtsp->addStream("stream2", false, rtpLow);
-		rtsp->addStream("stream2m", true, rtpLow, s->get("video_encoding.ch.1.onvif.multicast_port").toInt(),
-						s->get("video_encoding.ch.1.onvif.multicast_address").toString());
-	} else if (rtspConfig == "multi") {
-		rtsp->addStream("stream1", false, rtpHigh); /* by default we will setup video */
-		rtsp->addMedia2Stream("videoTrack", "stream1", false, rtpHigh);
-		rtsp->addMedia2Stream("audioTrack", "stream1", false, rtpPcm);
-		rtsp->addStream("stream1v", false, rtpHigh);
-		rtsp->addStream("stream1a", false, rtpPcm);
-
-		int port = s->get("video_encoding.ch.0.onvif.multicast_port").toInt();
-		QString mcastAddr = s->get("video_encoding.ch.0.onvif.multicast_address").toString();
-		rtsp->addStream("stream1m", true);
-		rtsp->addMedia2Stream("videoTrack", "stream1m", true, rtpHigh, port, mcastAddr);
-		rtsp->addMedia2Stream("audioTrack", "stream1m", true, rtpPcm, port + 2, mcastAddr);
-		rtsp->addStream("stream1vm", true, rtpHigh, port, mcastAddr);
-		rtsp->addStream("stream1am", true, rtpPcm, port + 2, mcastAddr);
-
-		rtsp->addStream("stream2", false);
-		rtsp->addMedia2Stream("videoTrack", "stream2", false, rtpLow);
-		rtsp->addMedia2Stream("audioTrack", "stream2", false, rtpPcm);
-		rtsp->addStream("stream2v", false, rtpLow);
-
-		port = s->get("video_encoding.ch.1.onvif.multicast_port").toInt();
-		mcastAddr = s->get("video_encoding.ch.1.onvif.multicast_address").toString();
-		rtsp->addStream("stream2m", true);
-		rtsp->addMedia2Stream("videoTrack", "stream2m", true, rtpLow, port, mcastAddr);
-		rtsp->addMedia2Stream("audioTrack", "stream2m", true, rtpPcm, port + 2, mcastAddr);
-		rtsp->addStream("stream2vm", true, rtpLow, port, mcastAddr);
-	}
-
 
 	if (s->get("camera_device.invert_clock").toBool())
 		HardwareOperations::writeRegister(0x1c40044, 0x1c);
@@ -275,6 +193,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 
 QList<RawBuffer> GenericStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
 {
+	return QList<RawBuffer>();
+#if 0
 	if (codec == Lmm::CODEC_H264) {
 		QList<RawBuffer> bufs;
 		if (ts)
@@ -306,4 +226,82 @@ QList<RawBuffer> GenericStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint
 		bufs2 << enc->nextBufferBlocking(0);
 	}
 	return bufs2;
+#endif
+}
+
+int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &)
+{
+	int sci = streamControl[p];
+	if (sci != -1) {
+		StreamControlElementInterface *sce = streamControlElement[p];
+		BaseLmmElement *el = p->getPipe(sci);
+		bool active = sce->isActive();
+		if (active && el->isPassThru()) {
+			mDebug("enabling pipeline control point: %d", sci);
+			for (int i = sci; i < p->getPipeCount(); i++)
+				p->getPipe(i)->setPassThru(false);
+		} else if (!active && !el->isPassThru()) {
+			mDebug("disabling pipeline control point: %d", sci);
+			for (int i = p->getPipeCount() - 1; i >= sci; i--)
+				p->getPipe(i)->setPassThru(true);
+		}
+	}
+	return 0;
+}
+
+TextOverlay * GenericStreamer::createTextOverlay(const QString &elementName, ApplicationSettings *s)
+{
+	/* overlay element, only for High res channel */
+	TextOverlay *textOverlay = new TextOverlay(TextOverlay::PIXEL_MAP);
+	textOverlay->setObjectName(elementName);
+	/* overlay settings */
+	textOverlay->setEnabled(s->get("text_overlay.enabled").toBool());
+	QPoint pt;
+	pt.setX(s->get("text_overlay.position.x").toInt());
+	pt.setY(s->get("text_overlay.position.y").toInt());
+	textOverlay->setOverlayPosition(pt);
+	textOverlay->setFontSize(s->get("text_overlay.font_size").toInt());
+	textOverlay->setOverlayText(s->get("text_overlay.overlay_text").toString());
+	int cnt = s->get("text_overlay.fields.count").toInt();
+	for (int i = 0; i < cnt; i++) {
+		QString pre = QString("text_overlay.field.%1").arg(i);
+		textOverlay->addOverlayField((TextOverlay::overlayTextFields)(s->get(pre + ".type").toInt()),
+									 s->get(pre + ".text").toString());
+	}
+	return textOverlay;
+}
+
+H264Encoder * GenericStreamer::createH264Encoder(const QString &elementName, ApplicationSettings *s, int ch, int w0, int h0)
+{
+	H264Encoder *enc = new H264Encoder;
+	enc->setObjectName(elementName);
+	/* first encoder settings */
+	int rateControl = s->get(QString("video_encoding.ch.%1.rate_control").arg(ch)).toInt();
+	int bufCnt = s->get(QString("video_encoding.ch.%1.buffer_count").arg(ch)).toInt();
+	int bitrate = s->get(QString("video_encoding.ch.%1.bitrate").arg(ch)).toInt();
+	int profile = s->get(QString("video_encoding.ch.%1.encoding_profile").arg(ch)).toInt();
+	enc->setBitrateControl(DmaiEncoder::RateControl(rateControl));
+	enc->setBitrate(w0 * h0 * getVideoFps(ch) * 3 * 0.07);
+	if (bitrate)
+		enc->setBitrate(bitrate);
+	enc->setParameter("videoWidth", w0);
+	enc->setParameter("videoHeight", h0);
+	enc->setBufferCount(bufCnt);
+	enc->setProfile(profile);
+	enc->setSeiEnabled(s->get(QString("video_encoding.ch.%1.sei_enabled").arg(ch)).toBool());
+	enc->setPacketized(s->get(QString("video_encoding.ch.%1.packetized").arg(ch)).toBool());
+	enc->setFrameRate(getVideoFps(ch));
+	enc->setIntraFrameInterval(s->get(QString("video_encoding.ch.%1.intraframe_interval").arg(ch)).toInt());
+	return enc;
+}
+
+JpegEncoder * GenericStreamer::createJpegEncoder(const QString &elementName, ApplicationSettings *s, int ch, int w0, int h0)
+{
+	JpegEncoder *enc = new JpegEncoder;
+	enc->setObjectName(elementName);
+	enc->setQualityFactor(s->get(QString("jpeg_encoding.ch.%1.qfact").arg(ch)).toInt());
+	enc->setMaxJpegSize(s->get(QString("jpeg_encoding.ch.%1.max_size").arg(ch)).toInt());
+	enc->setParameter("videoWidth", w0);
+	enc->setParameter("videoHeight", h0);
+	return enc;
 }

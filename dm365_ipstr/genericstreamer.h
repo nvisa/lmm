@@ -3,15 +3,9 @@
 
 #include <lmm/dm365/ipcamerastreamer.h>
 
-class BufferQueue;
-class TextOverlay;
-class JpegEncoder;
-class H264Encoder;
 class DM365CameraInput;
-class DM365VideoOutput;
-class DM365DmaCopy;
-class SeiInserter;
-class RtpTransmitter;
+class ApplicationSettings;
+class StreamControlElementInterface;
 
 class GenericStreamer : public BaseStreamer
 {
@@ -24,23 +18,17 @@ signals:
 
 public slots:
 protected:
+	virtual int pipelineOutput(BaseLmmPipeline *p, const RawBuffer &);
+
+	TextOverlay * createTextOverlay(const QString &elementName, ApplicationSettings *s);
+	H264Encoder * createH264Encoder(const QString &elementName, ApplicationSettings *s, int ch, int w0, int h0);
+	JpegEncoder * createJpegEncoder(const QString &elementName, ApplicationSettings *s, int ch, int w0, int h0);
+
 	/* elements */
 	DM365CameraInput *camIn;
-	H264Encoder *enc264High;
-	H264Encoder *enc264Low;
-	DM365VideoOutput *videoOut;
-	TextOverlay *textOverlay;
-	TextOverlay *textOverlay2;
-	DM365DmaCopy *cloner;
-	BufferQueue *rawQueue;
-	BufferQueue *rawQueue2;
-	BufferQueue *h264Queue;
-	JpegEncoder *encJpegHigh;
-	JpegEncoder *encJpegLow;
-	SeiInserter *seiInserterHigh;
-	RtpTransmitter *rtpLow;
-	RtpTransmitter *rtpHigh;
-	RtpTransmitter *rtpPcm;
+
+	QHash<BaseLmmPipeline *, int> streamControl;
+	QHash<BaseLmmPipeline *, StreamControlElementInterface *> streamControlElement;
 };
 
 #endif // GENERICSTREAMER_H
