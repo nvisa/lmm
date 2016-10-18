@@ -295,6 +295,10 @@ int BaseLmmElement::processBlocking(int ch)
 	if (!buf.size())
 		return -ENOENT;
 
+	mLogv("channel=%d buffer_size=%d passthru=%d", ch, buf.size(), passThru);
+	if (passThru)
+		return newOutputBuffer(0, buf);
+
 tryagain:
 	int ret = 0;
 	processTimeStat->startStat();

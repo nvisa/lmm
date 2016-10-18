@@ -55,6 +55,7 @@ public:
 	virtual void signalReceived(int) {}
 	virtual void threadFinished(LmmThread *);
 	void setPassThru(bool v) { passThru = v; }
+	bool isPassThru() { return passThru; }
 	void setEventHook(eventHook hook, void *priv);
 
 	UnitTimeStat * getProcessTimeStat() { return processTimeStat; }
