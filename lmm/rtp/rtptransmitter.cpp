@@ -181,6 +181,11 @@ void RtpTransmitter::setMaximumPayloadSize(int value)
 	maxPayloadSize = value;
 }
 
+bool RtpTransmitter::isActive()
+{
+	return getChannelCount() ? true : false;
+}
+
 int RtpTransmitter::processBuffer(const RawBuffer &buf)
 {
 	streamLock.lock();

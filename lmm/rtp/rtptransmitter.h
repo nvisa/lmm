@@ -4,6 +4,7 @@
 #include <lmm/lmmcommon.h>
 #include <lmm/baselmmelement.h>
 #include <lmm/tools/rawnetworksocket.h>
+#include <lmm/interfaces/streamcontrolelementinterface.h>
 
 #include <QHostAddress>
 #include <QElapsedTimer>
@@ -71,7 +72,7 @@ protected:
 	int payloadType;
 };
 
-class RtpTransmitter : public BaseLmmElement
+class RtpTransmitter : public BaseLmmElement, public StreamControlElementInterface
 {
 	Q_OBJECT
 public:
@@ -89,6 +90,7 @@ public:
 	int teardownChannel(RtpChannel *ch);
 	void setMulticastTTL(socklen_t ttl);
 	void setMaximumPayloadSize(int value);
+	bool isActive();
 public slots:
 	void sampleNtpTime();
 protected:
