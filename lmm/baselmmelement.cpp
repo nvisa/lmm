@@ -203,8 +203,6 @@ public:
 		}
 
 		/* other algorithm */
-		if (current++ >= total)
-			reset();
 		t += inT;
 		if (t > outT) {
 			t -= outT;
