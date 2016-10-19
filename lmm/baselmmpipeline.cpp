@@ -56,6 +56,7 @@ int BaseLmmPipeline::start()
 		threads.clear();
 	}
 
+	streamTime->start();
 	finishedThreadCount = 0;
 
 	for (int i = 0; i < pipesNew.size(); i++) {
