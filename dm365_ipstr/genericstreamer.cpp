@@ -189,6 +189,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 		HardwareOperations::writeRegister(0x1c40044, 0x1c);
 	else
 		HardwareOperations::writeRegister(0x1c40044, 0x18);
+
+	ntpSyncTimer.start();
+	ntpSyncPeriod = s->get("config.ntp_sync_period").toInt() * 1000;
 }
 
 QList<RawBuffer> GenericStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
@@ -245,6 +248,11 @@ int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &)
 			for (int i = p->getPipeCount() - 1; i >= sci; i--)
 				p->getPipe(i)->setPassThru(true);
 		}
+	}
+	if (ntpSyncTimer.elapsed() > ntpSyncPeriod) {
+		for (int i = 0; i < transmitters.size(); i++)
+			transmitters[i]->sampleNtpTime();
+		ntpSyncTimer.restart();
 	}
 	return 0;
 }
