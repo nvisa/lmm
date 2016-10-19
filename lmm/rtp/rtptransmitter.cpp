@@ -188,6 +188,7 @@ bool RtpTransmitter::isActive()
 
 int RtpTransmitter::processBuffer(const RawBuffer &buf)
 {
+	lastBufferTime = buf.constPars()->encodeTime / 1000;
 	streamLock.lock();
 	/* check rtcp first */
 	if (sampleNtpRtp) {
@@ -214,7 +215,7 @@ quint64 RtpTransmitter::packetTimestamp()
 {
 	if (mediaCodec == Lmm::CODEC_H264) {
 		if (useAbsoluteTimestamp)
-			return 90ull * streamTime->getCurrentTimeMili();
+			return 90ull * lastBufferTime;
 		return (90000ll * (streamedBufferCount) / (int)frameRate);
 	} else if (mediaCodec == Lmm::CODEC_PCM_L16 || mediaCodec == Lmm::CODEC_PCM_ALAW) {
 		if (useAbsoluteTimestamp)

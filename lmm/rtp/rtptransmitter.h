@@ -119,6 +119,7 @@ protected:
 	socklen_t ttl;
 	bool waitIdrFrame;
 	Lmm::CodecType mediaCodec;
+	qint64 lastBufferTime;
 };
 
 #endif // RTPTRANSMITTER_H
