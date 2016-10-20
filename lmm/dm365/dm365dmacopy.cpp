@@ -131,6 +131,7 @@ int DM365DmaCopy::processBuffer(const RawBuffer &buf)
 			mDebug("memory buffer too short for input buffer: %d < %d", allocSize, buf.size());
 	}
 	dstBuf.pars()->captureTime = buf.constPars()->captureTime;
+	dstBuf.pars()->encodeTime = buf.constPars()->encodeTime;
 	dstBuf.pars()->videoWidth = buf.constPars()->videoWidth;
 	dstBuf.pars()->videoHeight = buf.constPars()->videoHeight;
 	dstBuf.pars()->frameType = buf.constPars()->frameType;
