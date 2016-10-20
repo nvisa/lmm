@@ -120,6 +120,7 @@ protected:
 	bool waitIdrFrame;
 	Lmm::CodecType mediaCodec;
 	qint64 lastBufferTime;
+	QPair<qint64, uint> ntpRtpPair;
 };
 
 #endif // RTPTRANSMITTER_H

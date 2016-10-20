@@ -156,6 +156,7 @@ int RtpTransmitter::stop()
 int RtpTransmitter::setupChannel(RtpChannel *ch, const QString &target, int dport, int dcport, int sport, int scport, uint ssrc)
 {
 	QMutexLocker l(&streamLock);
+	ch->ntpRtpPair = ntpRtpPair;
 	return ch->setup(target, dport, dcport, sport, scport, ssrc);
 }
 
@@ -194,6 +195,8 @@ int RtpTransmitter::processBuffer(const RawBuffer &buf)
 	if (sampleNtpRtp) {
 		qint64 t = getCurrentTime() + NTP_OFFSET * 1000000;
 		qint64 pts = packetTimestamp();
+		ntpRtpPair.first = t;
+		ntpRtpPair.second = pts;
 		channelsSetTimestamp(t, pts);
 		sampleNtpRtp = false;
 	}
