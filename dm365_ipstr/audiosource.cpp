@@ -42,6 +42,10 @@ int AudioSource::processBlocking(int ch)
 	int frameSize = bytesPerSec * sl / 1000;
 
 	usleep(1000 * (sl - 25));
+	if (isPassThru()) {
+		sleep(1);
+		return 0;
+	}
 
 	if (getState() == STOPPED)
 		return -EINVAL;
