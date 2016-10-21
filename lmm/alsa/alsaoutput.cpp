@@ -42,7 +42,7 @@ int AlsaOutput::outputBuffer(RawBuffer buf)
 		unmute = false;
 	}
 
-	return 0;
+	return newOutputBuffer(0, buf);
 }
 
 int AlsaOutput::start()

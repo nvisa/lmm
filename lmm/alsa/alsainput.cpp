@@ -191,6 +191,10 @@ int AlsaInput::processBlocking(int ch)
 	Q_UNUSED(ch);
 	if (getState() == STOPPED)
 		return -EINVAL;
+	if (isPassThru()) {
+		sleep(1);
+		return 0;
+	}
 	RawBuffer buf("audio/x-raw-int,", bufferSize);
 	int err = alsaIn->read(buf.data(), bufferSize);
 	/* alsa errors shouldn't stop our processing */
