@@ -10,7 +10,7 @@ AlsaOutput::AlsaOutput(QObject *parent) :
 	alsaOut = new Alsa;
 	unmute = false;
 	channels = 2;
-	format = Lmm::AUDIO_SAMPLE_FLTP;
+	format = Lmm::AUDIO_SAMPLE_S16;
 	audioRate = 48000;
 }
 
@@ -47,6 +47,10 @@ int AlsaOutput::outputBuffer(RawBuffer buf)
 
 int AlsaOutput::start()
 {
+	channels = getParameter("channelCount").toInt();
+	audioRate = getParameter("audioRate").toInt();
+	//bufferSize = getParameter("sampleCount").toInt() * chCount * alsaIn->getSampleSize();
+
 	/* we will open alsa device with first buffer */
 	alsaOut->close();
 	return BaseLmmOutput::start();
@@ -90,6 +94,7 @@ qint64 AlsaOutput::getAvailableBufferTime()
 
 int AlsaOutput::muteTillFirstOutput()
 {
+	return 0;
 	alsaOut->mute(true);
 	unmute = true;
 	return 0;
