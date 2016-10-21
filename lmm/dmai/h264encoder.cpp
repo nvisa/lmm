@@ -1131,14 +1131,14 @@ int H264Encoder::setDefaultParams(IH264VENC_Params *params)
 int H264Encoder::setParamsProfile1(IH264VENC_Params *params)
 {
 	setDefaultParams(params);
-	params->videncParams.encodingPreset = XDM_HIGH_QUALITY;
+	//params->videncParams.encodingPreset = XDM_HIGH_QUALITY;
 	params->levelIdc = 50;
 	params->entropyMode = 1; //CABAC
 	params->transform8x8FlagIntraFrame = 1;
-	params->transform8x8FlagInterFrame = 1;
+	params->transform8x8FlagInterFrame = 0;
 	params->meAlgo = 1;
 	params->seqScalingFlag = 1;
-	params->encQuality = 1;
+	params->encQuality = 2;
 
 	return 0;
 }
@@ -1185,7 +1185,7 @@ int H264Encoder::setDefaultDynamicParams(IH264VENC_Params *params)
 	dynH264Params->airRate = 0;
 	dynH264Params->interPFrameQP = 28;
 	dynH264Params->intraFrameQP = 28;
-	dynH264Params->initQ = 30;
+	dynH264Params->initQ = -1;
 	dynH264Params->rcQMax = 51;
 	dynH264Params->rcQMin = 0;
 	dynH264Params->rcQMaxI = 51;
