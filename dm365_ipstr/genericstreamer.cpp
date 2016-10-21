@@ -1,8 +1,10 @@
 #include "genericstreamer.h"
 #include "jpegshotserver.h"
 #include "mjpegserver.h"
+#include "audiosource.h"
 
 #include <lmm/alsa/alsainput.h>
+#include <lmm/alsa/alsaoutput.h>
 
 #include <ecl/debug.h>
 #include <ecl/drivers/hardwareoperations.h>
@@ -126,7 +128,14 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 				bq->setQueueSize(getss("queue_size").toInt());
 				el = bq;
 			} else if (type == "RtpTransmitter") {
-				RtpTransmitter *rtp = new RtpTransmitter(this);
+				QString codec = getss("codec").toString();
+				RtpTransmitter *rtp = NULL;
+				if (codec.isEmpty() || codec == "h264")
+					rtp = new RtpTransmitter(this);
+				else if (codec == "g711")
+					rtp = new RtpTransmitter(this, Lmm::CODEC_PCM_ALAW);
+				else if (codec == "pcm_L16")
+					rtp = new RtpTransmitter(this, Lmm::CODEC_PCM_L16);
 				rtp->setMulticastTTL(getss("multicast_ttl").toInt());
 				rtp->setMaximumPayloadSize(getss("rtp_max_payload_size").toInt());
 				el = rtp;
@@ -157,6 +166,26 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 				}
 			} else if (type == "DM365CameraInput") {
 				el = camIn;
+			} else if (type == "AlsaInput") {
+				Lmm::CodecType acodec = Lmm::CODEC_PCM_ALAW;
+				QString codecName = getss("codec_name").toString();
+				if (codecName == "g711")
+					acodec = Lmm::CODEC_PCM_ALAW;
+				else if (codecName == "L16")
+					acodec = Lmm::CODEC_PCM_L16;
+				AlsaInput *alsaIn = new AlsaInput(acodec, this);
+				alsaIn->setParameter("audioRate", getss("rate").toInt());
+				alsaIn->setParameter("sampleCount", getss("buffer_size").toInt());
+				alsaIn->setParameter("channelCount", getss("channels").toInt());
+				el = alsaIn;
+			} else if (type == "AlsaOutput") {
+				AlsaOutput *alsaOut = new AlsaOutput(this);
+				alsaOut->setParameter("audioRate", getss("rate").toInt());
+				alsaOut->setParameter("channelCount", getss("channels").toInt());
+				el = alsaOut;
+			} else if (type == "AudioSource") {
+				AudioSource *src = new AudioSource(this);
+				el = src;
 			}
 
 			if (!el) {
