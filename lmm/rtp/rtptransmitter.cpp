@@ -103,6 +103,8 @@ RtpChannel * RtpTransmitter::addChannel()
 	if (codec == Lmm::CODEC_PCM_L16
 			|| codec == Lmm::CODEC_PCM_ALAW)
 		pt = 97;
+	else if (codec == Lmm::CODEC_META_BILKON)
+		pt = 98;
 	RtpChannel *ch = new RtpChannel(maxPayloadSize, myIpAddr);
 	ch->payloadType = pt;
 	ch->ttl = ttl;
@@ -208,6 +210,8 @@ int RtpTransmitter::processBuffer(const RawBuffer &buf)
 	else if (getCodec() == Lmm::CODEC_PCM_L16 ||
 			 getCodec() == Lmm::CODEC_PCM_ALAW)
 		sendPcmData(buf);
+	else if (getCodec() == Lmm::CODEC_META_BILKON)
+		sendMetaData(buf);
 
 	streamLock.unlock();
 	streamedBufferCount++;
@@ -224,7 +228,8 @@ quint64 RtpTransmitter::packetTimestamp()
 		if (useAbsoluteTimestamp)
 			return 8ull * streamTime->getCurrentTimeMili();
 		return (8000ll * streamedBufferCount / 50);
-	}
+	} else if (mediaCodec == Lmm::CODEC_META_BILKON)
+		return 90ull * lastBufferTime;
 	return 0;
 }
 
@@ -354,6 +359,15 @@ void RtpTransmitter::sendPcmData(const RawBuffer &buf)
 		channels[i]->sendPcmData(data, size, ts);
 		//channels[i]->sendPcmData((const uchar *)buf.constData(), buf.size(), packetTimestamp());
 	}
+}
+
+void RtpTransmitter::sendMetaData(const RawBuffer &buf)
+{
+	if (!channels.size())
+		return;
+	qint64 ts = packetTimestamp();
+	for (int i = 0; i < channels.size(); i++)
+		channels[i]->sendPcmData((const uchar *)buf.constData(), buf.size(), ts);
 }
 
 void RtpTransmitter::channelsSetTimestamp(qint64 current, qint64 packet)
@@ -683,6 +697,9 @@ QString RtpChannel::getSdp(Lmm::CodecType codec)
 	} else if (codec == Lmm::CODEC_PCM_ALAW) {
 		sdp << QString("m=audio %1 RTP/AVP 97").arg(dstDataPort);
 		sdp << "a=rtpmap:97 PCMA/8000/1";
+	}  else if (codec == Lmm::CODEC_META_BILKON) {
+		sdp << QString("m=metadata %1 RTP/AVP 98").arg(dstDataPort);
+		sdp << "a=rtpmap:98 BILKON";
 	}
 
 	sdp << "";

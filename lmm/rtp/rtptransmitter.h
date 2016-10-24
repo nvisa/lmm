@@ -98,6 +98,7 @@ protected:
 	quint64 packetTimestamp();
 	void packetizeAndSend(const RawBuffer &buf);
 	void sendPcmData(const RawBuffer &buf);
+	void sendMetaData(const RawBuffer &buf);
 
 	/* channel operations */
 	void channelsSetTimestamp(qint64 current, qint64 packet);
