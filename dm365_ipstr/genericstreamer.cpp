@@ -152,11 +152,13 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 				int streamCount = s->getArraySize(QString("%1.rtsp").arg(pre));
 				for (int k = 0; k < streamCount; k++) {
 					pre = QString("%1.elements.%2.rtsp.%3").arg(p).arg(j).arg(k);
-					rtsp->addStream(getss("stream").toString(), getss("multicast").toBool(), rtp,
+					QString streamName = getss("stream").toString();
+					if (!rtsp->hasStream(streamName))
+						rtsp->addStream(streamName, getss("multicast").toBool(), rtp,
 									getss("port").toInt(),
 									getss("multicast_address").toString());
 					rtsp->addMedia2Stream(getss("media").toString(),
-										  getss("stream").toString(),
+										  streamName,
 										  getss("multicast").toBool(),
 										  rtp,
 										  getss("port").toInt(),
