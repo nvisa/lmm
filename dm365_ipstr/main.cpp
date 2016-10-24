@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 	LmmCommon::init();
 	ecl::initDebug();
 	ApplicationSettings *sets = ApplicationSettings::instance();
-	sets->load("/etc/encsoft/dm365_ipstr.json");
+	sets->load("/etc/encsoft/dm365_ipstr.json", QIODevice::ReadOnly);
 
 	AIC14KDriver aic;
 	aic.init();
