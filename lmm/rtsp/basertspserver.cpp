@@ -202,6 +202,11 @@ void BaseRtspServer::addMedia2Stream(const QString &mediaName, const QString &st
 	streamDescriptions[streamName].media.insert(mediaName, desc);
 }
 
+bool BaseRtspServer::hasStream(const QString &streamName)
+{
+	return streamDescriptions.contains(streamName);
+}
+
 const BaseRtspServer::StreamDescription BaseRtspServer::getStreamDesc(const QString &streamName, const QString &mediaName)
 {
 	if (!streamDescriptions.contains(streamName))

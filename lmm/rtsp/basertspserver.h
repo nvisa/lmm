@@ -78,6 +78,7 @@ public:
 	void addStream(const QString streamName, bool multicast, int port = 0, const QString &mcastAddress = "");
 	void addStream(const QString streamName, bool multicast, RtpTransmitter *rtp, int port = 0, const QString &mcastAddress = "");
 	void addMedia2Stream(const QString &mediaName, const QString &streamName, bool multicast, RtpTransmitter *rtp, int port = 0, const QString &mcastAddress = "");
+	bool hasStream(const QString &streamName);
 
 private slots:
 	void newRtspConnection();
