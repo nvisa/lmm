@@ -68,6 +68,12 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	for (int i = 0; i < cnt; i++) {
 		QString p = QString("config.pipeline.%1").arg(i);
 
+		bool fsEnabled = gets(s, p, "frame_skip.enabled").toBool();
+		float fsIn = gets(s, p, "frame_skip.in_fps").toFloat();
+		float fsOut = gets(s, p, "frame_skip.out_fps").toFloat();
+		int fsTarget = gets(s, p, "frame_skip.target_element").toInt();
+		int fsQueue = gets(s, p, "frame_skip.target_queue").toInt();
+
 		if (!s->get(QString("%1.enabled").arg(p)).toBool())
 			continue;
 
@@ -212,12 +218,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 		pl->end();
 		streamControl.insert(pl, streamControlIndex);
 		streamControlElement.insert(pl, controlElement);
-	}
 
-	if (s->get("config.pipeline.0.frame_skip.enabled").toBool()) {
-		float inFps = s->get("config.pipeline.0.frame_skip.in_fps").toFloat();
-		float outFps = s->get("config.pipeline.0.frame_skip.out_fps").toFloat();
-		camIn->getOutputQueue(0)->setRateReduction(inFps, outFps);
+		if (fsEnabled)
+			pl->getPipe(fsTarget)->getOutputQueue(fsQueue)->setRateReduction(fsIn, fsOut);
 	}
 
 	if (s->get("camera_device.invert_clock").toBool())
