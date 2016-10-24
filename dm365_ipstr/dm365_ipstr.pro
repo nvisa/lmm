@@ -21,7 +21,8 @@ SOURCES += main.cpp \
     simplezip.cpp \
     miniz.c \
     mjpegserver.cpp \
-    audiosource.cpp
+    audiosource.cpp \
+    metadatagenerator.cpp
 
 include (build_config.pri)
 
@@ -43,4 +44,5 @@ HEADERS += \
     jpegshotserver.h \
     simplezip.h \
     mjpegserver.h \
-    audiosource.h
+    audiosource.h \
+    metadatagenerator.h
