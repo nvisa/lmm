@@ -18,7 +18,10 @@ namespace Lmm {
 		CODEC_JPEG,
 		CODEC_PCM_L16, /* Linear PCM 16-bit audio */
 		CODEC_PCM_ALAW, /* Linear PCM 8-bit alaw audio */
-		CODEC_RAW
+		CODEC_RAW,
+		CODEC_META_BILKON,
+		CODEC_META_XML,
+		CODEC_META_CSV
 	};
 	enum AspectRatio {
 		ASPECT_RATIO_4_3,
