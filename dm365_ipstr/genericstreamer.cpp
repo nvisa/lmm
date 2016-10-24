@@ -2,6 +2,7 @@
 #include "jpegshotserver.h"
 #include "mjpegserver.h"
 #include "audiosource.h"
+#include "metadatagenerator.h"
 
 #include <lmm/alsa/alsainput.h>
 #include <lmm/alsa/alsaoutput.h>
@@ -136,6 +137,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 					rtp = new RtpTransmitter(this, Lmm::CODEC_PCM_ALAW);
 				else if (codec == "pcm_L16")
 					rtp = new RtpTransmitter(this, Lmm::CODEC_PCM_L16);
+				else if (codec == "meta_bilkon")
+					rtp = new RtpTransmitter(this, Lmm::CODEC_META_BILKON);
 				rtp->setMulticastTTL(getss("multicast_ttl").toInt());
 				rtp->setMaximumPayloadSize(getss("rtp_max_payload_size").toInt());
 				el = rtp;
@@ -186,6 +189,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 			} else if (type == "AudioSource") {
 				AudioSource *src = new AudioSource(this);
 				el = src;
+			} else if (type == "MetadataGenerator") {
+				MetadataGenerator *mgen = new MetadataGenerator(this);
+				el = mgen;
 			}
 
 			if (!el) {
