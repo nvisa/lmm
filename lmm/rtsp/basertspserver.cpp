@@ -103,6 +103,21 @@ protected:
 	QMutex l;
 };
 
+static QHostAddress findIp(const QString &ifname)
+{
+	QHostAddress myIpAddr;
+	/* Let's find our IP address */
+	foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
+		if (iface.name() != ifname)
+			continue;
+		if (iface.addressEntries().size()) {
+			myIpAddr = iface.addressEntries().at(0).ip();
+			break;
+		}
+	}
+	return myIpAddr;
+}
+
 static inline QString createDateHeader()
 {
 	return QString("Date: %1 GMT").arg(QDateTime::currentDateTime().toUTC().toString("ddd, dd MMM yyyy hh:mm:ss"));
@@ -140,16 +155,7 @@ BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	connect(mapperErr, SIGNAL(mapped(QObject*)), SLOT(clientError(QObject*)));
 	connect(mapperRead, SIGNAL(mapped(QObject*)), SLOT(clientDataReady(QObject*)));
 
-	QString ifname = "eth0";
-	foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
-		if (iface.name() != ifname)
-			continue;
-		if (iface.addressEntries().size()) {
-			myIpAddr = iface.addressEntries().at(0).ip();
-			myNetmask = iface.addressEntries().at(0).netmask();
-			break;
-		}
-	}
+	myIpAddr = findIp("eth0");
 }
 
 QString BaseRtspServer::getMulticastAddressBase()
@@ -794,6 +800,7 @@ QStringList BaseRtspServer::createSdp(QString url)
 	QStringList fields = url.split("/", QString::SkipEmptyParts);
 	QString stream = fields[2];
 	QStringList sdp;
+	myIpAddr = findIp("eth0");
 
 	/* According to RFC2326 C.1.7 we should report 0.0.0.0 as dest address */
 	QString dstIp = "0.0.0.0";
@@ -849,14 +856,7 @@ BaseRtspSession::BaseRtspSession(BaseRtspServer *parent)
 	server = parent;
 	state = TEARDOWN;
 	/* Let's find our IP address */
-	foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
-		if (iface.name() != "eth0")
-			continue;
-		if (iface.addressEntries().size()) {
-			myIpAddr = iface.addressEntries().at(0).ip();
-			break;
-		}
-	}
+	myIpAddr = findIp("eth0");
 	clientCount = 1;
 	rtspTimeoutEnabled = false;
 	rtpCh = NULL;
