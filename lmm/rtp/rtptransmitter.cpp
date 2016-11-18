@@ -36,6 +36,21 @@ static qint64 getCurrentTime()
 	return (qint64)tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
+static QHostAddress findIp(const QString &ifname)
+{
+	QHostAddress myIpAddr;
+	/* Let's find our IP address */
+	foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
+		if (iface.name() != ifname)
+			continue;
+		if (iface.addressEntries().size()) {
+			myIpAddr = iface.addressEntries().at(0).ip();
+			break;
+		}
+	}
+	return myIpAddr;
+}
+
 class MyTime
 {
 public:
@@ -81,14 +96,7 @@ RtpTransmitter::RtpTransmitter(QObject *parent, Lmm::CodecType codec) :
 	useAbsoluteTimestamp = true;
 
 	/* Let's find our IP address */
-	foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
-		if (iface.name() != "eth0")
-			continue;
-		if (iface.addressEntries().size()) {
-			myIpAddr = iface.addressEntries().at(0).ip();
-			break;
-		}
-	}
+	myIpAddr = findIp("eth0");
 }
 
 void RtpTransmitter::sampleNtpTime()
