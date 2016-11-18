@@ -142,7 +142,7 @@ static bool detectLocalPorts(const QHostAddress &myIpAddr, int &rtp, int &rtcp)
 BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	QObject(parent)
 {
-	multicastAddressBase = "224.1.1.1";
+	multicastAddressBase = "239.1.1.1";
 	enabled = true;
 	server = new QTcpServer(this);
 	if (!server->listen(QHostAddress::Any, port))
@@ -281,7 +281,7 @@ QString BaseRtspServer::getMulticastAddress(const QString &streamName, const QSt
 		return desc.multicastAddr;
 
 	QHostAddress ipAddr = myIpAddr;
-	QHostAddress netmask = myNetmask;
+	QHostAddress netmask = QHostAddress("255.0.0.0");
 	quint32 addr = (netmask.toIPv4Address() & QHostAddress(multicastAddressBase).toIPv4Address())
 			| (~netmask.toIPv4Address() & ipAddr.toIPv4Address());
 	return QHostAddress(addr).toString();
