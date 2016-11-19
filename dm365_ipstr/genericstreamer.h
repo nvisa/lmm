@@ -29,9 +29,7 @@ protected:
 
 	QHash<BaseLmmPipeline *, int> streamControl;
 	QHash<BaseLmmPipeline *, StreamControlElementInterface *> streamControlElement;
-	QElapsedTimer ntpSyncTimer;
 	QList<RtpTransmitter *> transmitters;
-	int ntpSyncPeriod;
 };
 
 #endif // GENERICSTREAMER_H
