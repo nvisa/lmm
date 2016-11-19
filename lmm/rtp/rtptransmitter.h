@@ -30,7 +30,6 @@ public:
 	int srcControlPort;
 	int rtpSequenceOffset;
 	int rtpTimestampOffset;
-	QPair<qint64, uint> ntpRtpPair;
 	MyTime *rtcpTime;
 	MyTime *rrTime;
 	QString dstIp;
@@ -53,7 +52,7 @@ protected:
 	int sendNalUnit(const uchar *buf, int size, qint64 ts);
 	int sendPcmData(const uchar *buf, int size, qint64 ts);
 	void sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 tsRef);
-	void sendSR();
+	void sendSR(quint64 bufferTs);
 	RawNetworkSocket::SockBuffer * getSBuf();
 	uchar * getRtpBuf(RawNetworkSocket::SockBuffer *sbuf);
 
@@ -91,8 +90,6 @@ public:
 	void setMulticastTTL(socklen_t ttl);
 	void setMaximumPayloadSize(int value);
 	bool isActive();
-public slots:
-	void sampleNtpTime();
 protected:
 	int processBuffer(const RawBuffer &buf);
 	quint64 packetTimestamp();
@@ -101,15 +98,13 @@ protected:
 	void sendMetaData(const RawBuffer &buf);
 
 	/* channel operations */
-	void channelsSetTimestamp(qint64 current, qint64 packet);
 	void channelsSendNal(const uchar *buf, int size, qint64 ts);
 	void channelsSendRtp(uchar *buf, int size, int last, void *sbuf, qint64 tsRef);
-	void channelsCheckRtcp();
+	void channelsCheckRtcp(quint64 ts);
 
 	QHostAddress myIpAddr;
 	QList<RtpChannel *> channels;
 	int streamedBufferCount;
-	bool sampleNtpRtp;
 	int bitrateBufSize;
 	int bitrate;
 	bool useAbsoluteTimestamp;
@@ -121,7 +116,6 @@ protected:
 	bool waitIdrFrame;
 	Lmm::CodecType mediaCodec;
 	qint64 lastBufferTime;
-	QPair<qint64, uint> ntpRtpPair;
 };
 
 #endif // RTPTRANSMITTER_H

@@ -89,7 +89,6 @@ RtpTransmitter::RtpTransmitter(QObject *parent, Lmm::CodecType codec) :
 	mediaCodec = codec;
 	useStapA = false;
 	maxPayloadSize = 1460;
-	sampleNtpRtp = false;
 	ttl = 10;
 
 	frameRate = 30.0;
@@ -97,11 +96,6 @@ RtpTransmitter::RtpTransmitter(QObject *parent, Lmm::CodecType codec) :
 
 	/* Let's find our IP address */
 	myIpAddr = findIp("eth0");
-}
-
-void RtpTransmitter::sampleNtpTime()
-{
-	sampleNtpRtp = true;
 }
 
 RtpChannel * RtpTransmitter::addChannel()
@@ -149,7 +143,6 @@ Lmm::CodecType RtpTransmitter::getCodec()
 
 int RtpTransmitter::start()
 {
-	sampleNtpRtp = true;
 	streamedBufferCount = 0;
 	bitrateBufSize = 0;
 	bitrate = 0;
@@ -166,7 +159,6 @@ int RtpTransmitter::stop()
 int RtpTransmitter::setupChannel(RtpChannel *ch, const QString &target, int dport, int dcport, int sport, int scport, uint ssrc)
 {
 	QMutexLocker l(&streamLock);
-	ch->ntpRtpPair = ntpRtpPair;
 	return ch->setup(target, dport, dcport, sport, scport, ssrc);
 }
 
@@ -202,15 +194,7 @@ int RtpTransmitter::processBuffer(const RawBuffer &buf)
 	lastBufferTime = buf.constPars()->encodeTime / 1000;
 	streamLock.lock();
 	/* check rtcp first */
-	if (sampleNtpRtp) {
-		qint64 t = getCurrentTime() + NTP_OFFSET * 1000000;
-		qint64 pts = packetTimestamp();
-		ntpRtpPair.first = t;
-		ntpRtpPair.second = pts;
-		channelsSetTimestamp(t, pts);
-		sampleNtpRtp = false;
-	}
-	channelsCheckRtcp();
+	channelsCheckRtcp(packetTimestamp());
 
 	/* rtp part */
 	if (getCodec() == Lmm::CODEC_H264)
@@ -378,15 +362,6 @@ void RtpTransmitter::sendMetaData(const RawBuffer &buf)
 		channels[i]->sendPcmData((const uchar *)buf.constData(), buf.size(), ts);
 }
 
-void RtpTransmitter::channelsSetTimestamp(qint64 current, qint64 packet)
-{
-	for (int i = 0; i < channels.size(); i++) {
-		channels[i]->ntpRtpPair.first = current;
-		channels[i]->ntpRtpPair.second = packet;
-		channels[i]->sendSR();
-	}
-}
-
 void RtpTransmitter::channelsSendNal(const uchar *buf, int size, qint64 ts)
 {
 	for (int i = 0; i < channels.size(); i++)
@@ -405,11 +380,11 @@ void RtpTransmitter::channelsSendRtp(uchar *buf, int size, int last, void *sbuf,
 		channels[i]->sendRtpData(buf, size, last, NULL, tsRef);
 }
 
-void RtpTransmitter::channelsCheckRtcp()
+void RtpTransmitter::channelsCheckRtcp(quint64 ts)
 {
 	for (int i = 0; i < channels.size(); i++)
 		if (channels[i]->rtcpTime->elapsed() > 5000)
-			channels[i]->sendSR();
+			channels[i]->sendSR(ts);
 }
 
 RtpChannel::RtpChannel(int psize, const QHostAddress &myIpAddr)
@@ -630,7 +605,7 @@ void RtpChannel::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 
 	mLog("sending %d bytes", size + 12);
 }
 
-void RtpChannel::sendSR()
+void RtpChannel::sendSR(quint64 bufferTs)
 {
 	if (state != 2)
 		return;
@@ -648,7 +623,6 @@ void RtpChannel::sendSR()
 	/* ntp part */
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	qint64 ntpu = (qint64)tv.tv_sec * 1000000 + tv.tv_usec + NTP_OFFSET * 1000000;
 	uint ntps = tv.tv_sec + NTP_OFFSET;
 	uint ntpf = (uint)((tv.tv_usec / 15625.0 ) * 0x04000000 + 0.5);
 
@@ -661,7 +635,7 @@ void RtpChannel::sendSR()
 	buf[14] = (ntpf >> 8) & 0xff;
 	buf[15] = (ntpf >> 0) & 0xff;
 
-	uint rtpts = baseTs + (ntpu - ntpRtpPair.first) * 90000 / 1000000 + ntpRtpPair.second;
+	uint rtpts = baseTs + bufferTs;
 	buf[16] = (rtpts >> 24) & 0xff;
 	buf[17] = (rtpts >> 16) & 0xff;
 	buf[18] = (rtpts >> 8) & 0xff;
