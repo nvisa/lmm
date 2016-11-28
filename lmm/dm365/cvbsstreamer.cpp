@@ -79,6 +79,7 @@ CVBSStreamer::CVBSStreamer(QObject *parent) :
 	/* rtsp server */
 	BaseRtspServer *rtsp = new BaseRtspServer(this);
 	rtsp->addStream("stream1", false, rtpHigh);
+	rtsp->addMedia2Stream("videoTrack", "stream1", false, rtpHigh);
 	rtsp->addStream("stream1m", true, rtpHigh, 15678);
 }
 
