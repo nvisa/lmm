@@ -802,6 +802,9 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 					   genMetadata, useMetadata ? frameinfoInterface : NULL, metadataBuf,
 					   mVecs != MV_NONE) < 0) {
 		mDebug("Failed to encode video buffer");
+		mDebug("width=%d height=%d imageWidth=%d imageHeight=%d seiEnabled=%d videoWidth=%d videoHeight=%d buffer=%p",
+			(int)dim.width, (int)dim.height,
+			imageWidth, imageHeight, seiEnabled, source.constPars()->videoWidth, source.constPars()->videoHeight, buffer);
 		BufferGfx_getDimensions(buffer, &dim);
 		mInfo("colorspace=%d dims: x=%d y=%d width=%d height=%d linelen=%d",
 			  BufferGfx_getColorSpace(buffer),
