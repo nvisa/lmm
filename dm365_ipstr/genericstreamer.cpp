@@ -49,6 +49,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	BaseRtspServer *rtsp = new BaseRtspServer(this);
 
 	/* camera input settings */
+	int cameraInputType = s->get("camera_device.input_type").toInt();
 	int vbp = s->get("camera_device.input_vbp").toInt();
 	int hbp = s->get("camera_device.input_hbp").toInt();
 	int w0 = s->get("camera_device.ch.0.width").toInt();
@@ -58,6 +59,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	int wa[] = {w0, w1};
 	int ha[] = {h0, h1};
 	camIn = new DM365CameraInput();
+	if (cameraInputType) /* we assume no one needs older composite input type for the sake of sane defaults */
+		camIn->setInputType((DM365CameraInput::cameraInput)cameraInputType);
 	camIn->setNonStdOffsets(vbp, hbp);
 	camIn->setSize(0, QSize(w0, h0));
 	camIn->setSize(1, QSize(w1, h1));
