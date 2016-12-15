@@ -47,7 +47,7 @@ static unsigned short csum(unsigned short *ptr,int nbytes)
 	return(answer);
 }
 
-RawNetworkSocket::RawNetworkSocket(QString destinationIp, quint16 destinationPort, QString sourceIp, quint16 sourcePort)
+RawNetworkSocket::RawNetworkSocket(QString destinationIp, quint16 destinationPort, QString sourceIp, quint16 sourcePort, int ttl)
 {
 	dstIp = destinationIp;
 	dstPort = destinationPort;
@@ -55,7 +55,7 @@ RawNetworkSocket::RawNetworkSocket(QString destinationIp, quint16 destinationPor
 	myIp = sourceIp;
 	fd = init();
 	for (int i = 0; i < 128; i++)
-		buffers << createBuffer();
+		buffers << createBuffer(ttl);
 	nextIndex = -1;
 }
 
@@ -154,7 +154,7 @@ int RawNetworkSocket::sendData(char *datagram, int size)
 	return sendto (fd, datagram, iph->tot_len ,  0, (struct sockaddr *)sin, sizeof (struct sockaddr_in));
 }
 
-RawNetworkSocket::SockBuffer * RawNetworkSocket::createBuffer()
+RawNetworkSocket::SockBuffer * RawNetworkSocket::createBuffer(int ttl)
 {
 	//Datagram to represent the packet
 	char *datagram = new char[4096];
@@ -173,7 +173,7 @@ RawNetworkSocket::SockBuffer * RawNetworkSocket::createBuffer()
 	iph->tos = 0;
 	iph->id = htonl(0); //Id of this packet
 	iph->frag_off = 0;
-	iph->ttl = 255;
+	iph->ttl = ttl;
 	iph->protocol = IPPROTO_UDP;
 	iph->check = 0;
 	iph->saddr = inet_addr(qPrintable(myIp));

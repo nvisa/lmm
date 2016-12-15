@@ -16,7 +16,7 @@ public:
 		int index;
 	};
 
-	RawNetworkSocket(QString destinationIp, quint16 destinationPort, QString sourceIp, quint16 sourcePort);
+	RawNetworkSocket(QString destinationIp, quint16 destinationPort, QString sourceIp, quint16 sourcePort, int ttl);
 	~RawNetworkSocket();
 	bool isActive();
 	int send(char *buf, int size);
@@ -35,7 +35,7 @@ protected:
 
 	int init();
 	int sendData(char *datagram, int size);
-	SockBuffer *createBuffer();
+	SockBuffer *createBuffer(int ttl);
 };
 
 #endif // RAWNETWORKSOCKET_H
