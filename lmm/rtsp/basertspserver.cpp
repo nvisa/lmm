@@ -806,10 +806,8 @@ QStringList BaseRtspServer::createSdp(QString url)
 	QString dstIp = "0.0.0.0";
 	bool multicast = isMulticast(stream, "");
 	int streamPort = 0;
-	if (multicast) {
+	if (multicast)
 		dstIp = getMulticastAddress(stream, "") + "/255";
-		streamPort = getMulticastPort(stream, "");
-	}
 
 	sdp << "v=0";
 	sdp << "o=- 0 0 IN IP4 127.0.0.1";
@@ -822,6 +820,8 @@ QStringList BaseRtspServer::createSdp(QString url)
 	while (hi.hasNext()) {
 		hi.next();
 		const StreamDescription &desc = hi.value();
+		if (multicast)
+			streamPort = getMulticastPort(stream, hi.key());
 		Lmm::CodecType codec = desc.rtp->getCodec();
 		if (codec == Lmm::CODEC_H264) {
 			sdp << QString("m=video %1 RTP/AVP 96").arg(streamPort);
