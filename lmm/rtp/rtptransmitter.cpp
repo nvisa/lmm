@@ -102,9 +102,10 @@ RtpChannel * RtpTransmitter::addChannel()
 {
 	int pt = 96;
 	Lmm::CodecType codec = getCodec();
-	if (codec == Lmm::CODEC_PCM_L16
-			|| codec == Lmm::CODEC_PCM_ALAW)
+	if (codec == Lmm::CODEC_PCM_L16)
 		pt = 97;
+	else if (codec == Lmm::CODEC_PCM_ALAW)
+		pt = 8;
 	else if (codec == Lmm::CODEC_META_BILKON)
 		pt = 98;
 	RtpChannel *ch = new RtpChannel(maxPayloadSize, myIpAddr);
@@ -681,7 +682,7 @@ QString RtpChannel::getSdp(Lmm::CodecType codec)
 		sdp << QString("m=audio %1 RTP/AVP 97").arg(dstDataPort);
 		sdp << "a=rtpmap:97 L16/8000/1";
 	} else if (codec == Lmm::CODEC_PCM_ALAW) {
-		sdp << QString("m=audio %1 RTP/AVP 97").arg(dstDataPort);
+		sdp << QString("m=audio %1 RTP/AVP 8").arg(dstDataPort);
 		sdp << "a=rtpmap:97 PCMA/8000/1";
 	}  else if (codec == Lmm::CODEC_META_BILKON) {
 		sdp << QString("m=metadata %1 RTP/AVP 98").arg(dstDataPort);
