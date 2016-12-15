@@ -225,7 +225,10 @@ int AlsaInput::processBlocking(int ch)
 		}
 		total += buf.size();
 		if (t.elapsed() > 1000) {
-			qDebug() << total * 1000 / t.elapsed() / alsaIn->getSampleSize() / alsaIn->channelCount();
+			if (outputFormat == Lmm::CODEC_PCM_ALAW)
+				qDebug() << total * 1000 / t.elapsed() / alsaIn->channelCount();
+			else
+				qDebug() << total * 1000 / t.elapsed() / alsaIn->getSampleSize() / alsaIn->channelCount();
 			total = 0;
 			t.restart();
 		}
