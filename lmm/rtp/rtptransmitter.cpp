@@ -467,8 +467,12 @@ int RtpChannel::setup(const QString &target, int dport, int dcport, int sport, i
 			ffDebug() << "error joining multicast group";
 		if (setsockopt(sd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0)
 			ffDebug() << "error setting TTL value for RTP socket";
+		if (setsockopt(sd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0)
+			ffDebug() << "error setting multicast TTL value for RTP socket";
 		if (setsockopt(sock2->socketDescriptor(), IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) < 0)
 			ffDebug() << "error setting TTL value for RTCP socket";
+		if (setsockopt(sock2->socketDescriptor(), IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) < 0)
+			ffDebug() << "error setting multicast TTL value for RTCP socket";
 		memset(&mreq, 0, sizeof(ip_mreq));
 		mreq.imr_multiaddr.s_addr = inet_addr(qPrintable(dstIp));
 		mreq.imr_interface.s_addr = htons(INADDR_ANY);
@@ -756,6 +760,6 @@ bool RtpChannel::initZeroCopy()
 {
 	if (rawsock)
 		delete rawsock;
-	rawsock = new RawNetworkSocket(dstIp, dstDataPort, myIpAddr.toString(), srcDataPort);
+	rawsock = new RawNetworkSocket(dstIp, dstDataPort, myIpAddr.toString(), srcDataPort, ttl);
 	return rawsock->isActive();
 }
