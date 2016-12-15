@@ -261,7 +261,7 @@ bool RtpPacketizer::initZeroCopy()
 {
 	if (rawsock)
 		delete rawsock;
-	rawsock = new RawNetworkSocket(dstIp, dstDataPort, myIpAddr.toString(), srcDataPort);
+	rawsock = new RawNetworkSocket(dstIp, dstDataPort, myIpAddr.toString(), srcDataPort, 255);
 	return rawsock->isActive();
 }
 
