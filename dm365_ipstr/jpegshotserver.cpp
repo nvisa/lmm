@@ -9,7 +9,7 @@
 
 #include <QStringList>
 
-JpegShotServer::JpegShotServer(BaseStreamer *s, int port, QObject *parent) :
+JpegShotServer::JpegShotServer(ImageSnapshotInterface *s, int port, QObject *parent) :
 	SimpleHttpServer(port, parent),
 	streamer(s)
 {
