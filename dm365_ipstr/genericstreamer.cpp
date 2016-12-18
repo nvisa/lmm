@@ -327,6 +327,7 @@ H264Encoder * GenericStreamer::createH264Encoder(const QString &elementName, App
 	enc->setPacketized(s->get(QString("video_encoding.ch.%1.packetized").arg(ch)).toBool());
 	enc->setFrameRate(getVideoFps(ch));
 	enc->setIntraFrameInterval(s->get(QString("video_encoding.ch.%1.intraframe_interval").arg(ch)).toInt());
+	enc->setMotionVectorExtraction(H264Encoder::MotionVectors(s->get(QString("video_encoding.ch.%1.motion_detection").arg(ch)).toInt()));
 	return enc;
 }
 
