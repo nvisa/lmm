@@ -1,4 +1,5 @@
 #include "mjpegserver.h"
+#include "jpegshotserver.h"
 
 #include <lmm/debug.h>
 #include <lmm/rawbuffer.h>
@@ -152,15 +153,36 @@ MjpegElement::MjpegElement(int port, QObject *parent) :
 	BaseLmmElement(parent)
 {
 	server = new MjpegServer(port, this);
+	jpegServer = new JpegShotServer(this, 4571, this);
 }
 
 bool MjpegElement::isActive()
 {
-	return server->getClientCount() ? true : false;
+	return server->getClientCount() ? true : jpegWaiting.available();
+}
+
+QList<RawBuffer> MjpegElement::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
+{
+	Q_UNUSED(ch);
+	Q_UNUSED(codec);
+	Q_UNUSED(ts);
+	jpegBufList.clear();
+	jpegWaiting.release(frameCount);
+	jpegSem.acquire(frameCount);
+	return jpegBufList;
 }
 
 int MjpegElement::processBuffer(const RawBuffer &buf)
 {
-	server->transmitImage(buf);
+	if (server->getClientCount())
+		server->transmitImage(buf);
+
+	if (jpegWaiting.available()) {
+		jpegWaiting.acquire(1);
+		jpegBufList << buf;
+		jpegSem.release(1);
+	} else
+		jpegBufList.clear();
+
 	return newOutputBuffer(0, buf);
 }

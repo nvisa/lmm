@@ -3,15 +3,18 @@
 
 #include <lmm/rawbuffer.h>
 #include <lmm/baselmmelement.h>
+#include <lmm/interfaces/imagesnapshotinterface.h>
 #include <lmm/interfaces/streamcontrolelementinterface.h>
 
 #include <ecl/net/simplehttpserver.h>
 
 #include <QTimer>
+#include <QSemaphore>
 #include <QStringList>
 
 class QTimer;
 class BaseStreamer;
+class JpegShotServer;
 
 class MjpegServer : public SimpleHttpServer
 {
@@ -37,17 +40,22 @@ protected:
 	int pullPeriod;
 };
 
-class MjpegElement : public BaseLmmElement, public StreamControlElementInterface
+class MjpegElement : public BaseLmmElement, public StreamControlElementInterface, public ImageSnapshotInterface
 {
 	Q_OBJECT
 public:
 	explicit MjpegElement(int port, QObject *parent = 0);
 	bool isActive();
+	QList<RawBuffer> getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount);
 
 protected:
 	int processBuffer(const RawBuffer &buf);
 
 	MjpegServer *server;
+	JpegShotServer *jpegServer;
+	QSemaphore jpegSem;
+	QSemaphore jpegWaiting;
+	QList<RawBuffer> jpegBufList;
 };
 
 #endif // MJPEGSERVER_H
