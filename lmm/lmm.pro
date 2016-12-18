@@ -103,7 +103,8 @@ HEADERS  += \
     rtp/rtptransmitter.h \
     players/basestreamer.h \
     genericvideotestsource.h \
-    interfaces/streamcontrolelementinterface.h
+    interfaces/streamcontrolelementinterface.h \
+    interfaces/imagesnapshotinterface.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
