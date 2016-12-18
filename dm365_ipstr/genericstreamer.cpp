@@ -1,5 +1,4 @@
 #include "genericstreamer.h"
-#include "jpegshotserver.h"
 #include "mjpegserver.h"
 #include "audiosource.h"
 #include "metadatagenerator.h"
@@ -120,14 +119,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 					}
 				}
 			} else if (type == "SeiInserter") {
-				BaseLmmElement *encel = elements[getss("encoder_index").toInt()];
-				H264Encoder *enc = qobject_cast<H264Encoder *>(encel);
-				if (!enc) {
-					mDebug("wrong encoder element definiton for SEI inserter");
-					err = -EINVAL;
-					break;
-				}
-				el = new SeiInserter(enc);
+				el = new SeiInserter(this);
 			} else if (type == "DM365DmaCopy") {
 				DM365DmaCopy *dma = new DM365DmaCopy(this, getss("output_count").toInt());
 				dma->setBufferCount(getss("buffer_count").toInt());
