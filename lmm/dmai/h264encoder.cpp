@@ -917,7 +917,7 @@ int H264Encoder::insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuff
 		 * There are limits on the MV insertion,
 		 *
 		 *	1.	Putting it on every frame is not possible,
-		 *		bitrate will be too hight
+		 *		bitrate will be too high
 		 *	2.	One MV doesn't fit on one SEI frame, there is
 		 *		an undocumented limit on encoders maximum seidata
 		 *		size. So we need to split MVs into 2(at least)
