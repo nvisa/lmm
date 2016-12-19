@@ -778,8 +778,10 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	 * vector overlay is desired
 	 */
 	if (mVecs == MV_OVERLAY || mVecs == MV_BOTH) {
+		int w = source.constPars()->videoWidth;
+		int h = source.constPars()->videoHeight;
 		uchar *vdata = (uchar *)source.constData();
-		uchar motVecBuf[80 * 45];
+		uchar motVecBuf[w / 16 * h / 16];
 		uchar *motVectBuf = (uchar *)Buffer_getUserPtr(metadataBuf[1]);
 		qint16 *vbuf16 = (qint16 *)motVectBuf;
 		qint32 *vbuf32 = (qint32 *)motVectBuf;
@@ -795,10 +797,10 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			}
 		}
 		/* show motion vectors */
-		for (int i = 0; i < 80; i++) {
-			for (int j = 0; j < 45; j++) {
-				int tmp = motVecBuf[j * 80 + i];
-				vdata[j * 1280 + i] =  tmp > 16 ? tmp : 0;
+		for (int i = 0; i < w / 16; i++) {
+			for (int j = 0; j < h / 16; j++) {
+				int tmp = motVecBuf[j * w / 16 + i];
+				vdata[j * w + i] =  tmp > 16 ? tmp : 0;
 			}
 		}
 	}
