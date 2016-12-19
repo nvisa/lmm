@@ -49,6 +49,7 @@ public:
 	void setMotionVectorExtraction(MotionVectors mv) { mVecs = mv; }
 	MotionVectors getMotionVectorExtraction() { return mVecs; }
 	void setSeiEnabled(bool value);
+	void setMotionDetectionThreshold(int th);
 
 	IH264VENC_DynamicParams * getDynamicParams() { return dynH264Params; }
 	int setDynamicParamsNextLoop(bool v) { setDynamicParams = v; return 0; }
@@ -77,6 +78,7 @@ private:
 	int motVectSize;
 	PacketizationMode pmod;
 	bool seiEnabled;
+	int motionDetectionThresh;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec(bool alloc = true);

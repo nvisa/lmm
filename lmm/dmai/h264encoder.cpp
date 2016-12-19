@@ -450,6 +450,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	frameinfoInterface = NULL;
 	mVecs = MV_NONE;
 	pmod = PMOD_PACKETIZED;
+	motionDetectionThresh = 0;
 	enablePictureTimingSei(true);
 }
 
@@ -545,6 +546,11 @@ void H264Encoder::setFrameRate(float fps)
 void H264Encoder::setSeiEnabled(bool value)
 {
 	seiEnabled = value;
+}
+
+void H264Encoder::setMotionDetectionThreshold(int th)
+{
+	motionDetectionThresh = th;
 }
 
 typedef struct Venc1_Object {
@@ -784,6 +790,8 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 				short vd = vbuf16[off * 4 + i * 4 + 1];
 				int sad = vbuf32[off * 2 + i * 2 + 1];
 				motVecBuf[off + i] = sqrt(hd * hd + vd * vd);
+				if (motVecBuf[off + i] < motionDetectionThresh)
+					motVecBuf[off + i] = 0;
 			}
 		}
 		/* show motion vectors */
