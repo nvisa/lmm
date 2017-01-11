@@ -54,7 +54,8 @@ SOURCES += \
     rtp/rtptransmitter.cpp \
     players/basestreamer.cpp \
     genericvideotestsource.cpp \
-    interfaces/streamcontrolelementinterface.cpp
+    interfaces/streamcontrolelementinterface.cpp \
+    tools/tokenbucket.cpp
 
 HEADERS  += \
     filesource.h \
@@ -104,7 +105,8 @@ HEADERS  += \
     players/basestreamer.h \
     genericvideotestsource.h \
     interfaces/streamcontrolelementinterface.h \
-    interfaces/imagesnapshotinterface.h
+    interfaces/imagesnapshotinterface.h \
+    tools/tokenbucket.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
