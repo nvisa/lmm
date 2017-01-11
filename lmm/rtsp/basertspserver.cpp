@@ -839,7 +839,7 @@ QStringList BaseRtspServer::createSdp(QString url)
 		} else if (codec == Lmm::CODEC_PCM_ALAW) {
 			sdp << QString("m=audio %1 RTP/AVP 8").arg(streamPort);
 			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
-			sdp << "a=rtpmap:97 PCMA/8000/1";
+			sdp << "a=rtpmap:8 PCMA/8000/1";
 		} else if (codec == Lmm::CODEC_META_BILKON) {
 			sdp << QString("m=metadata %1 RTP/AVP 98").arg(streamPort);
 			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
