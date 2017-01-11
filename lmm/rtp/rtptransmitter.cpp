@@ -683,7 +683,7 @@ QString RtpChannel::getSdp(Lmm::CodecType codec)
 		sdp << "a=rtpmap:97 L16/8000/1";
 	} else if (codec == Lmm::CODEC_PCM_ALAW) {
 		sdp << QString("m=audio %1 RTP/AVP 8").arg(dstDataPort);
-		sdp << "a=rtpmap:97 PCMA/8000/1";
+		sdp << "a=rtpmap:8 PCMA/8000/1";
 	}  else if (codec == Lmm::CODEC_META_BILKON) {
 		sdp << QString("m=metadata %1 RTP/AVP 98").arg(dstDataPort);
 		sdp << "a=rtpmap:98 BILKON";
