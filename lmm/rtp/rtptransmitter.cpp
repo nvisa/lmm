@@ -339,7 +339,7 @@ void RtpTransmitter::sendPcmData(const RawBuffer &buf)
 		tsScaler = 2;
 	else if (getCodec() == Lmm::CODEC_PCM_ALAW)
 		tsScaler = 1;
-	qint64 ts = streamedBufferCount * buf.size() / tsScaler;
+	qint64 ts = packetTimestamp();
 	for (int i = 0; i < channels.size(); i++) {
 		const uchar *data = (const uchar *)buf.constData();
 		int size = buf.size();
