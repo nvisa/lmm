@@ -4,6 +4,8 @@
 
 #include <errno.h>
 
+#include <lmm/streamtime.h>
+
 /* following table is taken from gst-plugings good */
 static const uchar alawTable[2048 + 1] = {
   0xd5, 0xd4, 0xd7, 0xd6, 0xd1, 0xd0, 0xd3, 0xd2, 0xdd, 0xdc, 0xdf, 0xde,
@@ -215,6 +217,8 @@ int AlsaInput::processBlocking(int ch)
 		}
 		buf.setUsedSize(bufferSize / 2);
 	}
+
+	buf.pars()->encodeTime = streamTime->getCurrentTime();
 
 	if (0) {
 		static QElapsedTimer t;
