@@ -12,6 +12,7 @@
 class MyTime;
 class QTimer;
 class QUdpSocket;
+class TokenBucket;
 
 class RtpChannel : public QObject
 {
@@ -35,6 +36,7 @@ public:
 	QString dstIp;
 	socklen_t ttl;
 	int bufferCount;
+	TokenBucket *tb;
 
 signals:
 	void goodbyeRecved();
@@ -90,6 +92,7 @@ public:
 	void setMulticastTTL(socklen_t ttl);
 	void setMaximumPayloadSize(int value);
 	bool isActive();
+	int setTrafficShaping(bool enabled, int average, int burst, int duration = 50);
 protected:
 	int processBuffer(const RawBuffer &buf);
 	quint64 packetTimestamp();
@@ -116,6 +119,14 @@ protected:
 	bool waitIdrFrame;
 	Lmm::CodecType mediaCodec;
 	qint64 lastBufferTime;
+
+	struct TrafficShapingInfo {
+		bool enabled;
+		int avgBitsPerSec;
+		int burstBitsPerSec;
+		int controlDuration;
+	};
+	TrafficShapingInfo tsinfo;
 };
 
 #endif // RTPTRANSMITTER_H

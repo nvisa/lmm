@@ -3,6 +3,7 @@
 #include "tools/rawnetworksocket.h"
 #include "streamtime.h"
 #include "h264parser.h"
+#include "tools/tokenbucket.h"
 
 #include <QTimer>
 #include <QUdpSocket>
@@ -96,6 +97,10 @@ RtpTransmitter::RtpTransmitter(QObject *parent, Lmm::CodecType codec) :
 
 	/* Let's find our IP address */
 	myIpAddr = findIp("eth0");
+
+	tsinfo.enabled = false;
+	tsinfo.avgBitsPerSec = 0;
+	tsinfo.burstBitsPerSec = 0;
 }
 
 RtpChannel * RtpTransmitter::addChannel()
@@ -111,6 +116,10 @@ RtpChannel * RtpTransmitter::addChannel()
 	RtpChannel *ch = new RtpChannel(maxPayloadSize, myIpAddr);
 	ch->payloadType = pt;
 	ch->ttl = ttl;
+	if (tsinfo.enabled) {
+		ch->tb = new TokenBucket(ch);
+		ch->tb->setPars(tsinfo.avgBitsPerSec / 8, tsinfo.burstBitsPerSec / 8, tsinfo.controlDuration);
+	}
 	QMutexLocker l(&streamLock);
 	channels << ch;
 	return ch;
@@ -188,6 +197,15 @@ void RtpTransmitter::setMaximumPayloadSize(int value)
 bool RtpTransmitter::isActive()
 {
 	return getChannelCount() ? true : false;
+}
+
+int RtpTransmitter::setTrafficShaping(bool enabled, int average, int burst, int duration)
+{
+	tsinfo.enabled = enabled;
+	tsinfo.avgBitsPerSec = average;
+	tsinfo.burstBitsPerSec = burst;
+	tsinfo.controlDuration = duration;
+	return 0;
 }
 
 int RtpTransmitter::processBuffer(const RawBuffer &buf)
@@ -408,6 +426,7 @@ RtpChannel::RtpChannel(int psize, const QHostAddress &myIpAddr)
 	connect(timer, SIGNAL(timeout()), SLOT(timeout()));
 	timer->start(1000);
 	bufferCount = 0;
+	tb = NULL;
 }
 
 RtpChannel::~RtpChannel()
@@ -583,6 +602,10 @@ void RtpChannel::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 
 {
 	if (state != 2)
 		return;
+
+	if (tb)
+		tb->get(size + 12);
+
 	uint ts = baseTs + tsRef;
 	buf[0] = RTP_VERSION << 6;
 	buf[1] = last << 7 | payloadType;
