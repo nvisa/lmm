@@ -37,6 +37,8 @@ int TokenBucket::get(int count)
 
 void TokenBucket::setPars(int averageRate, int burstRate, int burstDuration)
 {
+	if (burstDuration == 0)
+		burstDuration = 50;
 	float T = burstDuration / (float)1000;
 	burstRate *= T;
 	M = burstRate / T;
