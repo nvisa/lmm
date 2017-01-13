@@ -237,7 +237,7 @@ quint64 RtpTransmitter::packetTimestamp()
 		return (90000ll * (streamedBufferCount) / (int)frameRate);
 	} else if (mediaCodec == Lmm::CODEC_PCM_L16 || mediaCodec == Lmm::CODEC_PCM_ALAW) {
 		if (useAbsoluteTimestamp)
-			return 8ull * streamTime->getCurrentTimeMili();
+			return 8ull * lastBufferTime;
 		return (8000ll * streamedBufferCount / 50);
 	} else if (mediaCodec == Lmm::CODEC_META_BILKON)
 		return 90ull * lastBufferTime;
