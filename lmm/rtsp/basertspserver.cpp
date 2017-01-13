@@ -1,6 +1,7 @@
 #include "basertspserver.h"
 #include "rawbuffer.h"
 #include "rtp/rtptransmitter.h"
+#include "tools/tokenbucket.h"
 
 #include "debug.h"
 
@@ -227,6 +228,34 @@ void BaseRtspServer::addMedia2Stream(const QString &mediaName, const QString &st
 bool BaseRtspServer::hasStream(const QString &streamName)
 {
 	return streamDescriptions.contains(streamName);
+}
+
+void BaseRtspServer::addStreamParameter(const QString &streamName, const QString &mediaName, const QString &par, const QVariant &value)
+{
+	streamDescriptions[streamName].media[mediaName].meta.insert(par, value);
+}
+
+const QHash<QString, QVariant> BaseRtspServer::getStreamParameters(const QString &streamName, const QString &mediaName)
+{
+	return streamDescriptions[streamName].media[mediaName].meta;
+}
+
+const QStringList BaseRtspServer::getSessions()
+{
+	return sessions.keys();
+}
+
+const QStringList BaseRtspServer::getSessions(const QString &streamName)
+{
+	QStringList list;
+	QMapIterator<QString, BaseRtspSession *>i(sessions);
+	while (i.hasNext()) {
+		i.next();
+		BaseRtspSession *ses = i.value();
+		if (ses->streamName == streamName)
+			list << ses->sessionId;
+	}
+	return list;
 }
 
 const BaseRtspServer::StreamDescription BaseRtspServer::getStreamDesc(const QString &streamName, const QString &mediaName)
@@ -880,10 +909,20 @@ int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &stre
 		sourceControlPort = cPort;
 
 	/* create the new rtp channel */
+	const QHash<QString, QVariant> pars = server->getStreamParameters(streamName, media);
 	rtp = server->getSessionTransmitter(streamName, media);
 	if (!rtp)
 		return -ENOENT;
 	rtpCh = rtp->addChannel();
+	if (pars.contains("TrafficShapingEnabled")) {
+		bool enabled = pars["TrafficShapingEnabled"].toBool();
+		if (enabled) {
+			rtpCh->tb = new TokenBucket(rtpCh);
+			rtpCh->tb->setPars(pars["TrafficShapingAverage"].toInt() / 8,
+					pars["TrafficShapingBurst"].toInt() / 8,
+					pars["TrafficShapingDuration"].toInt());
+		}
+	}
 	rtp->setupChannel(rtpCh, streamIp, dataPort, controlPort, sourceDataPort, sourceControlPort, ssrc);
 	connect(rtpCh, SIGNAL(goodbyeRecved()), SLOT(rtpGoodbyeRecved()));
 	connect(rtpCh, SIGNAL(sessionTimedOut()), SLOT(rtcpTimedOut()));

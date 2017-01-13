@@ -79,6 +79,12 @@ public:
 	void addStream(const QString streamName, bool multicast, RtpTransmitter *rtp, int port = 0, const QString &mcastAddress = "");
 	void addMedia2Stream(const QString &mediaName, const QString &streamName, bool multicast, RtpTransmitter *rtp, int port = 0, const QString &mcastAddress = "");
 	bool hasStream(const QString &streamName);
+	void addStreamParameter(const QString &streamName, const QString &mediaName, const QString &par, const QVariant &value);
+	const QHash<QString, QVariant> getStreamParameters(const QString &streamName, const QString &mediaName);
+
+	/* session API */
+	const QStringList getSessions();
+	const QStringList getSessions(const QString &streamName);
 
 private slots:
 	void newRtspConnection();
@@ -100,6 +106,7 @@ private:
 		RtpTransmitter *rtp;
 		int port;
 		QString multicastAddr;
+		QHash<QString, QVariant> meta;
 		QHash<QString, StreamDescription> media;
 	};
 
