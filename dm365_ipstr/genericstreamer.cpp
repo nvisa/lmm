@@ -159,6 +159,14 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 										  getss("port").toInt(),
 										  getss("multicast_address").toString());
 
+					QString media = getss("media").toString();
+					bool tse = getss("traffic_shaping").toBool();
+					if (tse) {
+						rtsp->addStreamParameter(streamName, media, "TrafficShapingEnabled", true);
+						rtsp->addStreamParameter(streamName, media, "TrafficShapingAverage", getss("traffic_shaping_average").toInt());
+						rtsp->addStreamParameter(streamName, media, "TrafficShapingBurst", getss("traffic_shaping_burst").toInt());
+						rtsp->addStreamParameter(streamName, media, "TrafficShapingDuration", getss("traffic_shaping_duration").toInt());
+					}
 				}
 				pre = QString("%1.elements.%2").arg(p).arg(j);
 
