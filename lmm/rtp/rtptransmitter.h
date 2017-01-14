@@ -37,6 +37,7 @@ public:
 	socklen_t ttl;
 	int bufferCount;
 	TokenBucket *tb;
+	bool useSR;
 
 signals:
 	void goodbyeRecved();
@@ -93,6 +94,7 @@ public:
 	void setMaximumPayloadSize(int value);
 	bool isActive();
 	int setTrafficShaping(bool enabled, int average, int burst, int duration = 50);
+	void setRtcp(bool enabled);
 protected:
 	int processBuffer(const RawBuffer &buf);
 	quint64 packetTimestamp();
@@ -119,6 +121,10 @@ protected:
 	bool waitIdrFrame;
 	Lmm::CodecType mediaCodec;
 	qint64 lastBufferTime;
+	TokenBucket *tb;
+
+	int bufferCount;
+	bool rtcpEnabled;
 
 	struct TrafficShapingInfo {
 		bool enabled;

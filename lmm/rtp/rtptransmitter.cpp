@@ -87,6 +87,9 @@ protected:
 RtpTransmitter::RtpTransmitter(QObject *parent, Lmm::CodecType codec) :
 	BaseLmmElement(parent)
 {
+	rtcpEnabled = true;
+	tb = NULL;
+	bufferCount = 0;
 	mediaCodec = codec;
 	useStapA = false;
 	maxPayloadSize = 1460;
@@ -116,10 +119,7 @@ RtpChannel * RtpTransmitter::addChannel()
 	RtpChannel *ch = new RtpChannel(maxPayloadSize, myIpAddr);
 	ch->payloadType = pt;
 	ch->ttl = ttl;
-	if (tsinfo.enabled) {
-		ch->tb = new TokenBucket(ch);
-		ch->tb->setPars(tsinfo.avgBitsPerSec / 8, tsinfo.burstBitsPerSec / 8, tsinfo.controlDuration);
-	}
+	ch->useSR = rtcpEnabled;
 	QMutexLocker l(&streamLock);
 	channels << ch;
 	return ch;
@@ -205,7 +205,18 @@ int RtpTransmitter::setTrafficShaping(bool enabled, int average, int burst, int 
 	tsinfo.avgBitsPerSec = average;
 	tsinfo.burstBitsPerSec = burst;
 	tsinfo.controlDuration = duration;
+
+	if (tsinfo.enabled) {
+		tb = new TokenBucket(this);
+		tb->setPars(tsinfo.avgBitsPerSec / 8, tsinfo.burstBitsPerSec / 8, tsinfo.controlDuration);
+	}
+
 	return 0;
+}
+
+void RtpTransmitter::setRtcp(bool enabled)
+{
+	rtcpEnabled = enabled;
 }
 
 int RtpTransmitter::processBuffer(const RawBuffer &buf)
@@ -383,12 +394,56 @@ void RtpTransmitter::sendMetaData(const RawBuffer &buf)
 
 void RtpTransmitter::channelsSendNal(const uchar *buf, int size, qint64 ts)
 {
+#if 0
 	for (int i = 0; i < channels.size(); i++)
 		channels[i]->sendNalUnit(buf, size, ts);
+#else
+
+	if (!channels.size())
+		return;
+	uchar *rtpbuf = channels.first()->tempRtpBuf;
+	RawNetworkSocket::SockBuffer *sbuf = NULL;
+
+	uchar type = buf[0] & 0x1F;
+	uchar nri = buf[0] & 0x60;
+	if (!bufferCount) {
+		if (type != 7) //wait sps
+			return;
+	}
+	bufferCount++;
+	if (type >= 13) {
+		mDebug("undefined nal type %d, not sending", type);
+		return;
+	}
+	if (size <= maxPayloadSize) {
+		memcpy(rtpbuf + 12, buf, size);
+		channelsSendRtp(rtpbuf, size, 1, sbuf, ts);
+	} else {
+		uchar *dstbuf = rtpbuf + 12;
+		dstbuf[0] = 28;        /* FU Indicator; Type = 28 ---> FU-A */
+		dstbuf[0] |= nri;
+		dstbuf[1] = type;
+		dstbuf[1] |= 1 << 7;
+		buf += 1;
+		size -= 1;
+		while (size + 2 > maxPayloadSize) {
+			memcpy(&dstbuf[2], buf, maxPayloadSize - 2);
+			channelsSendRtp(rtpbuf, maxPayloadSize, 0, sbuf, ts);
+			buf += maxPayloadSize - 2;
+			size -= maxPayloadSize - 2;
+			dstbuf[1] &= ~(1 << 7);
+		}
+		dstbuf[1] |= 1 << 6;
+		memcpy(&dstbuf[2], buf, size);
+		channelsSendRtp(rtpbuf, size + 2, 1, sbuf, ts);
+	}
+#endif
 }
 
 void RtpTransmitter::channelsSendRtp(uchar *buf, int size, int last, void *sbuf, qint64 tsRef)
 {
+	if (tb)
+		tb->get(size + 12);
 	/*
 	 * only first RTP channel can benefit from exteme-zero copying,
 	 * others should live with one extra memcpy
@@ -408,6 +463,7 @@ void RtpTransmitter::channelsCheckRtcp(quint64 ts)
 
 RtpChannel::RtpChannel(int psize, const QHostAddress &myIpAddr)
 {
+	useSR = true;
 	state = 0;
 	this->myIpAddr = myIpAddr;
 	totalOctetCount = 0;
@@ -635,6 +691,8 @@ void RtpChannel::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 
 
 void RtpChannel::sendSR(quint64 bufferTs)
 {
+	if (!useSR)
+		return;
 	if (state != 2)
 		return;
 	int length = 6; //in words, 7 - 1
