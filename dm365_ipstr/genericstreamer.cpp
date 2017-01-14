@@ -142,6 +142,11 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 					rtp = new RtpTransmitter(this, Lmm::CODEC_META_BILKON);
 				rtp->setMulticastTTL(getss("multicast_ttl").toInt());
 				rtp->setMaximumPayloadSize(getss("rtp_max_payload_size").toInt());
+				rtp->setRtcp(!getss("disable_rtcp").toBool());
+				rtp->setTrafficShaping(getss("traffic_shaping").toBool(),
+									   getss("traffic_shaping_average").toInt(),
+									   getss("traffic_shaping_burst").toInt(),
+									   getss("traffic_shaping_duration").toInt());
 				el = rtp;
 
 				int streamCount = s->getArraySize(QString("%1.rtsp").arg(pre));
