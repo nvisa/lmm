@@ -394,11 +394,14 @@ void RtpTransmitter::sendMetaData(const RawBuffer &buf)
 
 void RtpTransmitter::channelsSendNal(const uchar *buf, int size, qint64 ts)
 {
-#if 0
-	for (int i = 0; i < channels.size(); i++)
-		channels[i]->sendNalUnit(buf, size, ts);
-#else
+	if (!tsinfo.enabled) {
+		/* if traffic shaping is not enabled we can do zero-copying */
+		for (int i = 0; i < channels.size(); i++)
+			channels[i]->sendNalUnit(buf, size, ts);
+		return;
+	}
 
+	/* shaping is active, we should packetize NAL before passing to channels */
 	if (!channels.size())
 		return;
 	uchar *rtpbuf = channels.first()->tempRtpBuf;
@@ -437,7 +440,6 @@ void RtpTransmitter::channelsSendNal(const uchar *buf, int size, qint64 ts)
 		memcpy(&dstbuf[2], buf, size);
 		channelsSendRtp(rtpbuf, size + 2, 1, sbuf, ts);
 	}
-#endif
 }
 
 void RtpTransmitter::channelsSendRtp(uchar *buf, int size, int last, void *sbuf, qint64 tsRef)
