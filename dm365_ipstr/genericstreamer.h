@@ -4,6 +4,7 @@
 #include <lmm/dm365/ipcamerastreamer.h>
 
 class DM365CameraInput;
+class MetadataGenerator;
 class ApplicationSettings;
 class StreamControlElementInterface;
 
@@ -30,6 +31,7 @@ protected:
 	QHash<BaseLmmPipeline *, int> streamControl;
 	QHash<BaseLmmPipeline *, StreamControlElementInterface *> streamControlElement;
 	QList<RtpTransmitter *> transmitters;
+	QList<MetadataGenerator *> metaGenerators;
 };
 
 #endif // GENERICSTREAMER_H

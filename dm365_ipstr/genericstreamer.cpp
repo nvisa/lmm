@@ -207,6 +207,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 				el = src;
 			} else if (type == "MetadataGenerator") {
 				MetadataGenerator *mgen = new MetadataGenerator(this);
+				metaGenerators << mgen;
 				el = mgen;
 			}
 
@@ -293,6 +294,9 @@ int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &)
 			for (int i = p->getPipeCount() - 1; i >= sci; i--)
 				p->getPipe(i)->setPassThru(true);
 		}
+	}
+	if (getPipeline(0) == p) {
+		metaGenerators[0]->setCustomData(0x12345678, QByteArray(64 + (rand() % 128), 0));
 	}
 	return 0;
 }
