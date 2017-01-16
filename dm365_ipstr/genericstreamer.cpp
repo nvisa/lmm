@@ -295,9 +295,7 @@ int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &)
 				p->getPipe(i)->setPassThru(true);
 		}
 	}
-	if (getPipeline(0) == p) {
-		metaGenerators[0]->setCustomData(0x12345678, QByteArray(64 + (rand() % 128), 0));
-	}
+
 	return 0;
 }
 
