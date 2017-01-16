@@ -9,6 +9,8 @@
 #include <QFile>
 #include <QDataStream>
 
+#include <errno.h>
+
 static const QString getMacAddress(const QString &iface)
 {
 	QFile f(QString("/sys/class/net/%1/address").arg(iface));
@@ -43,7 +45,7 @@ int MetadataGenerator::processBlocking(int ch)
 	out.setFloatingPointPrecision(QDataStream::SinglePrecision);
 
 	out << (qint32)0x78984578;
-	out << (qint32)0x101; //version
+	out << (qint32)0x102; //version
 
 	out << (qint32)CpuLoad::getAverageCpuLoad();
 	out << (qint32)SystemInfo::getFreeMemory();
@@ -55,8 +57,56 @@ int MetadataGenerator::processBlocking(int ch)
 	out << hwVersion;
 	out << serialNo;
 	out << streamerVersion;
+	lock.lock();
+	QHashIterator<qint32, DataOverlay *> hi(overlays);
+	QList<qint32> removeList;
+	out << overlays.size();
+	while (hi.hasNext()) {
+		hi.next();
+		DataOverlay *overlay = hi.value();
+		out << overlay->id;
+		out << overlay->data;
+		if (overlay->count > 0) {
+			overlay->count--;
+			if (!overlay->count)
+				removeList << overlay->id;
+		}
+	}
+	lock.unlock();
+	foreach (qint32 id, removeList)
+		removeCustomData(id);
 
 	return newOutputBuffer(RawBuffer("application/x-metadata", ba.constData(), ba.size()));
+}
+
+int MetadataGenerator::setCustomData(qint32 id, const QByteArray &ba, int count)
+{
+	QMutexLocker l(&lock);
+
+	DataOverlay *overlay = NULL;
+	if (overlays.contains(id))
+		overlay = overlays[id];
+	else
+		overlay = new DataOverlay;
+	overlay->data = ba;
+	overlay->count = count;
+	overlay->id = id;
+	overlays.insert(id, overlay);
+
+	return 0;
+}
+
+int MetadataGenerator::removeCustomData(qint32 id)
+{
+	QMutexLocker l(&lock);
+
+	if (!overlays.contains(id))
+		return -ENOENT;
+	DataOverlay *o = overlays[id];
+	overlays.remove(id);
+	delete o;
+
+	return 0;
 }
 
 int MetadataGenerator::processBuffer(const RawBuffer &buf)
