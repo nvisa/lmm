@@ -4,7 +4,6 @@
 #include <lmm/bufferqueue.h>
 #include <lmm/textoverlay.h>
 #include <lmm/baselmmpipeline.h>
-#include <lmm/dmai/seiinserter.h>
 #include <lmm/dmai/jpegencoder.h>
 #include <lmm/dmai/h264encoder.h>
 #include <lmm/dm365/dm365dmacopy.h>

@@ -4,7 +4,6 @@
 #include <lmm/bufferqueue.h>
 #include <lmm/textoverlay.h>
 #include <lmm/baselmmpipeline.h>
-#include <lmm/dmai/seiinserter.h>
 #include <lmm/dmai/jpegencoder.h>
 #include <lmm/dmai/h264encoder.h>
 #include <lmm/dm365/dm365dmacopy.h>
@@ -54,8 +53,8 @@ Simple1080pStreamer::Simple1080pStreamer(QObject *parent) :
 	enc264High->setProfile(0);
 	setElSize(enc264High, sz0);
 
-	seiInserterHigh = new SeiInserter(enc264High);
-	seiInserterHigh->setObjectName("SeiInserterHigh");
+	//seiInserterHigh = new SeiInserter(enc264High);
+	//seiInserterHigh->setObjectName("SeiInserterHigh");
 	//elements << seiInserterHigh;
 
 	/* overlay element, only for High res channel */

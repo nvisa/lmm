@@ -2,6 +2,7 @@
 #include "mjpegserver.h"
 #include "audiosource.h"
 #include "metadatagenerator.h"
+#include "seiinserter.h"
 
 #include <lmm/alsa/alsainput.h>
 #include <lmm/alsa/alsaoutput.h>
@@ -13,7 +14,6 @@
 #include <lmm/textoverlay.h>
 #include <lmm/bufferqueue.h>
 #include <lmm/baselmmpipeline.h>
-#include <lmm/dmai/seiinserter.h>
 #include <lmm/dmai/h264encoder.h>
 #include <lmm/dmai/jpegencoder.h>
 #include <lmm/rtp/rtptransmitter.h>

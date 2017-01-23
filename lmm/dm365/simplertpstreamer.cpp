@@ -2,7 +2,6 @@
 
 #include <lmm/debug.h>
 #include <lmm/baselmmpipeline.h>
-#include <lmm/dmai/seiinserter.h>
 #include <lmm/dmai/h264encoder.h>
 #include <lmm/rtp/rtppacketizer.h>
 #include <lmm/rtsp/basertspserver.h>
@@ -47,8 +46,8 @@ SimpleRtpStreamer::SimpleRtpStreamer(const QString &dstIp, QObject *parent) :
 	enc264High->setProfile(2);
 	setElSize(enc264High, sz0);
 
-	seiInserterHigh = new SeiInserter(enc264High);
-	seiInserterHigh->setObjectName("SeiInserterHigh");
+	//seiInserterHigh = new SeiInserter(enc264High);
+	//seiInserterHigh->setObjectName("SeiInserterHigh");
 
 	//rtp = rtsp->getMuxers().first();
 	//rtp->setDestinationIpAddress(ip);
