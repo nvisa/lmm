@@ -19,6 +19,7 @@ signals:
 
 public slots:
 protected:
+	void postInitPipeline(BaseLmmPipeline *p);
 	virtual int pipelineOutput(BaseLmmPipeline *p, const RawBuffer &);
 
 	TextOverlay * createTextOverlay(const QString &elementName, ApplicationSettings *s);
