@@ -106,7 +106,8 @@ HEADERS  += \
     genericvideotestsource.h \
     interfaces/streamcontrolelementinterface.h \
     interfaces/imagesnapshotinterface.h \
-    tools/tokenbucket.h
+    tools/tokenbucket.h \
+    interfaces/motiondetectioninterface.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
