@@ -2,6 +2,7 @@
 #define H264ENCODER_H
 
 #include <lmm/dmai/dmaiencoder.h>
+#include <lmm/interfaces/motiondetectioninterface.h>
 
 struct ROI_Interface;
 struct IH264VENC_Params;
@@ -10,7 +11,7 @@ struct VUIParamBuffer;
 
 #include <QRect>
 
-class H264Encoder : public DmaiEncoder
+class H264Encoder : public DmaiEncoder, public MotionDetectionInterface
 {
 	Q_OBJECT
 public:
@@ -18,6 +19,7 @@ public:
 		MV_NONE,
 		MV_SEI,
 		MV_OVERLAY,
+		MV_MOTDET,
 		MV_BOTH,
 	};
 	enum PacketizationMode {
@@ -50,6 +52,7 @@ public:
 	MotionVectors getMotionVectorExtraction() { return mVecs; }
 	void setSeiEnabled(bool value);
 	void setMotionDetectionThreshold(int th);
+	int getMotionValue();
 
 	IH264VENC_DynamicParams * getDynamicParams() { return dynH264Params; }
 	int setDynamicParamsNextLoop(bool v) { setDynamicParams = v; return 0; }
@@ -79,6 +82,7 @@ private:
 	PacketizationMode pmod;
 	bool seiEnabled;
 	int motionDetectionThresh;
+	int motionValue;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec(bool alloc = true);

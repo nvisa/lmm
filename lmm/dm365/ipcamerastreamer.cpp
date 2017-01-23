@@ -6,7 +6,6 @@
 #include <lmm/baselmmpipeline.h>
 #include <lmm/dmai/jpegencoder.h>
 #include <lmm/dmai/h264encoder.h>
-#include <lmm/dmai/seiinserter.h>
 #include <lmm/rtp/rtptransmitter.h>
 #include <lmm/dm365/dm365dmacopy.h>
 #include <lmm/rtsp/basertspserver.h>
@@ -93,8 +92,8 @@ IPCameraStreamer::IPCameraStreamer(QObject *parent) :
 	enc264High->setBufferCount(sets.h264QueueSize + 10);
 	setElSize(enc264High, sz0);
 
-	seiInserterHigh = new SeiInserter(enc264High);
-	seiInserterHigh->setObjectName("SeiInserterHigh");
+	//seiInserterHigh = new SeiInserter(enc264High);
+	//seiInserterHigh->setObjectName("SeiInserterHigh");
 
 	cloner = new DM365DmaCopy(this, 1);
 	cloner->setBufferCount(sets.clonerBufferCount);
@@ -111,7 +110,7 @@ IPCameraStreamer::IPCameraStreamer(QObject *parent) :
 	p1->append(textOverlay);
 	p1->append(rawQueue);
 	p1->append(enc264High);
-	p1->append(seiInserterHigh);
+	//p1->append(seiInserterHigh);
 	p1->append(cloner);
 	p1->append(h264Queue);
 	p1->append(rtpHigh);

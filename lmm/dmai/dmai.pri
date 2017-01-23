@@ -11,9 +11,3 @@ HEADERS += dmai/dmaiencoder.h \
 	dmai/h264encoder.h \
 		dmai/dmaidecoder.h \
 		dmai/videotestsource.h \
-
-HEADERS += \
-    dmai/seiinserter.h
-
-SOURCES += \
-    dmai/seiinserter.cpp

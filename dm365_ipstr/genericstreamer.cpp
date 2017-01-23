@@ -2,6 +2,7 @@
 #include "mjpegserver.h"
 #include "audiosource.h"
 #include "metadatagenerator.h"
+#include "seiinserter.h"
 
 #include <lmm/alsa/alsainput.h>
 #include <lmm/alsa/alsaoutput.h>
@@ -13,7 +14,6 @@
 #include <lmm/textoverlay.h>
 #include <lmm/bufferqueue.h>
 #include <lmm/baselmmpipeline.h>
-#include <lmm/dmai/seiinserter.h>
 #include <lmm/dmai/h264encoder.h>
 #include <lmm/dmai/jpegencoder.h>
 #include <lmm/rtp/rtptransmitter.h>
@@ -119,7 +119,17 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 					}
 				}
 			} else if (type == "SeiInserter") {
-				el = new SeiInserter(this);
+				SeiInserter *sel = new SeiInserter(this);
+				pre = QString("%1.elements.%2.alarm").arg(p).arg(j);
+				int seierr = sel->setAlarmInformation(getss("template").toString(),
+										 getss("algorithm").toInt(),
+										 getss("gpio").toInt(),
+										 getss("io_alarm_level").toInt(),
+										 getss("minimum_alarm_duration").toInt(),
+										 getss("motion_threshold").toInt()
+										 );
+				mDebug("SEI algorithm adjusted with err '%d'", seierr);
+				el = sel;
 			} else if (type == "DM365DmaCopy") {
 				DM365DmaCopy *dma = new DM365DmaCopy(this, getss("output_count").toInt());
 				dma->setBufferCount(getss("buffer_count").toInt());
@@ -207,6 +217,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 				el = src;
 			} else if (type == "MetadataGenerator") {
 				MetadataGenerator *mgen = new MetadataGenerator(this);
+				metaGenerators << mgen;
 				el = mgen;
 			}
 
@@ -231,6 +242,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 
 		if (fsEnabled)
 			pl->getPipe(fsTarget)->getOutputQueue(fsQueue)->setRateReduction(fsIn, fsOut);
+
+		postInitPipeline(pl);
 	}
 
 	if (s->get("camera_device.invert_clock").toBool())
@@ -277,7 +290,21 @@ QList<RawBuffer> GenericStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint
 #endif
 }
 
-int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &)
+void GenericStreamer::postInitPipeline(BaseLmmPipeline *p)
+{
+	for (int i = 0; i < p->getPipeCount(); i++) {
+		BaseLmmElement *el = p->getPipe(i);
+		SeiInserter *sel = qobject_cast<SeiInserter *>(el);
+		if (sel && i + 1 < p->getPipeCount()) {
+			BaseLmmElement *nel = p->getPipe(i + 1);
+			H264Encoder *eel = qobject_cast<H264Encoder *>(nel);
+			if (eel)
+				sel->setMotionDetectionProvider(eel);
+		}
+	}
+}
+
+int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 {
 	int sci = streamControl[p];
 	if (sci != -1) {
@@ -294,6 +321,7 @@ int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &)
 				p->getPipe(i)->setPassThru(true);
 		}
 	}
+
 	return 0;
 }
 

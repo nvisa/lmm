@@ -4,6 +4,7 @@
 #include <lmm/dm365/ipcamerastreamer.h>
 
 class DM365CameraInput;
+class MetadataGenerator;
 class ApplicationSettings;
 class StreamControlElementInterface;
 
@@ -18,6 +19,7 @@ signals:
 
 public slots:
 protected:
+	void postInitPipeline(BaseLmmPipeline *p);
 	virtual int pipelineOutput(BaseLmmPipeline *p, const RawBuffer &);
 
 	TextOverlay * createTextOverlay(const QString &elementName, ApplicationSettings *s);
@@ -30,6 +32,7 @@ protected:
 	QHash<BaseLmmPipeline *, int> streamControl;
 	QHash<BaseLmmPipeline *, StreamControlElementInterface *> streamControlElement;
 	QList<RtpTransmitter *> transmitters;
+	QList<MetadataGenerator *> metaGenerators;
 };
 
 #endif // GENERICSTREAMER_H

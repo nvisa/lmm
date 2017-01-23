@@ -451,6 +451,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	mVecs = MV_NONE;
 	pmod = PMOD_PACKETIZED;
 	motionDetectionThresh = 0;
+	motionValue = 0;
 	enablePictureTimingSei(true);
 }
 
@@ -551,6 +552,11 @@ void H264Encoder::setSeiEnabled(bool value)
 void H264Encoder::setMotionDetectionThreshold(int th)
 {
 	motionDetectionThresh = th;
+}
+
+int H264Encoder::getMotionValue()
+{
+	return motionValue;
 }
 
 typedef struct Venc1_Object {
@@ -840,6 +846,32 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			qDebug("error setting control on encoder: 0x%x", (int)status.extendedError);
 		generateIdrFrame = false;
 	}
+
+	if (mVecs == MV_MOTDET) {
+		QElapsedTimer tm; tm.start();
+		uchar *motVectBuf = (uchar *)Buffer_getUserPtr(metadataBuf[1]);
+		qint16 *vbuf16 = (qint16 *)motVectBuf;
+		int sum = 0;
+		if (BufferGfx_getFrameType(buffer) == IVIDEO_IDR_FRAME ||
+				BufferGfx_getFrameType(buffer) == IVIDEO_I_FRAME) {
+			/*
+			 * No need to calculate motion for I-frames, it will be 0 anyways.
+			 * On the other hand, some motion parameters can be adjusted depending
+			 * on the I-frame size [TODO].
+			*/
+		} else {
+			for (int j = 0; j < imageHeight / 16; j++) {
+				int off = j * imageWidth / 16;
+				for (int i = 0; i < imageWidth / 16; i++) {
+					short hd = vbuf16[off * 4 + i * 4];
+					short vd = vbuf16[off * 4 + i * 4 + 1];
+					sum += qAbs(hd) + qAbs(vd);
+				}
+			}
+		}
+		motionValue = sum;
+	} else
+		motionValue = 0;
 
 	uint duration = 1000 / (float)source.constPars()->fps;
 	if (pmod & PMOD_PACKETIZED) {
