@@ -143,6 +143,7 @@ static bool detectLocalPorts(const QHostAddress &myIpAddr, int &rtp, int &rtcp)
 BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	QObject(parent)
 {
+	auth = AUTH_NONE;
 	multicastAddressBase = "239.1.1.1";
 	enabled = true;
 	server = new QTcpServer(this);
@@ -454,6 +455,8 @@ QStringList BaseRtspServer::createRtspErrorResponse(int errcode, QString lsep)
 	QString errString;
 	if (errcode == 400)
 		errString = "Bad Request";
+	else if (errcode == 401)
+		errString = "Unauthorized Status";
 	else if (errcode == 403)
 		errString = "Forbidden";
 	else if (errcode == 404)
@@ -467,6 +470,8 @@ QStringList BaseRtspServer::createRtspErrorResponse(int errcode, QString lsep)
 	else if (errcode == 503)
 		errString = "Service Unavailable";
 	resp << QString("RTSP/1.0 %1 %2").arg(errcode).arg(errString);
+	if (errcode == 401)
+		resp << "WWW-Authenticate: Basic realm=\"streaming\"";
 	resp << lsep;
 	return resp;
 }
@@ -791,7 +796,24 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 			currentCmdFields.insert("user-agent", line.split(":")[1]);
 		if (line.contains("CSeq: ", Qt::CaseInsensitive))
 			currentCmdFields.insert("CSeq", line.remove("CSeq: "));
+		if (line.contains("Authorization: ", Qt::CaseInsensitive))
+			currentCmdFields.insert("Authorization", line.remove("Authorization: "));
 	}
+
+	if (auth == AUTH_SIMPLE) {
+		if (!currentCmdFields.contains("Authorization"))
+			return createRtspErrorResponse(401, lsep);
+		QStringList flds = currentCmdFields["Authorization"].split(" ");
+		if (flds.size() != 2)
+			return createRtspErrorResponse(401, lsep);
+		QString cred = QString::fromUtf8(QByteArray::fromBase64(flds[1].toUtf8()));
+		QStringList creds = cred.split(":");
+		if (creds.size() != 2)
+			return createRtspErrorResponse(401, lsep);
+		if (creds[0] != "aselsan" || creds[1] != "aselsan")
+			return createRtspErrorResponse(401, lsep);
+	}
+
 	if (lines.first().startsWith("OPTIONS")) {
 		resp = handleCommandOptions(lines, lsep);
 	} else if (lines.first().startsWith("DESCRIBE")) {

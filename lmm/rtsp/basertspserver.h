@@ -69,6 +69,12 @@ class BaseRtspServer : public QObject
 {
 	Q_OBJECT
 public:
+	enum Auth {
+		AUTH_NONE,
+		AUTH_SIMPLE,
+		AUTH_DIGEST,
+	};
+
 	explicit BaseRtspServer(QObject *parent = 0, int port = 554);
 	QString getMulticastAddress(const QString &streamName, const QString &media);
 	int getMulticastPort(QString streamName, const QString &media);
@@ -122,6 +128,7 @@ private:
 	QHostAddress myIpAddr;
 	QHostAddress myNetmask;
 	QHash<QString, StreamDescription> streamDescriptions;
+	Auth auth;
 
 	QStringList createRtspErrorResponse(int errcode, QString lsep);
 	QStringList createDescribeResponse(int cseq, QString url, QString lsep);
