@@ -6,6 +6,7 @@
 
 #include <QMutex>
 #include <QElapsedTimer>
+#include <QUuid>
 
 class GpioController;
 
@@ -16,6 +17,8 @@ public:
 	explicit SeiInserter(QObject *parent = 0);
 
 	void setMotionDetectionProvider(MotionDetectionInterface *iface);
+
+#define NORMALIZE_MOTION 200000 / 100
 
 	enum AlarmType {
 		ALARM_STOP,
@@ -40,9 +43,10 @@ protected:
 
 		void triggerNew(int s)
 		{
+			QUuid uid;
 			source = s;
 			active = true;
-			id++;
+			id = uid.createUuid().toString().remove("{").left(8);
 			t.start();
 		}
 
@@ -54,7 +58,7 @@ protected:
 		int active;
 		QElapsedTimer t;
 		int source;
-		int id;
+		QString id;
 	};
 
 	struct AlarmInfo {
@@ -71,6 +75,7 @@ protected:
 		int algorithm;
 		bool enabled;
 		int motionAlarmThreshold;
+		int motionAlarmThrPercent;
 		int ioAlarmLevel;
 		QString alarmTemplate;
 		QString alarmTemplateFilename;
