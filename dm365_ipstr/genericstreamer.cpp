@@ -182,6 +182,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 						rtsp->addStreamParameter(streamName, media, "TrafficShapingBurst", getss("traffic_shaping_burst").toInt());
 						rtsp->addStreamParameter(streamName, media, "TrafficShapingDuration", getss("traffic_shaping_duration").toInt());
 					}
+					int unicastCount = getss("max_unicast_count").toInt();
+					if (unicastCount)
+						rtsp->addStreamParameter(streamName, media, "MaxUnicastStreamCount", unicastCount);
 				}
 				pre = QString("%1.elements.%2").arg(p).arg(j);
 
