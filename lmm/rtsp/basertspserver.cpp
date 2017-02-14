@@ -934,7 +934,12 @@ int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &stre
 	const QHash<QString, QVariant> pars = server->getStreamParameters(streamName, media);
 	rtp = server->getSessionTransmitter(streamName, media);
 	if (!rtp)
-		return -ENOENT;
+		return 451;
+	int maxCnt = INT_MAX;
+	if (pars.contains("MaxUnicastStreamCount"))
+		maxCnt = pars["MaxUnicastStreamCount"].toInt();
+	if (rtp->getChannelCount() >= maxCnt)
+		return 453;
 	rtpCh = rtp->addChannel();
 	if (pars.contains("TrafficShapingEnabled")) {
 		bool enabled = pars["TrafficShapingEnabled"].toBool();
