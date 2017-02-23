@@ -42,10 +42,13 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 {
 	ApplicationSettings *s = ApplicationSettings::instance();
 
+	pbus = new LmmProcessBus(this, this);
+	pbus->join();
+
 	/* rtsp server */
 	QString rtspConfig = s->get("video_encoding.rtsp.stream_config").toString();
 	mDebug("using '%s' RTSP config", qPrintable(rtspConfig));
-	BaseRtspServer *rtsp = new BaseRtspServer(this);
+	rtsp = new BaseRtspServer(this);
 
 	/* camera input settings */
 	int cameraInputType = s->get("camera_device.input_type").toInt();
@@ -173,6 +176,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 										  rtp,
 										  getss("port").toInt(),
 										  getss("multicast_address").toString());
+					if (!getss("multicast_address_base").toString().isEmpty())
+						rtsp->setMulticastAddressBase(streamName, getss("media").toString(), getss("multicast_address_base").toString());
 
 					QString media = getss("media").toString();
 					bool tse = getss("traffic_shaping").toBool();
@@ -328,6 +333,52 @@ int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 	return 0;
 }
 
+#define checkSessionPar(member_name) \
+	if (info == #member_name) \
+		return ses->member_name
+QVariant GenericStreamer::getRtspStats(const QString &fld)
+{
+	if (fld == "rtsp.stats.session_count")
+		return rtsp->getSessions().size();
+	if (fld == "rtsp.stats.session_list")
+		return rtsp->getSessions();
+	if (fld.startsWith("rtsp.stats.session.")) {
+		QStringList flds = fld.split(".");
+		if (flds.size() < 5)
+			return -EINVAL;
+		QString session = flds[3];
+		QString info = flds[4];
+		const BaseRtspSession *ses = rtsp->getSession(session);
+		Q_UNUSED(info);
+		Q_UNUSED(ses);
+		checkSessionPar(state);
+		checkSessionPar(transportString);
+		checkSessionPar(multicast);
+		checkSessionPar(controlUrl);
+		checkSessionPar(streamName);
+		checkSessionPar(mediaName);
+		checkSessionPar(sourceDataPort);
+		checkSessionPar(sourceControlPort);
+		checkSessionPar(dataPort);
+		checkSessionPar(controlPort);
+		checkSessionPar(peerIp);
+		checkSessionPar(streamIp);
+		checkSessionPar(clientCount);
+		checkSessionPar(ssrc);
+		checkSessionPar(ttl);
+		checkSessionPar(rtptime);
+		checkSessionPar(seq);
+		checkSessionPar(rtspTimeoutEnabled);
+		if (info == "siblings") {
+			QStringList list;
+			foreach (BaseRtspSession *s, ses->siblings)
+				list << s->sessionId;
+			return list;
+		}
+	}
+	return -ENOENT;
+}
+
 TextOverlay * GenericStreamer::createTextOverlay(const QString &elementName, ApplicationSettings *s)
 {
 	/* overlay element, only for High res channel */
@@ -388,4 +439,45 @@ JpegEncoder * GenericStreamer::createJpegEncoder(const QString &elementName, App
 	enc->setParameter("videoWidth", w0);
 	enc->setParameter("videoHeight", h0);
 	return enc;
+}
+
+QString GenericStreamer::getProcessName()
+{
+	return "dm365_ipstr";
+}
+
+int GenericStreamer::getInt(const QString &fld)
+{
+	if (fld.startsWith("rtsp.stats"))
+		return getRtspStats(fld).toInt();
+	return ApplicationSettings::instance()->get(fld).toInt();
+}
+
+QString GenericStreamer::getString(const QString &fld)
+{
+	if (fld.startsWith("rtsp.stats"))
+		return getRtspStats(fld).toString();
+	return ApplicationSettings::instance()->get(fld).toString();
+}
+
+QVariant GenericStreamer::getVariant(const QString &fld)
+{
+	if (fld.startsWith("rtsp.stats"))
+		return getRtspStats(fld);
+	return ApplicationSettings::instance()->get(fld);
+}
+
+int GenericStreamer::setInt(const QString &fld, qint32 val)
+{
+	return ApplicationSettings::instance()->set(fld, val);
+}
+
+int GenericStreamer::setString(const QString &fld, const QString &val)
+{
+	return ApplicationSettings::instance()->set(fld, val);
+}
+
+int GenericStreamer::setVariant(const QString &fld, const QVariant &val)
+{
+	return ApplicationSettings::instance()->set(fld, val);
 }
