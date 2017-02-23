@@ -79,8 +79,8 @@ public:
 	QString getMulticastAddress(const QString &streamName, const QString &media);
 	int getMulticastPort(QString streamName, const QString &media);
 	int setEnabled(bool val);
-	QString getMulticastAddressBase();
-	void setMulticastAddressBase(const QString &addr);
+	QString getMulticastAddressBase(const QString &streamName, const QString &media);
+	void setMulticastAddressBase(const QString &streamName, const QString &media, const QString &addr);
 	void addStream(const QString streamName, bool multicast, int port = 0, const QString &mcastAddress = "");
 	void addStream(const QString streamName, bool multicast, RtpTransmitter *rtp, int port = 0, const QString &mcastAddress = "");
 	void addMedia2Stream(const QString &mediaName, const QString &streamName, bool multicast, RtpTransmitter *rtp, int port = 0, const QString &mcastAddress = "");
@@ -112,6 +112,7 @@ private:
 		RtpTransmitter *rtp;
 		int port;
 		QString multicastAddr;
+		QString multicastAddressBase;
 		QHash<QString, QVariant> meta;
 		QHash<QString, StreamDescription> media;
 	};
@@ -124,7 +125,6 @@ private:
 	QString lastUserAgent;
 	QMap<QString, QString> currentCmdFields;
 	bool enabled;
-	QString multicastAddressBase;
 	QHostAddress myIpAddr;
 	QHostAddress myNetmask;
 	QHash<QString, StreamDescription> streamDescriptions;

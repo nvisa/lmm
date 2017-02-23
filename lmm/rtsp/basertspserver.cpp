@@ -144,7 +144,6 @@ BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	QObject(parent)
 {
 	auth = AUTH_NONE;
-	multicastAddressBase = "239.1.1.1";
 	enabled = true;
 	server = new QTcpServer(this);
 	if (!server->listen(QHostAddress::Any, port))
@@ -158,16 +157,6 @@ BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	connect(mapperRead, SIGNAL(mapped(QObject*)), SLOT(clientDataReady(QObject*)));
 
 	myIpAddr = findIp("eth0");
-}
-
-QString BaseRtspServer::getMulticastAddressBase()
-{
-	return multicastAddressBase;
-}
-
-void BaseRtspServer::setMulticastAddressBase(const QString &addr)
-{
-	multicastAddressBase = addr;
 }
 
 /**
@@ -212,6 +201,7 @@ void BaseRtspServer::addStream(const QString streamName, bool multicast, RtpTran
 	desc.rtp = rtp;
 	desc.port = port;
 	desc.multicastAddr = mcastAddress;
+	desc.multicastAddressBase = "239.0.0.0";
 	streamDescriptions.insert(streamName, desc);
 }
 
@@ -223,6 +213,7 @@ void BaseRtspServer::addMedia2Stream(const QString &mediaName, const QString &st
 	desc.rtp = rtp;
 	desc.port = port;
 	desc.multicastAddr = mcastAddress;
+	desc.multicastAddressBase = "239.0.0.0";
 	streamDescriptions[streamName].media.insert(mediaName, desc);
 }
 
@@ -312,7 +303,7 @@ QString BaseRtspServer::getMulticastAddress(const QString &streamName, const QSt
 
 	QHostAddress ipAddr = myIpAddr;
 	QHostAddress netmask = QHostAddress("255.0.0.0");
-	quint32 addr = (netmask.toIPv4Address() & QHostAddress(multicastAddressBase).toIPv4Address())
+	quint32 addr = (netmask.toIPv4Address() & QHostAddress(desc.multicastAddressBase).toIPv4Address())
 			| (~netmask.toIPv4Address() & ipAddr.toIPv4Address());
 	return QHostAddress(addr).toString();
 }
@@ -355,6 +346,19 @@ int BaseRtspServer::setEnabled(bool val)
 		sendRtspMessage(sock, resp, lsep);*/
 	}
 	return 0;
+}
+
+QString BaseRtspServer::getMulticastAddressBase(const QString &streamName, const QString &media)
+{
+	return getStreamDesc(streamName, media).multicastAddressBase;
+}
+
+void BaseRtspServer::setMulticastAddressBase(const QString &streamName, const QString &media, const QString &addr)
+{
+	if (media.isEmpty())
+		streamDescriptions[streamName].multicastAddressBase = addr;
+	else
+		streamDescriptions[streamName].media[media].multicastAddressBase = addr;
 }
 
 QString BaseRtspServer::detectLineSeperator(QString mes)
