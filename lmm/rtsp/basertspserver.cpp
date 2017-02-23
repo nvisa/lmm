@@ -250,6 +250,13 @@ const QStringList BaseRtspServer::getSessions(const QString &streamName)
 	return list;
 }
 
+const BaseRtspSession *BaseRtspServer::getSession(const QString &sid)
+{
+	if (sessions.contains(sid))
+		return sessions[sid];
+	return NULL;
+}
+
 const BaseRtspServer::StreamDescription BaseRtspServer::getStreamDesc(const QString &streamName, const QString &mediaName)
 {
 	if (!streamDescriptions.contains(streamName))

@@ -91,6 +91,7 @@ public:
 	/* session API */
 	const QStringList getSessions();
 	const QStringList getSessions(const QString &streamName);
+	const BaseRtspSession * getSession(const QString &sid);
 
 private slots:
 	void newRtspConnection();
