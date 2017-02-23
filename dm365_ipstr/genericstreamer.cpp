@@ -22,9 +22,26 @@
 #include <lmm/dm365/dm365camerainput.h>
 #include <lmm/interfaces/streamcontrolelementinterface.h>
 
+#include <QCoreApplication>
+
 #include <errno.h>
 
 #define getss(nodedef) gets(s, pre, nodedef)
+
+static QHash<int, int> getInterrupts()
+{
+	QHash<int, int> count;
+	QFile f("/proc/interrupts");
+	f.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+	QStringList lines = QString::fromUtf8(f.readAll()).split("\n");
+	foreach (const QString &line, lines) {
+		QStringList flds = line.split(" ", QString::SkipEmptyParts);
+		if (flds.size() < 4)
+			continue;
+		count[flds[0].remove(":").toInt()] = flds[1].toInt();
+	}
+	return count;
+}
 
 float getVideoFps(int pipeline)
 {
@@ -44,6 +61,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 
 	pbus = new LmmProcessBus(this, this);
 	pbus->join();
+	lastIrqk = 0;
+	lastIrqkSource = 0;
+	wdogimpl = s->get("config.watchdog_implementation").toInt();
 
 	/* rtsp server */
 	QString rtspConfig = s->get("video_encoding.rtsp.stream_config").toString();
@@ -379,6 +399,52 @@ QVariant GenericStreamer::getRtspStats(const QString &fld)
 	return -ENOENT;
 }
 
+int GenericStreamer::getWdogKey()
+{
+	if (!wdogimpl)
+		return 0;
+
+	int scnt = rtsp->getSessions("stream1").size()
+			+ rtsp->getSessions("stream1m").size()
+			+ rtsp->getSessions("stream2").size()
+			+ rtsp->getSessions("stream2m").size()
+			+ rtsp->getSessions("stream101").size()
+			+ rtsp->getSessions("stream101m").size();
+	int err = -1;
+	const QHash<int, int> cnt = getInterrupts();
+	int irqk = 0;
+	if (scnt) {
+		/* we have streaming, using irqk */
+		if (cnt.contains(9))
+			irqk += cnt[9];
+		if (cnt.contains(10))
+			irqk += cnt[10];
+		if (lastIrqkSource == 0)
+			lastIrqk = irqk - 1;
+		lastIrqkSource = 9;
+	} else {
+		/* we don't have streaming, we use vpfe interrupt */
+		if (cnt.contains(0))
+			irqk += cnt[0];
+		if (lastIrqkSource)
+			lastIrqk = irqk - 1;
+		lastIrqkSource = 0;
+	}
+
+	if (irqk > lastIrqk)
+		err = 0;
+	lastIrqk = irqk;
+
+	if ((wdogimpl & 0x2) && lastIrqkSource == 9 && err) {
+		/* we should quit w/o waiting watchdog, let's schedule a restart */
+		QTimer::singleShot(2000, QCoreApplication::instance(), SLOT(quit()));
+		/* leave some time for wdog reset */
+		err = 0;
+	}
+
+	return err;
+}
+
 TextOverlay * GenericStreamer::createTextOverlay(const QString &elementName, ApplicationSettings *s)
 {
 	/* overlay element, only for High res channel */
@@ -448,6 +514,8 @@ QString GenericStreamer::getProcessName()
 
 int GenericStreamer::getInt(const QString &fld)
 {
+	if (fld == "wd_key")
+		return getWdogKey();
 	if (fld.startsWith("rtsp.stats"))
 		return getRtspStats(fld).toInt();
 	return ApplicationSettings::instance()->get(fld).toInt();

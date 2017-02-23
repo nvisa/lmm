@@ -23,6 +23,7 @@ protected:
 	void postInitPipeline(BaseLmmPipeline *p);
 	virtual int pipelineOutput(BaseLmmPipeline *p, const RawBuffer &);
 	QVariant getRtspStats(const QString &fld);
+	int getWdogKey();
 
 	TextOverlay * createTextOverlay(const QString &elementName, ApplicationSettings *s);
 	H264Encoder * createH264Encoder(const QString &elementName, ApplicationSettings *s, int ch, int w0, int h0);
@@ -37,6 +38,9 @@ protected:
 	QList<MetadataGenerator *> metaGenerators;
 	BaseRtspServer *rtsp;
 	LmmProcessBus *pbus;
+	int lastIrqk;
+	int lastIrqkSource;
+	int wdogimpl;
 
 	// LmmPBusInterface interface
 public:
