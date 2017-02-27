@@ -69,6 +69,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	QString rtspConfig = s->get("video_encoding.rtsp.stream_config").toString();
 	mDebug("using '%s' RTSP config", qPrintable(rtspConfig));
 	rtsp = new BaseRtspServer(this);
+	rtsp->setRtspAuthentication((BaseRtspServer::Auth)s->get("video_encoding.rtsp.auth").toInt());
 
 	/* camera input settings */
 	int cameraInputType = s->get("camera_device.input_type").toInt();
