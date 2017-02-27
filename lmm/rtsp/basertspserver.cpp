@@ -232,6 +232,11 @@ const QHash<QString, QVariant> BaseRtspServer::getStreamParameters(const QString
 	return streamDescriptions[streamName].media[mediaName].meta;
 }
 
+void BaseRtspServer::setRtspAuthentication(BaseRtspServer::Auth authMethod)
+{
+	auth = authMethod;
+}
+
 const QStringList BaseRtspServer::getSessions()
 {
 	return sessions.keys();

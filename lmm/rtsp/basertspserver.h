@@ -87,6 +87,7 @@ public:
 	bool hasStream(const QString &streamName);
 	void addStreamParameter(const QString &streamName, const QString &mediaName, const QString &par, const QVariant &value);
 	const QHash<QString, QVariant> getStreamParameters(const QString &streamName, const QString &mediaName);
+	void setRtspAuthentication(Auth authMethod);
 
 	/* session API */
 	const QStringList getSessions();
