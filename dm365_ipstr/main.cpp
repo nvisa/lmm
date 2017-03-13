@@ -9,7 +9,6 @@
 
 #include <ecl/debug.h>
 #include <ecl/net/remotecontrol.h>
-#include <ecl/drivers/aic14kdriver.h>
 #include <ecl/settings/applicationsettings.h>
 
 #include "genericstreamer.h"
@@ -27,11 +26,6 @@ int main(int argc, char *argv[])
 	ecl::initDebug();
 	ApplicationSettings *sets = ApplicationSettings::instance();
 	sets->load("/etc/encsoft/dm365_ipstr.json", QIODevice::ReadOnly);
-
-	AIC14KDriver aic;
-	aic.init();
-	aic.setCommonMode(true);
-	aic.dumpRegisters();
 
 	if (sets->get("config.remote_control.enabled").toBool()) {
 		fDebug("starting remote control");
