@@ -39,6 +39,7 @@ DM365DmaCopy::DM365DmaCopy(QObject *parent, int outCnt) :
 	bufferCount = 0;
 	allocSize = 0;
 	outputCount = outCnt;
+	mode = MODE_OVERLAY;
 }
 
 int DM365DmaCopy::dmaCopy(void *src, void *dst, int acnt, int bcnt)
@@ -85,6 +86,9 @@ void DM365DmaCopy::aboutToDeleteBuffer(const RawBufferParameters *pars)
 
 int DM365DmaCopy::processBuffer(const RawBuffer &buf)
 {
+	if (mode == MODE_OVERLAY)
+		return processBufferOverlay(buf);
+
 	if (!bufferCount) {
 		newOutputBuffer(0, buf);
 		return newOutputBuffer(1, createAndCopy(buf));
@@ -142,6 +146,52 @@ int DM365DmaCopy::processBuffer(const RawBuffer &buf)
 	newOutputBuffer(0, buf);
 	return newOutputBuffer(1, dstBuf);
 }
+#include <QElapsedTimer>
+
+static void overlay(char *dst, int x, int y, int w, int h)
+{
+	if (x > 1920 || y > 1080 || x < 0 || y < 0)
+		return;
+	w = qMin(1920 - x, w);
+	h = qMin(1080 - y, h);
+	dst = dst + y * 1920 + x;
+	for (int i = 0; i < h; i++)
+		memset(dst + 1920 * i, 0, w);
+}
+
+int DM365DmaCopy::processBufferOverlay(const RawBuffer &buf)
+{
+	//DmaiBuffer srcBuf = freeBuffers[0];
+	QElapsedTimer t; t.start();
+	int acnt = 128, bcnt = 128;
+
+	//char *src = (char *)Buffer_getPhysicalPtr((Buffer_Handle)srcBuf.constPars()->dmaiBuffer);
+	char *dst = (char *)buf.constData();//(char *)Buffer_getPhysicalPtr((Buffer_Handle)buf.constPars()->dmaiBuffer) + 1920 * 10;
+
+	olock.lock();
+	for (int i = 0; i < overlays.size(); i++) {
+		const QRect r = overlays[i];
+		//overlay(dst, r.x(), r.y(), r.width(), r.height());
+	}
+	olock.unlock();
+	/*overlay(dst, 0, 0, 128, 128);
+	overlay(dst, 128, 512, 128, 128);
+	overlay(dst, 256, 600, 128, 128);
+	overlay(dst, 512, 300, 128, 128);
+	overlay(dst, 800, 300, 128, 128);
+	overlay(dst, 1000, 300, 128, 128);
+	overlay(dst, 1200, 300, 128, 128);
+	overlay(dst, 1400, 300, 128, 128);*/
+
+	/*dmaCopy(src, dst, acnt, bcnt);
+	dmaCopy(src, dst + 128, acnt, bcnt);
+	dmaCopy(src, dst + 128 * 2, acnt, bcnt);
+	dmaCopy(src, dst + 128 * 2, acnt, bcnt);
+	dmaCopy(src, dst + 128 * 2, acnt, bcnt);*/
+	//ffDebug() << t.elapsed();
+
+	return newOutputBuffer(0, buf);
+}
 
 RawBuffer DM365DmaCopy::createAndCopy(const RawBuffer &buf)
 {
@@ -173,4 +223,32 @@ void DM365DmaCopy::setAllocateSize(int size)
 		}
 		delete attrs;
 	}
+}
+
+void DM365DmaCopy::addOverlay(int x, int y, int w, int h)
+{
+	QRect r(x, y, w, h);
+	olock.lock();
+	overlays << r;
+	olock.unlock();
+}
+
+void DM365DmaCopy::setOverlay(int index, int x, int y, int w, int h)
+{
+	olock.lock();
+	overlays[index] = QRect(x, y, w, h);
+	olock.unlock();
+}
+
+void DM365DmaCopy::setOverlay(int index, const QRect &r)
+{
+	olock.lock();
+	overlays[index] = r;
+	olock.unlock();
+}
+
+QRect DM365DmaCopy::getOverlay(int index)
+{
+	QMutexLocker l(&olock);
+	return overlays[index];
 }
