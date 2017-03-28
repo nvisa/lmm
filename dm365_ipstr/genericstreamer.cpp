@@ -59,6 +59,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 {
 	ApplicationSettings *s = ApplicationSettings::instance();
 
+	mainTextOverlay = NULL;
 	pbus = new LmmProcessBus(this, this);
 	pbus->join();
 	lastIrqk = 0;
@@ -122,7 +123,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 			if (allElements.contains(name)) {
 				el = allElements[name];
 			} else if (type == "TextOverlay") {
-				el = createTextOverlay(name, s);
+				mainTextOverlay = createTextOverlay(name, s);
+				el = mainTextOverlay;
 			} else if (type == "H264Encoder") {
 				int ch = getss("channel").toInt();
 				el = createH264Encoder(name, s, ch, wa[ch], ha[ch]);
@@ -543,6 +545,10 @@ int GenericStreamer::setInt(const QString &fld, qint32 val)
 
 int GenericStreamer::setString(const QString &fld, const QString &val)
 {
+	if (fld.startsWith("_overlay.")) {
+		int pos = fld.split(".").last().toInt();
+		return mainTextOverlay->setOverlayFieldText(pos, val);
+	}
 	return ApplicationSettings::instance()->set(fld, val);
 }
 

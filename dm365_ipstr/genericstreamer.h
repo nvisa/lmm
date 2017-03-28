@@ -8,6 +8,7 @@ class DM365CameraInput;
 class MetadataGenerator;
 class ApplicationSettings;
 class StreamControlElementInterface;
+class TextOverlay;
 
 class GenericStreamer : public BaseStreamer, public LmmPBusInterface
 {
@@ -31,6 +32,7 @@ protected:
 
 	/* elements */
 	DM365CameraInput *camIn;
+	TextOverlay *mainTextOverlay;
 
 	QHash<BaseLmmPipeline *, int> streamControl;
 	QHash<BaseLmmPipeline *, StreamControlElementInterface *> streamControlElement;
