@@ -57,7 +57,7 @@ signals:
 public slots:
 private:
 	int mmapfd;
-	QMutex dmalock;
+	QMutex fieldLock;
 	QMutex maplock;
 	QList<QByteArray> charMap;
 	QList<QList<int> > charPixelMap;

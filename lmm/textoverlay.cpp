@@ -88,6 +88,7 @@ int TextOverlay::setOverlayField(int pos, TextOverlay::overlayTextFields f)
 
 int TextOverlay::setOverlayFieldText(int pos, QString text)
 {
+	QMutexLocker l(&fieldLock);
 	if (pos >= overlayFieldTexts.size())
 		return -ENOENT;
 	overlayFieldTexts[pos] = text;
@@ -323,6 +324,7 @@ QString TextOverlay::compileOverlayText(const RawBuffer &buf)
 {
 	QStringList args;
 	/* TODO: make timezone parametric */
+	QMutexLocker l(&fieldLock);
 	for (int i = 0; i < overlayFields.size(); i++) {
 		switch (overlayFields[i]) {
 		case FIELD_CURRENT_DATE:
