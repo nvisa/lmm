@@ -23,6 +23,7 @@
 TextOverlay::TextOverlay(overlayType t, QObject *parent) :
 	BaseLmmElement(parent)
 {
+	tzone = 0;
 	type = t;
 	mmapfd = -1;
 	fontSize = 28;
@@ -218,6 +219,16 @@ int TextOverlay::overlayInPlace(const RawBuffer &buffer)
 	return 0;
 }
 
+void TextOverlay::setOverlayTimeZone(int tz)
+{
+	tzone = tz * 3600;
+}
+
+void TextOverlay::setOverlayDateFormat(const QString &format)
+{
+	dateStringFormat = format;
+}
+
 void TextOverlay::yuvSwOverlay(RawBuffer buffer)
 {
 	int pixfmt = buffer.pars()->v4l2PixelFormat;
@@ -312,17 +323,16 @@ QString TextOverlay::compileOverlayText(const RawBuffer &buf)
 {
 	QStringList args;
 	/* TODO: make timezone parametric */
-	int tz = 3600 * 3;
 	for (int i = 0; i < overlayFields.size(); i++) {
 		switch (overlayFields[i]) {
 		case FIELD_CURRENT_DATE:
-			args << QDate::currentDate().toString();
+			args << QDate::currentDate().toString(dateStringFormat);
 			break;
 		case FIELD_CURRENT_TIME:
-			args << QTime::currentTime().addSecs(tz).toString();
+			args << QTime::currentTime().addSecs(tzone).toString(dateStringFormat);
 			break;
 		case FIELD_CURRENT_DATETIME:
-			args << QDateTime::currentDateTime().addSecs(tz).toString();
+			args << QDateTime::currentDateTime().addSecs(tzone).toString(dateStringFormat);
 			break;
 		case FIELD_FRAME_NO:
 			args << QString::number(getInputQueue(0)->getReceivedCount());
