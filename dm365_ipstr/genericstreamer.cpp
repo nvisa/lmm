@@ -461,6 +461,8 @@ TextOverlay * GenericStreamer::createTextOverlay(const QString &elementName, App
 	textOverlay->setOverlayPosition(pt);
 	textOverlay->setFontSize(s->get("text_overlay.font_size").toInt());
 	textOverlay->setOverlayText(s->get("text_overlay.overlay_text").toString());
+	textOverlay->setOverlayTimeZone(s->get("text_overlay.overlay_timezone").toInt());
+	textOverlay->setOverlayDateFormat(s->get("text_overlay.overlay_date_format").toString());
 	int cnt = s->get("text_overlay.fields.count").toInt();
 	for (int i = 0; i < cnt; i++) {
 		QString pre = QString("text_overlay.field.%1").arg(i);
@@ -545,7 +547,13 @@ int GenericStreamer::setInt(const QString &fld, qint32 val)
 
 int GenericStreamer::setString(const QString &fld, const QString &val)
 {
-	if (fld.startsWith("_overlay.")) {
+	if (fld == "_overlay.enabled") {
+		if (fld == "true")
+			mainTextOverlay->setEnabled(true);
+		else
+			mainTextOverlay->setEnabled(false);
+		return 0;
+	} else if (fld.startsWith("_overlay.")) {
 		int pos = fld.split(".").last().toInt();
 		return mainTextOverlay->setOverlayFieldText(pos, val);
 	}
