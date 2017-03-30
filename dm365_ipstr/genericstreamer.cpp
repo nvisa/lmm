@@ -548,7 +548,7 @@ int GenericStreamer::setInt(const QString &fld, qint32 val)
 int GenericStreamer::setString(const QString &fld, const QString &val)
 {
 	if (fld == "_overlay.enabled") {
-		if (fld == "true")
+		if (val == "true")
 			mainTextOverlay->setEnabled(true);
 		else
 			mainTextOverlay->setEnabled(false);
