@@ -281,6 +281,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 		HardwareOperations::writeRegister(0x1c40044, 0x1c);
 	else
 		HardwareOperations::writeRegister(0x1c40044, 0x18);
+
+	lockCheckTimer.start();
 }
 
 QList<RawBuffer> GenericStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
@@ -353,6 +355,8 @@ int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 		}
 	}
 
+	getWdogKey();
+
 	return 0;
 }
 
@@ -406,6 +410,10 @@ int GenericStreamer::getWdogKey()
 {
 	if (!wdogimpl)
 		return 0;
+
+	if (lockCheckTimer.elapsed() < 30000)
+		return 0;
+	lockCheckTimer.restart();
 
 	int scnt = rtsp->getSessions("stream1").size()
 			+ rtsp->getSessions("stream1m").size()

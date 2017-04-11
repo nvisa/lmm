@@ -43,6 +43,7 @@ protected:
 	int lastIrqk;
 	int lastIrqkSource;
 	int wdogimpl;
+	QElapsedTimer lockCheckTimer;
 
 	// LmmPBusInterface interface
 public:
