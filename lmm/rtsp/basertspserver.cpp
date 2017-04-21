@@ -927,6 +927,7 @@ BaseRtspSession::BaseRtspSession(BaseRtspServer *parent)
 	clientCount = 1;
 	rtspTimeoutEnabled = false;
 	rtpCh = NULL;
+	sourceDataPort = sourceControlPort = 0;
 }
 
 BaseRtspSession::~BaseRtspSession()
@@ -940,7 +941,9 @@ int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &stre
 	controlPort = cPort;
 
 	/* local port detection */
-	while (!detectLocalPorts(myIpAddr, sourceDataPort, sourceControlPort)) ;
+	if (sourceDataPort == 0 || sourceControlPort == 0) {
+		while (!detectLocalPorts(myIpAddr, sourceDataPort, sourceControlPort)) ;
+	}
 
 	/* for multicast streams, RTCP port should be same for server and clients */
 	if (mcast)
@@ -990,7 +993,8 @@ int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &stre
 	}
 
 	/* create session identifier */
-	sessionId = QUuid::createUuid().toString().split("-")[4].remove("}");
+	if (sessionId.isEmpty())
+		sessionId = QUuid::createUuid().toString().split("-")[4].remove("}");
 	state = SETUP;
 
 	return 0;
