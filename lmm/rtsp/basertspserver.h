@@ -93,6 +93,8 @@ public:
 	const QStringList getSessions();
 	const QStringList getSessions(const QString &streamName);
 	const BaseRtspSession * getSession(const QString &sid);
+	void saveSessions(const QString &filename);
+	int loadSessions(const QString &filename);
 
 private slots:
 	void newRtspConnection();
@@ -131,6 +133,7 @@ private:
 	QHostAddress myNetmask;
 	QHash<QString, StreamDescription> streamDescriptions;
 	Auth auth;
+	QMutex sessionLock;
 
 	QStringList createRtspErrorResponse(int errcode, QString lsep);
 	QStringList createDescribeResponse(int cseq, QString url, QString lsep);

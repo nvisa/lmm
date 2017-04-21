@@ -7,8 +7,10 @@
 
 #include <errno.h>
 
+#include <QFile>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QDataStream>
 #include <QSignalMapper>
 #include <QStringList>
 #include <QUuid>
@@ -257,9 +259,136 @@ const QStringList BaseRtspServer::getSessions(const QString &streamName)
 
 const BaseRtspSession *BaseRtspServer::getSession(const QString &sid)
 {
+	QMutexLocker l(&sessionLock);
 	if (sessions.contains(sid))
 		return sessions[sid];
 	return NULL;
+}
+
+void BaseRtspServer::saveSessions(const QString &filename)
+{
+	QMutexLocker l(&sessionLock);
+	QByteArray ba;
+	QDataStream out(&ba, QIODevice::WriteOnly);
+	out.setByteOrder(QDataStream::LittleEndian);
+	out << (quint32)0x78414117; //key
+	out << (quint32)1;			//version
+	QMapIterator<QString, BaseRtspSession *>i(sessions);
+	while (i.hasNext()) {
+		i.next();
+
+		BaseRtspSession *ses = i.value();
+		if (ses->state == BaseRtspSession::TEARDOWN)
+			continue;
+
+		out << i.key();
+
+		out << (int)ses->state;
+		out << ses->transportString;
+		out << ses->sessionId;
+		out << ses->multicast;
+		out << ses->controlUrl;
+		out << ses->streamName;
+		out << ses->mediaName;
+		out << ses->sourceDataPort;
+		out << ses->sourceControlPort;
+		out << ses->dataPort;
+		out << ses->controlPort;
+		out << ses->peerIp;
+		out << ses->streamIp;
+		out << ses->clientCount;
+		out << ses->ssrc;
+		out << ses->ttl;
+		out << ses->timeout->elapsed();
+		out << ses->rtptime;
+		out << ses->seq;
+		out << ses->rtspTimeoutEnabled;
+
+		RtpChannel *ch = ses->getRtpChannel();
+		out << ch->baseTs;
+		out << ch->seq;
+	}
+
+
+	QFile f(filename);
+	if (f.open(QIODevice::WriteOnly))
+		f.write(ba);
+}
+
+int BaseRtspServer::loadSessions(const QString &filename)
+{
+	QFile f(filename);
+	if (!f.open(QIODevice::ReadOnly))
+		return -ENOENT;
+	QByteArray ba = f.readAll();
+	f.close();
+
+	QDataStream in(ba);
+	in.setByteOrder(QDataStream::LittleEndian);
+	quint32 key; in >> key;
+	quint32 version; in >> version;
+	mDebug("found session file with key 0x%x and version %d", key, version);
+	if (key != 0x78414117 || version != 1)
+		return -EINVAL;
+
+	int count = 0;
+	while (!in.atEnd()) {
+		QString sessionId; in >> sessionId;
+		BaseRtspSession *ses = new BaseRtspSession(this);
+		int state; in >> state;
+		ses->state = (BaseRtspSession::SessionState)state;
+		in >> ses->transportString;
+		in >> ses->sessionId;
+		in >> ses->multicast;
+		in >> ses->controlUrl;
+		in >> ses->streamName;
+		in >> ses->mediaName;
+		in >> ses->sourceDataPort;
+		in >> ses->sourceControlPort;
+		in >> ses->dataPort;
+		in >> ses->controlPort;
+		in >> ses->peerIp;
+		in >> ses->streamIp;
+		in >> ses->clientCount;
+		in >> ses->ssrc;
+		in >> ses->ttl;
+		int elapsed; in >> elapsed;
+		ses->timeout->start();
+		in >> ses->rtptime;
+		in >> ses->seq;
+		in >> ses->rtspTimeoutEnabled;
+
+		/* every session at least should be setted-up */
+		ses->setup(ses->multicast, ses->dataPort, ses->controlPort, ses->streamName, ses->mediaName);
+
+		in >> ses->getRtpChannel()->baseTs;
+		in >> ses->getRtpChannel()->seq;
+
+		if (state == BaseRtspSession::PLAY)
+			ses->play();
+
+		sessions.insert(sessionId, ses);
+		count++;
+	}
+
+	QMapIterator<QString, BaseRtspSession *> mio(sessions);
+	while (mio.hasNext()) {
+		mio.next();
+		BaseRtspSession *ses = mio.value();
+
+		QMapIterator<QString, BaseRtspSession *> mi(sessions);
+		while (mi.hasNext()) {
+			mi.next();
+			BaseRtspSession *sibling = mi.value();
+			if (sibling->streamName != ses->streamName)
+				continue;
+			if (sibling->mediaName == ses->mediaName)
+				continue;
+			ses->siblings << sibling;
+		}
+	}
+
+	return count;
 }
 
 const BaseRtspServer::StreamDescription BaseRtspServer::getStreamDesc(const QString &streamName, const QString &mediaName)
@@ -830,6 +959,7 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 			return createRtspErrorResponse(401, lsep);
 	}
 
+	QMutexLocker l(&sessionLock);
 	if (lines.first().startsWith("OPTIONS")) {
 		resp = handleCommandOptions(lines, lsep);
 	} else if (lines.first().startsWith("DESCRIBE")) {
