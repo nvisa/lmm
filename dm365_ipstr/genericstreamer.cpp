@@ -283,6 +283,12 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 		HardwareOperations::writeRegister(0x1c40044, 0x18);
 
 	lockCheckTimer.start();
+
+	noRtspContinueSupport = s->get("video_encoding.rtsp.no_continue_support").toBool();
+	if (noRtspContinueSupport == false) {
+		err = rtsp->loadSessions("/tmp/rtsp.sessions");
+		mDebug("RTSP session load from cache %d", err);
+	}
 }
 
 QList<RawBuffer> GenericStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
@@ -356,6 +362,8 @@ int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 	}
 
 	getWdogKey();
+	if (noRtspContinueSupport == false)
+		rtsp->saveSessions("/tmp/rtsp.sessions");
 
 	return 0;
 }

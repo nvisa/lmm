@@ -44,6 +44,7 @@ protected:
 	int lastIrqkSource;
 	int wdogimpl;
 	QElapsedTimer lockCheckTimer;
+	bool noRtspContinueSupport;
 
 	// LmmPBusInterface interface
 public:
