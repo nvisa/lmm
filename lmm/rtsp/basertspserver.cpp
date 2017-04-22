@@ -868,7 +868,7 @@ QStringList BaseRtspServer::handleCommandTeardown(QStringList lines, QString lse
 QStringList BaseRtspServer::handleCommandGetParameter(QStringList lines, QString lsep)
 {
 	QStringList resp;
-	mDebug("handling get_parameter directive");
+	mInfo("handling get_parameter directive");
 	int cseq = currentCmdFields["CSeq"].toInt();
 	QString url = currentCmdFields["url"];
 	if (!url.endsWith("/"))
