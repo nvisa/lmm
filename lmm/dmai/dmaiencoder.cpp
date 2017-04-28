@@ -10,7 +10,9 @@
 #include <linux/videodev2.h>
 #include <errno.h>
 
+#include <QTimer>
 #include <QElapsedTimer>
+#include <QCoreApplication>
 
 static DmaiEncoder *instance = NULL;
 
@@ -31,6 +33,8 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 	dirty = false;
 	hCodec = NULL;
 	numOutputBufs = 5;
+
+	encodeTimeoutTimer = NULL;
 }
 
 DmaiEncoder::~DmaiEncoder()
@@ -147,9 +151,11 @@ int DmaiEncoder::processBuffer(const RawBuffer &buf)
 	}
 	t.start();
 	Buffer_setNumBytesUsed(dmai, buf.size());
+	emit startEncodeTimer();
 	dspl.lock();
 	err = encode(dmai, buf);
 	dspl.unlock();
+	emit stopEncodeTimer();
 	mInfo("encode took %lld msecs", t.elapsed());
 	encodeTimeStat->addStat(encodeTiming->restart());
 	if (encodeTimeStat->last > 75)
@@ -182,6 +188,27 @@ void DmaiEncoder::cleanUpDsp()
 {
 	if (instance)
 		delete instance;
+}
+
+void DmaiEncoder::enableLockUpDetection(bool v)
+{
+	if (v) {
+		encodeTimeoutTimer = new QTimer(this);
+		encodeTimeoutTimer->setSingleShot(true);
+		encodeTimeoutTimer->setInterval(1000);
+		connect(encodeTimeoutTimer, SIGNAL(timeout()), SLOT(encodeTimeout()));
+		connect(this, SIGNAL(startEncodeTimer()), encodeTimeoutTimer, SLOT(start()), Qt::QueuedConnection);
+		connect(this, SIGNAL(stopEncodeTimer()), encodeTimeoutTimer, SLOT(stop()), Qt::QueuedConnection);
+	} else if (encodeTimeoutTimer) {
+		encodeTimeoutTimer->deleteLater();
+		encodeTimeoutTimer = NULL;
+	}
+}
+
+void DmaiEncoder::encodeTimeout()
+{
+	mDebug("encode timeout detected, assuming soft lock-up and quitting from application");
+	QCoreApplication::instance()->quit();
 }
 
 int DmaiEncoder::restartCodec()

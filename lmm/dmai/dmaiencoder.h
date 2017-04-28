@@ -17,6 +17,7 @@
 #include <ti/sdo/dmai/Rendezvous.h>
 #include <ti/sdo/dmai/ce/Venc1.h>
 
+class QTimer;
 class UnitTimeStat;
 class QElapsedTimer;
 
@@ -69,9 +70,14 @@ public:
 
 	static void initCodecEngine();
 	static void cleanUpDsp();
+	void enableLockUpDetection(bool v);
 signals:
-	
-public slots:
+	void startEncodeTimer();
+	void stopEncodeTimer();
+
+protected slots:
+	void encodeTimeout();
+
 protected:
 	QMutex dspl;
 	Engine_Handle hEngine;
@@ -84,6 +90,7 @@ protected:
 	CodecType codec;
 	UnitTimeStat *encodeTimeStat;
 	QElapsedTimer *encodeTiming;
+	QTimer *encodeTimeoutTimer;
 
 	float frameRate;
 	Venc1_Handle hCodec;
