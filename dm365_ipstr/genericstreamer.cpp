@@ -361,7 +361,6 @@ int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 		}
 	}
 
-	getWdogKey();
 	if (noRtspContinueSupport == false)
 		rtsp->saveSessions("/tmp/rtsp.sessions");
 
