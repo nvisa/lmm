@@ -514,6 +514,7 @@ H264Encoder * GenericStreamer::createH264Encoder(const QString &elementName, App
 	else
 		enc->setMotionVectorExtraction(H264Encoder::MV_NONE);
 	enc->setMotionDetectionThreshold(s->get(QString("video_encoding.ch.%1.motion_detection_threshold").arg(ch)).toInt());
+	enc->enableLockUpDetection(true);
 	return enc;
 }
 
