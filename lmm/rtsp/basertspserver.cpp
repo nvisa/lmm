@@ -158,6 +158,8 @@ BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	connect(mapperErr, SIGNAL(mapped(QObject*)), SLOT(clientError(QObject*)));
 	connect(mapperRead, SIGNAL(mapped(QObject*)), SLOT(clientDataReady(QObject*)));
 
+	connect(this, SIGNAL(newRtpTcpData(QByteArray,RtpChannel*)), SLOT(handleNewRtpTcpData(QByteArray,RtpChannel*)), Qt::QueuedConnection);
+
 	myIpAddr = findIp("eth0");
 }
 
@@ -359,7 +361,7 @@ int BaseRtspServer::loadSessions(const QString &filename)
 		in >> ses->rtspTimeoutEnabled;
 
 		/* every session at least should be setted-up */
-		ses->setup(ses->multicast, ses->dataPort, ses->controlPort, ses->streamName, ses->mediaName);
+		ses->setup(ses->multicast, ses->dataPort, ses->controlPort, ses->streamName, ses->mediaName, "");
 
 		in >> ses->getRtpChannel()->baseTs;
 		in >> ses->getRtpChannel()->seq;
@@ -389,6 +391,26 @@ int BaseRtspServer::loadSessions(const QString &filename)
 	}
 
 	return count;
+}
+
+int BaseRtspServer::newRtpData(const char *data, int size, RtpChannel *ch)
+{
+	emit newRtpTcpData(QByteArray(data, size), ch);
+	return 0;
+}
+
+void BaseRtspServer::handleNewRtpTcpData(const QByteArray &ba, RtpChannel *ch)
+{
+	if (avpTcpMappings.contains(ch)) {
+		QTcpSocket *sock = avpTcpMappings[ch];
+		QByteArray data;
+		data.append('$');
+		data.append((char)0);
+		data.append((char)(ba.size() >> 8));
+		data.append((char)(ba.size() & 0xff));
+		data.append(ba);
+		sock->write(data);
+	}
 }
 
 const BaseRtspServer::StreamDescription BaseRtspServer::getStreamDesc(const QString &streamName, const QString &mediaName)
@@ -565,6 +587,9 @@ void BaseRtspServer::clientDisconnected(QObject *obj)
 	QTcpSocket *sock = (QTcpSocket *)obj;
 	sock->abort();
 	sock->deleteLater();
+	if (avpTcpMappings.values().contains(sock)) {
+		avpTcpMappings.remove(avpTcpMappings.key(sock));
+	}
 }
 
 void BaseRtspServer::clientError(QObject *)
@@ -574,6 +599,7 @@ void BaseRtspServer::clientError(QObject *)
 void BaseRtspServer::clientDataReady(QObject *obj)
 {
 	QTcpSocket *sock = (QTcpSocket *)obj;
+	currentSocket = sock;
 	/* RTSP protocol uses UTF-8 */
 	QString str = QString::fromUtf8(sock->readAll());
 	QString mes = msgbuffer[sock].append(str);
@@ -670,6 +696,12 @@ QStringList BaseRtspServer::handleCommandDescribe(QStringList lines, QString lse
 	return resp;
 }
 
+static int rtpTransportHook(const char *data, int size, RtpChannel *ch, void *priv)
+{
+	BaseRtspServer *server = (BaseRtspServer *)priv;
+	return server->newRtpData(data, size, ch);
+}
+
 QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 {
 	QStringList resp;
@@ -685,6 +717,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		return createRtspErrorResponse(451, lsep);
 	QString stream = fields[2];
 	QString media;
+	QString transportString;
 	if (fields.size() > 3)
 		media = fields[3];
 	if (fields.size() >= 3) {
@@ -696,7 +729,8 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 				return createRtspErrorResponse(551, lsep);
 			if (line.contains("Transport:")) {
 				mDebug("setup transport line coming from client is: %s", qPrintable(line));
-				QStringList fields2 = line.remove("Transport:").split(";");
+				transportString = line.remove("Transport:").trimmed();
+				QStringList fields2 = transportString.split(";");
 				foreach(QString field, fields2) {
 					if (field.contains("client_port") || field.contains("port=")) {
 						/* TODO: check field sizes */
@@ -729,11 +763,16 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 			ses->mediaName = media;
 			ses->ssrc = rand();
 			ses->ttl = 10;
-			int err = ses->setup(multicast, dataPort, controlPort, stream, media);
+			int err = ses->setup(multicast, dataPort, controlPort, stream, media, transportString);
 			if (err) {
 				mDebug("cannot create session, error is %d", err);
 				delete ses;
 				return createRtspErrorResponse(err, lsep);
+			}
+			if (ses->rtpAvpTcp) {
+				ses->getRtpChannel()->trHook = rtpTransportHook;
+				ses->getRtpChannel()->trHookPriv = this;
+				avpTcpMappings.insert(ses->getRtpChannel(), currentSocket);
 			}
 			sessions.insert(ses->sessionId, ses);
 		} else {
@@ -927,7 +966,7 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 {
 	QStringList resp;
 	QStringList lines = mes.split(lsep);
-	if (!lines.last().isEmpty()) {
+	if (!lines.last().isEmpty() || lines.first().isEmpty()) {
 		mDebug("un-espected last line");
 		return resp;
 	}
@@ -1064,11 +1103,12 @@ BaseRtspSession::~BaseRtspSession()
 {
 }
 
-int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &streamName, const QString &media)
+int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &streamName, const QString &media, const QString &incomingTransportString)
 {
 	multicast = mcast;
 	dataPort = dPort;
 	controlPort = cPort;
+	rtpAvpTcp = false;
 
 	/* local port detection */
 	if (sourceDataPort == 0 || sourceControlPort == 0) {
@@ -1103,19 +1143,12 @@ int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &stre
 	connect(rtpCh, SIGNAL(goodbyeRecved()), SLOT(rtpGoodbyeRecved()));
 	connect(rtpCh, SIGNAL(sessionTimedOut()), SLOT(rtcpTimedOut()));
 
-	if (multicast) {
+	if (incomingTransportString.contains("RTP/AVP/TCP")) {
+		transportString = QString("Transport: RTP/AVP/TCP;interleaved=0-1");
+		rtpAvpTcp = true;
+	} else if (multicast) {
 		transportString = QString("Transport: RTP/AVP;multicast;destination=%3;port=%1-%2;ttl=%4;mode=play")
 				.arg(dataPort).arg(controlPort).arg(streamIp).arg(ttl);
-		/*int cnt = rtp->getChannelCount();
-		for (int i = 0; i < cnt; i++) {
-			RtpChannel *ch = rtp->getChannel(i);
-			if (ch->dstIp == streamIp &&
-					ch->dstDataPort == dataPort &&
-					ch->dstControlPort == controlPort) {
-				rtpCh = ch;
-				break;
-			}
-		}*/
 	} else {
 		transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=%5;mode=play")
 				.arg(dataPort).arg(controlPort).arg(sourceDataPort)
