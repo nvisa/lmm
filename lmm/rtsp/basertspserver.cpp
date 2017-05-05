@@ -679,7 +679,7 @@ QStringList BaseRtspServer::handleCommandOptions(QStringList lines, QString lsep
 	resp << "RTSP/1.0 200 OK";
 	resp << QString("CSeq: %1").arg(cseq);
 	resp << createDateHeader();
-	resp << "Public: DESCRIBE, SETUP, TEARDOWN, PLAY, GET_PARAMETER";
+	resp << "Public: DESCRIBE, SETUP, TEARDOWN, PLAY, GET_PARAMETER, SET_PARAMETER";
 	resp << lsep;
 	return resp;
 }
@@ -934,6 +934,36 @@ QStringList BaseRtspServer::handleCommandGetParameter(QStringList lines, QString
 	return resp;
 }
 
+QStringList BaseRtspServer::handleCommandSetParameter(QStringList lines, QString lsep)
+{
+	QStringList resp;
+	mInfo("handling set_parameter directive");
+	int cseq = currentCmdFields["CSeq"].toInt();
+	QString url = currentCmdFields["url"];
+	if (!url.endsWith("/"))
+		url.append("/");
+	QString sid = getField(lines, "Session");
+	if (sessions.contains(sid)) {
+		BaseRtspSession *ses = sessions[sid];
+		ses->timeout->restart();
+		ses->rtspTimeoutEnabled = true;
+		/* we need to kick-out related sessions as well */
+		foreach (BaseRtspSession *sibling, ses->siblings) {
+			sibling->timeout->restart();
+			sibling->rtspTimeoutEnabled = true;
+		}
+
+		resp << "RTSP/1.0 200 OK";
+		resp << QString("CSeq: %1").arg(cseq);
+		resp << createDateHeader();
+		resp << QString("Session: %1").arg(ses->sessionId);
+		resp << "Content-Length: 0";
+		resp << lsep;
+	} else
+		return createRtspErrorResponse(400, lsep);
+	return resp;
+}
+
 uint BaseRtspServer::getSessionBaseTimestamp(QString sid)
 {
 	if (!sessions.contains(sid))
@@ -1011,6 +1041,8 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 		resp = handleCommandTeardown(lines, lsep);
 	} else if (lines.first().startsWith("GET_PARAMETER")) {
 		resp = handleCommandGetParameter(lines, lsep);
+	} else if (lines.first().startsWith("SET_PARAMETER")) {
+		resp = handleCommandSetParameter(lines, lsep);
 	} else {
 		mDebug("Unknown RTSP directive:\n %s", qPrintable(mes));
 		return createRtspErrorResponse(501, lsep);

@@ -162,6 +162,7 @@ private:
 	QStringList handleCommandPlay(QStringList lines, QString lsep);
 	QStringList handleCommandTeardown(QStringList lines, QString lsep);
 	QStringList handleCommandGetParameter(QStringList lines, QString lsep);
+	QStringList handleCommandSetParameter(QStringList lines, QString lsep);
 
 	uint getSessionBaseTimestamp(QString sid);
 	uint getSessionBaseSequence(QString sid);
