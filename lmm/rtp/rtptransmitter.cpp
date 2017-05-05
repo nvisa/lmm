@@ -485,6 +485,7 @@ RtpChannel::RtpChannel(int psize, const QHostAddress &myIpAddr)
 	timer->start(1000);
 	bufferCount = 0;
 	tb = NULL;
+	trHook = NULL;
 }
 
 RtpChannel::~RtpChannel()
@@ -677,7 +678,9 @@ void RtpChannel::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 
 	buf[9] = (ssrc >> 16) & 0xff;
 	buf[10] = (ssrc >> 8) & 0xff;
 	buf[11] = (ssrc >> 0) & 0xff;
-	if (zeroCopy) {
+	if (trHook) {
+		(*trHook)((const char *)buf, size + 12, this, trHookPriv);
+	} else if (zeroCopy) {
 		if (sbuf)
 			rawsock->send((RawNetworkSocket::SockBuffer *)sbuf, size + 12);
 		else

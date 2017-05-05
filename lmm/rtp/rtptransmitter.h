@@ -22,6 +22,8 @@ public:
 	~RtpChannel();
 	QString getSdp(Lmm::CodecType codec);
 
+	typedef int (*transportHook)(const char *data, int size, RtpChannel *, void *priv);
+
 	int seq;
 	uint ssrc;
 	uint baseTs;
@@ -38,6 +40,8 @@ public:
 	int bufferCount;
 	TokenBucket *tb;
 	bool useSR;
+	transportHook trHook;
+	void *trHookPriv;
 
 signals:
 	void goodbyeRecved();
