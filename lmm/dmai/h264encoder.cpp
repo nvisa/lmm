@@ -453,6 +453,8 @@ H264Encoder::H264Encoder(QObject *parent) :
 	motionDetectionThresh = 0;
 	motionValue = 0;
 	enablePictureTimingSei(true);
+
+	setLockUpFixLockerType(1);
 }
 
 int H264Encoder::flush()

@@ -49,6 +49,8 @@ JpegEncoder::JpegEncoder(QObject *parent) :
 
 	/* following is a no-op unless MAKE_RND is defined */
 	initRnd();
+
+	setLockUpFixLockerType(2);
 }
 
 void JpegEncoder::setQualityFactor(int q)

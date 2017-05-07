@@ -91,6 +91,7 @@ protected:
 	UnitTimeStat *encodeTimeStat;
 	QElapsedTimer *encodeTiming;
 	QTimer *encodeTimeoutTimer;
+	int readWriteLocker;
 
 	float frameRate;
 	Venc1_Handle hCodec;
@@ -106,6 +107,7 @@ protected:
 	virtual int stopCodec();
 	virtual int encode(Buffer_Handle buffer, const RawBuffer source);
 	int processBuffer(const RawBuffer &buf);
+	void setLockUpFixLockerType(int t);
 
 private:
 	IVIDENC1_DynamicParams *dynParams;

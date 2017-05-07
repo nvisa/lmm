@@ -12,9 +12,11 @@
 
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QReadWriteLock>
 #include <QCoreApplication>
 
 static DmaiEncoder *instance = NULL;
+static QReadWriteLock rwLock;
 
 DmaiEncoder::DmaiEncoder(QObject *parent) :
 	BaseLmmElement(parent)
@@ -33,6 +35,7 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 	dirty = false;
 	hCodec = NULL;
 	numOutputBufs = 5;
+	readWriteLocker = -1;
 
 	encodeTimeoutTimer = NULL;
 }
@@ -73,6 +76,11 @@ int DmaiEncoder::getBufferCount()
 void DmaiEncoder::setBufferCount(int cnt)
 {
 	numOutputBufs = cnt;
+}
+
+void DmaiEncoder::setLockUpFixLockerType(int t)
+{
+	readWriteLocker = t;
 }
 
 int DmaiEncoder::start()
@@ -153,7 +161,13 @@ int DmaiEncoder::processBuffer(const RawBuffer &buf)
 	Buffer_setNumBytesUsed(dmai, buf.size());
 	emit startEncodeTimer();
 	dspl.lock();
+	if (readWriteLocker == 1)
+		rwLock.lockForRead();
+	else if (readWriteLocker == 2)
+		rwLock.lockForWrite();
 	err = encode(dmai, buf);
+	if (readWriteLocker > 0)
+		rwLock.unlock();
 	dspl.unlock();
 	emit stopEncodeTimer();
 	mInfo("encode took %lld msecs", t.elapsed());
