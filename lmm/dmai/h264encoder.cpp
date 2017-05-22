@@ -454,7 +454,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	motionValue = 0;
 	enablePictureTimingSei(true);
 
-	setLockUpFixLockerType(1);
+	setLockUpFixLockerType(2);
 }
 
 int H264Encoder::flush()
@@ -1089,7 +1089,7 @@ int H264Encoder::startCodec(bool alloc)
 	if (alloc) {
 		gfxAttrs.colorSpace = colorSpace;
 		gfxAttrs.dim.width  = imageWidth;
-		gfxAttrs.dim.height = imageHeight;
+		gfxAttrs.dim.height = Dmai_roundUp(imageHeight, CODECHEIGHTALIGN);
 		gfxAttrs.dim.lineLength =
 				Dmai_roundUp(BufferGfx_calcLineLength(gfxAttrs.dim.width,
 													  gfxAttrs.colorSpace), 32);
@@ -1246,7 +1246,7 @@ int H264Encoder::setDefaultDynamicParams(IH264VENC_Params *params)
 	dynH264Params->mvSADoutFlag = 0;
 	if (mVecs != MV_NONE)
 		dynH264Params->mvSADoutFlag = 1;
-	dynH264Params->resetHDVICPeveryFrame = 0;
+	dynH264Params->resetHDVICPeveryFrame = 1;
 	dynH264Params->enableROI = 0;
 	dynH264Params->metaDataGenerateConsume = 0;
 	dynH264Params->maxBitrateCVBR = 768000;
