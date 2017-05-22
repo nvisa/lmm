@@ -256,7 +256,7 @@ void BaseLmmPipeline::threadFinished(LmmThread *)
 	if (finishedThreadCount == threads.size())
 		emit playbackFinished();
 	if (quitOnThreadError)
-		QCoreApplication::instance()->exit(233);
+		exit(233);
 }
 
 int BaseLmmPipeline::processBuffer(const RawBuffer &buf)
