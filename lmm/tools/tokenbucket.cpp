@@ -2,6 +2,8 @@
 
 #include <lmm/debug.h>
 
+#include <unistd.h>
+
 TokenBucket::TokenBucket(QObject *parent) :
 	QObject(parent)
 {

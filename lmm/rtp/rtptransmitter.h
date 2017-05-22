@@ -9,6 +9,8 @@
 #include <QHostAddress>
 #include <QElapsedTimer>
 
+#include <sys/socket.h>
+
 class MyTime;
 class QTimer;
 class QUdpSocket;

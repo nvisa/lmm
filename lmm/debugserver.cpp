@@ -8,6 +8,7 @@
 #include <QTcpSocket>
 #include <QDateTime>
 #include <QProcess>
+#include <QDataStream>
 
 static DebugServer *debugServer = NULL;
 

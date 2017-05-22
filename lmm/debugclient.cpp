@@ -4,6 +4,7 @@
 #include "debug.h"
 
 #include <QTcpSocket>
+#include <QDataStream>
 #include <QHostAddress>
 #include <QTimer>
 #include <QDateTime>
