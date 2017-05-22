@@ -26,6 +26,7 @@ public:
 signals:
 
 protected slots:
+	virtual void timeout();
 	virtual void pipelineFinished() {}
 protected:
 	virtual void signalReceived(int sig);
@@ -34,6 +35,8 @@ protected:
 	virtual int pipelineOutput(BaseLmmPipeline *, const RawBuffer &) { return 0; }
 	QList<BaseLmmElement *> getElements();
 
+	QMutex pipelineLock;
+	bool checkPipelineWdts;
 private:
 	int pipelineThread();
 
@@ -41,7 +44,7 @@ private:
 	QList<BaseLmmPipeline *> pipelines;
 	QHash<QString, LmmThread *> threads;
 	QHash<QString, BaseLmmPipeline *> pipelinesByThread;
-	QMutex pipelineLock;
+	QHash<BaseLmmPipeline *, QElapsedTimer *> pipelineWdts;
 	bool quitting;
 };
 

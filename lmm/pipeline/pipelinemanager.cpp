@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <signal.h>
 
+#include <QElapsedTimer>
 #include <QCoreApplication>
 
 extern __thread LmmThread *currentLmmThread;
@@ -19,6 +20,8 @@ PipelineManager::PipelineManager(QObject *parent) :
 {
 	quitting = false;
 	dbg = PipelineDebugger::GetInstance();
+	QTimer::singleShot(1000, this, SLOT(timeout()));
+	checkPipelineWdts = false;
 }
 
 int PipelineManager::start()
@@ -61,6 +64,29 @@ BaseLmmPipeline *PipelineManager::getPipeline(int ind)
 	return pipelines[ind];
 }
 
+void PipelineManager::timeout()
+{
+	if (checkPipelineWdts) {
+		BaseLmmPipeline *failed = NULL;
+		pipelineLock.lock();
+		QHashIterator<BaseLmmPipeline *, QElapsedTimer *> hi(pipelineWdts);
+		while (hi.hasNext()) {
+			hi.next();
+			if (hi.key()->getMaxTimeout() && hi.value()->elapsed() > hi.key()->getMaxTimeout()) {
+				failed = hi.key();
+				break;
+			}
+		}
+		pipelineLock.unlock();
+		if (failed) {
+			mDebug("pipeline '%s' failed, quitting from application", qPrintable(failed->objectName()));
+			QCoreApplication::instance()->exit(234);
+		}
+	}
+
+	QTimer::singleShot(1000, this, SLOT(timeout()));
+}
+
 void PipelineManager::signalReceived(int sig)
 {
 	Q_UNUSED(sig);
@@ -77,6 +103,8 @@ BaseLmmPipeline *PipelineManager::addPipeline()
 	BaseLmmPipeline *pipeline = new BaseLmmPipeline(this);
 	pipeline->setObjectName(QString("Pipeline%1").arg(pipelines.size()));
 	pipelines << pipeline;
+	pipelineWdts.insert(pipeline, new QElapsedTimer);
+	pipelineWdts[pipeline]->start();
 	dbg->addPipeline(pipeline);
 	connect(pipeline, SIGNAL(playbackFinished()), SLOT(pipelineFinished()));
 	return pipeline;
@@ -106,5 +134,8 @@ int PipelineManager::pipelineThread()
 	RawBuffer buf = currentPipeline->nextBufferBlocking(0);
 	if (buf.size())
 		currentPipeline->updateStats(buf);
+	pipelineLock.lock();
+	pipelineWdts[currentPipeline]->restart();
+	pipelineLock.unlock();
 	return pipelineOutput(currentPipeline, buf);
 }

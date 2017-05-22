@@ -36,6 +36,8 @@ public:
 	const QList<LmmThread *> getThreads();
 	const PipelineStats getStats() const { return stats; }
 	void updateStats(const RawBuffer &buf);
+	int getMaxTimeout();
+	void setMaxTimeout(int t);
 
 	/* new API */
 	int appendJoin(BaseLmmElement *el, QList<BaseLmmElement *> joins, int inputCh = 0);
@@ -61,6 +63,7 @@ protected:
 	bool pipelineReady;
 	PipelineStats stats;
 	bool quitOnThreadError;
+	int maxTimeOut;
 
 };
 

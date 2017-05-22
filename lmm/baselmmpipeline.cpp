@@ -39,6 +39,7 @@ BaseLmmPipeline::BaseLmmPipeline(QObject *parent) :
 	pipelineReady = false;
 	streamTime = new StreamTime;
 	quitOnThreadError = true;
+	maxTimeOut = 0;
 }
 
 BaseLmmPipeline::~BaseLmmPipeline()
@@ -139,6 +140,16 @@ void BaseLmmPipeline::updateStats(const RawBuffer &buf)
 {
 	stats.outCount++;
 	stats.lastStreamBufferNo = buf.constPars()->streamBufferNo;
+}
+
+int BaseLmmPipeline::getMaxTimeout()
+{
+	return maxTimeOut;
+}
+
+void BaseLmmPipeline::setMaxTimeout(int t)
+{
+	maxTimeOut = t;
 }
 
 int BaseLmmPipeline::appendJoin(BaseLmmElement *el, QList<BaseLmmElement *> joins, int inputCh)
