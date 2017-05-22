@@ -36,8 +36,6 @@ DmaiEncoder::DmaiEncoder(QObject *parent) :
 	hCodec = NULL;
 	numOutputBufs = 5;
 	readWriteLocker = -1;
-
-	encodeTimeoutTimer = NULL;
 }
 
 DmaiEncoder::~DmaiEncoder()
@@ -200,22 +198,6 @@ void DmaiEncoder::cleanUpDsp()
 {
 	if (instance)
 		delete instance;
-}
-
-void DmaiEncoder::enableLockUpDetection(bool v)
-{
-	if (v) {
-		encodeTimeoutTimer = new QTimer(this);
-		encodeTimeoutTimer->setSingleShot(true);
-		encodeTimeoutTimer->setInterval(1000);
-		connect(encodeTimeoutTimer, SIGNAL(timeout()), SLOT(encodeTimeout()));
-		connect(this, SIGNAL(startEncodeTimer()), encodeTimeoutTimer, SLOT(start()), Qt::QueuedConnection);
-		connect(this, SIGNAL(stopEncodeTimer()), encodeTimeoutTimer, SLOT(stop()), Qt::QueuedConnection);
-		mDebug("enabling lock-up detection");
-	} else if (encodeTimeoutTimer) {
-		encodeTimeoutTimer->deleteLater();
-		encodeTimeoutTimer = NULL;
-	}
 }
 
 void DmaiEncoder::encodeTimeout()

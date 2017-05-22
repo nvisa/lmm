@@ -70,7 +70,6 @@ public:
 
 	static void initCodecEngine();
 	static void cleanUpDsp();
-	void enableLockUpDetection(bool v);
 signals:
 	void startEncodeTimer();
 	void stopEncodeTimer();
@@ -90,7 +89,6 @@ protected:
 	CodecType codec;
 	UnitTimeStat *encodeTimeStat;
 	QElapsedTimer *encodeTiming;
-	QTimer *encodeTimeoutTimer;
 	int readWriteLocker;
 
 	float frameRate;
