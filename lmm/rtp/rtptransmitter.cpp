@@ -472,7 +472,9 @@ RtpChannel::RtpChannel(int psize, const QHostAddress &myIpAddr)
 	totalPacketCount = 0;
 	maxPayloadSize = psize;
 	rawsock = NULL;
-	seq = rand() % 4096;
+	seqFirst = seq = rand() % 4096;
+	rtcpTs = 0;
+	ntpEpoch = 0;
 	baseTs = rand();
 	sock = new QUdpSocket;
 	sock2 = new QUdpSocket;
@@ -665,6 +667,7 @@ void RtpChannel::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 
 		tb->get(size + 12);
 
 	uint ts = baseTs + tsRef;
+	lastRtpTs = ts;
 	buf[0] = RTP_VERSION << 6;
 	buf[1] = last << 7 | payloadType;
 	buf[2] = seq >> 8;
@@ -713,6 +716,11 @@ void RtpChannel::sendSR(quint64 bufferTs)
 	gettimeofday(&tv, NULL);
 	uint ntps = tv.tv_sec + NTP_OFFSET;
 	uint ntpf = (uint)((tv.tv_usec / 15625.0 ) * 0x04000000 + 0.5);
+	qint64 timet = (qint64)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+	if (!rtcpTs || ntpEpoch > timet) {
+		rtcpTs = baseTs + bufferTs;
+		ntpEpoch = timet;
+	}
 
 	buf[8] = (ntps >> 24) & 0xff;
 	buf[9] = (ntps >> 16) & 0xff;
@@ -723,7 +731,7 @@ void RtpChannel::sendSR(quint64 bufferTs)
 	buf[14] = (ntpf >> 8) & 0xff;
 	buf[15] = (ntpf >> 0) & 0xff;
 
-	uint rtpts = baseTs + bufferTs;
+	uint rtpts = (timet - ntpEpoch) * 90 + rtcpTs;
 	buf[16] = (rtpts >> 24) & 0xff;
 	buf[17] = (rtpts >> 16) & 0xff;
 	buf[18] = (rtpts >> 8) & 0xff;

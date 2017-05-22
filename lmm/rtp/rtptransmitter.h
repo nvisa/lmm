@@ -24,6 +24,7 @@ public:
 	~RtpChannel();
 	QString getSdp(Lmm::CodecType codec);
 
+	int seqFirst;
 	int seq;
 	uint ssrc;
 	uint baseTs;
@@ -40,6 +41,7 @@ public:
 	int bufferCount;
 	TokenBucket *tb;
 	bool useSR;
+	uint lastRtpTs;
 
 signals:
 	void goodbyeRecved();
@@ -74,6 +76,8 @@ protected:
 	int state; /* 0: init/stop, 1:setup, 2:play */
 	QTimer *timer;
 	int payloadType;
+	uint rtcpTs;
+	qint64 ntpEpoch;
 };
 
 class RtpTransmitter : public BaseLmmElement, public StreamControlElementInterface
