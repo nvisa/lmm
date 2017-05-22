@@ -70,6 +70,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	QString rtspConfig = s->get("video_encoding.rtsp.stream_config").toString();
 	mDebug("using '%s' RTSP config", qPrintable(rtspConfig));
 	rtsp = new BaseRtspServer(this);
+	rtsp->setEnabled(false);
 	rtsp->setRtspAuthentication((BaseRtspServer::Auth)s->get("video_encoding.rtsp.auth").toInt());
 
 	/* camera input settings */
@@ -327,6 +328,27 @@ QList<RawBuffer> GenericStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint
 	}
 	return bufs2;
 #endif
+}
+
+void GenericStreamer::timeout()
+{
+	if (!checkPipelineWdts) {
+		/* we are not fully ready yet */
+		bool allRunning = true;
+		pipelineLock.lock();
+		for (int i = 0; i < getPipelineCount(); i++) {
+			BaseLmmPipeline *pl = getPipeline(i);
+			if (!pl->getStats().outCount)
+				allRunning = false;
+		}
+		pipelineLock.unlock();
+		if (allRunning) {
+			mDebug("All pipelines ready, starting");
+			checkPipelineWdts = true;
+			rtsp->setEnabled(true);
+		}
+	}
+	PipelineManager::timeout();
 }
 
 void GenericStreamer::postInitPipeline(BaseLmmPipeline *p)

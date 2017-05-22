@@ -19,7 +19,8 @@ public:
 	virtual QList<RawBuffer> getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount);
 signals:
 
-public slots:
+protected slots:
+	virtual void timeout();
 protected:
 	void postInitPipeline(BaseLmmPipeline *p);
 	virtual int pipelineOutput(BaseLmmPipeline *p, const RawBuffer &);
