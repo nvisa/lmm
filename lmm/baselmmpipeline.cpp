@@ -4,6 +4,7 @@
 #include "streamtime.h"
 
 #include <QEventLoop>
+#include <QCoreApplication>
 
 #include <errno.h>
 #include <unistd.h>
@@ -37,6 +38,7 @@ BaseLmmPipeline::BaseLmmPipeline(QObject *parent) :
 {
 	pipelineReady = false;
 	streamTime = new StreamTime;
+	quitOnThreadError = true;
 }
 
 BaseLmmPipeline::~BaseLmmPipeline()
@@ -242,6 +244,8 @@ void BaseLmmPipeline::threadFinished(LmmThread *)
 	thLock.unlock();
 	if (finishedThreadCount == threads.size())
 		emit playbackFinished();
+	if (quitOnThreadError)
+		QCoreApplication::instance()->exit(233);
 }
 
 int BaseLmmPipeline::processBuffer(const RawBuffer &buf)

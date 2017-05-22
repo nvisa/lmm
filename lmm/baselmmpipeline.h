@@ -60,6 +60,7 @@ protected:
 	int finishedThreadCount;
 	bool pipelineReady;
 	PipelineStats stats;
+	bool quitOnThreadError;
 
 };
 
