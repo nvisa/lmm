@@ -90,17 +90,18 @@ int VideoTestSource::setTestPattern(VideoTestSource::TestPattern p)
 		height = h;
 	mDebug("creating test pattern %d, width=%d, height=%d", p, width, height);
 	pattern = p;
-	pImage = getPatternImage(p);
 
 	refBuffers.clear();
-
-	/* TODO: color space is assumed to be NV12 */
-	BufferGfx_Attrs *attr = DmaiBuffer::createGraphicAttrs(width, height, V4L2_PIX_FMT_NV12);
 
 	if (p == RAW_YUV_FILE || p == RAW_YUV_VIDEO) {
 		/* cache is not used in this mode */
 		return 0;
 	}
+
+	/* TODO: color space is assumed to be NV12 */
+	BufferGfx_Attrs *attr = DmaiBuffer::createGraphicAttrs(width, height, V4L2_PIX_FMT_NV12);
+	pImage = getPatternImage(p);
+
 	/* we will use cache data if exists */
 	if (!checkCache(p, attr)) {
 		mDebug("cache is not valid");
@@ -189,6 +190,7 @@ void VideoTestSource::setYUVFile(QString filename)
 {
 	QFile f(filename);
 	if (f.exists()) {
+		setTestPattern(RAW_YUV_FILE);
 		f.open(QIODevice::ReadOnly);
 		QByteArray ba = f.read(width * height * 3 / 2);
 		/* TODO: color space is assumed to be NV12 */
@@ -205,7 +207,7 @@ void VideoTestSource::setYUVFile(QString filename)
 
 		f.close();
 	}
-	pattern = RAW_YUV_FILE;
+	//pattern = RAW_YUV_FILE;
 }
 
 void VideoTestSource::setYUVVideo(QString filename, bool loop)
