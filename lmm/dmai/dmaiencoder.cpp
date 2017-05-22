@@ -159,7 +159,6 @@ int DmaiEncoder::processBuffer(const RawBuffer &buf)
 	}
 	t.start();
 	Buffer_setNumBytesUsed(dmai, buf.size());
-	emit startEncodeTimer();
 	dspl.lock();
 	if (readWriteLocker == 1)
 		rwLock.lockForRead();
@@ -169,7 +168,6 @@ int DmaiEncoder::processBuffer(const RawBuffer &buf)
 	if (readWriteLocker > 0)
 		rwLock.unlock();
 	dspl.unlock();
-	emit stopEncodeTimer();
 	mInfo("encode took %lld msecs", t.elapsed());
 	encodeTimeStat->addStat(encodeTiming->restart());
 	if (encodeTimeStat->last > 75)
@@ -213,6 +211,7 @@ void DmaiEncoder::enableLockUpDetection(bool v)
 		connect(encodeTimeoutTimer, SIGNAL(timeout()), SLOT(encodeTimeout()));
 		connect(this, SIGNAL(startEncodeTimer()), encodeTimeoutTimer, SLOT(start()), Qt::QueuedConnection);
 		connect(this, SIGNAL(stopEncodeTimer()), encodeTimeoutTimer, SLOT(stop()), Qt::QueuedConnection);
+		mDebug("enabling lock-up detection");
 	} else if (encodeTimeoutTimer) {
 		encodeTimeoutTimer->deleteLater();
 		encodeTimeoutTimer = NULL;
@@ -222,7 +221,7 @@ void DmaiEncoder::enableLockUpDetection(bool v)
 void DmaiEncoder::encodeTimeout()
 {
 	mDebug("encode timeout detected, assuming soft lock-up and quitting from application");
-	QCoreApplication::instance()->quit();
+	QCoreApplication::instance()->exit(232);
 }
 
 int DmaiEncoder::restartCodec()
