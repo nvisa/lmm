@@ -94,6 +94,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	int err = 0;
 	int cnt = s->getArraySize("config.pipeline");
 	for (int i = 0; i < cnt; i++) {
+		int pipelineMaxTimeout = 0;
 		QString p = QString("config.pipeline.%1").arg(i);
 
 		bool fsEnabled = gets(s, p, "frame_skip.enabled").toBool();
@@ -129,6 +130,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 			} else if (type == "H264Encoder") {
 				int ch = getss("channel").toInt();
 				el = createH264Encoder(name, s, ch, wa[ch], ha[ch]);
+				pipelineMaxTimeout = 1000;
 			} else if (type == "JpegEncoder") {
 				int ch = getss("channel").toInt();
 				el = createJpegEncoder(name, s, ch, wa[ch], ha[ch]);
@@ -268,6 +270,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 		BaseLmmPipeline *pl = addPipeline();
 		for (int j = 0; j < elements.size(); j++)
 			pl->append(elements[j]);
+		pl->setMaxTimeout(pipelineMaxTimeout);
 		pl->end();
 		streamControl.insert(pl, streamControlIndex);
 		streamControlElement.insert(pl, controlElement);
