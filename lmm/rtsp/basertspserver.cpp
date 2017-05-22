@@ -272,7 +272,7 @@ void BaseRtspServer::saveSessions(const QString &filename)
 	QDataStream out(&ba, QIODevice::WriteOnly);
 	out.setByteOrder(QDataStream::LittleEndian);
 	out << (quint32)0x78414117; //key
-	out << (quint32)1;			//version
+	out << (quint32)2;			//version
 	QMapIterator<QString, BaseRtspSession *>i(sessions);
 	while (i.hasNext()) {
 		i.next();
@@ -307,6 +307,7 @@ void BaseRtspServer::saveSessions(const QString &filename)
 		RtpChannel *ch = ses->getRtpChannel();
 		out << ch->baseTs;
 		out << ch->seq;
+		out << ch->lastRtpTs;
 	}
 
 
@@ -328,7 +329,7 @@ int BaseRtspServer::loadSessions(const QString &filename)
 	quint32 key; in >> key;
 	quint32 version; in >> version;
 	mDebug("found session file with key 0x%x and version %d", key, version);
-	if (key != 0x78414117 || version != 1)
+	if (key != 0x78414117 || version != 2)
 		return -EINVAL;
 
 	int count = 0;
@@ -363,6 +364,9 @@ int BaseRtspServer::loadSessions(const QString &filename)
 
 		in >> ses->getRtpChannel()->baseTs;
 		in >> ses->getRtpChannel()->seq;
+		in >> ses->getRtpChannel()->lastRtpTs;
+		ses->getRtpChannel()->seq += 120;
+		ses->getRtpChannel()->baseTs = ses->getRtpChannel()->lastRtpTs + 4 * 90000;
 
 		if (state == BaseRtspSession::PLAY)
 			ses->play();
