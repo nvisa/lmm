@@ -308,8 +308,10 @@ tryagain:
 		ret = processBuffer(ch, buf);
 	processTimeStat->addStat();
 
-	if (ret == -EAGAIN)
+	if (ret == -EAGAIN) {
+		usleep(10 * 1000);
 		goto tryagain;
+	}
 
 	notifyEvent(EV_PROCESS, buf);
 
