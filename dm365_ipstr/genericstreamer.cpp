@@ -130,7 +130,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 			} else if (type == "H264Encoder") {
 				int ch = getss("channel").toInt();
 				el = createH264Encoder(name, s, ch, wa[ch], ha[ch]);
-				pipelineMaxTimeout = 1000;
+				pipelineMaxTimeout = 30000;
 			} else if (type == "JpegEncoder") {
 				int ch = getss("channel").toInt();
 				el = createJpegEncoder(name, s, ch, wa[ch], ha[ch]);
