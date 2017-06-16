@@ -3,6 +3,7 @@
 #include <execinfo.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <syslog.h>
 
 #include <QDateTime>
 #include <QTextCodec>
@@ -86,6 +87,14 @@ void initDebug()
 {
 	QString env = QString(getenv("DEBUG"));
 	changeDebug(env);
+	QString mode = QString(getenv("DEBUG_MODE"));
+	if (!mode.isEmpty()) {
+		QStringList flds = mode.split(":");
+		QString addr;
+		if (flds.size() > 1)
+			addr = flds[1];
+		setDebuggingMode(flds[0].toInt(), addr);
+	}
 }
 
 /* Obtain a backtrace and print it to stdout. */
@@ -147,6 +156,18 @@ static void messageHandlerNetwork(QtMsgType type, const char *msg)
 	}
 }
 
+static void messageHandlerSyslog(QtMsgType type, const char *msg)
+{
+	switch (type) {
+	case QtDebugMsg:
+	case QtWarningMsg:
+	case QtCriticalMsg:
+	case QtFatalMsg:
+		syslog(LOG_INFO, msg);
+		break;
+	}
+}
+
 void setDebuggingMode(int mode, QString networkAddr)
 {
 	__dbg__network_addr = networkAddr;
@@ -157,7 +178,9 @@ void setDebuggingMode(int mode, QString networkAddr)
 	} else {
 		webserver->releaseLogBuffer();
 	}*/
-	if (mode == 2) {
+	if (mode == 4) {
+		openlog(NULL, LOG_PID, 0);
+	} else if (mode == 2) {
 		if (!debugUdpSocket) {
 			debugUdpSocket = new QUdpSocket;
 			debugUdpSocket->bind(0);
