@@ -116,6 +116,8 @@ RtpChannel * RtpTransmitter::addChannel()
 		pt = 8;
 	else if (codec == Lmm::CODEC_META_BILKON)
 		pt = 98;
+	else if (codec == Lmm::CODEC_JPEG)
+		pt = 26;
 	RtpChannel *ch = new RtpChannel(maxPayloadSize, myIpAddr);
 	ch->payloadType = pt;
 	ch->ttl = ttl;
@@ -234,6 +236,8 @@ int RtpTransmitter::processBuffer(const RawBuffer &buf)
 		sendPcmData(buf);
 	else if (getCodec() == Lmm::CODEC_META_BILKON)
 		sendMetaData(buf);
+	else if (getCodec() == Lmm::CODEC_JPEG)
+		sendJpegData(buf);
 
 	streamLock.unlock();
 	streamedBufferCount++;
@@ -252,6 +256,8 @@ quint64 RtpTransmitter::packetTimestamp()
 		return (8000ll * streamedBufferCount / 50);
 	} else if (mediaCodec == Lmm::CODEC_META_BILKON)
 		return 90ull * lastBufferTime;
+	else if (mediaCodec == Lmm::CODEC_JPEG)
+		return 90ull * lastBufferTime;;
 	return 0;
 }
 
@@ -390,6 +396,15 @@ void RtpTransmitter::sendMetaData(const RawBuffer &buf)
 	qint64 ts = packetTimestamp();
 	for (int i = 0; i < channels.size(); i++)
 		channels[i]->sendPcmData((const uchar *)buf.constData(), buf.size(), ts);
+}
+
+void RtpTransmitter::sendJpegData(const RawBuffer &buf)
+{
+	if (!channels.size())
+		return;
+	qint64 ts = packetTimestamp();
+	for (int i = 0; i < channels.size(); i++)
+		channels[i]->sendJpegData((const uchar *)buf.constData(), buf.size(), ts);
 }
 
 void RtpTransmitter::channelsSendNal(const uchar *buf, int size, qint64 ts)
@@ -654,6 +669,124 @@ int RtpChannel::sendPcmData(const uchar *buf, int size, qint64 ts)
 		memcpy(&dstbuf[0], buf, size);
 		sendRtpData(rtpbuf, size, 1, sbuf, ts);
 	}
+	return 0;
+}
+
+int RtpChannel::sendJpegData(const uchar *buf, int size, qint64 ts)
+{
+	if (state != 2)
+		return 0;
+	RawNetworkSocket::SockBuffer *sbuf = NULL;
+	uchar *rtpbuf;
+	if (zeroCopy) {
+		sbuf = rawsock->getNextFreeBuffer();
+		rtpbuf = (uchar *)sbuf->payload;
+	} else {
+		rtpbuf = tempRtpBuf;
+	}
+	bufferCount++;
+
+	uchar *jpegHeader = rtpbuf + 12;
+	jpegHeader[0] = 0;			/* type-specific */
+	jpegHeader[1] = 0;
+	jpegHeader[2] = 0;
+	jpegHeader[3] = 0;
+	jpegHeader[4] = 0;			/* type */
+	jpegHeader[5] = 128;		/* Q */
+	jpegHeader[6] = 640 / 8;	/* width */
+	jpegHeader[7] = 368 / 8;	/* height */
+	int jpegHeaderSize = 8;
+
+	/* we will skip restart markers */
+	uchar *qth = jpegHeader + 8;
+	qth[0] = 0;
+	qth[1] = 0;
+	qth[2] = 0;
+	qth[3] = 130;
+	jpegHeaderSize += qth[3] + 4;
+
+	int contOff = 0;
+	uchar *contBuf = new uchar[size];
+
+	bool valid = true;
+	int off = 0;
+	while (off < size) {
+		if (buf[off] != 0xff) {
+			valid = false;
+			break;
+		}
+
+		int type = buf[off + 1];
+		int segsize = 2;
+		if (type == 0xdd) {
+			segsize += 4;
+			//qDebug() << buf[off + 2] << buf[off + 3] << buf[off + 4] << buf[off + 5];
+		} else if (type >= 0xd0 && type <= 0xd9)
+			segsize += 0;
+		else
+			segsize += buf[off + 2] * 256 + buf[off + 3];
+
+		//qDebug("marker 0x%x", type);
+
+		if (type == 0xdb) {
+			/* copy to quantization table */
+			memcpy(qth + 4, &buf[off + 4], 130);
+		}
+
+		off += segsize;
+		if (type == 0xda) {
+			int prev = -1;
+			/* segsize is not the whole story */
+			while (off < size) {
+				//if (buf[off] == 0xff && buf[off + 1] != 0x00)
+					//qDebug("marker 0x%x %d %d", buf[off + 1], off, size);
+				if (buf[off + 1] >= 0xd0 && buf[off + 1] <= 0xd7) {
+					if (prev != -1) {
+						memcpy(contBuf + contOff, buf + prev, off + 2 - prev);
+						contOff += off + 2 - prev;
+					}
+					prev = off + 2;
+				}
+				off++;
+			}
+		}
+		//qDebug() << off << segsize << size << buf[off + 2] << buf[off + 3];
+	}
+
+	if (!valid) {
+		mDebug("invalid JPEG data");
+		delete contBuf;
+		return 0;
+	}
+	//qDebug() << "-----";
+
+	//return 0;
+
+	size = contOff;
+	buf = contBuf;
+	int sentTotal = 0;
+	if (size <= maxPayloadSize - jpegHeaderSize) {
+		memcpy(rtpbuf + 12 + jpegHeaderSize, buf, size);
+		sendRtpData(rtpbuf, size + jpegHeaderSize, 1, sbuf, ts);
+	} else {
+		uchar *dstbuf = rtpbuf + 12 + jpegHeaderSize;
+		while (size + jpegHeaderSize > maxPayloadSize) {
+			memcpy(&dstbuf[0], buf, maxPayloadSize);
+			sendRtpData(rtpbuf, maxPayloadSize, 0, sbuf, ts);
+			buf += maxPayloadSize;
+			size -= maxPayloadSize;
+			sentTotal += maxPayloadSize;
+
+			jpegHeader[1] = (sentTotal >> 16) & 0xff;
+			jpegHeader[2] = (sentTotal >> 8) & 0xff;
+			jpegHeader[3] = (sentTotal >> 0) & 0xff;
+		}
+		memcpy(&dstbuf[0], buf, size);
+		sendRtpData(rtpbuf, size, 1, sbuf, ts);
+		sentTotal += size;
+	}
+	//qDebug() << "****" << sentTotal;
+	delete contBuf;
 	return 0;
 }
 

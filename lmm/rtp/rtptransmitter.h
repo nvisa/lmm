@@ -58,6 +58,7 @@ protected:
 	int setup(const QString &target, int dport, int dcport, int sport, int scport, uint ssrc);
 	int sendNalUnit(const uchar *buf, int size, qint64 ts);
 	int sendPcmData(const uchar *buf, int size, qint64 ts);
+	int sendJpegData(const uchar *buf, int size, qint64 ts);
 	void sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 tsRef);
 	void sendSR(quint64 bufferTs);
 	RawNetworkSocket::SockBuffer * getSBuf();
@@ -105,6 +106,7 @@ protected:
 	void packetizeAndSend(const RawBuffer &buf);
 	void sendPcmData(const RawBuffer &buf);
 	void sendMetaData(const RawBuffer &buf);
+	void sendJpegData(const RawBuffer &buf);
 
 	/* channel operations */
 	void channelsSendNal(const uchar *buf, int size, qint64 ts);
