@@ -34,8 +34,8 @@ protected:
 	DM365CameraInput *camIn;
 	TextOverlay *mainTextOverlay;
 
-	QHash<BaseLmmPipeline *, int> streamControl;
-	QHash<BaseLmmPipeline *, StreamControlElementInterface *> streamControlElement;
+	QHash<BaseLmmPipeline *, QList<int> > streamControl;
+	QHash<BaseLmmPipeline *, QList<StreamControlElementInterface *> > streamControlElement;
 	QList<RtpTransmitter *> transmitters;
 	QList<MetadataGenerator *> metaGenerators;
 	BaseRtspServer *rtsp;
