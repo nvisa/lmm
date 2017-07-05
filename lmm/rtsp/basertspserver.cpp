@@ -228,11 +228,19 @@ bool BaseRtspServer::hasStream(const QString &streamName)
 
 void BaseRtspServer::addStreamParameter(const QString &streamName, const QString &mediaName, const QString &par, const QVariant &value)
 {
+	if (!streamDescriptions.contains(streamName))
+		return;
+	if (!streamDescriptions[streamName].media.contains(mediaName))
+		return;
 	streamDescriptions[streamName].media[mediaName].meta.insert(par, value);
 }
 
 const QHash<QString, QVariant> BaseRtspServer::getStreamParameters(const QString &streamName, const QString &mediaName)
 {
+	if (!streamDescriptions.contains(streamName))
+		return QHash<QString, QVariant>();
+	if (!streamDescriptions[streamName].media.contains(mediaName))
+		return QHash<QString, QVariant>();
 	return streamDescriptions[streamName].media[mediaName].meta;
 }
 
@@ -1110,6 +1118,9 @@ QStringList BaseRtspServer::createSdp(QString url)
 			sdp << "a=rtpmap:8 PCMA/8000/1";
 		} else if (codec == Lmm::CODEC_META_BILKON) {
 			sdp << QString("m=metadata %1 RTP/AVP 98").arg(streamPort);
+			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
+		} else if (codec == Lmm::CODEC_JPEG) {
+			sdp << QString("m=video %1 RTP/AVP 26").arg(streamPort);
 			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
 		}
 	}
