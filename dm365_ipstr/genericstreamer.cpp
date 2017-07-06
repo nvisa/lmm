@@ -395,8 +395,39 @@ int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 #define checkSessionPar(member_name) \
 	if (info == #member_name) \
 		return ses->member_name
+#define printSessionPar(member_name) lines << QString("\t%1: %2").arg(#member_name).arg(ses->member_name)
 QVariant GenericStreamer::getRtspStats(const QString &fld)
 {
+	if (fld == "rtsp.stats") {
+		/* dumping */
+		QStringList lines;
+		const QStringList list = rtsp->getSessions();
+		foreach (QString s, list) {
+			const BaseRtspSession *ses = rtsp->getSession(s);
+			lines << "---------------------------------------";
+			Q_UNUSED(ses);
+			printSessionPar(state);
+			printSessionPar(transportString);
+			printSessionPar(multicast);
+			printSessionPar(controlUrl);
+			printSessionPar(streamName);
+			printSessionPar(mediaName);
+			printSessionPar(sourceDataPort);
+			printSessionPar(sourceControlPort);
+			printSessionPar(dataPort);
+			printSessionPar(controlPort);
+			printSessionPar(peerIp);
+			printSessionPar(streamIp);
+			printSessionPar(clientCount);
+			printSessionPar(ssrc);
+			printSessionPar(ttl);
+			printSessionPar(rtptime);
+			printSessionPar(seq);
+			printSessionPar(rtspTimeoutEnabled);
+		}
+
+		return lines.join("\n");
+	}
 	if (fld == "rtsp.stats.session_count")
 		return rtsp->getSessions().size();
 	if (fld == "rtsp.stats.session_list")
