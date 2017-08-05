@@ -53,7 +53,9 @@ SOURCES += \
     players/basestreamer.cpp \
     genericvideotestsource.cpp \
     interfaces/streamcontrolelementinterface.cpp \
-    tools/tokenbucket.cpp
+    tools/tokenbucket.cpp \
+    rtp/rtpreceiver.cpp \
+    rtsp/rtspclient.cpp
 
 HEADERS  += \
     filesource.h \
@@ -103,7 +105,9 @@ HEADERS  += \
     interfaces/streamcontrolelementinterface.h \
     interfaces/imagesnapshotinterface.h \
     tools/tokenbucket.h \
-    interfaces/motiondetectioninterface.h
+    interfaces/motiondetectioninterface.h \
+    rtp/rtpreceiver.h \
+    rtsp/rtspclient.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
