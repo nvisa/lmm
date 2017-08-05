@@ -5,6 +5,7 @@
 #include "tools/unittimestat.h"
 
 #include <errno.h>
+#include <unistd.h>
 
 #include <QElapsedTimer>
 #include <QSemaphore>

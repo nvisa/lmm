@@ -36,7 +36,6 @@ SOURCES += \
     udpsource.cpp \
     baselmmparser.cpp \
     h264parser.cpp \
-    rtp/rtppacketizer.cpp \
     baseplayer.cpp \
     tools/cpuload.cpp \
     players/simplevideoplayer.cpp \
@@ -46,7 +45,6 @@ SOURCES += \
     pipeline/functionpipeelement.cpp \
     bufferqueue.cpp \
     textoverlay.cpp \
-    rtp/rtpdepacketizer.cpp \
     tools/errorinjector.cpp \
     tools/threadsafelist.cpp \
     pipeline/pipelinedebugger.cpp \
@@ -86,7 +84,6 @@ HEADERS  += \
     udpsource.h \
     baselmmparser.h \
     h264parser.h \
-    rtp/rtppacketizer.h \
     baseplayer.h \
     tools/cpuload.h \
     players/simplevideoplayer.h \
@@ -96,7 +93,6 @@ HEADERS  += \
     pipeline/functionpipeelement.h \
     bufferqueue.h \
     textoverlay.h \
-    rtp/rtpdepacketizer.h \
     tools/errorinjector.h \
     tools/threadsafelist.h \
     pipeline/pipelinedebugger.h \
@@ -353,7 +349,7 @@ headers.path = $$INSTALL_PREFIX/usr/local/include/lmm
 
 target.path = $$INSTALL_PREFIX/usr/local/lib
 
-INSTALLS += target headers xdc
+INSTALLS += target headers
 
 #Following for installs each module into its own subdirectory
 #without this all files will be installed into 1 folder

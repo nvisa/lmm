@@ -30,6 +30,8 @@ xdc.files += dm365/dm365.cfg
 xdc.files += dm365/ih264venc.h
 xdc.path = $$INSTALL_PREFIX/usr/local/include/lmm/dm365
 
+INSTALLS += xdc
+
 CONFIG += arm
 
 OTHER_FILES += \
