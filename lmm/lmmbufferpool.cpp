@@ -45,6 +45,7 @@ int LmmBufferPool::addBuffer(RawBuffer buf)
 {
 	mutex.lock();
 	finalized = false;
+	buf.pars()->poolIndex = buffersFree.size();
 	buffersFree << buf;
 	mutex.unlock();
 	return 0;
@@ -80,7 +81,7 @@ RawBuffer LmmBufferPool::take(bool keepRef)
 	}
 	RawBuffer buf = buffersFree.takeFirst();
 	if (keepRef)
-		buffersUsed << buf;
+		buffersUsed.insert(buf.pars()->poolIndex, buf);
 	mutex.unlock();
 	return buf;
 }
@@ -91,8 +92,21 @@ int LmmBufferPool::give(RawBuffer buf)
 		return -EINVAL;
 	mutex.lock();
 	buffersFree << buf;
-	buffersUsed.removeAll(buf);
+	buffersUsed.remove(buf.pars()->poolIndex);
 	mutex.unlock();
+	wc.wakeAll();
+	return 0;
+}
+
+int LmmBufferPool::give(int index)
+{
+	QMutexLocker l(&mutex);
+	if (!buffersUsed.contains(index))
+		return -ENOENT;
+	RawBuffer buf = buffersUsed[index];
+	buffersFree << buf;
+	buffersUsed.remove(index);
+	l.unlock();
 	wc.wakeAll();
 	return 0;
 }

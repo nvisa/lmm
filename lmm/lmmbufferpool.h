@@ -20,11 +20,12 @@ public:
 	int freeBufferCount();
 	RawBuffer take(bool keepRef = true);
 	int give(RawBuffer buf);
+	int give(int index);
 
 	void finalize();
 protected:
 	QList<RawBuffer> buffersFree;
-	QList<RawBuffer> buffersUsed;
+	QHash<int, RawBuffer> buffersUsed;
 	QMutex mutex;
 	QWaitCondition wc;
 	bool finalized;
