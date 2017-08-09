@@ -42,6 +42,65 @@ enum h264_nal_sei_type
 	NAL_SEI_FULL_MOTION_CONSTRAINED_SLICE_GROUP_SET
 };
 
+static inline uint32_t getBit(const uint8_t * const base, uint32_t offset)
+{
+	return ((*(base + (offset >> 0x3))) >> (0x7 - (offset & 0x7))) & 0x1;
+}
+
+static inline uint32_t getBits(const uint8_t * const base, uint32_t * const offset, uint8_t bits)
+{
+	uint32_t value = 0;
+	for (int i = 0; i < bits; i++)
+		value = (value << 1) | (getBit(base, (*offset)++) ? 1 : 0);
+	return value;
+}
+
+/*
+ * This function is stolen from the following stack entry:
+ *
+ *   http://stackoverflow.com/questions/2363500/does-anyone-have-an-easy-solution-to-parsing-exp-golomb-codes-using-c
+ *
+ */
+static uint32_t getUeGolomb(const uint8_t * const base, uint32_t * const offset)
+{
+	uint32_t zeros = 0;
+
+	// calculate zero bits. Will be optimized.
+	while (0 == getBit(base, (*offset)++))
+		zeros++;
+
+	// insert first 1 bit
+	uint32_t info = 1 << zeros;
+	//(*offset)++;
+
+	for (int32_t i = zeros - 1; i >= 0; i--)
+		info |= getBit(base, (*offset)++) << i;
+
+	return (info - 1);
+}
+
+static int32_t getSeGolomb(const uint8_t * const base, uint32_t * const offset)
+{
+	uint32_t zeros = 0;
+
+	// calculate zero bits. Will be optimized.
+	while (0 == getBit(base, (*offset)++))
+		zeros++;
+
+	// insert first 1 bit
+	int32_t info = 1 << zeros;
+	//(*offset)++;
+
+	for (int32_t i = zeros - 1; i >= 0; i--)
+		info |= getBit(base, (*offset)++) << i;
+
+	/*reference: 9.1 Parsing process for Exp-Golomb codes*/
+	if ((info - 1) &0x01)
+		return info/2;
+	else
+		return -1 * (int)(info - 1) /2;
+}
+
 SimpleH264Parser::SimpleH264Parser(QObject *parent) :
 	BaseLmmParser(parent)
 {
@@ -330,4 +389,88 @@ int SimpleH264Parser::findNextStartCode(const uchar *data, int size)
 int SimpleH264Parser::getNalType(const uchar *data)
 {
 	return data[4] & 0x1f;
+}
+
+SimpleH264Parser::sps_t SimpleH264Parser::parseSps(const uchar *data)
+{
+	sps_t sps;
+	int i;
+	/* parsing according to 7.3.2 */
+	uint32_t off = 5 * 8;
+
+	sps.profile_idc = getBits(data, &off, 8);
+	sps.constraint_set0_5_flag = getBits(data, &off, 6);
+	sps.reserved_zero_2bits = getBits(data, &off, 2);
+	sps.level_idc = getBits(data, &off, 8);
+	sps.seq_parameter_set_id = getUeGolomb(data, &off);
+	if( sps.profile_idc == 100 || sps.profile_idc == 110 ||
+			sps.profile_idc == 122 || sps.profile_idc == 144 ) {
+		sps.chroma_format_idc = getUeGolomb(data, &off);
+		if( sps.chroma_format_idc == 3 )
+			sps.residual_colour_transform_flag = getBits(data, &off, 1);
+		sps.bit_depth_luma_minus8 = getUeGolomb(data, &off);
+		sps.bit_depth_chroma_minus8 = getUeGolomb(data, &off);
+		sps.qpprime_y_zero_transform_bypass_flag = getBits(data, &off, 1);
+		sps.seq_scaling_matrix_present_flag = getBits(data, &off, 1);
+		if( sps.seq_scaling_matrix_present_flag )
+			for( i = 0; i < 8; i++ ) {
+				sps.seq_scaling_list_present_flag[ i ] = getBits(data, &off, 1);
+				if( sps.seq_scaling_list_present_flag[ i ] ) {
+					int j;
+					int lastScale = 8;
+					int nextScale = 8;
+					if( i < 6 ) {
+						for( j = 0; j < 16; j++ ) {
+							if( nextScale != 0 ) {
+								int delta_scale = getSeGolomb(data, &off);
+								nextScale = ( lastScale + delta_scale + 256 ) % 256;
+								sps.UseDefaultScalingMatrix4x4Flag[i] = ( j == 0 && nextScale == 0 ) ? 1:0 ;
+							}
+							sps.ScalingList4x4[j] = ( nextScale == 0 ) ? lastScale : nextScale;
+							lastScale = sps.ScalingList4x4[ j ];
+						}
+					} else {
+						for( j = 0; j < 64; j++ ) {
+							if( nextScale != 0 ) {
+								int delta_scale = getSeGolomb(data, &off);
+								nextScale = ( lastScale + delta_scale + 256 ) % 256;
+								sps.UseDefaultScalingMatrix8x8Flag[i] = ( j == 0 && nextScale == 0 ) ? 1:0 ;
+							}
+							sps.ScalingList8x8[j] = ( nextScale == 0 ) ? lastScale : nextScale;
+							lastScale = sps.ScalingList8x8[ j ];
+						}
+					}
+				}
+			}
+	}
+	sps.log2_max_frame_num_minus4 = getUeGolomb(data, &off);
+	sps.pic_order_cnt_type = getUeGolomb(data, &off);
+	if( sps.pic_order_cnt_type == 0 )
+		sps.log2_max_pic_order_cnt_lsb_minus4 = getUeGolomb(data, &off);
+	else if( sps.pic_order_cnt_type == 1 ) {
+		sps.delta_pic_order_always_zero_flag = getBits(data, &off, 1);
+		sps.offset_for_non_ref_pic = getSeGolomb(data, &off);
+		sps.offset_for_top_to_bottom_field = getSeGolomb(data, &off);
+		sps.num_ref_frames_in_pic_order_cnt_cycle = getUeGolomb(data, &off);
+		for( i = 0; i < sps.num_ref_frames_in_pic_order_cnt_cycle; i++ )
+			sps.offset_for_ref_frame[ i ] = getSeGolomb(data, &off);
+	}
+	sps.num_ref_frames = getUeGolomb(data, &off);
+	sps.gaps_in_frame_num_value_allowed_flag = getBits(data, &off, 1);
+	sps.pic_width_in_mbs_minus1 = getUeGolomb(data, &off);
+	sps.pic_height_in_map_units_minus1 = getUeGolomb(data, &off);
+	sps.frame_mbs_only_flag = getBits(data, &off, 1);
+	if( !sps.frame_mbs_only_flag )
+		sps.mb_adaptive_frame_field_flag = getBits(data, &off, 1);
+
+	sps.direct_8x8_inference_flag = getBits(data, &off, 1);
+	sps.frame_cropping_flag = getBits(data, &off, 1);
+	if( sps.frame_cropping_flag ) {
+		sps.frame_crop_left_offset = getUeGolomb(data, &off);
+		sps.frame_crop_right_offset = getUeGolomb(data, &off);
+		sps.frame_crop_top_offset = getUeGolomb(data, &off);
+		sps.frame_crop_bottom_offset = getUeGolomb(data, &off);
+	}
+
+	return sps;
 }
