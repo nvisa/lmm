@@ -38,7 +38,6 @@ SOURCES += \
     h264parser.cpp \
     baseplayer.cpp \
     tools/cpuload.cpp \
-    players/simplevideoplayer.cpp \
     tools/rawnetworksocket.cpp \
     baselmmpipeline.cpp \
     pipeline/basepipeelement.cpp \
@@ -55,7 +54,8 @@ SOURCES += \
     interfaces/streamcontrolelementinterface.cpp \
     tools/tokenbucket.cpp \
     rtp/rtpreceiver.cpp \
-    rtsp/rtspclient.cpp
+    rtsp/rtspclient.cpp \
+    qtvideooutput.cpp
 
 HEADERS  += \
     filesource.h \
@@ -88,7 +88,6 @@ HEADERS  += \
     h264parser.h \
     baseplayer.h \
     tools/cpuload.h \
-    players/simplevideoplayer.h \
     tools/rawnetworksocket.h \
     baselmmpipeline.h \
     pipeline/basepipeelement.h \
@@ -107,7 +106,8 @@ HEADERS  += \
     tools/tokenbucket.h \
     interfaces/motiondetectioninterface.h \
     rtp/rtpreceiver.h \
-    rtsp/rtspclient.h
+    rtsp/rtspclient.h \
+    qtvideooutput.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
@@ -164,8 +164,8 @@ ffmpeg {
         ffmpeg/mp4mux.h \
         ffmpeg/avimux.h \
         ffmpeg/ffcompat.h \
-		ffmpeg/ffmpegbuffer.h \
-		ffmpeg/ffmpegcolorspace.h \
+        ffmpeg/ffmpegbuffer.h \
+        ffmpeg/ffmpegcolorspace.h \
 
     SOURCES += \
         ffmpeg/baselmmdemux.cpp \
@@ -174,26 +174,26 @@ ffmpeg {
         ffmpeg/baselmmmux.cpp \
         ffmpeg/mp4mux.cpp \
         ffmpeg/avimux.cpp \
-		ffmpeg/ffmpegbuffer.cpp \
-		ffmpeg/ffmpegcolorspace.cpp \
+        ffmpeg/ffmpegbuffer.cpp \
+        ffmpeg/ffmpegcolorspace.cpp \
 
-	x86 {
-		SOURCES += \
-			ffmpeg/ffmpegdecoder.cpp\
+            x86 {
+                    SOURCES += \
+                            ffmpeg/ffmpegdecoder.cpp\
 
-		HEADERS += \
-			ffmpeg/ffmpegdecoder.h \
-	}
+                    HEADERS += \
+                            ffmpeg/ffmpegdecoder.h \
+            }
 
-	dm6446 {
-		SOURCES += \
-			ffmpeg/mpegtsmux.cpp \
-			ffmpeg/audioencoder.cpp \
+            dm6446 {
+                    SOURCES += \
+                            ffmpeg/mpegtsmux.cpp \
+                            ffmpeg/audioencoder.cpp \
 
-		HEADERS += \
-			ffmpeg/mpegtsmux.h \
-			ffmpeg/audioencoder.h \
-	}
+                    HEADERS += \
+                            ffmpeg/mpegtsmux.h \
+                            ffmpeg/audioencoder.h \
+            }
 
     ffmpeg_rtp {
         HEADERS += \
