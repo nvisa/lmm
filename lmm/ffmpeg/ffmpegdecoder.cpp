@@ -1,10 +1,10 @@
-#define __STDC_CONSTANT_MACROS
+//#define __STDC_CONSTANT_MACROS
 #include "ffmpegdecoder.h"
 
-#include <lmm/ffmpeg/ffmpegbuffer.h>
-#include <lmm/lmmbufferpool.h>
 #include <lmm/debug.h>
 #include <lmm/lmmcommon.h>
+#include <lmm/h264parser.h>
+#include <lmm/lmmbufferpool.h>
 
 #include <stdint.h>
 
@@ -17,87 +17,84 @@ extern "C" {
 FFmpegDecoder::FFmpegDecoder(QObject *parent) :
 	BaseLmmDecoder(parent)
 {
-	rgbOut = true;
-	bgrOut = false;
 	codecCtx = NULL;
-	outWidth = 0;
-	outHeight = 0;
 	codec = NULL;
-	onlyKeyframe = false;
 	pool = new LmmBufferPool(this);
 	avFrame = NULL;
-	convert = true;
-}
-
-int FFmpegDecoder::setStream(AVCodecContext *stream)
-{
-	codec = avcodec_find_decoder(stream->codec_id);
-	if (!codec) {
-		mDebug("cannot find decoder for codec %s", stream->codec_name);
-		return -ENOENT;
-	}
-	codecCtx = stream;
-	int err = avcodec_open2(stream, codec, NULL);
-	if (err) {
-		mDebug("cannot open codec");
-		return err;
-	}
-	return 0;
 }
 
 int FFmpegDecoder::startDecoding()
 {
-	if (codecCtx) {
-		codecCtx = NULL;
-		sws_freeContext(swsCtx);
+	codec = avcodec_find_decoder(AV_CODEC_ID_H264);
+	if (!codec) {
+		mDebug("cannot find decoder for codec %s", "AV_CODEC_ID_H264");
+		return -ENOENT;
 	}
+
+	codecCtx = avcodec_alloc_context3(codec);
+	/* dummy open, just for error checking */
+	codecCtx->width = 1920;
+	codecCtx->height = 1080;
+	int err = avcodec_open2(codecCtx, codec, NULL);
+	if (err) {
+		mDebug("error %d opening video codec", err);
+		return err;
+	}
+	/* close context now, it will be opened with correct resolution when needed */
+	avcodec_close(codecCtx);
+	avcodec_free_context(&codecCtx);
+
 	if (avFrame) {
 		av_frame_free(&avFrame);
 		avFrame = NULL;
 	}
 	avFrame = av_frame_alloc();
-	swsCtx = NULL;
 	decodeCount = 0;
+	detectedWidth = detectedHeight = 0;
 	return 0;
 }
 
 int FFmpegDecoder::stopDecoding()
 {
-	avcodec_close(codecCtx);
-	poolBuffers.clear();
+	avcodec_free_context(&codecCtx);
 	pool->finalize();
 	return 0;
 }
 
 int FFmpegDecoder::decode(RawBuffer buf)
 {
+	int nal = SimpleH264Parser::getNalType((const uchar *)buf.constData());
+	if (detectedWidth == 0) {
+		if (nal == SimpleH264Parser::NAL_SPS) {
+			SimpleH264Parser::sps_t sps = SimpleH264Parser::parseSps((const uchar *)buf.constData());
+			detectedWidth = 16 * (sps.pic_width_in_mbs_minus1 + 1)
+					- sps.frame_crop_right_offset * 2 - sps.frame_crop_left_offset * 2;
+			detectedHeight = (2 - sps.frame_mbs_only_flag) * 16 * (sps.pic_height_in_map_units_minus1 + 1)
+					- sps.frame_crop_top_offset * 2 - sps.frame_crop_bottom_offset * 2;
+			ffDebug() << "encountered SPS" << detectedWidth << detectedHeight;
+		} else
+			return 0;
+	}
 	mInfo("decoding %d bytes", buf.size());
-	FFmpegBuffer *ffbuf = (FFmpegBuffer *)&buf;
-	AVPacket *packet = ffbuf->getAVPacket();
-	if (onlyKeyframe && (packet->flags & AV_PKT_FLAG_KEY) == 0)
-		return 0;
 	if (!codecCtx) {
-		int err = setStream(ffbuf->getCodecContext());
+		codecCtx = avcodec_alloc_context3(codec);
+		codecCtx->width = detectedWidth;
+		codecCtx->height = detectedHeight;
+		int err = avcodec_open2(codecCtx, codec, NULL);
 		if (err) {
-			mDebug("error %d setting codec context", err);
+			mDebug("error %d opening video codec", err);
 			return err;
 		}
 	}
 	if (codec->type == AVMEDIA_TYPE_VIDEO) {
-		int finished;
-		int bytes = avcodec_decode_video2(codecCtx, avFrame, &finished, packet);
-		if (bytes < 0) {
-			mDebug("error %d while decoding frame", bytes);
+		currentFrame.append((const char *)buf.constData(), buf.size());
+		if (nal != SimpleH264Parser::NAL_SLICE && nal != SimpleH264Parser::NAL_SLICE_IDR)
 			return 0;
-		}
-		if (finished) {
-			if (convert)
-				return convertColorSpace(buf);
-		}
-		return 0;
+		return decodeH264();
 	} else if (codec->type == AVMEDIA_TYPE_AUDIO) {
 		int finished;
-		int bytes = avcodec_decode_audio4(codecCtx, avFrame, &finished, packet);
+		Q_UNUSED(finished);
+		int bytes = -1;//avcodec_decode_audio4(codecCtx, avFrame, &finished, packet);
 		if (bytes < 0) {
 			mDebug("error %d while decoding audio frame", bytes);
 			return 0;
@@ -116,85 +113,36 @@ int FFmpegDecoder::decode(RawBuffer buf)
 	return -EINVAL;
 }
 
-int FFmpegDecoder::convertColorSpace(RawBuffer buf)
+int FFmpegDecoder::decodeH264()
 {
-	if (codecCtx->pix_fmt == AV_PIX_FMT_YUV420P || codecCtx->pix_fmt == AV_PIX_FMT_YUVJ420P) {
-		mInfo("decoded video frame");
-		if (!swsCtx) {
-			mDebug("getting sw scale context");
-			if (!outWidth || !outHeight) {
-				outWidth = codecCtx->width;
-				outHeight = codecCtx->height;
-				if (keepAspectRatio)
-					outWidth = codecCtx->width * outHeight / codecCtx->height;
-				else
-					outWidth = codecCtx->width;
-			}
-			if (rgbOut)
-				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<AVPixelFormat>(codecCtx->pix_fmt),
-									outWidth, outHeight, AV_PIX_FMT_RGB24, SWS_BICUBIC
-									, NULL, NULL, NULL);
-			else if (bgrOut)
-				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<AVPixelFormat>(codecCtx->pix_fmt),
-									outWidth, outHeight, AV_PIX_FMT_BGR24, SWS_BICUBIC
-									, NULL, NULL, NULL);
-			else
-				swsCtx = sws_getContext(codecCtx->width, codecCtx->height, static_cast<AVPixelFormat>(codecCtx->pix_fmt),
-									outWidth, outHeight, AV_PIX_FMT_GRAY8, SWS_BICUBIC
-									, NULL, NULL, NULL);
-			QString mime = "video/x-raw-rgb";
-			if (bgrOut)
-				mime = "video/x-raw-bgr";
-			else if (!rgbOut)
-				mime = "video/x-raw-gray";
-			for (int i = 0; i < 15; i++) {
-				mInfo("allocating sw scale buffer %d with size %dx%d", i, outWidth, outHeight);
-				FFmpegBuffer buf(mime, outWidth, outHeight, this);
-				buf.pars()->poolIndex = i;
-				pool->addBuffer(buf);
-				poolBuffers.insert(i, buf);
-			}
-		}
-		mInfo("taking output buffer from buffer pool");
-		RawBuffer poolbuf = pool->take();
-		if (poolbuf.size() == 0)
-			return -ENOENT;
-		AVFrame *frame = (AVFrame *)poolbuf.constPars()->avFrame;
-		RawBuffer outbuf;
-		sws_scale(swsCtx, avFrame->data, avFrame->linesize, 0, codecCtx->height,
-				  frame->data, frame->linesize);
-		if (rgbOut) {
-			outbuf = RawBuffer(QString("video/x-raw-rgb"),
-							 (const void *)poolbuf.data(), poolbuf.size(), this);
-		} else if (bgrOut) {
-				outbuf = RawBuffer(QString("video/x-raw-bgr"),
-								 (const void *)poolbuf.data(), poolbuf.size(), this);
-		} else {
-			/*int lsz = avFrame->linesize[0];
-			for (int i = 0; i < codecCtx->height; i++)
-				memcpy(frame->data[0] + i * codecCtx->width, avFrame->data[0] + i * lsz, codecCtx->width);*/
-			outbuf = RawBuffer(QString("video/x-raw-gray"), (const void *)poolbuf.data(), poolbuf.size(), this);
-		}
-		outbuf.pars()->videoWidth = outWidth;
-		outbuf.pars()->videoHeight = outHeight;
-		if (rgbOut)
-			outbuf.pars()->avPixelFormat = AV_PIX_FMT_RGB24;
-		else if (bgrOut)
-			outbuf.pars()->avPixelFormat = AV_PIX_FMT_BGR24;
-		else
-			outbuf.pars()->avPixelFormat = AV_PIX_FMT_GRAY8;
-		outbuf.pars()->avFrame = (quintptr *)frame;
-		outbuf.pars()->poolIndex = poolbuf.constPars()->poolIndex;
-		if (avFrame->key_frame)
-			outbuf.pars()->frameType = 0;
-		else
-			outbuf.pars()->frameType = 1;
-		outbuf.pars()->pts = buf.constPars()->pts;
-		outbuf.pars()->streamBufferNo = buf.constPars()->streamBufferNo;
-		outbuf.pars()->duration = buf.constPars()->duration;
-		return newOutputBuffer(0, outbuf);
+	int finished;
+	AVPacket pkt;
+	av_init_packet(&pkt);
+	pkt.data = (uchar *)currentFrame.constData();
+	pkt.size = currentFrame.size();
+	int bytes = avcodec_decode_video2(codecCtx, avFrame, &finished, &pkt);
+	currentFrame.clear();
+	if (bytes < 0) {
+		//mDebug("error %d while decoding frame", bytes);
+		return 0;
 	}
-	return -EINVAL;
+	if (finished) {
+		int bufsize = avpicture_get_size(codecCtx->pix_fmt, codecCtx->width, codecCtx->height);
+		if (pool->freeBufferCount() == 0 && pool->usedBufferCount() == 0) {
+			for (int i = 0; i < 10; i++)
+				pool->addBuffer(RawBuffer("video/h-264", bufsize, this));
+		}
+		RawBuffer refbuf = pool->take(true);
+		RawBuffer outbuf(this);
+		outbuf.setRefData(refbuf.getMimeType(), refbuf.data(), refbuf.size());
+		outbuf.pars()->poolIndex = refbuf.pars()->poolIndex;
+		outbuf.pars()->videoWidth = codecCtx->width;
+		outbuf.pars()->videoHeight = codecCtx->height;
+		outbuf.pars()->avPixelFormat = codecCtx->pix_fmt;
+		avpicture_layout((AVPicture *)avFrame, codecCtx->pix_fmt, codecCtx->width, codecCtx->height, (uchar *)outbuf.data(), bufsize);
+		newOutputBuffer(0, outbuf);
+	}
+	return 0;
 }
 
 #define IS_INTERLACED(a) ((a)&MB_TYPE_INTERLACED)
@@ -328,6 +276,5 @@ void FFmpegDecoder::printMotionVectors(AVFrame *pict)
 
 void FFmpegDecoder::aboutToDeleteBuffer(const RawBufferParameters *params)
 {
-	int ind = params->poolIndex;
-	pool->give(poolBuffers[ind]);
+	pool->give(params->poolIndex);
 }

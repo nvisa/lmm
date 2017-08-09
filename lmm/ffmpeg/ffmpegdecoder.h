@@ -10,7 +10,6 @@ struct AVStream;
 struct AVCodec;
 struct AVCodecContext;
 struct AVFrame;
-struct SwsContext;
 
 class FFmpegDecoder : public BaseLmmDecoder
 {
@@ -18,36 +17,23 @@ class FFmpegDecoder : public BaseLmmDecoder
 
 public:
 	explicit FFmpegDecoder(QObject *parent = 0);
-	AVCodecContext * getStream() { return codecCtx; }
-	virtual int setStream(AVCodecContext *stream);
 	virtual int startDecoding();
 	virtual int stopDecoding();
 	virtual void aboutToDeleteBuffer(const RawBufferParameters *params);
-	void setRgbOutput(bool val) { rgbOut = val; }
-	void setBgrOutput(bool val) { bgrOut = val; }
-	void setOutputScale(int w, int h, bool keepAspect) { outWidth = w; outHeight = h; keepAspectRatio = keepAspect; }
-	void decodeOnlyKeyframe(bool v) { onlyKeyframe = v; }
 protected:
 	int decode(RawBuffer buf);
-	int convertColorSpace(RawBuffer buf);
+	int decodeH264();
 	void printMotionVectors(AVFrame *pict);
 	void print_vector(int x, int y, int dx, int dy);
 private:
 	AVCodec *codec;
 	AVCodecContext* codecCtx;
 	AVFrame *avFrame;
-	AVFrame *rgbFrame;
-	SwsContext *swsCtx;
 	int decodeCount;
 	LmmBufferPool *pool;
-	QMap<int, RawBuffer> poolBuffers;
-	bool rgbOut;
-	bool bgrOut;
-	int outWidth;
-	int outHeight;
-	int keepAspectRatio;
-	bool onlyKeyframe;
-	bool convert;
+	int detectedWidth;
+	int detectedHeight;
+	QByteArray currentFrame;
 };
 
 #endif // FFMPEGDECODER_H

@@ -12,10 +12,12 @@
 #endif
 #include "lmmthread.h"
 #ifdef CONFIG_FFMPEG
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-#include <libavfilter/avfilter.h>
-#include <libavutil/avutil.h>
+extern "C" {
+	#include <libavformat/avformat.h>
+	#include <libavcodec/avcodec.h>
+	#include <libavfilter/avfilter.h>
+	#include <libavutil/avutil.h>
+}
 #endif
 #ifdef CONFIG_GSTREAMER
 #include <gst/gst.h>
@@ -136,6 +138,9 @@ int LmmCommon::init()
 {
 	initDebug();
 	platformInit();
+#ifdef CONFIG_FFMPEG
+	avcodec_register_all();
+#endif
 #ifdef CONFIG_GSTREAMER
 	gst_init(NULL, NULL);
 #endif

@@ -5,6 +5,7 @@
 
 struct SwsContext;
 class LmmBufferPool;
+class BaseVideoScaler;
 
 class FFmpegColorSpace : public BaseLmmElement
 {
@@ -12,19 +13,17 @@ class FFmpegColorSpace : public BaseLmmElement
 public:
 	explicit FFmpegColorSpace(QObject *parent = 0);
 	int processBuffer(const RawBuffer &buf);
-	int convertToRgb();
-	int convertToGray();
+	int setOutputFormat(int outfmt);
 signals:
 	
 public slots:
 protected:
 	SwsContext *swsCtx;
 	LmmBufferPool *pool;
-	QMap<int, RawBuffer> poolBuffers;
 	int inPixFmt;
 	int outPixFmt;
 	QString mime;
-	int srcStride[3];
+	BaseVideoScaler *scaler;
 
 	void aboutToDeleteBuffer(const RawBufferParameters *params);
 };
