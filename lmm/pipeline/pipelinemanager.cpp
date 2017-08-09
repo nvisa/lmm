@@ -28,15 +28,9 @@ int PipelineManager::start()
 {
 	quitting = false;
 	for (int i = 0; i < pipelines.size(); i++) {
-		int err = pipelines[i]->start();
+		int err = startPipeline(i);
 		if (err)
 			return err;
-
-		QString name = QString("MainPipelineThread%1").arg(i + 1);
-		pipelineLock.lock();
-		pipelinesByThread.insert(name, pipelines[i]);
-		pipelineLock.unlock();
-		createOpThread(&PipelineManager::pipelineThread, name, PipelineManager);
 	}
 
 	return BaseLmmElement::start();
@@ -120,6 +114,19 @@ QList<BaseLmmElement *> PipelineManager::getElements()
 				list << pipelines[i]->getPipe(j);
 	}
 	return list;
+}
+
+int PipelineManager::startPipeline(int i)
+{
+	int err = pipelines[i]->start();
+	if (err)
+		return err;
+
+	QString name = QString("MainPipelineThread%1").arg(i + 1);
+	pipelineLock.lock();
+	pipelinesByThread.insert(name, pipelines[i]);
+	pipelineLock.unlock();
+	createOpThread(&PipelineManager::pipelineThread, name, PipelineManager);
 }
 
 int PipelineManager::pipelineThread()

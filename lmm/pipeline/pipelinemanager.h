@@ -34,6 +34,7 @@ protected:
 	BaseLmmPipeline * addPipeline();
 	virtual int pipelineOutput(BaseLmmPipeline *, const RawBuffer &) { return 0; }
 	QList<BaseLmmElement *> getElements();
+	int startPipeline(int i);
 
 	QMutex pipelineLock;
 	bool checkPipelineWdts;
