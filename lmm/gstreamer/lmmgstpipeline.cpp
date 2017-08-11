@@ -16,19 +16,15 @@ static void appSinkEos(GstAppSink *sink, gpointer user_data)
 static GstFlowReturn appSinkPreroll(GstAppSink *sink, gpointer user_data)
 {
 	LmmGstPipeline *dec = (LmmGstPipeline *)user_data;
-	return (GstFlowReturn)dec->newGstBuffer(gst_app_sink_pull_preroll(sink));
+	GstSample *s = gst_app_sink_pull_preroll(sink);
+	return (GstFlowReturn)dec->newGstBuffer(gst_sample_get_buffer(s), gst_sample_get_caps(s));
 }
 
 static GstFlowReturn appSinkBuffer(GstAppSink *sink, gpointer user_data)
 {
 	LmmGstPipeline *dec = (LmmGstPipeline *)user_data;
-	return (GstFlowReturn)dec->newGstBuffer(gst_app_sink_pull_buffer(sink));
-}
-
-static GstFlowReturn appSinkBufferList(GstAppSink *sink, gpointer user_data)
-{
-	LmmGstPipeline *dec = (LmmGstPipeline *)user_data;
-	return GST_FLOW_OK;
+	GstSample *s = gst_app_sink_pull_sample(sink);
+	return (GstFlowReturn)dec->newGstBuffer(gst_sample_get_buffer(s), gst_sample_get_caps(s));
 }
 
 LmmGstPipeline::LmmGstPipeline(QObject *parent) :
@@ -63,10 +59,9 @@ int LmmGstPipeline::start()
 		GstAppSinkCallbacks callbacks;
 		callbacks.eos = appSinkEos;
 		callbacks.new_preroll = appSinkPreroll;
-		callbacks.new_buffer= appSinkBuffer;
-		callbacks.new_buffer_list = appSinkBufferList;
+		callbacks.new_sample = appSinkBuffer;
 		gst_app_sink_set_callbacks(appSink, &callbacks, this, NULL);
-		gst_app_sink_set_caps(appSink, gst_caps_new_simple(qPrintable(outputMime), NULL));
+		gst_app_sink_set_caps(appSink, gst_caps_new_empty_simple(qPrintable(outputMime)));
 	}
 
 	if (gst_element_set_state(GST_ELEMENT(bin), GST_STATE_PLAYING) == GST_STATE_CHANGE_ASYNC) {
@@ -86,7 +81,7 @@ int LmmGstPipeline::stop()
 	return BaseLmmElement::stop();
 }
 
-int LmmGstPipeline::processBuffer(RawBuffer buffer)
+int LmmGstPipeline::processBuffer(const RawBuffer &buffer)
 {
 	if (!appSrc) {
 		mDebug("error: pipeline has no appsrc element");
@@ -102,7 +97,10 @@ int LmmGstPipeline::processBuffer(RawBuffer buffer)
 	}
 	mInfo("sending new buffer to gst pipeline with size %d", buffer.size());
 	GstBuffer *buf = gst_buffer_new_and_alloc(buffer.size());
-	memcpy(GST_BUFFER_DATA(buf), buffer.constData(), buffer.size());
+	GstMapInfo info;
+	gst_buffer_map(buf, &info, GST_MAP_WRITE);
+	memcpy(info.data, buffer.constData(), buffer.size());
+	gst_buffer_unmap(buf, &info);
 	if (gst_app_src_push_buffer(appSrc, buf) != GST_FLOW_OK) {
 		mDebug("error pushing data to pipeline");
 		return -EINVAL;
@@ -179,10 +177,11 @@ bool LmmGstPipeline::gstBusFunction(GstMessage *msg)
 	return true;
 }
 
-int LmmGstPipeline::newGstBuffer(GstBuffer *buffer)
+int LmmGstPipeline::newGstBuffer(GstBuffer *buffer, GstCaps *caps)
 {
-	RawBuffer buf("unknown", GST_BUFFER_DATA(buffer), GST_BUFFER_SIZE(buffer));
-	GstCaps *caps = GST_BUFFER_CAPS(buffer);
+	GstMapInfo info;
+	gst_buffer_map(buffer, &info, GST_MAP_READ);
+	RawBuffer buf("unknown", info.data, info.size);
 	const GstStructure *str = gst_caps_get_structure(caps, 0);
 	int w,h;
 	gst_structure_get_int(str, "width", &w);
@@ -191,5 +190,6 @@ int LmmGstPipeline::newGstBuffer(GstBuffer *buffer)
 	buf.pars()->videoHeight = h;
 	gst_buffer_unref(buffer);
 	newOutputBuffer(0, buf);
+	gst_buffer_unmap(buffer, &info);
 	return GST_FLOW_OK;
 }

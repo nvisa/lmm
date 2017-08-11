@@ -13,6 +13,8 @@ struct _GstMessage;
 typedef struct _GstMessage GstMessage;
 struct _GstBuffer;
 typedef struct _GstBuffer GstBuffer;
+struct _GstCaps;
+typedef struct _GstCaps GstCaps;
 
 class LmmGstPipeline : public BaseLmmElement
 {
@@ -23,7 +25,7 @@ public:
 	int start();
 	int stop();
 	bool gstBusFunction(GstMessage *msg);
-	int newGstBuffer(GstBuffer *buffer);
+	int newGstBuffer(GstBuffer *buffer, GstCaps *caps);
 	void setInputMimeType(QString mime) { inputMime = mime; }
 	void setOutputMimeType(QString mime) { outputMime = mime; }
 signals:
