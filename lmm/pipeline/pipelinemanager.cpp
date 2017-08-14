@@ -127,6 +127,7 @@ int PipelineManager::startPipeline(int i)
 	pipelinesByThread.insert(name, pipelines[i]);
 	pipelineLock.unlock();
 	createOpThread(&PipelineManager::pipelineThread, name, PipelineManager);
+	return 0;
 }
 
 int PipelineManager::pipelineThread()
