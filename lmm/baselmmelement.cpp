@@ -418,6 +418,16 @@ int BaseLmmElement::getOutputQueueCount()
 	return outq.size();
 }
 
+qint64 BaseLmmElement::getTotalMemoryUsage()
+{
+	qint64 totalSize;
+	for (int j = 0; j < getInputQueueCount(); j++)
+		totalSize += getInputQueue(j)->getTotalSize();
+	for (int j = 0; j < getOutputQueueCount(); j++)
+		totalSize += getOutputQueue(j)->getTotalSize();
+	return totalSize;
+}
+
 int BaseLmmElement::setSetting(const QString &setting, const QVariant &value)
 {
 	Q_UNUSED(value);

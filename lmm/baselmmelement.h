@@ -73,6 +73,7 @@ public:
 	ElementIOQueue * createIOQueue();
 	int getInputQueueCount();
 	int getOutputQueueCount();
+	virtual qint64 getTotalMemoryUsage();
 
 	/* for settings framework */
 	virtual int setSetting(const QString &setting, const QVariant &value);
