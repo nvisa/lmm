@@ -17,19 +17,48 @@ static GstFlowReturn appSinkPreroll(GstAppSink *sink, gpointer user_data)
 {
 	LmmGstPipeline *dec = (LmmGstPipeline *)user_data;
 	GstSample *s = gst_app_sink_pull_preroll(sink);
-	return (GstFlowReturn)dec->newGstBuffer(gst_sample_get_buffer(s), gst_sample_get_caps(s));
+	return (GstFlowReturn)dec->newGstBuffer(gst_sample_get_buffer(s), gst_sample_get_caps(s), sink);
 }
 
 static GstFlowReturn appSinkBuffer(GstAppSink *sink, gpointer user_data)
 {
 	LmmGstPipeline *dec = (LmmGstPipeline *)user_data;
 	GstSample *s = gst_app_sink_pull_sample(sink);
-	return (GstFlowReturn)dec->newGstBuffer(gst_sample_get_buffer(s), gst_sample_get_caps(s));
+	return (GstFlowReturn)dec->newGstBuffer(gst_sample_get_buffer(s), gst_sample_get_caps(s), sink);
 }
 
 LmmGstPipeline::LmmGstPipeline(QObject *parent) :
 	BaseLmmElement(parent)
 {
+}
+
+void LmmGstPipeline::setPipelineDescription(QString desc)
+{
+	pipelineDesc = desc;
+
+	/* we parse pipeline description and find app[src|sink] elements. */
+	QStringList elements = desc.split("!");
+	foreach (QString el, elements) {
+		if (el.contains(","))
+			continue; /* caps filter */
+		QStringList flds = el.split(" ", QString::SkipEmptyParts);
+		QString type = flds.first();
+		QHash<QString, QString> options;
+
+		for (int i = 0; i < flds.size(); i++) {
+			if (!flds[i].contains("="))
+				continue;
+			QStringList vals = flds[i].split("=");
+			QString option = vals.first().trimmed();
+			QString value = vals.last().trimmed();
+			options.insert(option, value);
+		}
+
+		if (type == "appsrc")
+			addAppSource(options["name"], "");
+		else if (type == "appsink")
+			addAppSink(options["name"], "");
+	}
 }
 
 static gboolean busWatch(GstBus *bus, GstMessage *msg, gpointer user)
@@ -49,19 +78,25 @@ int LmmGstPipeline::start()
 	GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(bin));
 	gst_bus_add_watch(bus, busWatch, this);
 
-	appSrc = (GstAppSrc *)gst_bin_get_by_name(GST_BIN(bin), "source");
-	appSink = (GstAppSink *)gst_bin_get_by_name(GST_BIN(bin), "sink");
+	foreach (const QString &name, sourceNames) {
+		GstAppSrc *appSrc = (GstAppSrc *)gst_bin_get_by_name(GST_BIN(bin), qPrintable(name));
+		if (appSrc) {
+			int index = sourceNames.indexOf(name);
+			gst_app_src_set_caps(appSrc, sourceCaps[index]->getCaps());
+			sources << appSrc;
+		}
+	}
 
-	if (appSrc)
-		gst_app_src_set_caps(appSrc, gst_caps_from_string(qPrintable(inputMime)));
-
-	if (appSink) {
-		GstAppSinkCallbacks callbacks;
-		callbacks.eos = appSinkEos;
-		callbacks.new_preroll = appSinkPreroll;
-		callbacks.new_sample = appSinkBuffer;
-		gst_app_sink_set_callbacks(appSink, &callbacks, this, NULL);
-		gst_app_sink_set_caps(appSink, gst_caps_new_empty_simple(qPrintable(outputMime)));
+	foreach (const QString &name, sinkNames) {
+		GstAppSink *appSink = (GstAppSink *)gst_bin_get_by_name(GST_BIN(bin), qPrintable(name));
+		if (appSink) {
+			GstAppSinkCallbacks callbacks;
+			callbacks.eos = appSinkEos;
+			callbacks.new_preroll = appSinkPreroll;
+			callbacks.new_sample = appSinkBuffer;
+			gst_app_sink_set_callbacks(appSink, &callbacks, this, NULL);
+			sinks << appSink;
+		}
 	}
 
 	if (gst_element_set_state(GST_ELEMENT(bin), GST_STATE_PLAYING) == GST_STATE_CHANGE_ASYNC) {
@@ -83,6 +118,7 @@ int LmmGstPipeline::stop()
 
 int LmmGstPipeline::processBuffer(const RawBuffer &buffer)
 {
+	GstAppSrc *appSrc = sources.first();
 	if (!appSrc) {
 		mDebug("error: pipeline has no appsrc element");
 		return -ENOENT;
@@ -170,6 +206,7 @@ bool LmmGstPipeline::gstBusFunction(GstMessage *msg)
 	case GST_MESSAGE_STEP_START:
 	case GST_MESSAGE_QOS:
 	case GST_MESSAGE_ANY:
+	default:
 		mDebug("new message %s from %s", gst_message_type_get_name(GST_MESSAGE_TYPE(msg)),
 			   GST_OBJECT_NAME(msg->src));
 		break;
@@ -177,19 +214,51 @@ bool LmmGstPipeline::gstBusFunction(GstMessage *msg)
 	return true;
 }
 
-int LmmGstPipeline::newGstBuffer(GstBuffer *buffer, GstCaps *caps)
+int LmmGstPipeline::newGstBuffer(GstBuffer *buffer, GstCaps *caps, GstAppSink *sink)
 {
+	/* create a copy of the buffer */
 	GstMapInfo info;
 	gst_buffer_map(buffer, &info, GST_MAP_READ);
 	RawBuffer buf("unknown", info.data, info.size);
-	const GstStructure *str = gst_caps_get_structure(caps, 0);
-	int w,h;
-	gst_structure_get_int(str, "width", &w);
-	gst_structure_get_int(str, "height", &h);
-	buf.pars()->videoWidth = w;
-	buf.pars()->videoHeight = h;
-	gst_buffer_unref(buffer);
-	newOutputBuffer(0, buf);
 	gst_buffer_unmap(buffer, &info);
+	gst_buffer_unref(buffer);
+
+	/* set caps if not already done so */
+	int index = sinks.indexOf(sink);
+	if (sinkCaps[index]->isEmpty())
+		sinkCaps[index]->setCaps(caps);
+
+	/* forward buffer to our pipeline */
+	newOutputBuffer(0, buf);
+
 	return GST_FLOW_OK;
+}
+
+void LmmGstPipeline::addAppSource(const QString &name, const QString &mime)
+{
+	sourceNames << name;
+	sourceCaps << new BaseGstCaps(mime);
+}
+
+void LmmGstPipeline::addAppSink(const QString &name, const QString &mime)
+{
+	sinkNames << name;
+	sinkCaps << new BaseGstCaps(mime);
+}
+
+BaseGstCaps *LmmGstPipeline::getSourceCaps(int index)
+{
+	return sourceCaps[index];
+}
+
+BaseGstCaps * LmmGstPipeline::getSinkCaps(int index)
+{
+	return sinkCaps[index];
+}
+
+int LmmGstPipeline::setSourceCaps(int index, BaseGstCaps *caps)
+{
+	sourceCaps[index]->setCaps(caps->getCaps());
+	gst_app_src_set_caps(sources[index], caps->getCaps());
+	return 0;
 }

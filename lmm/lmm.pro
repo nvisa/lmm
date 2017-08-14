@@ -306,10 +306,12 @@ gstreamer {
 	DEFINES += CONFIG_GSTREAMER
 
 	SOURCES += \
-		gstreamer/lmmgstpipeline.cpp\
+                gstreamer/lmmgstpipeline.cpp \
+                gstreamer/basegstcaps.cpp \
 
 	HEADERS += \
 		gstreamer/lmmgstpipeline.h \
+                gstreamer/basegstcaps.h \
 
 }
 
