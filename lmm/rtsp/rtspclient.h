@@ -45,6 +45,8 @@ public:
 	int keepAlive(const QString &id);
 	int keepAliveASync(const QString &id);
 	RtpReceiver * getSessionRtp(const QString &id);
+	void playASync();
+	void teardownASync();
 
 	void addSetupTrack(const QString &name, RtpReceiver *rtp);
 	void clearSetupTracks();
@@ -81,6 +83,7 @@ protected:
 	QString msgbuffer;
 	QTimer *timer;
 	QHash<QString, QString> currentResp;
+	bool asyncPlay;
 
 	struct ServerInfo
 	{

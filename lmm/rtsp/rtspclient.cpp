@@ -115,7 +115,7 @@ RtspClient::RtspClient(QObject *parent) :
 	connect(timer, SIGNAL(timeout()), SLOT(timeout()));
 	timer->start(100);
 	state = UNKNOWN;
-
+	asyncPlay = true;
 }
 
 int RtspClient::setServerUrl(const QString &url)
@@ -329,6 +329,16 @@ RtpReceiver *RtspClient::getSessionRtp(const QString &id)
 	return playedSessions[id].rtp;
 }
 
+void RtspClient::playASync()
+{
+	asyncPlay = true;
+}
+
+void RtspClient::teardownASync()
+{
+	asyncPlay = false;
+}
+
 void RtspClient::addSetupTrack(const QString &name, RtpReceiver *rtp)
 {
 	setupTracks << name;
@@ -385,8 +395,7 @@ void RtspClient::timeout()
 		break;
 	case DESCRIBE_WAIT:
 		if (serverDescriptions.contains(serverUrl)) {
-			if (!setupUrlASync())
-				state = SETUP_WAIT;
+			state = DESCRIBED;
 		}
 		break;
 	case SETUP_WAIT: {
@@ -407,8 +416,10 @@ void RtspClient::timeout()
 			state = PLAYED;
 		break;
 	case DESCRIBED:
-		if (!setupUrl())
-			state = SETTEDUP;
+		if (asyncPlay) {
+			if (!setupUrlASync())
+				state = SETUP_WAIT;
+		}
 		break;
 	case SETTEDUP:
 		foreach (const QString &ses, setupedSessions.keys()) {
@@ -424,6 +435,15 @@ void RtspClient::timeout()
 		state = STREAMING;
 		break;
 	case STREAMING:
+		if (!asyncPlay) {
+			int count = 0;
+			foreach (const QString &ses, playedSessions.keys()) {
+				if (!teardownSessionASync(ses))
+					count++;
+			}
+			if (count == playedSessions.size())
+				state = DESCRIBED;
+		}
 		break;
 	}
 #endif
