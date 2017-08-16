@@ -46,6 +46,7 @@ RtpReceiver::RtpStats RtpReceiver::getStatistics()
 
 int RtpReceiver::start()
 {
+#if QT_VERSION > 0x050000
 	sock = new QUdpSocket(this);
 	sock2 = new QUdpSocket(this);
 	if (!sock->bind(QHostAddress::AnyIPv4, srcDataPort)) {
@@ -76,6 +77,7 @@ int RtpReceiver::start()
 	stats.packetMissing = 0;
 	seqLast = 0;
 	rtcpTime.start();
+#endif
 	return 0;
 }
 
@@ -137,12 +139,14 @@ void RtpReceiver::readPendingRtcpDatagrams()
 			uint tv_sec = ntps - NTP_OFFSET;
 			uint tv_usec = (double)ntpf * 15625 / 0x04000000;
 
+#if QT_VERSION > 0x050000
 			qint64 timet = (qint64)tv_sec * 1000 + tv_usec / 1000;
 			stats.rtcpEpoch = timet;
 			stats.rtcpTs = rtpts;
 			stats.rtcpMyEpoch = QDateTime::currentDateTime().toMSecsSinceEpoch();
 			//qint64 epoch = QDateTime::currentDateTime().toMSecsSinceEpoch();
 			//qDebug() << (epoch - timet) << timet << epoch << tv_sec << tv_usec << tv.tv_sec << tv.tv_usec;
+#endif
 		}
 
 
