@@ -33,6 +33,8 @@ public:
 	BaseGstCaps *getSourceCaps(int index);
 	BaseGstCaps *getSinkCaps(int index);
 	int setSourceCaps(int index, BaseGstCaps *caps);
+	void enableDebugging(bool v) { debug = v; }
+	void doTimestamp(bool v) { inputTimestamping = v; }
 signals:
 	
 public slots:
@@ -46,8 +48,11 @@ protected:
 	QList<GstAppSink *> sinks;
 	QList<BaseGstCaps *> sourceCaps;
 	QList<BaseGstCaps *> sinkCaps;
+	bool debug;
+	bool inputTimestamping;
 
 	int processBuffer(const RawBuffer &buf);
+	virtual void initElements();
 };
 
 #endif // LMMGSTPIPELINE_H

@@ -30,6 +30,8 @@ static GstFlowReturn appSinkBuffer(GstAppSink *sink, gpointer user_data)
 LmmGstPipeline::LmmGstPipeline(QObject *parent) :
 	BaseLmmElement(parent)
 {
+	debug = false;
+	inputTimestamping = false;
 }
 
 void LmmGstPipeline::setPipelineDescription(QString desc)
@@ -78,26 +80,7 @@ int LmmGstPipeline::start()
 	GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(bin));
 	gst_bus_add_watch(bus, busWatch, this);
 
-	foreach (const QString &name, sourceNames) {
-		GstAppSrc *appSrc = (GstAppSrc *)gst_bin_get_by_name(GST_BIN(bin), qPrintable(name));
-		if (appSrc) {
-			int index = sourceNames.indexOf(name);
-			gst_app_src_set_caps(appSrc, sourceCaps[index]->getCaps());
-			sources << appSrc;
-		}
-	}
-
-	foreach (const QString &name, sinkNames) {
-		GstAppSink *appSink = (GstAppSink *)gst_bin_get_by_name(GST_BIN(bin), qPrintable(name));
-		if (appSink) {
-			GstAppSinkCallbacks callbacks;
-			callbacks.eos = appSinkEos;
-			callbacks.new_preroll = appSinkPreroll;
-			callbacks.new_sample = appSinkBuffer;
-			gst_app_sink_set_callbacks(appSink, &callbacks, this, NULL);
-			sinks << appSink;
-		}
-	}
+	initElements();
 
 	if (gst_element_set_state(GST_ELEMENT(bin), GST_STATE_PLAYING) == GST_STATE_CHANGE_ASYNC) {
 		mInfo("not waiting async state change");
@@ -137,12 +120,43 @@ int LmmGstPipeline::processBuffer(const RawBuffer &buffer)
 	gst_buffer_map(buf, &info, GST_MAP_WRITE);
 	memcpy(info.data, buffer.constData(), buffer.size());
 	gst_buffer_unmap(buf, &info);
+
+	if (inputTimestamping) {
+		qint64 count = getOutputQueue(0)->getSentCount();
+		GST_BUFFER_PTS(buf) = count * 80 * GST_MSECOND;
+		GST_BUFFER_DURATION(buf) = 80 * GST_MSECOND;
+	}
+
 	if (gst_app_src_push_buffer(appSrc, buf) != GST_FLOW_OK) {
 		mDebug("error pushing data to pipeline");
 		return -EINVAL;
 	}
 	mInfo("buffer pushed to gst pipeline");
 	return 0;
+}
+
+void LmmGstPipeline::initElements()
+{
+	foreach (const QString &name, sourceNames) {
+		GstAppSrc *appSrc = (GstAppSrc *)gst_bin_get_by_name(GST_BIN(bin), qPrintable(name));
+		if (appSrc) {
+			int index = sourceNames.indexOf(name);
+			gst_app_src_set_caps(appSrc, sourceCaps[index]->getCaps());
+			sources << appSrc;
+		}
+	}
+
+	foreach (const QString &name, sinkNames) {
+		GstAppSink *appSink = (GstAppSink *)gst_bin_get_by_name(GST_BIN(bin), qPrintable(name));
+		if (appSink) {
+			GstAppSinkCallbacks callbacks;
+			callbacks.eos = appSinkEos;
+			callbacks.new_preroll = appSinkPreroll;
+			callbacks.new_sample = appSinkBuffer;
+			gst_app_sink_set_callbacks(appSink, &callbacks, this, NULL);
+			sinks << appSink;
+		}
+	}
 }
 
 bool LmmGstPipeline::gstBusFunction(GstMessage *msg)
