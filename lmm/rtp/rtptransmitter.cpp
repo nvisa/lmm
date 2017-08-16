@@ -242,7 +242,10 @@ void RtpTransmitter::setRtcp(bool enabled)
 
 int RtpTransmitter::processBuffer(const RawBuffer &buf)
 {
-	lastBufferTime = buf.constPars()->encodeTime / 1000;
+	if (buf.constPars()->encodeTime)
+		lastBufferTime = buf.constPars()->encodeTime / 1000;
+	else
+		lastBufferTime = streamTime->getCurrentTime() / 1000;
 	streamLock.lock();
 	/* check rtcp first */
 	channelsCheckRtcp(packetTimestamp());
