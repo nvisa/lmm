@@ -464,7 +464,7 @@ void RtspClient::aSyncDataReady()
 	QString str = QString::fromUtf8(asyncsock->readAll());
 	if (readResponse(str, currentResp)) {
 		int cseq = currentResp["CSeq"].toInt();
-		ffDebug() << "async resp ready" << cseq;
+		mInfo("async resp %d ready", cseq);
 		if (!cseqRequests.contains(cseq)) {
 			mDebug("invalid response request received:\n%s", qPrintable(currentResp["__content__"]));
 			return;
