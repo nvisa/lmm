@@ -101,6 +101,7 @@ public:
 	bool isActive();
 	int setTrafficShaping(bool enabled, int average, int burst, int duration = 50);
 	void setRtcp(bool enabled);
+	void setH264SEIInsertion(bool v) { insertH264Sei = v; }
 protected:
 	int processBuffer(const RawBuffer &buf);
 	quint64 packetTimestamp();
@@ -128,6 +129,7 @@ protected:
 	Lmm::CodecType mediaCodec;
 	qint64 lastBufferTime;
 	TokenBucket *tb;
+	bool insertH264Sei;
 
 	int bufferCount;
 	bool rtcpEnabled;

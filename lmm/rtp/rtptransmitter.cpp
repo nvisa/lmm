@@ -52,6 +52,26 @@ static QHostAddress findIp(const QString &ifname)
 	return myIpAddr;
 }
 
+static QByteArray createSei(const char *payload, int psize, uchar ptype)
+{
+	int tsize = psize + 20;
+	int i;
+	QByteArray ba;
+	ba.append((uchar)6);
+	ba.append((uchar)ptype);
+	for(i = 0; i <= tsize - 255; i += 255)
+		ba.append((uchar)255);
+	ba.append((uchar)(tsize - i));
+	for (int i = 0; i < 16; i++)
+		ba.append((uchar)0xAA);
+	ba.append((uchar)(tsize & 0xff));
+	ba.append((uchar)(tsize >> 8));
+	ba.append((uchar)(0x1));
+	ba.append((uchar)(0x1));
+	ba.append(payload, psize);
+	return ba;
+}
+
 class MyTime
 {
 public:
@@ -87,6 +107,7 @@ protected:
 RtpTransmitter::RtpTransmitter(QObject *parent, Lmm::CodecType codec) :
 	BaseLmmElement(parent)
 {
+	insertH264Sei = false;
 	rtcpEnabled = true;
 	tb = NULL;
 	bufferCount = 0;
@@ -285,6 +306,16 @@ void RtpTransmitter::packetizeAndSend(const RawBuffer &buf)
 			dOff = 3;
 
 		if (!useStapA) {
+			/* sei insertion logic */
+			const uchar *nalbuf = first + dOff;
+			uchar type = nalbuf[0] & 0x1F;
+			if (insertH264Sei && buf.constPars()->metaData.size()
+					&&(type == SimpleH264Parser::NAL_SLICE || type == SimpleH264Parser::NAL_SLICE_IDR)) {
+				qDebug() << "sei time";
+				QByteArray sei = createSei(buf.constPars()->metaData, buf.constPars()->metaData.size(), 5);
+				channelsSendNal((const uchar *)sei.constData(), sei.size(), ts);
+			}
+
 			/* while sending we omit NAL start-code */
 			channelsSendNal(first + dOff, next - first - dOff, ts);
 		} else {
