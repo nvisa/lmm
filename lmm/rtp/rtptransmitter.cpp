@@ -4,6 +4,7 @@
 #include "streamtime.h"
 #include "h264parser.h"
 #include "tools/tokenbucket.h"
+#include "platform_info.h"
 
 #include <QTimer>
 #include <QUdpSocket>
@@ -512,7 +513,11 @@ RtpChannel::RtpChannel(int psize, const QHostAddress &myIpAddr)
 	baseTs = rand();
 	sock = new QUdpSocket;
 	sock2 = new QUdpSocket;
-	zeroCopy = true;
+	/* zero copy is critical for performance on armv5, other archs can live without it */
+	if (cpu_is_armv5())
+		zeroCopy = true;
+	else
+		zeroCopy = false;
 	tempRtpBuf = new uchar[maxPayloadSize + 12];
 	rrTime = new MyTime;
 	rtcpTime = new MyTime;
