@@ -55,7 +55,6 @@ SOURCES += \
     tools/tokenbucket.cpp \
     rtp/rtpreceiver.cpp \
     rtsp/rtspclient.cpp \
-    qtvideooutput.cpp
 
 HEADERS  += \
     filesource.h \
@@ -107,12 +106,16 @@ HEADERS  += \
     interfaces/motiondetectioninterface.h \
     rtp/rtpreceiver.h \
     rtsp/rtspclient.h \
-    qtvideooutput.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
     HEADERS += compat/qelapsedtimer.h compat/QElapsedTimer
     INCLUDEPATH += compat
+}
+
+widgets {
+    SOURCES += qtvideooutput.cpp
+    HEADERS += qtvideooutput.h
 }
 
 x264 {
