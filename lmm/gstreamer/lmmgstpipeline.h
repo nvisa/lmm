@@ -34,7 +34,7 @@ public:
 	BaseGstCaps *getSinkCaps(int index);
 	int setSourceCaps(int index, BaseGstCaps *caps);
 	void enableDebugging(bool v) { debug = v; }
-	void doTimestamp(bool v) { inputTimestamping = v; }
+	void doTimestamp(bool v, qint64 frameDurationUSecs = 0);
 signals:
 	
 public slots:
@@ -50,6 +50,7 @@ protected:
 	QList<BaseGstCaps *> sinkCaps;
 	bool debug;
 	bool inputTimestamping;
+	qint64 inputFrameDuration;
 
 	int processBuffer(const RawBuffer &buf);
 	virtual void initElements();

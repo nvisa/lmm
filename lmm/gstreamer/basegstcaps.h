@@ -14,7 +14,7 @@ public:
 
 	void setMime(const QString &mime);
 	GstCaps * getCaps();
-	void setCaps(GstCaps *c);
+	void setCaps(GstCaps *c, float fps = 0.0);
 	bool isEmpty();
 
 	struct video {

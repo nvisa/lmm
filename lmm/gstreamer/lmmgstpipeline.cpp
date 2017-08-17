@@ -123,8 +123,8 @@ int LmmGstPipeline::processBuffer(const RawBuffer &buffer)
 
 	if (inputTimestamping) {
 		qint64 count = getOutputQueue(0)->getSentCount();
-		GST_BUFFER_PTS(buf) = count * 80 * GST_MSECOND;
-		GST_BUFFER_DURATION(buf) = 80 * GST_MSECOND;
+		GST_BUFFER_PTS(buf) = count * inputFrameDuration;
+		GST_BUFFER_DURATION(buf) = inputFrameDuration;
 	}
 
 	if (gst_app_src_push_buffer(appSrc, buf) != GST_FLOW_OK) {
@@ -238,9 +238,13 @@ int LmmGstPipeline::newGstBuffer(GstBuffer *buffer, GstCaps *caps, GstAppSink *s
 	gst_buffer_unref(buffer);
 
 	/* set caps if not already done so */
+	float fps = 0.0;
+	if (inputTimestamping && inputFrameDuration)
+		/* we should adjust caps' frame-rate */
+		fps = GST_SECOND / (double)inputFrameDuration;
 	int index = sinks.indexOf(sink);
 	if (sinkCaps[index]->isEmpty())
-		sinkCaps[index]->setCaps(caps);
+		sinkCaps[index]->setCaps(caps, fps);
 
 	/* forward buffer to our pipeline */
 	newOutputBuffer(0, buf);
@@ -272,7 +276,17 @@ BaseGstCaps * LmmGstPipeline::getSinkCaps(int index)
 
 int LmmGstPipeline::setSourceCaps(int index, BaseGstCaps *caps)
 {
-	sourceCaps[index]->setCaps(caps->getCaps());
+	float fps = 0.0;
+	if (inputTimestamping && inputFrameDuration)
+		/* we should adjust caps' frame-rate */
+		fps = GST_SECOND / (double)inputFrameDuration;
+	sourceCaps[index]->setCaps(caps->getCaps(), fps);
 	gst_app_src_set_caps(sources[index], caps->getCaps());
 	return 0;
+}
+
+void LmmGstPipeline::doTimestamp(bool v, qint64 frameDurationUSecs)
+{
+	 inputTimestamping = v;
+	 inputFrameDuration = GST_USECOND * frameDurationUSecs;
 }
