@@ -21,8 +21,8 @@
  *
  * You can use following for RTP streaming (no rtsp):
  *	RtpChannel *ch = rtpout->addChannel();
- * rtpout->setupChannel(ch, "10.50.1.111", 7846, 7847, 7846, 7847, 0x11223344);
- * rtpout->playChannel(ch);
+ *  rtpout->setupChannel(ch, "10.50.1.111", 7846, 7847, 7846, 7847, 0x11223344);
+ *  rtpout->playChannel(ch);
  */
 TK1VideoStreamer::TK1VideoStreamer(QObject *parent)
 	: BaseStreamer(parent)
@@ -89,6 +89,42 @@ int TK1VideoStreamer::viewSource(const QString &ip, const QString &stream)
 	p1->append(rtp);
 	p1->append(gst1);
 	p1->end();
+
+	rtsp = new RtspClient(this);
+	rtsp->addSetupTrack("videoTrack", rtp);
+	rtsp->setServerUrl(QString("rtsp://%1/%2").arg(ip).arg(stream));
+
+	return 0;
+}
+
+int TK1VideoStreamer::serveRtp(const QString &ip, const QString &stream, const QString &dstIp, quint16 dstPort)
+{
+	rtp = new RtpReceiver(this);
+	rtpout = new RtpTransmitter(this);
+	RtpChannel *ch = rtpout->addChannel();
+	rtpout->setupChannel(ch, dstIp, dstPort, dstPort + 1, dstPort, dstPort + 1, 0x11223344);
+	rtpout->playChannel(ch);
+
+	/* decode pipeline */
+	gst1 = new TK1OmxPipeline(this);
+	gst1->setPipelineDescription("appsrc name=source ! h264parse ! omxh264dec ! appsink name=sink");
+	gst1->getSourceCaps(0)->setMime("video/x-h264,stream-format=byte-stream");
+	gst1->doTimestamp(true, 80000);
+
+	/* encode pipeline */
+	gst2 = new TK1OmxPipeline(this);
+	gst2->setPipelineDescription("appsrc name=source is-live=true do-timestamp=false ! nvvidconv ! video/x-raw(memory:NVMM) ! omxh264enc name=encoder insert-sps-pps=true bitrate=1000000 ! video/x-h264,stream-format=byte-stream ! appsink name=sink");
+	gst2->doTimestamp(true, 80000);
+
+	BaseLmmPipeline *p1 = addPipeline();
+	p1->append(rtp);
+	p1->append(gst1);
+	p1->end();
+
+	BaseLmmPipeline *p2 = addPipeline();
+	p2->append(gst2);
+	p2->append(rtpout);
+	p2->end();
 
 	rtsp = new RtspClient(this);
 	rtsp->addSetupTrack("videoTrack", rtp);

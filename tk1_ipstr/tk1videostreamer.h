@@ -18,6 +18,7 @@ public:
 	explicit TK1VideoStreamer(QObject *parent = 0);
 	int serveRtsp(const QString &ip, const QString &stream);
 	int viewSource(const QString &ip, const QString &stream);
+	int serveRtp(const QString &ip, const QString &stream, const QString &dstIp, quint16 dstPort);
 
 signals:
 

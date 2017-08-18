@@ -45,6 +45,8 @@ int main(int argc, char *argv[])
 	TK1VideoStreamer s;
 	if (args.contains("--view"))
 		s.viewSource(args["--target"], args["--stream"]);
+	else if (args.contains("--rtp-target"))
+		s.serveRtp(args["--target"], args["--stream"], args["--rtp-target"], args["--rtp-port"].toInt());
 	else
 		s.serveRtsp(args["--target"], args["--stream"]);
 	s.start();
