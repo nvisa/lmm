@@ -420,7 +420,7 @@ int BaseLmmElement::getOutputQueueCount()
 
 qint64 BaseLmmElement::getTotalMemoryUsage()
 {
-	qint64 totalSize;
+	qint64 totalSize = 0;
 	for (int j = 0; j < getInputQueueCount(); j++)
 		totalSize += getInputQueue(j)->getTotalSize();
 	for (int j = 0; j < getOutputQueueCount(); j++)
@@ -557,6 +557,8 @@ ElementIOQueue::ElementIOQueue()
 	fpsTiming->start();
 	fps = 0;
 	fpsBufferCount = 0;
+	bitrate = _bitrate = 0;
+	rlimit = LIMIT_NONE;
 
 	rc = NULL;
 }
@@ -588,6 +590,8 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 		return err;
 	}
 
+	rateLimit();
+
 	bool skip = false;
 	if (rc)
 		skip = rc->shouldSkip();
@@ -595,6 +599,7 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 	if (!skip) {
 		queue << buffer;
 		bufSize += buffer.size();
+		_bitrate += buffer.size();
 		calculateFps();
 	}
 	receivedCount++;
@@ -712,6 +717,24 @@ int ElementIOQueue::setRateReduction(float inFps, float outFps)
 	return 0;
 }
 
+void ElementIOQueue::rateLimit()
+{
+	if (rlimit == LIMIT_INTERVAL) {
+		while (rlimitTimer->elapsed() < limitInterval)
+			usleep(100);
+		rlimitTimer->restart();
+	}
+}
+
+int ElementIOQueue::setRateLimitInterval(qint64 interval)
+{
+	limitInterval = interval;
+	rlimitTimer = new QElapsedTimer;
+	rlimitTimer->start();
+	rlimit = LIMIT_INTERVAL;
+	return 0;
+}
+
 bool ElementIOQueue::acquireSem()
 {
 	if (state == BaseLmmElement::STOPPED)
@@ -738,6 +761,8 @@ void ElementIOQueue::calculateFps()
 		int elapsed = fpsTiming->restart();
 		fps = fpsBufferCount * 1000.0 / elapsed;
 		fpsBufferCount = 0;
+		bitrate = _bitrate * 1000ull * 8 / elapsed;
+		_bitrate = 0;
 	}
 }
 

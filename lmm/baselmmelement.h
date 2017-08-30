@@ -123,6 +123,10 @@ public:
 		EV_ADD,
 		EV_GET,
 	};
+	enum RateLimit {
+		LIMIT_NONE,
+		LIMIT_INTERVAL,
+	};
 
 	ElementIOQueue();
 
@@ -139,13 +143,17 @@ public:
 	void stop();
 	int setSizeLimit(int size, int hsize);
 	float getFps() const { return fps; }
+	int getBitrate() const { return bitrate; }
 	int getReceivedCount() const { return receivedCount; }
 	int getSentCount() const { return sentCount; }
 	void setEventHook(eventHook hook, void *priv);
 	int getTotalSize() { return bufSize; }
 	int setRateReduction(float inFps, float outFps);
+	int setRateLimitInterval(qint64 interval);
+	RateLimit getRateLimit() { return rlimit; }
 
 protected:
+	void rateLimit();
 	bool acquireSem() __attribute__((warn_unused_result));
 	int checkSizeLimits();
 	void calculateFps();
@@ -163,7 +171,12 @@ protected:
 	int hysterisisSize;
 	int outputWakeThreshold;
 	QWaitCondition * outWc;
+	RateLimit rlimit;
+	qint64 limitInterval;
+	QElapsedTimer *rlimitTimer;
 
+	int _bitrate;
+	int bitrate;
 	int fpsBufferCount;
 	QElapsedTimer * fpsTiming;
 	float fps;
