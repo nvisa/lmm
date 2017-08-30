@@ -339,6 +339,15 @@ dm8168 {
 		dm365/dm8168.pri \
 }
 
+srtp {
+    HEADERS += \
+        rtp/srtptransmitter.h \
+        rtp/srtpreceiver.h
+    SOURCES += \
+        rtp/srtptransmitter.cpp \
+        rtp/srtpreceiver.cpp
+}
+
 armv5te {
     CONFIG += arm
 }
