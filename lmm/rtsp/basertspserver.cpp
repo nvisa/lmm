@@ -2,6 +2,7 @@
 #include "rawbuffer.h"
 #include "rtp/rtptransmitter.h"
 #include "tools/tokenbucket.h"
+#include "platform_info.h"
 
 #include "debug.h"
 
@@ -145,10 +146,13 @@ static bool detectLocalPorts(const QHostAddress &myIpAddr, int &rtp, int &rtcp)
 BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	QObject(parent)
 {
+	nwInterfaceName = "eth0";
 	auth = AUTH_NONE;
 	enabled = true;
 	server = new QTcpServer(this);
-	if (!server->listen(QHostAddress::Any, port))
+	if (is_qt5() && !server->listen(QHostAddress::AnyIPv4, port)) {
+		mDebug("unable to bind to tcp port %d", port);
+	} else if (is_qt4() && !server->listen(QHostAddress::Any, port))
 		mDebug("unable to bind to tcp port %d", port);
 	connect(server, SIGNAL(newConnection()), SLOT(newRtspConnection()));
 	mapperDis = new QSignalMapper(this);
@@ -158,7 +162,7 @@ BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	connect(mapperErr, SIGNAL(mapped(QObject*)), SLOT(clientError(QObject*)));
 	connect(mapperRead, SIGNAL(mapped(QObject*)), SLOT(clientDataReady(QObject*)));
 
-	myIpAddr = findIp("eth0");
+	myIpAddr = findIp(nwInterfaceName);
 }
 
 /**
@@ -335,7 +339,7 @@ int BaseRtspServer::loadSessions(const QString &filename)
 	int count = 0;
 	while (!in.atEnd()) {
 		QString sessionId; in >> sessionId;
-		BaseRtspSession *ses = new BaseRtspSession(this);
+		BaseRtspSession *ses = new BaseRtspSession(nwInterfaceName, this);
 		int state; in >> state;
 		ses->state = (BaseRtspSession::SessionState)state;
 		in >> ses->transportString;
@@ -722,7 +726,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		}
 		BaseRtspSession *ses = findMulticastSession(stream, media);
 		if (!ses) {
-			ses = new BaseRtspSession(this);
+			ses = new BaseRtspSession(nwInterfaceName, this);
 			ses->peerIp = currentPeerIp;
 			if (multicast)
 				ses->streamIp = getMulticastAddress(stream, media);
@@ -1001,7 +1005,7 @@ QStringList BaseRtspServer::createSdp(QString url)
 	QStringList fields = url.split("/", QString::SkipEmptyParts);
 	QString stream = fields[2];
 	QStringList sdp;
-	myIpAddr = findIp("eth0");
+	myIpAddr = findIp(nwInterfaceName);
 
 	/* According to RFC2326 C.1.7 we should report 0.0.0.0 as dest address */
 	QString dstIp = "0.0.0.0";
@@ -1050,14 +1054,14 @@ QStringList BaseRtspServer::createSdp(QString url)
 	return sdp;
 }
 
-BaseRtspSession::BaseRtspSession(BaseRtspServer *parent)
+BaseRtspSession::BaseRtspSession(const QString &iface, BaseRtspServer *parent)
 	: QObject(parent)
 {
 	timeout = new MyTime;
 	server = parent;
 	state = TEARDOWN;
 	/* Let's find our IP address */
-	myIpAddr = findIp("eth0");
+	myIpAddr = findIp(iface);
 	clientCount = 1;
 	rtspTimeoutEnabled = false;
 	rtpCh = NULL;

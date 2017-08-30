@@ -21,7 +21,7 @@ class BaseRtspSession : public QObject
 {
 	Q_OBJECT
 public:
-	BaseRtspSession(BaseRtspServer *parent);
+	BaseRtspSession(const QString &iface, BaseRtspServer *parent);
 	~BaseRtspSession();
 	int setup(bool mcast, int dPort, int cPort, const QString &streamName, const QString &media);
 	int play();
@@ -88,6 +88,8 @@ public:
 	void addStreamParameter(const QString &streamName, const QString &mediaName, const QString &par, const QVariant &value);
 	const QHash<QString, QVariant> getStreamParameters(const QString &streamName, const QString &mediaName);
 	void setRtspAuthentication(Auth authMethod);
+	QString getNetworkInterface() { return nwInterfaceName; }
+	void setNetworkInterface(const QString &name) { nwInterfaceName = name; }
 
 	/* session API */
 	const QStringList getSessions();
@@ -134,6 +136,7 @@ private:
 	QHash<QString, StreamDescription> streamDescriptions;
 	Auth auth;
 	QMutex sessionLock;
+	QString nwInterfaceName;
 
 	QStringList createRtspErrorResponse(int errcode, QString lsep);
 	QStringList createDescribeResponse(int cseq, QString url, QString lsep);
