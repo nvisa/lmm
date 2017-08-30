@@ -14,6 +14,7 @@ public:
 	explicit FFmpegColorSpace(QObject *parent = 0);
 	int processBuffer(const RawBuffer &buf);
 	int setOutputFormat(int outfmt);
+	int setInputFormat(int infmt);
 signals:
 	
 public slots:

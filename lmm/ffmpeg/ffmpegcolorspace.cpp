@@ -99,6 +99,39 @@ public:
 	}
 };
 
+class ScalerRGB32YUV420P : public BaseVideoScaler
+{
+public:
+	ScalerRGB32YUV420P() {}
+
+	int convert(SwsContext *ctx, const uchar *data, int w, int h, uchar *out)
+	{
+		int stride = w;
+
+		/* src info */
+		int dstStride[3] = { stride, stride / 2, stride / 2};
+		uchar *Y = out;
+		uchar *U = out + stride * h;
+		uchar *V = out + stride * h * 5 / 4;
+		uchar *dst[3] = { Y , U, V };
+
+		/* dst info */
+		int srcStride[1] = { w * 4 };
+		const uchar * src[4] = { data, data, data, data };
+		sws_scale(ctx, src, srcStride, 0, h, dst, dstStride);
+
+		/*qDebug() << "check";
+		qDebug() << ((uintptr_t)dst[0]&15);
+		qDebug() << ((uintptr_t)dst[1]&15);
+		qDebug() << ((uintptr_t)dst[2]&15);
+		qDebug() << ((uintptr_t)src[0]&15);
+		qDebug() << ((uintptr_t)src[1]&15);
+		qDebug() << ((uintptr_t)src[2]&15);*/
+
+		return 0;
+	}
+};
+
 FFmpegColorSpace::FFmpegColorSpace(QObject *parent) :
 	BaseLmmElement(parent)
 {
@@ -112,7 +145,8 @@ int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 	int w = buf.constPars()->videoWidth;
 	int h = buf.constPars()->videoHeight;
 	if (!swsCtx) {
-		inPixFmt = buf.constPars()->avPixelFormat;
+		if (buf.constPars()->avPixelFormat != -1)
+			inPixFmt = buf.constPars()->avPixelFormat;
 		int bufsize = avpicture_get_size((AVPixelFormat)outPixFmt, w, h);
 		swsCtx = sws_getContext(w, h, (AVPixelFormat)inPixFmt, w, h, (AVPixelFormat)outPixFmt, SWS_BICUBIC
 											, NULL, NULL, NULL);
@@ -133,9 +167,12 @@ int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 			scaler = new ScalerNV12RGB32;
 		else if (inPixFmt == AV_PIX_FMT_YUV420P
 				&& outPixFmt == AV_PIX_FMT_RGB24)
-			scaler = new ScalerJPEGYUV420P;
+			scaler = new ScalerGenericRGB;
 		else if (outPixFmt == AV_PIX_FMT_RGB24)
 			scaler = new ScalerGenericRGB;
+		else if (inPixFmt == AV_PIX_FMT_RGBA
+				 && outPixFmt == AV_PIX_FMT_YUV420P)
+			scaler = new ScalerRGB32YUV420P;
 
 		if (!scaler)
 			return -ENOENT;
@@ -161,6 +198,12 @@ int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 int FFmpegColorSpace::setOutputFormat(int outfmt)
 {
 	outPixFmt = outfmt;
+	return 0;
+}
+
+int FFmpegColorSpace::setInputFormat(int infmt)
+{
+	inPixFmt = infmt;
 	return 0;
 }
 
