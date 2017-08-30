@@ -27,4 +27,12 @@
 	#define cpu_is_armv64() 0
 #endif
 
+#if QT_VERSION < 0x050000
+	#define is_qt4() 1
+	#define is_qt5() 0
+#else
+	#define is_qt4() 0
+	#define is_qt5() 1
+#endif
+
 #endif // PLATFORM_INFO_H
