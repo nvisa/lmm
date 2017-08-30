@@ -138,7 +138,7 @@ RtpChannel * RtpTransmitter::addChannel()
 		pt = 8;
 	else if (codec == Lmm::CODEC_META_BILKON)
 		pt = 98;
-	RtpChannel *ch = new RtpChannel(maxPayloadSize, myIpAddr);
+	RtpChannel *ch = createChannel();
 	ch->payloadType = pt;
 	ch->ttl = ttl;
 	ch->useSR = rtcpEnabled;
@@ -176,15 +176,12 @@ Lmm::CodecType RtpTransmitter::getCodec()
 int RtpTransmitter::start()
 {
 	streamedBufferCount = 0;
-	bitrateBufSize = 0;
-	bitrate = 0;
 
 	return BaseLmmElement::start();
 }
 
 int RtpTransmitter::stop()
 {
-	bitrate = 0;
 	return BaseLmmElement::stop();
 }
 
@@ -498,6 +495,11 @@ void RtpTransmitter::channelsCheckRtcp(quint64 ts)
 			channels[i]->sendSR(ts);
 }
 
+RtpChannel *RtpTransmitter::createChannel()
+{
+	return new RtpChannel(maxPayloadSize, myIpAddr);
+}
+
 RtpChannel::RtpChannel(int psize, const QHostAddress &myIpAddr)
 {
 	useSR = true;
@@ -725,7 +727,7 @@ void RtpChannel::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 
 		else
 			rawsock->send((char *)buf, size + 12);
 	} else
-		sock->writeDatagram((const char *)buf, size + 12, QHostAddress(dstIp), dstDataPort);
+		writeSockData((const char *)buf, size + 12);
 	seq = (seq + 1) & 0xffff;
 	totalPacketCount++;
 	totalOctetCount += size;
@@ -855,6 +857,11 @@ uchar *RtpChannel::getRtpBuf(RawNetworkSocket::SockBuffer *sbuf)
 	if (zeroCopy)
 		return (uchar *)sbuf->payload;
 	return tempRtpBuf;
+}
+
+void RtpChannel::writeSockData(const char *buf, int size)
+{
+	sock->writeDatagram(buf, size, QHostAddress(dstIp), dstDataPort);
 }
 
 void RtpChannel::readPendingRtcpDatagrams()

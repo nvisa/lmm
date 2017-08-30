@@ -58,7 +58,7 @@ protected slots:
 
 protected:
 	void sendRR(uint ssrc, const QHostAddress &sender);
-	int processRtpData(const QByteArray &ba, const QHostAddress &sender, quint16 senderPort);
+	virtual int processRtpData(const QByteArray &ba, const QHostAddress &sender, quint16 senderPort);
 	int handleRtpData(const QByteArray &ba);
 
 	int processh264Payload(const QByteArray &ba, uint ts, int last);
