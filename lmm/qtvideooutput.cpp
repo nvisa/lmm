@@ -167,8 +167,13 @@ void VideoWidget::paintEvent(QPaintEvent *)
 		/* video part */
 		const RawBuffer &buf = queue.takeFirst();
 		lock.unlock();
-		QImage im((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
+		QImage im;
+		if (buf.size() == buf.constPars()->videoWidth * buf.constPars()->videoHeight * 3)
+			im = QImage((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
 				  QImage::Format_RGB888);
+		else
+			im = QImage((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
+						QImage::Format_RGB32);
 		p.drawImage(rect(), im);
 	} else
 		lock.unlock();
