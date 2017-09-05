@@ -52,6 +52,7 @@ class QtVideoOutput : public BaseLmmElement
 public:
 	explicit QtVideoOutput(QObject *parent = 0);
 	void setParentWindow(QWidget *p);
+	QWidget * parentWindow();
 	VideoWidget *getWidget();
 
 protected:

@@ -52,6 +52,11 @@ void QtVideoOutput::setParentWindow(QWidget *p)
 	w->show();
 }
 
+QWidget *QtVideoOutput::parentWindow()
+{
+	return w->parentWidget();
+}
+
 VideoWidget *QtVideoOutput::getWidget()
 {
 	return w;
