@@ -113,9 +113,9 @@ RtspClient::RtspClient(QObject *parent) :
 {
 	timer = new QTimer(this);
 	connect(timer, SIGNAL(timeout()), SLOT(timeout()));
-	timer->start(100);
 	state = UNKNOWN;
 	asyncPlay = true;
+	asyncsock = NULL;
 }
 
 int RtspClient::setServerUrl(const QString &url)
@@ -133,6 +133,8 @@ int RtspClient::setServerUrl(const QString &url)
 	if (port < 0)
 		port = 554;
 	asyncsock->connectToHost(rurl.host(), port);
+
+	timer->start(100);
 
 	return 0;
 }
@@ -353,6 +355,8 @@ void RtspClient::clearSetupTracks()
 
 void RtspClient::timeout()
 {
+	if (!asyncsock)
+		return;
 	mInfo("state=%d", state);
 #if 0
 	switch (state) {
