@@ -590,7 +590,7 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 		return err;
 	}
 
-	rateLimit();
+	rateLimit(buffer);
 
 	bool skip = false;
 	if (rc)
@@ -717,12 +717,37 @@ int ElementIOQueue::setRateReduction(float inFps, float outFps)
 	return 0;
 }
 
-void ElementIOQueue::rateLimit()
+/**
+ * @brief ElementIOQueue::rateLimit
+ * @param buffer
+ *
+ * This function should be called with lock held.
+ */
+void ElementIOQueue::rateLimit(const RawBuffer &buffer)
 {
 	if (rlimit == LIMIT_INTERVAL) {
-		while (rlimitTimer->elapsed() < limitInterval)
+		int interval = limitInterval;
+		if (!interval)
+			interval = buffer.constPars()->duration;
+		while (rlimitTimer->elapsed() < interval)
 			usleep(100);
 		rlimitTimer->restart();
+	}
+	if (rlimit == LIMIT_TOTAL_SIZE) {
+		lock.unlock();
+		while (bufSize > limitTotalSize)
+			usleep(100);
+		lock.lock();
+	}
+	while (rlimit == LIMIT_BUFFER_COUNT) {
+		while (1) {
+			int bc = queue.size();
+			if (bc < limitBufferCount)
+				break;
+			lock.unlock();
+			usleep(10000);
+			lock.lock();
+		}
 	}
 }
 
@@ -732,6 +757,20 @@ int ElementIOQueue::setRateLimitInterval(qint64 interval)
 	rlimitTimer = new QElapsedTimer;
 	rlimitTimer->start();
 	rlimit = LIMIT_INTERVAL;
+	return 0;
+}
+
+int ElementIOQueue::setRateLimitBufferCount(int count)
+{
+	limitBufferCount = count;
+	rlimit = LIMIT_BUFFER_COUNT;
+	return 0;
+}
+
+int ElementIOQueue::setRateLimitTotalSize(int size)
+{
+	limitTotalSize = size;
+	rlimit = LIMIT_TOTAL_SIZE;
 	return 0;
 }
 

@@ -126,6 +126,8 @@ public:
 	enum RateLimit {
 		LIMIT_NONE,
 		LIMIT_INTERVAL,
+		LIMIT_BUFFER_COUNT,
+		LIMIT_TOTAL_SIZE,
 	};
 
 	ElementIOQueue();
@@ -150,10 +152,12 @@ public:
 	int getTotalSize() { return bufSize; }
 	int setRateReduction(float inFps, float outFps);
 	int setRateLimitInterval(qint64 interval);
+	int setRateLimitBufferCount(int count);
+	int setRateLimitTotalSize(int size);
 	RateLimit getRateLimit() { return rlimit; }
 
 protected:
-	void rateLimit();
+	void rateLimit(const RawBuffer &buffer);
 	bool acquireSem() __attribute__((warn_unused_result));
 	int checkSizeLimits();
 	void calculateFps();
@@ -162,7 +166,6 @@ protected:
 	QList<RawBuffer> queue;
 	int bufSize;
 	QMutex lock;
-	int totalSize;
 	int receivedCount;
 	int sentCount;
 	QSemaphore * bufSem;
@@ -173,6 +176,8 @@ protected:
 	QWaitCondition * outWc;
 	RateLimit rlimit;
 	qint64 limitInterval;
+	int limitBufferCount;
+	int limitTotalSize;
 	QElapsedTimer *rlimitTimer;
 
 	int _bitrate;
