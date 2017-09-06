@@ -228,6 +228,16 @@ ffmpeg {
     }
 }
 
+ffmpeg_extra {
+    SOURCES += \
+        ffmpeg/ffmpegextra.cpp \
+        ffmpeg/ffmpeg_extra.c
+    HEADERS += \
+        ffmpeg/ffmpegextra.h
+    INCLUDEPATH += "/home/amenmd/myfs/source-codes/oss/FFmpeg"
+    DEFINES += CONFIG_FFMPEG_EXTRA
+}
+
 dmai { include(dmai/dmai.pri) }
 
 dvb {
