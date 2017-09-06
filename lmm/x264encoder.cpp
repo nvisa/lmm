@@ -35,22 +35,28 @@ x264Encoder::x264Encoder(QObject *parent) :
 
 int x264Encoder::start()
 {
-	if (x264_param_default_preset(&priv->param, "ultrafast", NULL) < 0)
+	if (x264_param_default_preset(&priv->param, "medium", NULL) < 0)
 		return -EINVAL;
 	priv->param.i_csp = priv->pixelFormat;
 	priv->param.i_width  = priv->w;
 	priv->param.i_height = priv->h;
 	priv->param.b_vfr_input = 0;
-	priv->param.i_fps_num = 30 * 1000;
+	priv->param.i_fps_num = 25 * 1000;
 	priv->param.i_fps_den = 1000;
-	priv->param.i_timebase_num = 30;
+	priv->param.i_timebase_num = 25;
 	priv->param.i_timebase_den = 1;
 	priv->param.b_repeat_headers = 1;
 	priv->param.b_annexb = 1;
-	priv->param.i_keyint_max = 30;
+	priv->param.i_keyint_max = 25;
+
+	/* rc - CBR at the moment */
+	priv->param.rc.i_rc_method = X264_RC_CRF;
+	priv->param.rc.i_bitrate = 4000;
+	priv->param.rc.i_vbv_max_bitrate = 4000;
+	priv->param.rc.i_vbv_buffer_size = priv->param.rc.i_vbv_max_bitrate * 2;
 
 	/* Apply profile restrictions. */
-	if (x264_param_apply_profile(&priv->param, "baseline") < 0)
+	if (x264_param_apply_profile(&priv->param, "main") < 0)
 		return -EINVAL;
 
 	x264_picture_init(priv->pic);
@@ -96,6 +102,8 @@ int x264Encoder::setVideoResolution(const QSize &sz)
 	priv->h = sz.height();
 	priv->stride = priv->w * 1;
 	priv->pixelFormat = pfmt;
+
+	return 0;
 }
 
 int x264Encoder::setPixelFormat(int fmt)
