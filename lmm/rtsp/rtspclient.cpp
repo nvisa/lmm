@@ -681,10 +681,16 @@ int RtspClient::parseSetupResponse(const QHash<QString, QString> &resp, RtpRecei
 	}
 
 	QUrl url(serverUrl);
-	rtp->setSourceAddress(QHostAddress(url.host()));
 	rtp->setSourceDataPort(p.first);
 	rtp->setSourceControlPort(p.second);
-	rtp->setDestinationControlPort(getField(resp["Transport"], "server_port").split("-").last().toInt());
+	QString transport = resp["Transport"];
+	if (transport.contains("multicast")) {
+		rtp->setDestinationControlPort(p.second);
+		rtp->setSourceAddress(QHostAddress(getField(transport, "destination")));
+	} else {
+		rtp->setDestinationControlPort(getField(transport, "server_port").split("-").last().toInt());
+		rtp->setSourceAddress(QHostAddress(url.host()));
+	}
 	rtp->stop();
 	if (rtp->start())
 		return -EPERM;
