@@ -1,6 +1,7 @@
 #include "rtpreceiver.h"
 #include "debug.h"
 #include "rawbuffer.h"
+#include "h264parser.h"
 
 #include <QFile>
 #include <QDateTime>
@@ -37,6 +38,7 @@ RtpReceiver::RtpReceiver(QObject *parent) :
 	srcDataPort = 0;
 	srcControlPort = 0;
 	sock = NULL;
+	expectedFrameRate = 0;
 }
 
 RtpReceiver::RtpStats RtpReceiver::getStatistics()
@@ -76,6 +78,10 @@ int RtpReceiver::start()
 	stats.packetCount = 0;
 	stats.packetMissing = 0;
 	seqLast = 0;
+	rtpPacketOffset = 0;
+	containsMissing = false;
+	validFrameCount = 0;
+	framingError = false;
 	rtcpTime.start();
 #endif
 	return 0;
@@ -213,14 +219,20 @@ int RtpReceiver::handleRtpData(const QByteArray &ba)
 	uint seq = buf[2] << 8 | buf[3];
 	uint ts = (buf[4] << 24) | (buf[5] << 16) | (buf[6] << 8) | buf[7];
 
-	if (seqLast && seq != seqLast + 1) {
+	bool rollover = (seqLast == 65535 && seq == 0);
+	if (stats.packetCount && seq != seqLast + 1 && !rollover) {
 		int missing = seq - seqLast - 1;
-		ffDebug() << seq << seqLast + 1 << missing;
 		if (missing < 0) {
 		} else
 			stats.packetMissing +=  missing;
-		mDebug("detected a jump in RTP frames");
+		mDebug("%s: detected a jump in RTP frames, expected=%d got=%d missing=%d",
+			   qPrintable(sourceAddr.toString()), seqLast + 1, seq, qAbs(missing));
+		if (seqLast > seq)
+			rollover = true;
+		containsMissing = true;
 	}
+	if (rollover)
+		rtpPacketOffset += 65536;
 	//qDebug() << seq << seqLast;
 	seqLast = seq;
 	stats.packetCount++;
@@ -230,6 +242,41 @@ int RtpReceiver::handleRtpData(const QByteArray &ba)
 		processMetaPayload(ba, ts, last);
 
 	return 0;
+}
+
+void RtpReceiver::h264FramingError()
+{
+	/*
+	 * Case 1: Frame resides in single RTP packet
+	 *
+	 *		- A. We should understand the problem from seq jump i.e.
+	 *		  containsMissing will be true. This should result in
+	 *		  1 frame loss.
+	 *
+	 * Case 2: Frame occupies multiple RTP packets, FU-A'ing
+	 *
+	 *		- A. if we loose a regular packet, no start and no last fu-a,
+	 *		  then containsMissing will be true. This means we exactly
+	 *		  lost 1 frame.
+	 *
+	 *		- B. if we loose FU-A start, currentNal size will be 4 instead
+	 *		  of 5 so we understand we lost start with the next packet.
+	 *		  This should result in 1 frame loss.
+	 *
+	 *		- C. if we loose FU-A end, currentNal size will not be equal
+	 *		  to annexPrefix size at the next FU-A start. This should
+	 *		  result in 1 frame loss.
+	 *
+	 *		- D. if we loose both FU-A start and end, then multiple frames will
+	 *		  be merged into 1 but containsMissing will be true. This should
+	 *		  result in multiple frame loss.
+	 */
+	framingError = true;
+}
+
+int RtpReceiver::getRtpClock()
+{
+	return 90000; //default
 }
 
 int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)
@@ -242,24 +289,56 @@ int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)
 		int start = buf[13] >> 7;
 		int end = (buf[13] >> 6) & 0x1;
 		if (start && currentNal.size() != annexPrefix.size()) {
-			mDebug("fixing buffer size mismatch at FUI start: %d != %d", currentNal.size(), annexPrefix.size());
+			mDebug("buffer size mismatch at FUI start: %d != %d", currentNal.size(), annexPrefix.size());
+			h264FramingError();
 			currentNal = annexPrefix;
 		}
-		if (start)
+		if (start) {
+			firstPacketTs = ts;
 			currentNal.append(type | nri);
+		} else if (currentNal.size() < annexPrefix.size() + 1)
+			h264FramingError();
 		currentNal.append(ba.mid(14));
-		if (end && !last)
+
+		/* check end-last mismatch */
+		if (end && !last) {
 			ffDebug() << "end and last mismatch";
-		if (!end && last)
+			h264FramingError();
+		}
+		if (!end && last) {
 			ffDebug() << "last and end mismatch";
-	}
-	else
+			h264FramingError();
+		}
+
+	} else
 		currentNal.append(ba.mid(12));
 
 	if (last) {
-		RawBuffer buf("application/x-rtp", currentNal.constData(), currentNal.size());
-		buf.pars()->pts = ts;
-		getInputQueue(0)->addBuffer(buf, this);
+		int nal = SimpleH264Parser::getNalType((const uchar *)currentNal.constData());
+		if (expectedFrameRate < 0.001 && nal == SimpleH264Parser::NAL_SPS) {
+			QByteArray spsbuf(currentNal.size(), ' ');
+			SimpleH264Parser::escapeEmulation((uchar *)spsbuf.data(),
+														  (const uchar *)currentNal.constData(), currentNal.size());
+			SimpleH264Parser::sps_t sps = SimpleH264Parser::parseSps((const uchar *)spsbuf.constData());
+			if (sps.vui.num_unit_in_ticks)
+				expectedFrameRate = (float)sps.vui.timescale / sps.vui.num_unit_in_ticks / 2;
+		}
+		if (!containsMissing && !framingError) {
+			RawBuffer buf("application/x-rtp", currentNal.constData(), currentNal.size());
+			buf.pars()->pts = ts;
+			buf.pars()->bufferNo = validFrameCount++;
+			buf.pars()->captureTime = QDateTime::currentMSecsSinceEpoch();
+			getInputQueue(0)->addBuffer(buf, this);
+		} else {
+			validFrameCount++;
+			int tdiffex = getRtpClock() / expectedFrameRate;
+			int tdiff = qAbs(ts - firstPacketTs);
+			int jump = qMax(1, tdiff / tdiffex);
+			validFrameCount += jump;
+			mDebug("Framing error, skipping %d frame(s)", jump);
+		}
+		framingError = false;
+		containsMissing = false;
 		//newOutputBuffer(0, buf);
 		currentNal = annexPrefix;
 	}

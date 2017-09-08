@@ -48,6 +48,8 @@ public:
 	void setSourceControlPort(int port) { srcControlPort = port; }
 	void setSourceAddress(const QHostAddress &addr) { sourceAddr = addr; }
 	RtpStats getStatistics();
+	void setExpectedFramerate(float fps) { expectedFrameRate = fps; }
+	float getExpectedFramerate() { return expectedFrameRate; }
 
 	int start();
 	int stop();
@@ -60,6 +62,8 @@ protected:
 	void sendRR(uint ssrc, const QHostAddress &sender);
 	virtual int processRtpData(const QByteArray &ba, const QHostAddress &sender, quint16 senderPort);
 	int handleRtpData(const QByteArray &ba);
+	void h264FramingError();
+	int getRtpClock();
 
 	int processh264Payload(const QByteArray &ba, uint ts, int last);
 	int processMetaPayload(const QByteArray &ba, uint ts, int last);
@@ -75,12 +79,18 @@ protected:
 	QHostAddress sourceAddr;
 	RtpStats stats;
 	QMap<uint, QByteArray> rtpData;
+	uint rtpPacketOffset;
+	float expectedFrameRate;
 
 	uint seqLast;
 	QByteArray currentNal;
 	QByteArray annexPrefix;
 	int maxPayloadSize;
 	QByteArray currentData;
+	bool containsMissing;
+	int validFrameCount;
+	uint firstPacketTs;
+	bool framingError;
 };
 
 #endif // RTPRECEIVER_H
