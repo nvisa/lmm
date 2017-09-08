@@ -559,6 +559,7 @@ ElementIOQueue::ElementIOQueue()
 	fpsBufferCount = 0;
 	bitrate = _bitrate = 0;
 	rlimit = LIMIT_NONE;
+	rlimitTimer = new QElapsedTimer;
 
 	rc = NULL;
 }
@@ -591,6 +592,7 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 	}
 
 	rateLimit(buffer);
+	rlimitTimer->restart();
 
 	bool skip = false;
 	if (rc)
@@ -754,7 +756,6 @@ void ElementIOQueue::rateLimit(const RawBuffer &buffer)
 int ElementIOQueue::setRateLimitInterval(qint64 interval)
 {
 	limitInterval = interval;
-	rlimitTimer = new QElapsedTimer;
 	rlimitTimer->start();
 	rlimit = LIMIT_INTERVAL;
 	return 0;
@@ -772,6 +773,11 @@ int ElementIOQueue::setRateLimitTotalSize(int size)
 	limitTotalSize = size;
 	rlimit = LIMIT_TOTAL_SIZE;
 	return 0;
+}
+
+qint64 ElementIOQueue::getElapsedSinceLastAdd()
+{
+	return rlimitTimer->elapsed();
 }
 
 bool ElementIOQueue::acquireSem()

@@ -155,6 +155,7 @@ public:
 	int setRateLimitBufferCount(int count);
 	int setRateLimitTotalSize(int size);
 	RateLimit getRateLimit() { return rlimit; }
+	qint64 getElapsedSinceLastAdd();
 
 protected:
 	void rateLimit(const RawBuffer &buffer);
