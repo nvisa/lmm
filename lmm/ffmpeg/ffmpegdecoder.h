@@ -22,7 +22,7 @@ public:
 	virtual void aboutToDeleteBuffer(const RawBufferParameters *params);
 protected:
 	int decode(RawBuffer buf);
-	int decodeH264();
+	int decodeH264(const RawBuffer &lastBuf);
 	void printMotionVectors(AVFrame *pict);
 	void print_vector(int x, int y, int dx, int dy);
 private:
