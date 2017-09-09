@@ -233,7 +233,6 @@ int RtpReceiver::handleRtpData(const QByteArray &ba)
 	}
 	if (rollover)
 		rtpPacketOffset += 65536;
-	//qDebug() << seq << seqLast;
 	seqLast = seq;
 	stats.packetCount++;
 	if (ptype == 96)
@@ -314,6 +313,7 @@ int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)
 		currentNal.append(ba.mid(12));
 
 	if (last) {
+		/* try to extract frame-rate information from SPS */
 		int nal = SimpleH264Parser::getNalType((const uchar *)currentNal.constData());
 		if (expectedFrameRate < 0.001 && nal == SimpleH264Parser::NAL_SPS) {
 			QByteArray spsbuf(currentNal.size(), ' ');
@@ -324,10 +324,28 @@ int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)
 				expectedFrameRate = (float)sps.vui.timescale / sps.vui.num_unit_in_ticks / 2;
 		}
 		if (!containsMissing && !framingError) {
+			/*
+			 * Calculate frame time in terms device's wall clock.
+			 *
+			 * rtcpEpoch is the camera's NTP time at the time of RTCP
+			 * report. rtcpTs is the corresponding RTP timestamp at
+			 * that time.
+			 */
+			qint64 foph = 0;
+			if (ts > stats.rtcpTs) {
+				qint64 rtpDiff = ts - stats.rtcpTs;
+				foph = stats.rtcpEpoch + rtpDiff * 1000 / 90000;
+			} else {
+				qint64 rtpDiff = stats.rtcpTs - ts;
+				foph = stats.rtcpEpoch - rtpDiff * 1000 / 90000;
+			}
+
 			RawBuffer buf("application/x-rtp", currentNal.constData(), currentNal.size());
 			buf.pars()->pts = ts;
 			buf.pars()->bufferNo = validFrameCount++;
 			buf.pars()->captureTime = QDateTime::currentMSecsSinceEpoch();
+			buf.pars()->encodeTime = foph;
+			buf.pars()->streamBufferNo = buf.pars()->bufferNo;
 			getInputQueue(0)->addBuffer(buf, this);
 		} else {
 			validFrameCount++;
