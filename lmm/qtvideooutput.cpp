@@ -78,6 +78,9 @@ VideoWidget::VideoWidget(QWidget *parent)
 	if (sync == TIMER)
 		playbackTimer->start(80);
 	statusOverlay = -1;
+	frameStatsOverlay = -1;
+	dropCount = 0;
+	_paintHook = NULL;
 }
 
 void VideoWidget::paintBuffer(const RawBuffer &buf)
@@ -87,6 +90,7 @@ void VideoWidget::paintBuffer(const RawBuffer &buf)
 	if (queue.size() > 5) {
 		mInfo("dropping frames");
 		queue.takeFirst();
+		dropCount++;
 	}
 	lock.unlock();
 	if (sync == IMMEDIATE)
@@ -110,30 +114,12 @@ void VideoWidget::addStaticOverlay(const QString &line, const QString &family, i
 	overlays << info;
 }
 
-void VideoWidget::addStatusOverlay(const QString &line, const QString &family, int size, int weight, QColor color, QRectF pos)
-{
-	if (statusOverlay != -1)
-		return;
-	OverlayInfo *info = new OverlayInfo;
-	if (!family.isEmpty())
-		info->fontFamily = family;
-	if (size)
-		info->fontSize = size;
-	if (weight)
-		info->fontWeight = weight;
-	info->color = color;
-	info->text = line;
-	info->type = VideoWidget::STATUS;
-	if (pos.width() && pos.height())
-		info->r = pos;
-	statusOverlay = overlays.size();
-	overlays << info;
-}
-
 void VideoWidget::setStatusOverlay(const QString &text)
 {
-	if (statusOverlay == -1)
-		addStatusOverlay(text);
+	if (statusOverlay == -1) {
+		addStaticOverlay(text, "Courier", 16, 8, Qt::yellow, QRectF(0.3, 0.3, 1.0, 1.0));
+		statusOverlay = overlays.size() - 1;
+	}
 	overlays[statusOverlay]->text = text;
 }
 
@@ -164,6 +150,16 @@ void VideoWidget::timeout()
 	repaint();
 }
 
+void VideoWidget::setFrameStats(const QString &text)
+{
+	if (frameStatsOverlay < 0) {
+		addStaticOverlay("");
+		frameStatsOverlay = overlays.size() - 1;
+	}
+	OverlayInfo *overlay = overlays[frameStatsOverlay];
+	overlay->text = text;
+}
+
 void VideoWidget::paintEvent(QPaintEvent *)
 {
 	QPainter p(this);
@@ -180,6 +176,9 @@ void VideoWidget::paintEvent(QPaintEvent *)
 			im = QImage((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
 						QImage::Format_RGB32);
 		p.drawImage(rect(), im);
+
+		if (_paintHook)
+			(*_paintHook)(this, _paintHookPriv, buf);
 	} else
 		lock.unlock();
 
@@ -192,7 +191,7 @@ void VideoWidget::paintEvent(QPaintEvent *)
 
 			//p.setOpacity(info->opacity);
 			//p.drawPixmap(info->r.x(), info->r.y(), plot->toPixmap(info->r.width(), info->r.height()));
-		} else if (info->type == VideoWidget::TEXT || info->type == VideoWidget::STATUS) {
+		} else if (info->type == VideoWidget::TEXT) {
 			if (info->text.isEmpty())
 				continue;
 			p.setFont(QFont(info->fontFamily, info->fontSize, info->fontWeight));
