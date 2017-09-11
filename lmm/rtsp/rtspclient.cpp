@@ -16,7 +16,6 @@ static QHostAddress getConnectionAddress(const QString &conninfo)
 	foreach (const QString &fld, flds) {
 		if (fld.count(".") != 3)
 			continue;
-		qDebug() << fld << fld.count(".") << QHostAddress::parseSubnet(fld);
 		if (fld.contains("/"))
 			return QHostAddress(fld.split("/").first());
 		return QHostAddress(fld);
