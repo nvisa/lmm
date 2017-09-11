@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QObject>
 #include <QStringList>
+#include <QHostAddress>
 #include <QElapsedTimer>
 
 class QTimer;

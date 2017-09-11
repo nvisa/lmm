@@ -10,6 +10,20 @@
 #include <QUdpSocket>
 #include <QElapsedTimer>
 
+static QHostAddress getConnectionAddress(const QString &conninfo)
+{
+	QStringList flds = conninfo.split(" ", QString::SkipEmptyParts);
+	foreach (const QString &fld, flds) {
+		if (fld.count(".") != 3)
+			continue;
+		qDebug() << fld << fld.count(".") << QHostAddress::parseSubnet(fld);
+		if (fld.contains("/"))
+			return QHostAddress(fld.split("/").first());
+		return QHostAddress(fld);
+	}
+	return QHostAddress();
+}
+
 static QPair<int, int> detectLocalPorts()
 {
 	QUdpSocket sock;
@@ -65,14 +79,11 @@ static QStringList createSetupReq(int cseq, QString controlUrl, QString connInfo
 	QStringList lines;
 	lines << QString("SETUP %1 RTSP/1.0").arg(controlUrl);
 	lines << QString("CSeq: %1").arg(cseq);
-	if (!connInfo.contains("239.")) {
-		p = detectLocalPorts();
+	p = detectLocalPorts();
+	if (!getConnectionAddress(connInfo).isInSubnet(QHostAddress::parseSubnet("224.0.0.0/3")))
 		lines << QString("Transport: RTP/AVP;unicast;client_port=%1-%2").arg(p.first).arg(p.second);
-	} else {
-		p.first = 15678;
-		p.second = 15679;
+	else
 		lines << QString("Transport: RTP/AVP;multicast;port=%1-%2").arg(p.first).arg(p.second);
-	}
 	lines << "\r\n";
 	return lines;
 }
@@ -474,6 +485,7 @@ void RtspClient::aSyncDataReady()
 			return;
 		}
 		CSeqRequest req = cseqRequests[cseq];
+		mDebug("Parsing request %s from %s", qPrintable(req.type), qPrintable(asyncsock->peerAddress().toString()));
 		if (req.type == "OPTIONS")
 			parseOptionsResponse(currentResp);
 		else if (req.type == "DESCRIBE")
@@ -487,7 +499,7 @@ void RtspClient::aSyncDataReady()
 		else if (req.type == "GET_PARAMETER")
 			parseKeepAliveResponse(currentResp, req.id);
 		else
-			ffDebug() << "bug is request type" << req.type;
+			ffDebug() << "buggy request type" << req.type;
 	}
 }
 
@@ -692,8 +704,11 @@ int RtspClient::parseSetupResponse(const QHash<QString, QString> &resp, RtpRecei
 		rtp->setSourceAddress(QHostAddress(url.host()));
 	}
 	rtp->stop();
-	if (rtp->start())
+	int err = rtp->start();
+	if (err) {
+		mDebug("error '%d' starting RTP session for '%s'", err, qPrintable(serverUrl));
 		return -EPERM;
+	}
 	ses.rtp = rtp;
 
 	setupedSessions.insert(ses.id, ses);
