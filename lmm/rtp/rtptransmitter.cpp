@@ -756,11 +756,11 @@ void RtpChannel::sendSR(quint64 bufferTs)
 	uint ntps = tv.tv_sec + NTP_OFFSET;
 	uint ntpf = (uint)((tv.tv_usec / 15625.0 ) * 0x04000000 + 0.5);
 	qint64 timet = (qint64)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+	uint currTs = baseTs + (uint)(bufferTs & 0xffffffff);
 	if (!rtcpTs || ntpEpoch > timet) {
-		rtcpTs = baseTs + bufferTs;
+		rtcpTs = currTs;
 		ntpEpoch = timet;
 	}
-
 	buf[8] = (ntps >> 24) & 0xff;
 	buf[9] = (ntps >> 16) & 0xff;
 	buf[10] = (ntps >> 8) & 0xff;
@@ -775,6 +775,18 @@ void RtpChannel::sendSR(quint64 bufferTs)
 	buf[17] = (rtpts >> 16) & 0xff;
 	buf[18] = (rtpts >> 8) & 0xff;
 	buf[19] = (rtpts >> 0) & 0xff;
+
+	/*
+	 * timestamp drift prevention
+	 */
+	uint diff = rtpts - currTs;
+	if (currTs > rtpts)
+		diff = currTs - rtpts;
+	if (diff > 300) {
+		/* don't let 2 timestamps get-out-of sync */
+		rtcpTs = currTs;
+		ntpEpoch = timet;
+	}
 
 	buf[20] = (totalPacketCount >> 24) & 0xff;
 	buf[21] = (totalPacketCount >> 16) & 0xff;
