@@ -905,6 +905,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			buf.pars()->encodeTime = etime;
 			buf.pars()->streamBufferNo = encodeCount;
 			buf.pars()->duration = duration;
+			buf.pars()->captureTime = source.constPars()->captureTime;
 			if (seiDataOffset < end && seiDataOffset > start)
 				insertSeiData(seiDataOffset, hDstBuf, source);
 			memcpy(buf.data(), encdata + start, end - start);
@@ -926,6 +927,7 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		buf.setParameters(source.constPars());
 		buf.pars()->frameType = BufferGfx_getFrameType(buffer);
 		buf.pars()->encodeTime = streamTime->getCurrentTime();
+		buf.pars()->captureTime = source.constPars()->captureTime;
 		buf.pars()->streamBufferNo = encodeCount;
 		buf.pars()->duration = duration;
 		buf.pars()->dmaiBuffer = (quintptr *)hDstBuf;
