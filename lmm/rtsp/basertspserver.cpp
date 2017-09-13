@@ -150,9 +150,12 @@ BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	auth = AUTH_NONE;
 	enabled = true;
 	server = new QTcpServer(this);
-	if (is_qt5() && !server->listen(QHostAddress::AnyIPv4, port)) {
-		mDebug("unable to bind to tcp port %d", port);
-	} else if (is_qt4() && !server->listen(QHostAddress::Any, port))
+#if QT_VERSION < 0x050000
+	QHostAddress::SpecialAddress bindAddr = QHostAddress::Any;
+#else
+	QHostAddress::SpecialAddress bindAddr = QHostAddress::AnyIPv4;
+#endif
+	if (!server->listen(bindAddr, port))
 		mDebug("unable to bind to tcp port %d", port);
 	connect(server, SIGNAL(newConnection()), SLOT(newRtspConnection()));
 	mapperDis = new QSignalMapper(this);

@@ -343,7 +343,9 @@ int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)
 			RawBuffer buf("application/x-rtp", currentNal.constData(), currentNal.size());
 			buf.pars()->pts = ts;
 			buf.pars()->bufferNo = validFrameCount++;
+#if QT_VERSION >= 0x050000
 			buf.pars()->captureTime = QDateTime::currentMSecsSinceEpoch();
+#endif
 			buf.pars()->encodeTime = foph;
 			buf.pars()->streamBufferNo = buf.pars()->bufferNo;
 			getInputQueue(0)->addBuffer(buf, this);
