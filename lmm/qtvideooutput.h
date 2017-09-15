@@ -35,7 +35,7 @@ public:
 	void * getOverlayObject(int index);
 	void setPaintHook(paintHook hook, void *priv) { _paintHook = hook; _paintHookPriv = priv; }
 	int getDropCount() { return dropCount; }
-	void setFrameStats(const QString &text);
+	void setFrameStats(const QString &text, int color = Qt::yellow);
 protected slots:
 	void timeout();
 protected:
