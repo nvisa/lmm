@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QDateTime>
 #include <QUdpSocket>
+#include <QDataStream>
 
 #include <errno.h>
 #include <sys/time.h>
@@ -44,6 +45,11 @@ RtpReceiver::RtpReceiver(QObject *parent) :
 RtpReceiver::RtpStats RtpReceiver::getStatistics()
 {
 	return stats;
+}
+
+RtpReceiver::SeiStats RtpReceiver::getLastSeiData()
+{
+	return seistats;
 }
 
 int RtpReceiver::start()
@@ -278,6 +284,77 @@ int RtpReceiver::getRtpClock()
 	return 90000; //default
 }
 
+static inline qint32 deserH264IntData(QDataStream &in)
+{
+	qint32 val;
+	in >> val;
+	qint32 eprev; in >> eprev;
+	return val;
+}
+
+void RtpReceiver::parseSeiUserData(const RawBuffer &buf)
+{
+	const uchar *data = (const uchar *)buf.constData();
+	int nal = SimpleH264Parser::getNalType(data);
+	if (nal != 6)
+		return;
+	int off = 5;
+	int sei = data[off++];
+	if (sei != 5)
+		return;
+	int seiSize = 0;
+	while (data[off] == 0xff)
+		seiSize += data[off++];
+	seiSize += data[off++];
+	/* skip uuid */
+	off += 16;
+
+	if (seiSize - off <= 0) {
+		mDebug("bad SEI data: size=%d off=%d", seiSize, off);
+		return;
+	}
+	QByteArray ba = QByteArray::fromRawData((const char *)&data[off], buf.size() - off);
+	QDataStream in(ba);
+	in.setByteOrder(QDataStream::LittleEndian);
+	in.setFloatingPointPrecision(QDataStream::SinglePrecision);
+	qint32 key; in >> key;
+	qint32 ver; in >> ver;
+	if (key != 0x78984578 && ver != 0x11220105) {
+		mDebug("key=0x%x or version=0x%x mismatch", key, ver);
+		return;
+	}
+	qint32 cpuload = deserH264IntData(in);
+	qint32 freeMem = deserH264IntData(in);
+	qint32 uptime = deserH264IntData(in);
+	qint32 pid = deserH264IntData(in);
+	qint32 encoderCount = deserH264IntData(in);
+	qint32 sessionCount = deserH264IntData(in) - 5;
+	QList<qint32> counts;
+	qint32 pipeCount = deserH264IntData(in) - 5;
+
+	if (pipeCount) {
+		for (int i = 0; i < pipeCount; i++) {
+			qint32 index = deserH264IntData(in) - 5;
+			qint32 bytes = deserH264IntData(in) - 5;
+			if (index != i) {
+				mDebug("pipe index mismatch");
+				return;
+			}
+			counts << bytes;
+		}
+	}
+
+	seistats.cpuload = cpuload;
+	seistats.bufferUsage = 0;
+	for (int i = 0; i < counts.size(); i++)
+		seistats.bufferUsage += counts[i];
+	seistats.freemem = freeMem;
+	seistats.uptime = uptime;
+	seistats.pid = pid;
+	seistats.bufferCount = encoderCount;
+	seistats.sessionCount = sessionCount;
+}
+
 int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)
 {
 	const uchar *buf = (const uchar *)ba.constData();
@@ -348,6 +425,8 @@ int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)
 #endif
 			buf.pars()->encodeTime = foph;
 			buf.pars()->streamBufferNo = buf.pars()->bufferNo;
+			if (nal == SimpleH264Parser::NAL_SEI)
+				parseSeiUserData(buf);
 			getInputQueue(0)->addBuffer(buf, this);
 		} else {
 			validFrameCount++;

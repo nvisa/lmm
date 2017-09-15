@@ -37,6 +37,15 @@ public:
 		qint64 rtcpMyEpoch;
 		uint rtcpTs;
 	};
+	struct SeiStats {
+		int cpuload;
+		int freemem;
+		int uptime;
+		int pid;
+		int bufferUsage;
+		int bufferCount;
+		int sessionCount;
+	};
 
 	int getSourceDataPort() { return srcDataPort; }
 	int getSourceControlPort() { return srcControlPort; }
@@ -48,6 +57,7 @@ public:
 	void setSourceControlPort(int port) { srcControlPort = port; }
 	void setSourceAddress(const QHostAddress &addr) { sourceAddr = addr; }
 	RtpStats getStatistics();
+	SeiStats getLastSeiData();
 	void setExpectedFramerate(float fps) { expectedFrameRate = fps; }
 	float getExpectedFramerate() { return expectedFrameRate; }
 
@@ -64,6 +74,7 @@ protected:
 	int handleRtpData(const QByteArray &ba);
 	void h264FramingError();
 	int getRtpClock();
+	void parseSeiUserData(const RawBuffer &buf);
 
 	int processh264Payload(const QByteArray &ba, uint ts, int last);
 	int processMetaPayload(const QByteArray &ba, uint ts, int last);
@@ -91,6 +102,7 @@ protected:
 	int validFrameCount;
 	uint firstPacketTs;
 	bool framingError;
+	SeiStats seistats;
 };
 
 #endif // RTPRECEIVER_H
