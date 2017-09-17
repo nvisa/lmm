@@ -60,10 +60,13 @@ public:
 	SeiStats getLastSeiData();
 	void setExpectedFramerate(float fps) { expectedFrameRate = fps; }
 	float getExpectedFramerate() { return expectedFrameRate; }
+	void enableBitrateSummarization(bool v, int interval = 10);
 
 	int start();
 	int stop();
 
+signals:
+	void newSummarizationDataReady(uint size, qint64 ts);
 protected slots:
 	void readPendingRtpDatagrams();
 	void readPendingRtcpDatagrams();
@@ -103,6 +106,20 @@ protected:
 	uint firstPacketTs;
 	bool framingError;
 	SeiStats seistats;
+	struct BitrateSummarization {
+		BitrateSummarization()
+		{
+			summarizeBitrateStats = false;
+			total = 0;
+			interval = 10;
+		}
+
+		bool summarizeBitrateStats;
+		int total;
+		int interval;
+		QElapsedTimer slot;
+	};
+	BitrateSummarization bsum;
 };
 
 #endif // RTPRECEIVER_H

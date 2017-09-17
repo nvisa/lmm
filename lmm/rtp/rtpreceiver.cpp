@@ -52,6 +52,12 @@ RtpReceiver::SeiStats RtpReceiver::getLastSeiData()
 	return seistats;
 }
 
+void RtpReceiver::enableBitrateSummarization(bool v, int interval)
+{
+	bsum.summarizeBitrateStats = v;
+	bsum.interval = interval;
+}
+
 int RtpReceiver::start()
 {
 #if QT_VERSION > 0x050000
@@ -116,6 +122,18 @@ void RtpReceiver::readPendingRtpDatagrams()
 		sock->readDatagram(datagram.data(), datagram.size(),
 								&sender, &senderPort);
 		processRtpData(datagram, QHostAddress(sender.toIPv4Address()), senderPort);
+
+		if (bsum.summarizeBitrateStats) {
+			if (!bsum.total)
+				bsum.slot.start();
+			if (bsum.slot.elapsed() > bsum.interval) {
+				emit newSummarizationDataReady(bsum.total * 1000 * 8 / bsum.slot.elapsed(), QDateTime::currentMSecsSinceEpoch());
+				bsum.total = 0;
+				bsum.slot.restart();
+			}
+			bsum.total += datagram.size();
+		}
+
 	}
 }
 
