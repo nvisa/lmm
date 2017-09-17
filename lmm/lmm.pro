@@ -169,6 +169,7 @@ ffmpeg {
         ffmpeg/ffcompat.h \
         ffmpeg/ffmpegbuffer.h \
         ffmpeg/ffmpegcolorspace.h \
+        ffmpeg/ffmpegcontexter.H \
 
     SOURCES += \
         ffmpeg/baselmmdemux.cpp \
@@ -179,6 +180,7 @@ ffmpeg {
         ffmpeg/avimux.cpp \
         ffmpeg/ffmpegbuffer.cpp \
         ffmpeg/ffmpegcolorspace.cpp \
+        ffmpeg/ffmpegcontexter.cpp \
 
             x86 {
                     SOURCES += \

@@ -139,6 +139,7 @@ int LmmCommon::init()
 	initDebug();
 	platformInit();
 #ifdef CONFIG_FFMPEG
+	av_register_all();
 	avcodec_register_all();
 #endif
 #ifdef CONFIG_GSTREAMER
