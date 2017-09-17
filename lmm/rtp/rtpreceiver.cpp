@@ -127,7 +127,9 @@ void RtpReceiver::readPendingRtpDatagrams()
 			if (!bsum.total)
 				bsum.slot.start();
 			if (bsum.slot.elapsed() > bsum.interval) {
+#if QT_VERSION > 0x050000
 				emit newSummarizationDataReady(bsum.total * 1000 * 8 / bsum.slot.elapsed(), QDateTime::currentMSecsSinceEpoch());
+#endif
 				bsum.total = 0;
 				bsum.slot.restart();
 			}
