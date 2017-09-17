@@ -55,7 +55,7 @@ static QHostAddress findIp(const QString &ifname)
 
 static QByteArray createSei(const char *payload, int psize, uchar ptype)
 {
-	int tsize = psize + 20;
+	int tsize = psize + 16;
 	int i;
 	QByteArray ba;
 	ba.append((uchar)6);
@@ -65,11 +65,8 @@ static QByteArray createSei(const char *payload, int psize, uchar ptype)
 	ba.append((uchar)(tsize - i));
 	for (int i = 0; i < 16; i++)
 		ba.append((uchar)0xAA);
-	ba.append((uchar)(tsize & 0xff));
-	ba.append((uchar)(tsize >> 8));
-	ba.append((uchar)(0x1));
-	ba.append((uchar)(0x1));
 	ba.append(payload, psize);
+	ba.append((uchar)0x80); //RBSP
 	return ba;
 }
 
@@ -312,7 +309,6 @@ void RtpTransmitter::packetizeAndSend(const RawBuffer &buf)
 			uchar type = nalbuf[0] & 0x1F;
 			if (insertH264Sei && buf.constPars()->metaData.size()
 					&&(type == SimpleH264Parser::NAL_SLICE || type == SimpleH264Parser::NAL_SLICE_IDR)) {
-				qDebug() << "sei time";
 				QByteArray sei = createSei(buf.constPars()->metaData, buf.constPars()->metaData.size(), 5);
 				channelsSendNal((const uchar *)sei.constData(), sei.size(), ts);
 			}
