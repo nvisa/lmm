@@ -50,4 +50,7 @@ protected:
 	PipeElementoid *otarget;
 };
 
+#define newFunctionPipe(_class, _inst, _func) \
+	new FunctionPipeElement(new GenericPipeElementoid<_class>(_inst, &_func))
+
 #endif // FUNCTIONPIPEELEMENT_H

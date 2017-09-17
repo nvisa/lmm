@@ -23,5 +23,9 @@ int FunctionPipeElement::processBuffer(const RawBuffer &buf)
 		return newOutputBuffer(buf);
 	}
 
-	return otarget->processBuffer(buf);
+	int err = otarget->processBuffer(buf);
+	if (err)
+		return err;
+
+	return newOutputBuffer(buf);
 }
