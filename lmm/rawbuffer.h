@@ -103,6 +103,8 @@ public:
 	void * data();
 	int size() const;
 	int setUsedSize(int size);
+	static QByteArray serializeMetadata(const QHash<QString, QVariant> &hash);
+	static QHash<QString, QVariant> deserializeMetadata(const QByteArray &ba);
 	QString getMimeType() const;
 	RawBufferParameters * pars();
 	const RawBufferParameters * constPars() const;

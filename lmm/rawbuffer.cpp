@@ -4,6 +4,7 @@
 #include <errno.h>
 
 #include <QVariant>
+#include <QDataStream>
 
 /**
 	\class RawBuffer
@@ -190,6 +191,34 @@ int RawBuffer::setUsedSize(int size)
 		return -EINVAL;
 	d->usedLen = size;
 	return 0;
+}
+
+QByteArray RawBuffer::serializeMetadata(const QHash<QString, QVariant> &hash)
+{
+	QByteArray ba;
+	QDataStream out(&ba, QIODevice::WriteOnly);
+	out.setByteOrder(QDataStream::LittleEndian);
+	out.setFloatingPointPrecision(QDataStream::SinglePrecision);
+	out << (qint32)0x18181239;
+	out << (qint32)QVariant::Hash;
+	out << hash;
+	return ba;
+}
+
+QHash<QString, QVariant> RawBuffer::deserializeMetadata(const QByteArray &ba)
+{
+	QHash<QString, QVariant> hash;
+	QDataStream in(ba);
+	in.setFloatingPointPrecision(QDataStream::SinglePrecision);
+	in.setByteOrder(QDataStream::LittleEndian);
+	qint32 key; in >> key;
+	if (key != 0x18181239)
+		return hash;
+	qint32 type; in >> type;
+	if (type != QVariant::Hash)
+		return hash;
+	in >> hash;
+	return hash;
 }
 
 QString RawBuffer::getMimeType() const
