@@ -5,6 +5,8 @@ extern "C" {
 	#include <libavformat/avformat.h>
 }
 
+#include <unistd.h>
+
 class FFmpegContexterPriv
 {
 public:
@@ -91,7 +93,7 @@ int FFmpegContexter::readPacket(uchar *buffer, int size)
 		} else {
 			memcpy(&buffer[off], buf.constData(), left);
 			RawBuffer bufn(buf.getMimeType(), buf.size() - left);
-			memcpy(bufn.constData(), (const uchar *)buf.constData() + left, buf.size() - left);
+			memcpy(bufn.data(), (const uchar *)buf.constData() + left, buf.size() - left);
 			inputBuffers << bufn;
 			off += left;
 			left -= left;
