@@ -135,7 +135,7 @@ public:
 	ElementIOQueue();
 
 	int waitBuffers(int lessThan);
-	int addBuffer(const RawBuffer &buffer, BaseLmmElement *src);
+	int addBuffer(const RawBuffer &buffer, BaseLmmElement *src, bool releaseSem = true);
 	int addBuffer(const QList<RawBuffer> &list, BaseLmmElement *src);
 	int prependBuffer(const RawBuffer &buffer);
 	RawBuffer getBuffer(BaseLmmElement *src);

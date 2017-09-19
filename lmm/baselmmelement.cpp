@@ -581,7 +581,7 @@ int ElementIOQueue::waitBuffers(int lessThan)
 	return 0;
 }
 
-int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
+int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src, bool releaseSem)
 {
 	if (buffer.size() == 0)
 		return -EINVAL;
@@ -608,7 +608,7 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 	receivedCount++;
 	lock.unlock();
 	notifyEvent(EV_ADD, buffer, src);
-	if (!skip)
+	if (!skip && releaseSem)
 		bufSem->release();
 	return 0;
 }
@@ -616,10 +616,11 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 int ElementIOQueue::addBuffer(const QList<RawBuffer> &list, BaseLmmElement *src)
 {
 	for (int i = 0; i < list.size(); i++) {
-		int err = addBuffer(list[i], src);
+		int err = addBuffer(list[i], src, false);
 		if (err)
 			return err;
 	}
+	bufSem->release(list.size());
 	return 0;
 }
 
