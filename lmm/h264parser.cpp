@@ -313,6 +313,7 @@ int SimpleH264Parser::processBuffer(const RawBuffer &buf)
 		outbuf.pars()->duration = 0;
 		if (spsParsed && (nals[i] == NAL_SLICE_IDR || nals[i] == NAL_SLICE))
 			outbuf.pars()->duration = 1000 / spsFps;
+		outbuf.pars()->metaData = buf.constPars()->metaData;
 		list << outbuf;
 		total += outbuf.size();
 	}
