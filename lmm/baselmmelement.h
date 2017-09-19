@@ -149,7 +149,7 @@ public:
 	int getReceivedCount() const { return receivedCount; }
 	int getSentCount() const { return sentCount; }
 	void setEventHook(eventHook hook, void *priv);
-	int getTotalSize() { return bufSize; }
+	qint64 getTotalSize() { return bufSize; }
 	int setRateReduction(float inFps, float outFps);
 	int setRateLimitInterval(qint64 interval);
 	int setRateLimitBufferCount(int count);
@@ -165,7 +165,7 @@ protected:
 	void notifyEvent(Events ev, const RawBuffer &buf, BaseLmmElement *src);
 
 	QList<RawBuffer> queue;
-	int bufSize;
+	qint64 bufSize;
 	QMutex lock;
 	int receivedCount;
 	int sentCount;
