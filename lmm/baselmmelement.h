@@ -74,6 +74,7 @@ public:
 	int getInputQueueCount();
 	int getOutputQueueCount();
 	virtual qint64 getTotalMemoryUsage();
+	void enableDebug(bool v) { debugElement = v; }
 
 	/* for settings framework */
 	virtual int setSetting(const QString &setting, const QVariant &value);
@@ -98,6 +99,7 @@ protected:
 	UnitTimeStat *processTimeStat;
 	bool passThru;
 	bool eofSent;
+	bool debugElement;
 private:
 	QList<int> inBufSize;
 	bool enabled;

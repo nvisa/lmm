@@ -233,6 +233,7 @@ static void createQueues(QList<ElementIOQueue *> *list, int cnt, BaseLmmElement 
 BaseLmmElement::BaseLmmElement(QObject *parent) :
 	QObject(parent)
 {
+	debugElement = false;
 	state = INIT;
 	streamTime = NULL;
 	processTimeStat = new UnitTimeStat(UnitTimeStat::COUNT);
