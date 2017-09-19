@@ -732,8 +732,12 @@ void ElementIOQueue::rateLimit(const RawBuffer &buffer)
 		int interval = limitInterval;
 		if (!interval)
 			interval = buffer.constPars()->duration;
-		while (rlimitTimer->elapsed() < interval)
-			usleep(100);
+		if (interval) {
+			lock.unlock();
+			while (rlimitTimer->elapsed() < interval)
+				usleep(100);
+			lock.lock();
+		}
 		rlimitTimer->restart();
 	}
 	if (rlimit == LIMIT_TOTAL_SIZE) {
