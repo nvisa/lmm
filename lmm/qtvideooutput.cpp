@@ -150,7 +150,7 @@ void VideoWidget::timeout()
 	repaint();
 }
 
-void VideoWidget::setFrameStats(const QString &text, int color)
+void VideoWidget::setFrameStats(const QString &text, QColor color)
 {
 	if (frameStatsOverlay < 0) {
 		addStaticOverlay("");
