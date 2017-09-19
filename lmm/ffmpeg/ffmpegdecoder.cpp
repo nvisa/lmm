@@ -143,6 +143,8 @@ int FFmpegDecoder::decodeH264(const RawBuffer &lastBuf)
 		outbuf.pars()->captureTime = lastBuf.constPars()->captureTime;
 		outbuf.pars()->encodeTime = lastBuf.constPars()->encodeTime;
 		outbuf.pars()->pts = lastBuf.constPars()->pts;
+		outbuf.pars()->metaData = lastBuf.constPars()->metaData;
+		outbuf.pars()->duration = lastBuf.constPars()->duration;
 		avpicture_layout((AVPicture *)avFrame, codecCtx->pix_fmt, codecCtx->width, codecCtx->height, (uchar *)outbuf.data(), bufsize);
 		newOutputBuffer(0, outbuf);
 	}

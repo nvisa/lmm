@@ -194,6 +194,7 @@ int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 	outbuf.pars()->duration = buf.constPars()->duration;
 	outbuf.pars()->captureTime = buf.constPars()->captureTime;
 	outbuf.pars()->encodeTime = buf.constPars()->encodeTime;
+	outbuf.pars()->metaData = buf.constPars()->metaData;
 	return newOutputBuffer(0, outbuf);
 }
 
