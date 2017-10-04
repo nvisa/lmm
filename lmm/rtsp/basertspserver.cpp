@@ -1012,7 +1012,9 @@ void BaseRtspServer::sendRtspMessage(QTcpSocket *sock, QStringList &lines, const
 QStringList BaseRtspServer::createSdp(QString url)
 {
 	QStringList fields = url.split("/", QString::SkipEmptyParts);
-	QString stream = fields[2];
+	QString stream = "stream1";
+	if (fields.size() > 2)
+		stream = fields[2];
 	QStringList sdp;
 	myIpAddr = findIp(nwInterfaceName);
 
