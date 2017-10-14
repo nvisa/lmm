@@ -38,6 +38,7 @@ public:
 		uint rtcpTs;
 	};
 	struct SeiStats {
+		bool enabled;
 		int cpuload;
 		int freemem;
 		int uptime;

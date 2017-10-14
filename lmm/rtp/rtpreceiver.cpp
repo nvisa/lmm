@@ -40,6 +40,8 @@ RtpReceiver::RtpReceiver(QObject *parent) :
 	srcControlPort = 0;
 	sock = NULL;
 	expectedFrameRate = 0;
+
+	seistats.enabled = false;
 }
 
 RtpReceiver::RtpStats RtpReceiver::getStatistics()
@@ -314,6 +316,8 @@ static inline qint32 deserH264IntData(QDataStream &in)
 
 void RtpReceiver::parseSeiUserData(const RawBuffer &buf)
 {
+	if (!seistats.enabled)
+		return;
 	const uchar *data = (const uchar *)buf.constData();
 	int nal = SimpleH264Parser::getNalType(data);
 	if (nal != 6)
