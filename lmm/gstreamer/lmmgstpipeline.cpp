@@ -7,6 +7,7 @@
 #include <gst/app/gstappsink.h>
 
 #include <errno.h>
+#include <linux/videodev2.h>
 
 static void appSinkEos(GstAppSink *sink, gpointer user_data)
 {
@@ -245,6 +246,17 @@ int LmmGstPipeline::newGstBuffer(GstBuffer *buffer, GstCaps *caps, GstAppSink *s
 	int index = sinks.indexOf(sink);
 	if (sinkCaps[index]->isEmpty())
 		sinkCaps[index]->setCaps(caps, fps);
+
+	BaseGstCaps *bufcaps = sinkCaps[index];
+	if (!bufcaps->vid.format.isEmpty()) {
+		QString format = bufcaps->vid.format;
+		buf.pars()->videoWidth = bufcaps->vid.width;
+		buf.pars()->videoHeight = bufcaps->vid.height;
+		if (format == "NV12")
+			buf.pars()->v4l2PixelFormat = V4L2_PIX_FMT_NV12;
+		else
+			buf.pars()->v4l2PixelFormat = V4L2_PIX_FMT_UYVY;
+	}
 
 	/* forward buffer to our pipeline */
 	newOutputBuffer(0, buf);
