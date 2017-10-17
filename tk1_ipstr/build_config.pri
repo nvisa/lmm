@@ -14,3 +14,9 @@ INCLUDEPATH += $(SDKTARGETSYSROOT)/usr/lib/glib-2.0/include
 INCLUDEPATH += $(SDKTARGETSYSROOT)/usr/include/glib-2.0
 INCLUDEPATH += $(SDKTARGETSYSROOT)/usr/lib/gstreamer-1.0/include
 INCLUDEPATH += $(SDKTARGETSYSROOT)/usr/include/gstreamer-1.0
+
+CONFIG += via
+#LIBS += -L/home/amenmd/myfs/tasks/aselsan/VideoAnalytics/VIA/ -lasel_via
+#LIBS += /home/amenmd/myfs/tasks/aselsan/VideoAnalytics/VIA/libgpu.a
+LIBS += -ldl -L/home/amenmd/myfs/tasks/aselsan/VideoAnalytics/VIA/libinstall/ -lcudart
+VIA_REPO_PATH=/home/amenmd/myfs/tasks/aselsan/VideoAnalytics/VIA/

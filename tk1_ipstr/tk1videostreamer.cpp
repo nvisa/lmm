@@ -9,6 +9,51 @@
 #include <lmm/rtp/rtptransmitter.h>
 #include <lmm/rtsp/basertspserver.h>
 #include <lmm/gstreamer/lmmgstpipeline.h>
+#include <lmm/pipeline/functionpipeelement.h>
+
+#ifdef CONFIG_VIA
+#if 1
+#include <src/via_functions_nocv.h>
+#include <dlfcn.h>
+
+//extern "C" {
+
+//void asel_via_EGO(unsigned char *buf, int size, int width, int height,int RGB_case,int record_case,int shadow_case,int ill_norm_case,int debug_case,unsigned char* meta,unsigned char* metaPC,unsigned char* dataSize,int tilt_degree, int pan_degree)
+//<sextern int asel_via_EGO_test();
+typedef AselsanGenericAnalyzer * (*createAnalyzerSign)(AselsanAnalyzers analyzer);
+
+//}
+static void init_via()
+{
+	void *handle = dlopen("viainst/libasel_via.so", RTLD_GLOBAL | RTLD_NOW);
+	if (!handle) {
+		fDebug("*** error '%s' opening VIA GPU analysis library, GPU functions will not be available. ***", dlerror());
+		return;
+	}
+
+	createAnalyzerSign cfunc = (createAnalyzerSign)dlsym(handle, "createAnalyzer");
+	const char *dlerr = dlerror();
+	if (dlerr) {
+		fDebug("Error '%s' loading symbol 'createAnalyzer'", dlerr);
+		return;
+	}
+	qDebug("Loaded GPU functions %p", cfunc);
+}
+#else
+#include <src/via_functions_nocv.h>
+static void init_via()
+{
+	AselsanVia via;
+	qDebug() << via.asel_via_EGO();
+}
+
+#endif
+#else
+static void init_via()
+{
+
+}
+#endif
 
 /**
  * Some example pipelines:
@@ -35,6 +80,8 @@ TK1VideoStreamer::TK1VideoStreamer(QObject *parent)
 	//vin->setParameter("videoHeight", 1080);
 	//vin->start();
 #endif
+
+	init_via();
 }
 
 int TK1VideoStreamer::serveRtsp(const QString &ip, const QString &stream)
@@ -56,6 +103,7 @@ int TK1VideoStreamer::serveRtsp(const QString &ip, const QString &stream)
 	BaseLmmPipeline *p1 = addPipeline();
 	p1->append(rtp);
 	p1->append(gst1);
+	p1->append(newFunctionPipe(TK1VideoStreamer, this, TK1VideoStreamer::processFrame));
 	p1->end();
 
 	BaseLmmPipeline *p2 = addPipeline();
@@ -144,6 +192,37 @@ int TK1VideoStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 		gst2->addBuffer(0, buf);
 		return 0;
 	}
+	return 0;
+}
+
+int TK1VideoStreamer::processFrame(const RawBuffer &buf)
+{
+#ifdef CONFIG_VIA
+	int w = buf.constPars()->videoWidth;
+	int h = buf.constPars()->videoHeight;
+	//asel_via_EGO(buf.constData(), buf.size(), w, h, );
+	int rgb = 0;
+	int shadow = 0;
+	int record = 0;
+	int ill = 0;
+	int debug = 0;
+	uchar meta[4096];
+	uchar *metaPC = NULL; // not used for EGO
+	uchar *dataSize = NULL; //not used for EGO
+	int tilt_degree = 0; // not used for EGO
+	int pan_degree = 0; // not used for EGO
+
+	/*
+	 * asel_via_EGO, and others probably, seems like expecting a grayscale viddeo for rgb=0 case. (buf.size() should be w * h)
+	 * At this point, we assume we have an NV12 video so passing first w * h bytes to the tracking function should be valid
+	 * function call ;)
+	 */
+	int bufsize = w * h;
+
+	//asel_via_EGO((uchar *)buf.constData(), bufsize, w, h, rgb, record, shadow, ill, debug, meta, metaPC, dataSize, tilt_degree, pan_degree);
+
+
+#endif
 	return 0;
 }
 
