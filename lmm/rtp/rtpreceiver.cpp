@@ -314,6 +314,15 @@ static inline qint32 deserH264IntData(QDataStream &in)
 	return val;
 }
 
+static bool isSupportedVersion(qint32 ver)
+{
+	if (ver < 0x11220105)
+		return false;
+	if (ver > 0x11220106)
+		return false;
+	return true;
+}
+
 void RtpReceiver::parseSeiUserData(const RawBuffer &buf)
 {
 	if (!seistats.enabled)
@@ -343,7 +352,7 @@ void RtpReceiver::parseSeiUserData(const RawBuffer &buf)
 	in.setFloatingPointPrecision(QDataStream::SinglePrecision);
 	qint32 key; in >> key;
 	qint32 ver; in >> ver;
-	if (key != 0x78984578 && ver != 0x11220105) {
+	if (key != 0x78984578 && !isSupportedVersion(ver)) {
 		mDebug("key=0x%x or version=0x%x mismatch", key, ver);
 		return;
 	}
@@ -367,6 +376,9 @@ void RtpReceiver::parseSeiUserData(const RawBuffer &buf)
 			counts << bytes;
 		}
 	}
+	QByteArray meta;
+	if (ver >= 0x11220106)
+		in >> meta;
 
 	seistats.cpuload = cpuload;
 	seistats.bufferUsage = 0;
@@ -377,6 +389,7 @@ void RtpReceiver::parseSeiUserData(const RawBuffer &buf)
 	seistats.pid = pid;
 	seistats.bufferCount = encoderCount;
 	seistats.sessionCount = sessionCount;
+	seistats.meta = meta;
 }
 
 int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)

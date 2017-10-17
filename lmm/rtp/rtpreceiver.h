@@ -46,6 +46,7 @@ public:
 		int bufferUsage;
 		int bufferCount;
 		int sessionCount;
+		QByteArray meta;
 	};
 
 	int getSourceDataPort() { return srcDataPort; }
