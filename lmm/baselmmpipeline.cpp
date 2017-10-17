@@ -110,6 +110,14 @@ int BaseLmmPipeline::stop()
 	return BaseLmmElement::stop();
 }
 
+int BaseLmmPipeline::flush()
+{
+	for (int i = 0; i < pipesNew.size(); i++) {
+		pipesNew[i]->flush();
+	}
+	return BaseLmmElement::flush();
+}
+
 int BaseLmmPipeline::getPipeCount()
 {
 	return pipesNew.size();

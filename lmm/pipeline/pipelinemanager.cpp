@@ -48,6 +48,13 @@ int PipelineManager::stop()
 	return BaseLmmElement::stop();
 }
 
+int PipelineManager::flush()
+{
+	for (int i = 0; i < pipelines.size(); i++)
+		pipelines[i]->flush();
+	return BaseLmmElement::flush();
+}
+
 int PipelineManager::getPipelineCount()
 {
 	return pipelines.size();
