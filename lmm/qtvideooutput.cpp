@@ -177,6 +177,7 @@ void VideoWidget::paintEvent(QPaintEvent *)
 			im = QImage((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
 						QImage::Format_RGB32);
 		p.drawImage(rect(), im);
+		lastBufferTs = buf.constPars()->captureTime;
 
 		if (_paintHook)
 			(*_paintHook)(this, _paintHookPriv, buf);

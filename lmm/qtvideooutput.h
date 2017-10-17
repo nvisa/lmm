@@ -36,6 +36,7 @@ public:
 	void setPaintHook(paintHook hook, void *priv) { _paintHook = hook; _paintHookPriv = priv; }
 	int getDropCount() { return dropCount; }
 	void setFrameStats(const QString &text, QColor color = Qt::yellow);
+	qint64 getLastBuffetTs() { return lastBufferTs; }
 protected slots:
 	void timeout();
 protected:
@@ -51,6 +52,7 @@ protected:
 	int dropCount;
 	paintHook _paintHook;
 	void *_paintHookPriv;
+	qint64 lastBufferTs;
 };
 
 class QtVideoOutput : public BaseLmmElement
