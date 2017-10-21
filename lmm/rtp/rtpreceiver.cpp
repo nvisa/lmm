@@ -42,6 +42,7 @@ RtpReceiver::RtpReceiver(QObject *parent) :
 	expectedFrameRate = 0;
 
 	seistats.enabled = false;
+	bsum.summarizeBitrateStats = false;
 }
 
 RtpReceiver::RtpStats RtpReceiver::getStatistics()
