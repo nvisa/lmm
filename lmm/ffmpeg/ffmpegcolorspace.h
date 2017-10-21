@@ -15,6 +15,8 @@ public:
 	int processBuffer(const RawBuffer &buf);
 	int setOutputFormat(int outfmt);
 	int setInputFormat(int infmt);
+	int getBufferCount() { return bufferCount; }
+	void setBufferCount(int v) { bufferCount = v; }
 signals:
 	
 public slots:
@@ -25,6 +27,7 @@ protected:
 	int outPixFmt;
 	QString mime;
 	BaseVideoScaler *scaler;
+	int bufferCount;
 
 	void aboutToDeleteBuffer(const RawBufferParameters *params);
 };

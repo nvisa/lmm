@@ -138,6 +138,7 @@ FFmpegColorSpace::FFmpegColorSpace(QObject *parent) :
 	swsCtx = NULL;
 	pool = new LmmBufferPool(this);
 	scaler = NULL;
+	bufferCount = 15;
 }
 
 int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
@@ -150,7 +151,7 @@ int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 		int bufsize = avpicture_get_size((AVPixelFormat)outPixFmt, w, h);
 		swsCtx = sws_getContext(w, h, (AVPixelFormat)inPixFmt, w, h, (AVPixelFormat)outPixFmt, SWS_BICUBIC
 											, NULL, NULL, NULL);
-		for (int i = 0; i < 15; i++) {
+		for (int i = 0; i < bufferCount; i++) {
 			mInfo("allocating sw scale buffer %d with size %dx%d", i, w, h);
 			RawBuffer buffer(mime, bufsize);
 			pool->addBuffer(buffer);

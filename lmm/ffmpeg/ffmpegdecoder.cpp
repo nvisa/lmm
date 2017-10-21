@@ -51,6 +51,7 @@ int FFmpegDecoder::startDecoding()
 	avFrame = av_frame_alloc();
 	decodeCount = 0;
 	detectedWidth = detectedHeight = 0;
+	bufferCount = 10;
 	return 0;
 }
 
@@ -129,7 +130,7 @@ int FFmpegDecoder::decodeH264(const RawBuffer &lastBuf)
 	if (finished) {
 		int bufsize = avpicture_get_size(codecCtx->pix_fmt, codecCtx->width, codecCtx->height);
 		if (pool->freeBufferCount() == 0 && pool->usedBufferCount() == 0) {
-			for (int i = 0; i < 10; i++)
+			for (int i = 0; i < bufferCount; i++)
 				pool->addBuffer(RawBuffer("video/h-264", bufsize, this));
 		}
 		RawBuffer refbuf = pool->take(true);
