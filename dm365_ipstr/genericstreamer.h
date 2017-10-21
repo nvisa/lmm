@@ -26,6 +26,8 @@ protected:
 	virtual int pipelineOutput(BaseLmmPipeline *p, const RawBuffer &);
 	QVariant getRtspStats(const QString &fld);
 	int getWdogKey();
+	int generateCustomSEI(const RawBuffer &buf);
+	void initCustomSEI();
 
 	TextOverlay * createTextOverlay(const QString &elementName, ApplicationSettings *s);
 	H264Encoder * createH264Encoder(const QString &elementName, ApplicationSettings *s, int ch, int w0, int h0);
@@ -46,6 +48,26 @@ protected:
 	int wdogimpl;
 	QElapsedTimer lockCheckTimer;
 	bool noRtspContinueSupport;
+
+	struct CustomSeiStruct {
+		qint32 cpuload;
+		qint32 freemem;
+		qint32 uptime;
+		qint32 pid;
+		qint32 rtspSessionCount;
+		QElapsedTimer t;
+		QMutex lock;
+
+		bool inited;
+
+		QByteArray serdata;
+		QDataStream out;
+		qint64 encodeCountPos;
+		qint64 frameHashPos;
+		qint64 cpuLoadPos;
+		qint64 plStatsPos;
+	};
+	CustomSeiStruct customSei;
 
 	// LmmPBusInterface interface
 public:

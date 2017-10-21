@@ -8,11 +8,14 @@
 #include <lmm/alsa/alsaoutput.h>
 
 #include <ecl/debug.h>
+#include <ecl/drivers/systeminfo.h>
 #include <ecl/drivers/hardwareoperations.h>
 #include <ecl/settings/applicationsettings.h>
 
+#include <lmm/h264parser.h>
 #include <lmm/textoverlay.h>
 #include <lmm/bufferqueue.h>
+#include <lmm/tools/cpuload.h>
 #include <lmm/baselmmpipeline.h>
 #include <lmm/dmai/h264encoder.h>
 #include <lmm/dmai/jpegencoder.h>
@@ -20,13 +23,24 @@
 #include <lmm/dm365/dm365dmacopy.h>
 #include <lmm/rtsp/basertspserver.h>
 #include <lmm/dm365/dm365camerainput.h>
+#include <lmm/pipeline/functionpipeelement.h>
 #include <lmm/interfaces/streamcontrolelementinterface.h>
 
+#include <QBuffer>
 #include <QCoreApplication>
+#include <QCryptographicHash>
 
 #include <errno.h>
 
 #define getss(nodedef) gets(s, pre, nodedef)
+
+static inline void serH264IntData(QDataStream &out, qint32 data)
+{
+	if (data < 5)
+		data += 5;
+	out << data;
+	out << (qint32)0xffffffff;
+}
 
 static QHash<int, int> getInterrupts()
 {
@@ -65,6 +79,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	lastIrqk = 0;
 	lastIrqkSource = 0;
 	wdogimpl = s->get("config.watchdog_implementation").toInt();
+	customSei.inited = false;
 
 	/* rtsp server */
 	QString rtspConfig = s->get("video_encoding.rtsp.stream_config").toString();
@@ -186,6 +201,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 									   getss("traffic_shaping_average").toInt(),
 									   getss("traffic_shaping_burst").toInt(),
 									   getss("traffic_shaping_duration").toInt());
+				if (getss("object_name") == "RtpHigh")
+					rtp->setH264SEIInsertion(s->get("video_encoding.ch.0.sei_enabled").toBool());
 				el = rtp;
 
 				int streamCount = s->getArraySize(QString("%1.rtsp").arg(pre));
@@ -253,6 +270,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 				MetadataGenerator *mgen = new MetadataGenerator(this);
 				metaGenerators << mgen;
 				el = mgen;
+			} else if (type == "CustomSeiFunction1") {
+
+				el = newFunctionPipe(GenericStreamer, this, GenericStreamer::generateCustomSEI);
 			}
 
 			if (!el) {
@@ -352,6 +372,23 @@ void GenericStreamer::timeout()
 		}
 	}
 	PipelineManager::timeout();
+
+	if (customSei.inited) {
+		customSei.lock.lock();
+		customSei.rtspSessionCount = rtsp->getSessions().size();
+		if (customSei.t.elapsed() > 5000) {
+			customSei.t.restart();
+			customSei.cpuload = CpuLoad::getAverageCpuLoad();
+			customSei.freemem = SystemInfo::getFreeMemory();
+			customSei.uptime = SystemInfo::getUptime();
+
+			customSei.out.device()->seek(customSei.cpuLoadPos);
+			serH264IntData(customSei.out, customSei.cpuload);
+			serH264IntData(customSei.out, customSei.freemem);
+			serH264IntData(customSei.out, customSei.uptime);
+		}
+		customSei.lock.unlock();
+	}
 }
 
 void GenericStreamer::postInitPipeline(BaseLmmPipeline *p)
@@ -366,6 +403,9 @@ void GenericStreamer::postInitPipeline(BaseLmmPipeline *p)
 				sel->setMotionDetectionProvider(eel);
 		}
 	}
+
+	if (ApplicationSettings::instance()->get("video_encoding.ch.0.sei_enabled").toBool())
+		initCustomSEI();
 }
 
 int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
@@ -519,6 +559,91 @@ int GenericStreamer::getWdogKey()
 	return err;
 }
 
+int GenericStreamer::generateCustomSEI(const RawBuffer &buf)
+{
+	if (!customSei.inited)
+		return 0;
+	int nal = buf.constPars()->h264NalType;
+	if (nal == SimpleH264Parser::NAL_SLICE || nal == SimpleH264Parser::NAL_SLICE_IDR) {
+		customSei.lock.lock();
+
+		customSei.out.device()->seek(customSei.encodeCountPos);
+		serH264IntData(customSei.out, buf.constPars()->streamBufferNo);
+		serH264IntData(customSei.out, customSei.rtspSessionCount);
+		if (customSei.plStatsPos) {
+			customSei.out.device()->seek(customSei.plStatsPos);
+			BaseLmmPipeline *pl = getPipeline(0);
+			serH264IntData(customSei.out, pl->getPipeCount() + 5);
+			for (int i = 0; i < pl->getPipeCount(); i++) {
+				int bytes = pl->getPipe(i)->getTotalMemoryUsage();
+				serH264IntData(customSei.out, i);
+				serH264IntData(customSei.out, bytes + 5);
+			}
+		}
+
+		RawBuffer *buf2 = (RawBuffer *)&buf;
+		buf2->pars()->metaData = QByteArray(customSei.serdata.constData(), customSei.serdata.size());
+
+		customSei.lock.unlock();
+
+		/* write frame hash */
+		char *hashData = (char *)buf2->constPars()->metaData.data() + customSei.frameHashPos;
+		const QByteArray &ba = QByteArray::fromRawData((const char *)buf.constData(), buf.size() > 32768 ? 32768 : buf.size());
+		QByteArray hash = QCryptographicHash::hash(ba, QCryptographicHash::Md5);
+		memcpy(hashData, hash.constData(), hash.size());
+	}
+
+	return 0;
+}
+
+void GenericStreamer::initCustomSEI()
+{
+	mDebug("init custom SEI on encode channel 0");
+	customSei.inited = true;
+	customSei.t.start();
+	customSei.cpuload = 0;
+	customSei.freemem = 0;
+	customSei.uptime = 0;
+	customSei.pid = getpid();
+	customSei.rtspSessionCount = 0;
+
+	QBuffer *seibuf = new QBuffer(&customSei.serdata, this);
+	seibuf->open(QIODevice::WriteOnly);
+	customSei.out.setDevice(seibuf);
+	customSei.out.setByteOrder(QDataStream::LittleEndian);
+	customSei.out.setFloatingPointPrecision(QDataStream::SinglePrecision);
+
+	customSei.out << (qint32)0x78984578;
+	customSei.out << (qint32)0x11220105; //version
+
+	customSei.cpuLoadPos = customSei.out.device()->pos();
+	serH264IntData(customSei.out, customSei.cpuload);
+	serH264IntData(customSei.out, customSei.freemem);
+	serH264IntData(customSei.out, customSei.uptime);
+	serH264IntData(customSei.out, customSei.pid);
+	customSei.encodeCountPos = customSei.out.device()->pos();
+	serH264IntData(customSei.out, (qint32)0);
+	serH264IntData(customSei.out, customSei.rtspSessionCount + 5);
+	customSei.plStatsPos = 0;
+#if 1
+	BaseLmmPipeline *pl = getPipeline(0);
+	if (pl) {
+		customSei.plStatsPos = customSei.out.device()->pos();
+		serH264IntData(customSei.out, pl->getPipeCount() + 5);
+		for (int i = 0; i < pl->getPipeCount(); i++) {
+			int bytes = pl->getPipe(i)->getTotalMemoryUsage();
+			serH264IntData(customSei.out, i);
+			serH264IntData(customSei.out, bytes + 5);
+		}
+	} else
+#endif
+		serH264IntData(customSei.out, 5);
+	/* write placeholder for frame hash */
+	customSei.frameHashPos = customSei.out.device()->pos() + 4; //remember first there is length field(32-bit)
+	QByteArray hash = QCryptographicHash::hash(QByteArray("0", 1), QCryptographicHash::Md5);
+	customSei.out.writeBytes(hash.constData(), hash.size());
+}
+
 TextOverlay * GenericStreamer::createTextOverlay(const QString &elementName, ApplicationSettings *s)
 {
 	/* overlay element, only for High res channel */
@@ -560,7 +685,8 @@ H264Encoder * GenericStreamer::createH264Encoder(const QString &elementName, App
 	enc->setParameter("videoHeight", h0);
 	enc->setBufferCount(bufCnt);
 	enc->setProfile(profile);
-	enc->setSeiEnabled(s->get(QString("video_encoding.ch.%1.sei_enabled").arg(ch)).toBool());
+	/* we support SEI at RTP level, so bypassing encoder support */
+	enc->setSeiEnabled(false);
 	enc->setPacketized(s->get(QString("video_encoding.ch.%1.packetized").arg(ch)).toBool());
 	enc->setFrameRate(getVideoFps(ch));
 	enc->setIntraFrameInterval(s->get(QString("video_encoding.ch.%1.intraframe_interval").arg(ch)).toInt());
