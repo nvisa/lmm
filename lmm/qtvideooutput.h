@@ -35,6 +35,8 @@ public:
 	void * getOverlayObject(int index);
 	void setPaintHook(paintHook hook, void *priv) { _paintHook = hook; _paintHookPriv = priv; }
 	int getDropCount() { return dropCount; }
+	int getRenderCount() { return renderCount; }
+	int getLastBufferNo() { return lastBufferNo; }
 	void setFrameStats(const QString &text, QColor color = Qt::yellow);
 	qint64 getLastBuffetTs() { return lastBufferTs; }
 protected slots:
@@ -50,9 +52,11 @@ protected:
 	int statusOverlay;
 	int frameStatsOverlay;
 	int dropCount;
+	int renderCount;
 	paintHook _paintHook;
 	void *_paintHookPriv;
 	qint64 lastBufferTs;
+	int lastBufferNo;
 };
 
 class QtVideoOutput : public BaseLmmElement

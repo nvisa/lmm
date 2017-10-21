@@ -79,7 +79,7 @@ VideoWidget::VideoWidget(QWidget *parent)
 		playbackTimer->start(80);
 	statusOverlay = -1;
 	frameStatsOverlay = -1;
-	dropCount = 0;
+	dropCount = renderCount = 0;
 	_paintHook = NULL;
 }
 
@@ -178,6 +178,8 @@ void VideoWidget::paintEvent(QPaintEvent *)
 						QImage::Format_RGB32);
 		p.drawImage(rect(), im);
 		lastBufferTs = buf.constPars()->captureTime;
+		lastBufferNo = buf.constPars()->streamBufferNo;
+		renderCount++;
 
 		if (_paintHook)
 			(*_paintHook)(this, _paintHookPriv, buf);
