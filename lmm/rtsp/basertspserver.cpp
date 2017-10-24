@@ -246,6 +246,12 @@ void BaseRtspServer::setRtspAuthentication(BaseRtspServer::Auth authMethod)
 	auth = authMethod;
 }
 
+void BaseRtspServer::setRtspAuthenticationCredentials(const QString &username, const QString &password)
+{
+	authUsername = username;
+	authPassword = password;
+}
+
 const QStringList BaseRtspServer::getSessions()
 {
 	return sessions.keys();
@@ -966,7 +972,7 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 		QStringList creds = cred.split(":");
 		if (creds.size() != 2)
 			return createRtspErrorResponse(401, lsep);
-		if (creds[0] != "aselsan" || creds[1] != "aselsan")
+		if (creds[0] != authUsername || creds[1] != authPassword)
 			return createRtspErrorResponse(401, lsep);
 	}
 

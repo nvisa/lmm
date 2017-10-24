@@ -90,6 +90,7 @@ public:
 	void setRtspAuthentication(Auth authMethod);
 	QString getNetworkInterface() { return nwInterfaceName; }
 	void setNetworkInterface(const QString &name) { nwInterfaceName = name; }
+	void setRtspAuthenticationCredentials(const QString &username, const QString &password);
 
 	/* session API */
 	const QStringList getSessions();
@@ -137,6 +138,8 @@ private:
 	Auth auth;
 	QMutex sessionLock;
 	QString nwInterfaceName;
+	QString authUsername;
+	QString authPassword;
 
 	QStringList createRtspErrorResponse(int errcode, QString lsep);
 	QStringList createDescribeResponse(int cseq, QString url, QString lsep);
