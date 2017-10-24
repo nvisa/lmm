@@ -258,6 +258,10 @@ int RtpTransmitter::processBuffer(const RawBuffer &buf)
 	else if (getCodec() == Lmm::CODEC_JPEG)
 		sendJpegData(buf);
 
+	/* let's prevent too much of buffer accumulation */
+	if (getInputQueue(0)->getTotalSize() > 1024 * 1024 * 2)
+		getInputQueue(0)->clear();
+
 	streamLock.unlock();
 	streamedBufferCount++;
 	return newOutputBuffer(0, buf);
