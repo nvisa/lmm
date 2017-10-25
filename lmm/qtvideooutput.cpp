@@ -75,12 +75,13 @@ VideoWidget::VideoWidget(QWidget *parent)
 	playbackTimer = new QTimer(this);
 	connect(playbackTimer, SIGNAL(timeout()), SLOT(timeout()));
 	sync = TIMER;
-	if (sync == TIMER)
+	if (sync == TIMER || sync == TIMESTAMP)
 		playbackTimer->start(80);
 	statusOverlay = -1;
 	frameStatsOverlay = -1;
 	dropCount = renderCount = 0;
 	_paintHook = NULL;
+	refWallTime = 0;
 }
 
 void VideoWidget::paintBuffer(const RawBuffer &buf)
@@ -161,30 +162,19 @@ void VideoWidget::setFrameStats(const QString &text, QColor color)
 	overlay->text = text;
 }
 
+int VideoWidget::getBufferCount()
+{
+	QMutexLocker l(&lock);
+	return queue.size();
+}
+
 void VideoWidget::paintEvent(QPaintEvent *)
 {
 	QPainter p(this);
-	lock.lock();
-	if (queue.size()) {
-		/* video part */
-		const RawBuffer &buf = queue.takeFirst();
-		lock.unlock();
-		QImage im;
-		if (buf.size() == buf.constPars()->videoWidth * buf.constPars()->videoHeight * 3)
-			im = QImage((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
-				  QImage::Format_RGB888);
-		else
-			im = QImage((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
-						QImage::Format_RGB32);
-		p.drawImage(rect(), im);
-		lastBufferTs = buf.constPars()->captureTime;
-		lastBufferNo = buf.constPars()->streamBufferNo;
-		renderCount++;
-
-		if (_paintHook)
-			(*_paintHook)(this, _paintHookPriv, buf);
-	} else
-		lock.unlock();
+	if (sync == TIMER)
+		paintOneFrame(&p);
+	else if (sync == TIMESTAMP)
+		paintWithTs(&p);
 
 	/* draw overlay */
 	for (int i = 0; i < overlays.size(); i++) {
@@ -207,4 +197,67 @@ void VideoWidget::paintEvent(QPaintEvent *)
 			p.drawText(r, Qt::AlignLeft | Qt::AlignTop, info->text);
 		}
 	}
+}
+
+qint64 VideoWidget::interpolatePts(int ts)
+{
+	if (!refWallTime) {
+		refWallTime = QDateTime::currentMSecsSinceEpoch();
+		refTs = ts;
+	}
+
+	return (ts - refTs) / 90 + refWallTime;
+}
+
+void VideoWidget::paintOneFrame(QPainter *p)
+{
+	lock.lock();
+	if (queue.size()) {
+		/* video part */
+		const RawBuffer &buf = queue.takeFirst();
+		lock.unlock();
+		paintBuffer(buf, p);
+	} else
+		lock.unlock();
+}
+
+void VideoWidget::paintWithTs(QPainter *p)
+{
+	lock.lock();
+	while (queue.size()) {
+		const RawBuffer &buf = queue.takeFirst();
+
+		qint64 now = QDateTime::currentMSecsSinceEpoch();
+		qint64 pts = interpolatePts(buf.constPars()->pts);
+		int diff = qAbs(now - pts);
+		if (diff > 1000) {
+			ffDebug() << "frame too late" << diff;
+			dropCount++;
+			continue;
+		}
+
+		/* we paint one frame and quit */
+		lock.unlock();
+		paintBuffer(buf, p);
+		return;
+	}
+	lock.unlock();
+}
+
+void VideoWidget::paintBuffer(const RawBuffer &buf, QPainter *p)
+{
+	QImage im;
+	if (buf.size() == buf.constPars()->videoWidth * buf.constPars()->videoHeight * 3)
+		im = QImage((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
+			  QImage::Format_RGB888);
+	else
+		im = QImage((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
+					QImage::Format_RGB32);
+	p->drawImage(rect(), im);
+	lastBufferTs = buf.constPars()->captureTime;
+	lastBufferNo = buf.constPars()->streamBufferNo;
+	renderCount++;
+
+	if (_paintHook)
+		(*_paintHook)(this, _paintHookPriv, buf);
 }

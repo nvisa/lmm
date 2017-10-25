@@ -20,7 +20,8 @@ public:
 
 	enum SyncMethod {
 		IMMEDIATE,
-		TIMER
+		TIMER,
+		TIMESTAMP,
 	};
 
 	enum OverlayType {
@@ -38,11 +39,16 @@ public:
 	int getRenderCount() { return renderCount; }
 	int getLastBufferNo() { return lastBufferNo; }
 	void setFrameStats(const QString &text, QColor color = Qt::yellow);
+	int getBufferCount();
 	qint64 getLastBuffetTs() { return lastBufferTs; }
 protected slots:
 	void timeout();
 protected:
 	void paintEvent(QPaintEvent *);
+	qint64 interpolatePts(int ts);
+	void paintOneFrame(QPainter *p);
+	void paintWithTs(QPainter *p);
+	void paintBuffer(const RawBuffer &buf, QPainter *p);
 
 	QMutex lock;
 	QList<RawBuffer> queue;
@@ -57,6 +63,8 @@ protected:
 	void *_paintHookPriv;
 	qint64 lastBufferTs;
 	int lastBufferNo;
+	qint64 refWallTime;
+	int refTs;
 };
 
 class QtVideoOutput : public BaseLmmElement
