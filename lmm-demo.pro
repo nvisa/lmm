@@ -21,7 +21,6 @@ linux-gnueabi-oe-g++ {
 
 linux-g++-64 {
     message(x86 build)
-    SUBDIRS += desktop_str lmm_nvr
 }
 
 linux-oe-g++ {
