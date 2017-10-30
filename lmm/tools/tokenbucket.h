@@ -16,11 +16,16 @@ public:
 	void checkTime();
 	int get(int count);
 	void setPars(int averageRate, int burstRate, int burstDuration = 50);
+	void setParsLeaky(int averageRate, int checkDuration = 50);
+
+protected:
+	int releaseLeakyTokens();
 
 private:
 	QMutex l;
 	QElapsedTimer t;
 	int tokens;
+	bool leaky;
 
 	/* parameters */
 	int b;
