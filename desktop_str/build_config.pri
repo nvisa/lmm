@@ -6,7 +6,7 @@ INCLUDEPATH += $$PWD/../
 LIBS += $$OUT_PWD/../lmm/liblmm.a
 PRE_TARGETDEPS += $$OUT_PWD/../lmm/liblmm.a
 
-LIBS += -lavformat -lswscale -lavcodec -lavutil -lX11 -lx264 -lsrtp
+LIBS += -lavformat -lswscale -lavcodec -lavutil -lX11 -lXext -lXcomposite -lx264 -lsrtp
 
 #LIBS += -L$(SDKTARGETSYSROOT)/usr/lib/
 #LIBS += -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0 -lgstbase-1.0 -lgstapp-1.0
