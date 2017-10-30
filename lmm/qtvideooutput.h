@@ -42,6 +42,8 @@ public:
 	int getBufferCount();
 	qint64 getLastBuffetTs() { return lastBufferTs; }
 	void setNoVideoImage(const QImage &im);
+	void setSynchronizationMethod(SyncMethod m) { sync = m; }
+	SyncMethod getSynchronizationMethod() { return sync; }
 protected slots:
 	void timeout();
 protected:
