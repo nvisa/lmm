@@ -224,7 +224,7 @@ int RtpTransmitter::setTrafficShaping(bool enabled, int average, int burst, int 
 
 	if (tsinfo.enabled) {
 		tb = new TokenBucket(this);
-		tb->setPars(tsinfo.avgBitsPerSec / 8, tsinfo.burstBitsPerSec / 8, tsinfo.controlDuration);
+		tb->setParsLeaky(tsinfo.avgBitsPerSec / 8, tsinfo.controlDuration);
 	}
 
 	return 0;
