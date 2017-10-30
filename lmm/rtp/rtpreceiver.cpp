@@ -61,6 +61,11 @@ void RtpReceiver::enableBitrateSummarization(bool v, int interval)
 	bsum.interval = interval;
 }
 
+void RtpReceiver::enableUserSEIParsing(bool v)
+{
+	seistats.enabled = v;
+}
+
 int RtpReceiver::start()
 {
 #if QT_VERSION > 0x050000

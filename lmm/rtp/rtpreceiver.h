@@ -63,6 +63,7 @@ public:
 	void setExpectedFramerate(float fps) { expectedFrameRate = fps; }
 	float getExpectedFramerate() { return expectedFrameRate; }
 	void enableBitrateSummarization(bool v, int interval = 10);
+	void enableUserSEIParsing(bool v);
 
 	int start();
 	int stop();
