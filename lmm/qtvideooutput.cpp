@@ -168,13 +168,21 @@ int VideoWidget::getBufferCount()
 	return queue.size();
 }
 
+void VideoWidget::setNoVideoImage(const QImage &im)
+{
+	noVideoImage = im;
+}
+
 void VideoWidget::paintEvent(QPaintEvent *)
 {
 	QPainter p(this);
+	bool painted = false;
 	if (sync == TIMER)
-		paintOneFrame(&p);
+		painted = paintOneFrame(&p);
 	else if (sync == TIMESTAMP)
-		paintWithTs(&p);
+		painted = paintWithTs(&p);
+	if (!painted && !noVideoImage.isNull())
+		p.drawImage(0, 0, noVideoImage);
 
 	/* draw overlay */
 	for (int i = 0; i < overlays.size(); i++) {
@@ -209,7 +217,7 @@ qint64 VideoWidget::interpolatePts(int ts)
 	return (ts - refTs) / 90 + refWallTime;
 }
 
-void VideoWidget::paintOneFrame(QPainter *p)
+bool VideoWidget::paintOneFrame(QPainter *p)
 {
 	lock.lock();
 	if (queue.size()) {
@@ -217,11 +225,13 @@ void VideoWidget::paintOneFrame(QPainter *p)
 		const RawBuffer &buf = queue.takeFirst();
 		lock.unlock();
 		paintBuffer(buf, p);
+		return true;
 	} else
 		lock.unlock();
+	return false;
 }
 
-void VideoWidget::paintWithTs(QPainter *p)
+bool VideoWidget::paintWithTs(QPainter *p)
 {
 	lock.lock();
 	while (queue.size()) {
@@ -239,9 +249,10 @@ void VideoWidget::paintWithTs(QPainter *p)
 		/* we paint one frame and quit */
 		lock.unlock();
 		paintBuffer(buf, p);
-		return;
+		return true;
 	}
 	lock.unlock();
+	return false;
 }
 
 void VideoWidget::paintBuffer(const RawBuffer &buf, QPainter *p)

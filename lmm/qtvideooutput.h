@@ -41,13 +41,14 @@ public:
 	void setFrameStats(const QString &text, QColor color = Qt::yellow);
 	int getBufferCount();
 	qint64 getLastBuffetTs() { return lastBufferTs; }
+	void setNoVideoImage(const QImage &im);
 protected slots:
 	void timeout();
 protected:
 	void paintEvent(QPaintEvent *);
 	qint64 interpolatePts(int ts);
-	void paintOneFrame(QPainter *p);
-	void paintWithTs(QPainter *p);
+	bool paintOneFrame(QPainter *p);
+	bool paintWithTs(QPainter *p);
 	void paintBuffer(const RawBuffer &buf, QPainter *p);
 
 	QMutex lock;
@@ -65,6 +66,7 @@ protected:
 	int lastBufferNo;
 	qint64 refWallTime;
 	int refTs;
+	QImage noVideoImage;
 };
 
 class QtVideoOutput : public BaseLmmElement
