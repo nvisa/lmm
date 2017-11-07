@@ -125,8 +125,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 
 		mDebug("setting-up pipeline %d", i);
 
-		int streamControlIndex = -1;
-		StreamControlElementInterface *controlElement = NULL;
+		QList<QPair<int, StreamControlElementInterface *> > streamControls;
 		QList<BaseLmmElement *> elements;
 		int ecnt = s->getArraySize(QString("%1.elements").arg(p));
 		for (int j = 0; j < ecnt; j++) {
@@ -160,8 +159,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 					int elCount = s->getArraySize(QString("%1.stream_control.targets").arg(pre));
 					for (int k = 0; k < elCount; k++) {
 						pre = QString("%1.elements.%2.stream_control.targets.%3").arg(p).arg(j).arg(k);
-						streamControlIndex = getss("control_element_index").toInt();
-						controlElement = mjpeg;
+						streamControls << QPair<int, StreamControlElementInterface *>
+								(getss("control_element_index").toInt(), mjpeg);
 					}
 				}
 			} else if (type == "SeiInserter") {
@@ -196,6 +195,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 					rtp = new RtpTransmitter(this, Lmm::CODEC_PCM_L16);
 				else if (codec == "meta_bilkon")
 					rtp = new RtpTransmitter(this, Lmm::CODEC_META_BILKON);
+				else if (codec == "jpeg")
+					rtp = new RtpTransmitter(this, Lmm::CODEC_JPEG);
 				rtp->setMulticastTTL(getss("multicast_ttl").toInt());
 				rtp->setMaximumPayloadSize(getss("rtp_max_payload_size").toInt());
 				rtp->setRtcp(!getss("disable_rtcp").toBool());
@@ -242,8 +243,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 					int elCount = s->getArraySize(QString("%1.stream_control.targets").arg(pre));
 					for (int k = 0; k < elCount; k++) {
 						pre = QString("%1.elements.%2.stream_control.targets.%3").arg(p).arg(j).arg(k);
-						streamControlIndex = getss("control_element_index").toInt();
-						controlElement = rtp;
+						streamControls << QPair<int, StreamControlElementInterface *>
+								(getss("control_element_index").toInt(), rtp);
 					}
 				}
 			} else if (type == "DM365CameraInput") {
@@ -294,8 +295,11 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 			pl->append(elements[j]);
 		pl->setMaxTimeout(pipelineMaxTimeout);
 		pl->end();
-		streamControl.insert(pl, streamControlIndex);
-		streamControlElement.insert(pl, controlElement);
+		for (int i = 0; i < streamControls.size(); i++) {
+			const QPair<int, StreamControlElementInterface *> &p = streamControls[i];
+			streamControl[pl] << p.first;
+			streamControlElement[pl] << p.second;
+		}
 
 		if (fsEnabled)
 			pl->getPipe(fsTarget)->getOutputQueue(fsQueue)->setRateReduction(fsIn, fsOut);
@@ -412,19 +416,22 @@ void GenericStreamer::postInitPipeline(BaseLmmPipeline *p)
 
 int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 {
-	int sci = streamControl[p];
-	if (sci != -1) {
-		StreamControlElementInterface *sce = streamControlElement[p];
-		BaseLmmElement *el = p->getPipe(sci);
-		bool active = sce->isActive();
-		if (active && el->isPassThru()) {
-			mDebug("enabling pipeline control point: %d", sci);
-			for (int i = sci; i < p->getPipeCount(); i++)
-				p->getPipe(i)->setPassThru(false);
-		} else if (!active && !el->isPassThru()) {
-			mDebug("disabling pipeline control point: %d", sci);
-			for (int i = p->getPipeCount() - 1; i >= sci; i--)
-				p->getPipe(i)->setPassThru(true);
+	for (int i = 0; i < streamControl[p].size(); i++) {
+		int sci = streamControl[p][i];
+		if (sci != -1) {
+			StreamControlElementInterface *sce = streamControlElement[p][i];
+			BaseLmmElement *el = p->getPipe(sci);
+			bool active = sce->isActive();
+			if (active && el->isPassThru()) {
+				mDebug("enabling pipeline control point: %d", sci);
+				for (int i = sci; i < p->getPipeCount(); i++)
+					p->getPipe(i)->setPassThru(false);
+			} else if (!active && !el->isPassThru()) {
+				mDebug("disabling pipeline control point: %d", sci);
+				for (int i = p->getPipeCount() - 1; i >= sci; i--)
+					p->getPipe(i)->setPassThru(true);
+			}
+			break;
 		}
 	}
 

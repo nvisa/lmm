@@ -24,6 +24,8 @@ public:
 	virtual ~RtpChannel();
 	QString getSdp(Lmm::CodecType codec);
 
+	typedef int (*transportHook)(const char *data, int size, RtpChannel *, void *priv);
+
 	int seqFirst;
 	int seq;
 	uint ssrc;
@@ -42,6 +44,8 @@ public:
 	TokenBucket *tb;
 	bool useSR;
 	uint lastRtpTs;
+	transportHook trHook;
+	void *trHookPriv;
 
 signals:
 	void goodbyeRecved();
@@ -58,6 +62,7 @@ protected:
 	int setup(const QString &target, int dport, int dcport, int sport, int scport, uint ssrc);
 	int sendNalUnit(const uchar *buf, int size, qint64 ts);
 	int sendPcmData(const uchar *buf, int size, qint64 ts);
+	int sendJpegData(const uchar *buf, int size, qint64 ts);
 	void sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 tsRef);
 	void sendSR(quint64 bufferTs);
 	RawNetworkSocket::SockBuffer * getSBuf();
@@ -109,6 +114,7 @@ protected:
 	void packetizeAndSend(const RawBuffer &buf);
 	void sendPcmData(const RawBuffer &buf);
 	void sendMetaData(const RawBuffer &buf);
+	void sendJpegData(const RawBuffer &buf);
 
 	/* channel operations */
 	void channelsSendNal(const uchar *buf, int size, qint64 ts);

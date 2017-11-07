@@ -23,7 +23,7 @@ class BaseRtspSession : public QObject
 public:
 	BaseRtspSession(const QString &iface, BaseRtspServer *parent);
 	~BaseRtspSession();
-	int setup(bool mcast, int dPort, int cPort, const QString &streamName, const QString &media);
+	int setup(bool mcast, int dPort, int cPort, const QString &streamName, const QString &media, const QString &incomingTransportString);
 	int play();
 	int teardown();
 	QString rtpInfo();
@@ -55,6 +55,7 @@ public:
 	int seq;
 	bool rtspTimeoutEnabled;
 	QList<BaseRtspSession *> siblings;
+	bool rtpAvpTcp;
 protected slots:
 	void rtpGoodbyeRecved();
 	void rtcpTimedOut();
@@ -99,7 +100,12 @@ public:
 	void saveSessions(const QString &filename);
 	int loadSessions(const QString &filename);
 
+	int newRtpData(const char *data, int size, RtpChannel *ch);
+
+signals:
+	void newRtpTcpData(const QByteArray &ba, RtpChannel *ch);
 private slots:
+	void handleNewRtpTcpData(const QByteArray &ba, RtpChannel *ch);
 	void newRtspConnection();
 	void clientDisconnected(QObject*obj);
 	void clientError(QObject*);
@@ -140,6 +146,8 @@ private:
 	QString nwInterfaceName;
 	QString authUsername;
 	QString authPassword;
+	QTcpSocket *currentSocket;
+	QHash<RtpChannel *, QTcpSocket *> avpTcpMappings;
 
 	QStringList createRtspErrorResponse(int errcode, QString lsep);
 	QStringList createDescribeResponse(int cseq, QString url, QString lsep);
@@ -160,6 +168,7 @@ private:
 	QStringList handleCommandPlay(QStringList lines, QString lsep);
 	QStringList handleCommandTeardown(QStringList lines, QString lsep);
 	QStringList handleCommandGetParameter(QStringList lines, QString lsep);
+	QStringList handleCommandSetParameter(QStringList lines, QString lsep);
 
 	uint getSessionBaseTimestamp(QString sid);
 	uint getSessionBaseSequence(QString sid);
