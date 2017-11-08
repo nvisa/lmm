@@ -117,6 +117,8 @@ protected:
 	bool isMulticast(QString streamName, const QString &media); //protected
 	RtpTransmitter * getSessionTransmitter(const QString &streamName, const QString &media); //protected
 	void closeSession(QString sessionId);
+	QString getEndpointAddress();
+	void handlePostData(QTcpSocket *sock, QString mes, QString lsep);
 
 private:
 	struct StreamDescription {
@@ -147,6 +149,8 @@ private:
 	QString authPassword;
 	QTcpSocket *currentSocket;
 	QHash<RtpChannel *, QTcpSocket *> avpTcpMappings;
+	QHash<QTcpSocket *, QTcpSocket *> tunnellingMappings;
+	QTcpSocket *lastTunnellingSocket;
 
 	QStringList createRtspErrorResponse(int errcode, QString lsep);
 	QStringList createDescribeResponse(int cseq, QString url, QString lsep);

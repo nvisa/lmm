@@ -167,6 +167,8 @@ BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 
 	myIpAddr = findIp(nwInterfaceName);
 	connect(this, SIGNAL(newRtpTcpData(QByteArray,RtpChannel*)), SLOT(handleNewRtpTcpData(QByteArray,RtpChannel*)), Qt::QueuedConnection);
+
+	lastTunnellingSocket = NULL;
 }
 
 /**
@@ -427,6 +429,8 @@ void BaseRtspServer::handleNewRtpTcpData(const QByteArray &ba, RtpChannel *ch)
 {
 	if (avpTcpMappings.contains(ch)) {
 		QTcpSocket *sock = avpTcpMappings[ch];
+		if (tunnellingMappings.contains(sock))
+			sock = tunnellingMappings[sock];
 		QByteArray data;
 		data.append('$');
 		data.append((char)0);
@@ -614,6 +618,10 @@ void BaseRtspServer::clientDisconnected(QObject *obj)
 	if (avpTcpMappings.values().contains(sock)) {
 		avpTcpMappings.remove(avpTcpMappings.key(sock));
 	}
+	if (tunnellingMappings.values().contains(sock))
+		tunnellingMappings.remove(tunnellingMappings.key(sock));
+	if (tunnellingMappings.contains(sock))
+		tunnellingMappings.remove(sock);
 }
 
 void BaseRtspServer::clientError(QObject *)
@@ -629,6 +637,11 @@ void BaseRtspServer::clientDataReady(QObject *obj)
 	QString mes = msgbuffer[sock].append(str);
 	/* RTSP line sepeators should be decided by clients */
 	QString lsep = detectLineSeperator(mes);
+	if (mes.startsWith("POST") || tunnellingMappings.contains(sock) || lsep.isEmpty()) {
+		handlePostData(sock, mes, lsep);
+		msgbuffer[sock] = "";
+		return;
+	}
 	/* end of message is 2 line seperators, by the standard */
 	QString end = lsep + lsep;
 	if (mes.contains(end)) {
@@ -1015,12 +1028,70 @@ void BaseRtspServer::closeSession(QString sessionId)
 		ses->clientCount--;
 }
 
+QString BaseRtspServer::getEndpointAddress()
+{
+	if (server->serverPort() == 554)
+		return myIpAddr.toString();
+	return QString("%1:%2").arg(server->serverPort());
+}
+
+void BaseRtspServer::handlePostData(QTcpSocket *sock, QString mes, QString lsep)
+{
+	/*
+	 * We have 4 cases:
+	 *	1. Message starts with POST message and ends with 2-lsep
+	 *	2. Message starts with POST and doesn't end with 2-lsep
+	 *	3. Message doesn't start with POST
+	 *	4. Message is a plain RTSP directive
+	 *
+	 */
+	QString l2sep = lsep + lsep;
+	if (mes.startsWith("POST")) {
+		if (lastTunnellingSocket) {
+			tunnellingMappings.insert(sock, lastTunnellingSocket);
+			lastTunnellingSocket = NULL;
+		}
+		if (mes.endsWith(l2sep))
+			return;
+		if (!mes.contains(l2sep))
+			return;
+		QStringList list = mes.split(l2sep, QString::SkipEmptyParts);
+		foreach (QString lmes, list) {
+			if (lmes.startsWith("POST"))
+				continue;
+			handlePostData(sock, lmes, lsep);
+		}
+		return;
+	}
+
+	if (!lsep.isEmpty() && mes.contains(lsep)) {
+		/* case 4 */
+		mInfo("case 4: \n%s", qPrintable(mes));
+		if (!mes.endsWith(l2sep))
+			mes.append(l2sep);
+		QStringList lines = handleRtspMessage(mes, lsep);
+		if (tunnellingMappings.contains(sock))
+			sendRtspMessage(tunnellingMappings[sock], lines, lsep);
+		else
+			sendRtspMessage(sock, lines, lsep);
+		return;
+	}
+
+	/* case 3 */
+	mes = QString::fromUtf8(QByteArray::fromBase64(mes.toUtf8()));
+	lsep = detectLineSeperator(mes);
+	l2sep = lsep + lsep;
+	QStringList list = mes.split(l2sep, QString::SkipEmptyParts);
+	foreach (QString lmes, list)
+		handlePostData(sock, lmes, lsep);
+}
+
 QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 {
 	QStringList resp;
 	QStringList lines = mes.split(lsep);
 	if (!lines.last().isEmpty() || lines.first().isEmpty()) {
-		mDebug("un-espected last line");
+		mDebug("un-espected last line: \n%s", qPrintable(mes));
 		return resp;
 	}
 	currentCmdFields.clear();
@@ -1035,6 +1106,21 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 			currentCmdFields.insert("CSeq", line.remove("CSeq: "));
 		if (line.contains("Authorization: ", Qt::CaseInsensitive))
 			currentCmdFields.insert("Authorization", line.remove("Authorization: "));
+	}
+
+	QString urlAction = lines.first().trimmed().split(" ").first();
+	if (urlAction == "GET") {
+		/* http tunneling */
+		QStringList resp;
+		resp << "HTTP/1.0 200 OK";
+		resp << "LMM RTSP Server 1.0";
+		resp << "Cache-Control: no-store";
+		resp << "Pragma: no-cache";
+		resp << "Content-Type:application/x-rtsp-tunnelled";
+		resp << "";
+		resp << "";
+		lastTunnellingSocket = currentSocket;
+		return resp;
 	}
 
 	if (auth == AUTH_SIMPLE) {
@@ -1052,19 +1138,19 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 	}
 
 	QMutexLocker l(&sessionLock);
-	if (lines.first().startsWith("OPTIONS")) {
+	if (urlAction.startsWith("OPTIONS")) {
 		resp = handleCommandOptions(lines, lsep);
-	} else if (lines.first().startsWith("DESCRIBE")) {
+	} else if (urlAction.startsWith("DESCRIBE")) {
 		resp = handleCommandDescribe(lines, lsep);
-	} else if (lines.first().startsWith("SETUP")) {
+	} else if (urlAction.startsWith("SETUP")) {
 		resp = handleCommandSetup(lines, lsep);
-	} else if (lines.first().startsWith("PLAY")) {
+	} else if (urlAction.startsWith("PLAY")) {
 		resp = handleCommandPlay(lines, lsep);
-	} else if (lines.first().startsWith("TEARDOWN")) {
+	} else if (urlAction.startsWith("TEARDOWN")) {
 		resp = handleCommandTeardown(lines, lsep);
-	} else if (lines.first().startsWith("GET_PARAMETER")) {
+	} else if (urlAction.startsWith("GET_PARAMETER")) {
 		resp = handleCommandGetParameter(lines, lsep);
-	} else if (lines.first().startsWith("SET_PARAMETER")) {
+	} else if (urlAction.startsWith("SET_PARAMETER")) {
 		resp = handleCommandSetParameter(lines, lsep);
 	} else {
 		mDebug("Unknown RTSP directive:\n %s", qPrintable(mes));
@@ -1107,7 +1193,7 @@ QStringList BaseRtspServer::createSdp(QString url)
 	sdp << "c=IN IP4 " + dstIp;
 	sdp << "a=tool:lmm 2.0.0";
 	sdp << "s=No Name";
-	sdp << QString("a=control:rtsp://%1/%2").arg(myIpAddr.toString()).arg(stream);
+	sdp << QString("a=control:rtsp://%1/%2").arg(getEndpointAddress()).arg(stream);
 
 	QHashIterator<QString, StreamDescription> hi(streamDescriptions[stream].media);
 	while (hi.hasNext()) {
@@ -1118,7 +1204,7 @@ QStringList BaseRtspServer::createSdp(QString url)
 		Lmm::CodecType codec = desc.rtp->getCodec();
 		if (codec == Lmm::CODEC_H264) {
 			sdp << QString("m=video %1 RTP/AVP 96").arg(streamPort);
-			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
+			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
 			sdp << "a=rtpmap:96 H264/90000";
 			sdp << "a=fmtp:96 packetization-mode=1";
 			//sdp << QString("a=control:%1").arg(desc.streamUrlSuffix);
@@ -1126,19 +1212,19 @@ QStringList BaseRtspServer::createSdp(QString url)
 			sdp << "m=video 15678 RTP/AVP 26";
 		} else if (codec == Lmm::CODEC_PCM_L16) {
 			sdp << QString("m=audio %1 RTP/AVP 97").arg(streamPort);
-			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
+			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
 			sdp << "a=rtpmap:97 L16/8000/1";
 			//sdp << QString("a=control:%1").arg(desc.streamUrlSuffix);
 		} else if (codec == Lmm::CODEC_PCM_ALAW) {
 			sdp << QString("m=audio %1 RTP/AVP 8").arg(streamPort);
-			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
+			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
 			sdp << "a=rtpmap:8 PCMA/8000/1";
 		} else if (codec == Lmm::CODEC_META_BILKON) {
 			sdp << QString("m=metadata %1 RTP/AVP 98").arg(streamPort);
-			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
+			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
 		} else if (codec == Lmm::CODEC_JPEG) {
 			sdp << QString("m=video %1 RTP/AVP 26").arg(streamPort);
-			sdp << QString("a=control:rtsp://%1/%2/%3").arg(myIpAddr.toString()).arg(stream).arg(desc.streamUrlSuffix);
+			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
 		}
 	}
 
@@ -1226,7 +1312,7 @@ int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &stre
 QString BaseRtspSession::rtpInfo()
 {
 	return QString("url=rtsp://%1/%2;seq=%4;rtptime=%3").
-			arg(myIpAddr.toString()).
+			arg(server->getEndpointAddress()).
 			arg(streamName).arg(rtptime).arg(seq);
 }
 
