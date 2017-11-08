@@ -633,7 +633,6 @@ void BaseRtspServer::clientDataReady(QObject *obj)
 	QString end = lsep + lsep;
 	if (mes.contains(end)) {
 		mInfo("new message from rtsp client: \n%s", qPrintable(mes));
-		currentPeerIp = sock->peerAddress().toString();
 		QStringList resp = handleRtspMessage(mes, lsep);
 		msgbuffer[sock] = "";
 		if (resp.size())
@@ -777,7 +776,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		BaseRtspSession *ses = findMulticastSession(stream, media);
 		if (!ses) {
 			ses = new BaseRtspSession(nwInterfaceName, this);
-			ses->peerIp = currentPeerIp;
+			ses->peerIp = currentSocket->peerAddress().toString();
 			if (multicast)
 				ses->streamIp = getMulticastAddress(stream, media);
 			else

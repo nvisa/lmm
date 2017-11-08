@@ -134,7 +134,6 @@ private:
 	QSignalMapper *mapperDis, *mapperErr, *mapperRead;
 	QMap<QTcpSocket *, QString> msgbuffer;
 	QMap<QString, BaseRtspSession *> sessions;
-	QString currentPeerIp;
 	QString lastUserAgent;
 	QMap<QString, QString> currentCmdFields;
 	bool enabled;
