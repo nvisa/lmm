@@ -127,22 +127,6 @@ static inline QString createDateHeader()
 	return QString("Date: %1 GMT").arg(QDateTime::currentDateTime().toUTC().toString("ddd, dd MMM yyyy hh:mm:ss"));
 }
 
-static bool detectLocalPorts(const QHostAddress &myIpAddr, int &rtp, int &rtcp)
-{
-	QUdpSocket sock, sock2;
-	bool ok1 = sock.bind(myIpAddr, 0);
-	if (!ok1)
-		return false;
-	bool ok2 = false;
-	if (sock.localPort() & 0x1)
-		ok2 = sock2.bind(sock.localPort() - 1);
-	else
-		ok2 = sock2.bind(sock.localPort() + 1);
-	rtp = sock.localPort();
-	rtcp = sock2.localPort();
-	return ok2;
-}
-
 BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	QObject(parent)
 {
@@ -423,6 +407,27 @@ int BaseRtspServer::newRtpData(const char *data, int size, RtpChannel *ch)
 {
 	emit newRtpTcpData(QByteArray(data, size), ch);
 	return 0;
+}
+
+bool BaseRtspServer::detectLocalPorts(int &rtp, int &rtcp)
+{
+	return detectLocalPorts(myIpAddr, rtp, rtcp);
+}
+
+bool BaseRtspServer::detectLocalPorts(const QHostAddress &myIpAddr, int &rtp, int &rtcp)
+{
+	QUdpSocket sock, sock2;
+	bool ok1 = sock.bind(myIpAddr, 0);
+	if (!ok1)
+		return false;
+	bool ok2 = false;
+	if (sock.localPort() & 0x1)
+		ok2 = sock2.bind(sock.localPort() - 1);
+	else
+		ok2 = sock2.bind(sock.localPort() + 1);
+	rtp = sock.localPort();
+	rtcp = sock2.localPort();
+	return ok2;
 }
 
 void BaseRtspServer::handleNewRtpTcpData(const QByteArray &ba, RtpChannel *ch)
@@ -1258,7 +1263,7 @@ int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &stre
 
 	/* local port detection */
 	if (sourceDataPort == 0 || sourceControlPort == 0) {
-		while (!detectLocalPorts(myIpAddr, sourceDataPort, sourceControlPort)) ;
+		while (!BaseRtspServer::detectLocalPorts(myIpAddr, sourceDataPort, sourceControlPort)) ;
 	}
 
 	/* for multicast streams, RTCP port should be same for server and clients */

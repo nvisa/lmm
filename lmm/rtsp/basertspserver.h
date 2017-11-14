@@ -92,6 +92,7 @@ public:
 	QString getNetworkInterface() { return nwInterfaceName; }
 	void setNetworkInterface(const QString &name) { nwInterfaceName = name; }
 	void setRtspAuthenticationCredentials(const QString &username, const QString &password);
+	RtpTransmitter * getSessionTransmitter(const QString &streamName, const QString &media);
 
 	/* session API */
 	const QStringList getSessions();
@@ -101,6 +102,9 @@ public:
 	int loadSessions(const QString &filename);
 
 	int newRtpData(const char *data, int size, RtpChannel *ch);
+
+	bool detectLocalPorts(int &rtp, int &rtcp);
+	static bool detectLocalPorts(const QHostAddress &myIpAddr, int &rtp, int &rtcp);
 
 signals:
 	void newRtpTcpData(const QByteArray &ba, RtpChannel *ch);
@@ -115,7 +119,6 @@ protected:
 	friend class BaseRtspSession;
 
 	bool isMulticast(QString streamName, const QString &media); //protected
-	RtpTransmitter * getSessionTransmitter(const QString &streamName, const QString &media); //protected
 	void closeSession(QString sessionId);
 	QString getEndpointAddress();
 	void handlePostData(QTcpSocket *sock, QString mes, QString lsep);
