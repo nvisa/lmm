@@ -239,6 +239,10 @@ int RtspClient::setupUrlASync()
 			if (tracks[i].controlUrl == serverUrl)
 				continue;
 			QString controlUrl = tracks[i].controlUrl;
+			if (!trackReceivers.contains(tracks[i].name)) {
+				mDebug("No track receiver found for track %s", qPrintable(tracks[i].name));
+				return -ENOENT;
+			}
 			err = setupTrackASync(controlUrl, tracks[i].connection, trackReceivers[tracks[i].name]);
 			if (err) {
 				mDebug("error %d setting-up session %s", err, qPrintable(tracks[i].name));
@@ -609,6 +613,8 @@ int RtspClient::setupTrackASync(const QString &controlUrl, const QString &connIn
 	int cseq = getCSeq();
 	QStringList lines = createSetupReq(cseq, controlUrl, connInfo, p);
 	CSeqRequest req("SETUP");
+	if (!rtp)
+		mDebug("NULL RTP receiver for %s", qPrintable(controlUrl));
 	req.rtp = rtp;
 	req.p = p;
 	cseqRequests.insert(cseq, req);

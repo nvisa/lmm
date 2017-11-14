@@ -118,7 +118,7 @@ protected:
 	public:
 		CSeqRequest()
 		{
-
+			rtp = NULL;
 		}
 
 		CSeqRequest(QString s)
