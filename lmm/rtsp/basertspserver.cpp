@@ -130,17 +130,11 @@ static inline QString createDateHeader()
 BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	QObject(parent)
 {
+	serverPort = port;
 	nwInterfaceName = "eth0";
 	auth = AUTH_NONE;
 	enabled = true;
 	server = new QTcpServer(this);
-#if QT_VERSION < 0x050000
-	QHostAddress::SpecialAddress bindAddr = QHostAddress::Any;
-#else
-	QHostAddress::SpecialAddress bindAddr = QHostAddress::AnyIPv4;
-#endif
-	if (!server->listen(bindAddr, port))
-		mDebug("unable to bind to tcp port %d", port);
 	connect(server, SIGNAL(newConnection()), SLOT(newRtspConnection()));
 	mapperDis = new QSignalMapper(this);
 	mapperErr = new QSignalMapper(this);
@@ -153,6 +147,8 @@ BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	connect(this, SIGNAL(newRtpTcpData(QByteArray,RtpChannel*)), SLOT(handleNewRtpTcpData(QByteArray,RtpChannel*)), Qt::QueuedConnection);
 
 	lastTunnellingSocket = NULL;
+
+	setEnabled(enabled);
 }
 
 /**
@@ -525,8 +521,18 @@ int BaseRtspServer::getMulticastPort(QString streamName, const QString &media)
 int BaseRtspServer::setEnabled(bool val)
 {
 	enabled = val;
-	if (enabled)
+	if (enabled) {
+#if QT_VERSION < 0x050000
+		QHostAddress::SpecialAddress bindAddr = QHostAddress::Any;
+#else
+		QHostAddress::SpecialAddress bindAddr = QHostAddress::AnyIPv4;
+#endif
+		if (!server->listen(bindAddr, serverPort))
+			mDebug("unable to bind to tcp port %d", serverPort);
 		return 0;
+	} else {
+		server->close();
+	}
 	QMapIterator<QString, BaseRtspSession *>i(sessions);
 	while (i.hasNext()) {
 		i.next();

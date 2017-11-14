@@ -154,6 +154,7 @@ private:
 	QHash<RtpChannel *, QTcpSocket *> avpTcpMappings;
 	QHash<QTcpSocket *, QTcpSocket *> tunnellingMappings;
 	QTcpSocket *lastTunnellingSocket;
+	quint16 serverPort;
 
 	QStringList createRtspErrorResponse(int errcode, QString lsep);
 	QStringList createDescribeResponse(int cseq, QString url, QString lsep);
