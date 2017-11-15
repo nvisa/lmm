@@ -1231,7 +1231,9 @@ QStringList BaseRtspServer::createSdp(QString url)
 			sdp << "a=fmtp:96 packetization-mode=1";
 			//sdp << QString("a=control:%1").arg(desc.streamUrlSuffix);
 		} else if (codec == Lmm::CODEC_JPEG) {
-			sdp << "m=video 15678 RTP/AVP 26";
+			sdp << QString("m=video %1 RTP/AVP 26").arg(streamPort);
+			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
+			sdp << "a=rtpmap:26 JPEG/90000";
 		} else if (codec == Lmm::CODEC_PCM_L16) {
 			sdp << QString("m=audio %1 RTP/AVP 97").arg(streamPort);
 			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
