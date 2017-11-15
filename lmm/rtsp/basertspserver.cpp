@@ -417,12 +417,15 @@ bool BaseRtspServer::detectLocalPorts(const QHostAddress &myIpAddr, int &rtp, in
 	if (!ok1)
 		return false;
 	bool ok2 = false;
-	if (sock.localPort() & 0x1)
+	if (sock.localPort() & 0x1) {
 		ok2 = sock2.bind(sock.localPort() - 1);
-	else
+		rtp = sock2.localPort();
+		rtcp = sock.localPort();
+	} else {
 		ok2 = sock2.bind(sock.localPort() + 1);
-	rtp = sock.localPort();
-	rtcp = sock2.localPort();
+		rtp = sock.localPort();
+		rtcp = sock2.localPort();
+	}
 	return ok2;
 }
 
