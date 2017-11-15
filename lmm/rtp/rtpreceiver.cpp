@@ -208,7 +208,7 @@ int RtpReceiver::processRtpData(const QByteArray &ba, const QHostAddress &sender
 		return -EINVAL;
 	}
 	int ptype = buf[1] & 0x7f;
-	if (ptype != 96 && ptype != 98) {
+	if (ptype != 96 && ptype != 98 && ptype != 26) {
 		stats.payloadErr++;
 		mDebug("un-supported payload type %d", ptype);
 		return -EINVAL;
@@ -273,6 +273,10 @@ int RtpReceiver::handleRtpData(const QByteArray &ba)
 		processh264Payload(ba, ts, last);
 	else if (ptype == 98)
 		processMetaPayload(ba, ts, last);
+	else if (ptype == 26)
+		processJpegPayload(ba, ts, last);
+	else
+		qDebug() << "unknown payload type" << ptype;
 
 	return 0;
 }
@@ -505,6 +509,18 @@ int RtpReceiver::processMetaPayload(const QByteArray &ba, uint ts, int last)
 		currentData.clear();
 	}
 
+	return 0;
+}
+
+int RtpReceiver::processJpegPayload(const QByteArray &ba, uint ts, int last)
+{
+	const uchar *header = (const uchar *)ba.constData() + 12;
+	const uchar *jpeg = header + 8;
+	static QByteArray currentJpegData;
+	if (currentJpegData.isEmpty()) {
+		jpeg += 132;
+	}
+	ffDebug() << header[0] << header[6] * 8 << header[7] * 8;
 	return 0;
 }
 

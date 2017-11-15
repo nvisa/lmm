@@ -84,6 +84,7 @@ protected:
 
 	int processh264Payload(const QByteArray &ba, uint ts, int last);
 	int processMetaPayload(const QByteArray &ba, uint ts, int last);
+	int processJpegPayload(const QByteArray &ba, uint ts, int last);
 	virtual int processBuffer(const RawBuffer &buf);
 
 	QUdpSocket *sock;
