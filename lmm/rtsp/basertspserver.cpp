@@ -1079,16 +1079,24 @@ void BaseRtspServer::handlePostData(QTcpSocket *sock, QString mes, QString lsep)
 	}
 
 	if (!lsep.isEmpty() && mes.contains(lsep)) {
-		/* case 4 */
-		mInfo("case 4: \n%s", qPrintable(mes));
-		if (!mes.endsWith(l2sep))
-			mes.append(l2sep);
-		QStringList lines = handleRtspMessage(mes, lsep);
-		if (tunnellingMappings.contains(sock))
-			sendRtspMessage(tunnellingMappings[sock], lines, lsep);
-		else
-			sendRtspMessage(sock, lines, lsep);
-		return;
+		/*
+		 * ONVIF has a weird test-case where they send base64 message
+		 * with line-breaks. They are really pushing it hard to make
+		 * a conformant product!
+		 */
+		if (mes.contains("rtsp://")) {
+			/* case 4 */
+			mInfo("case 4: \n%s", qPrintable(mes));
+			if (!mes.endsWith(l2sep))
+				mes.append(l2sep);
+			QStringList lines = handleRtspMessage(mes, lsep);
+			if (tunnellingMappings.contains(sock))
+				sendRtspMessage(tunnellingMappings[sock], lines, lsep);
+			else
+				sendRtspMessage(sock, lines, lsep);
+			return;
+		}
+		mes = mes.remove(lsep);
 	}
 
 	/* case 3 */
