@@ -437,7 +437,7 @@ void BaseRtspServer::handleNewRtpTcpData(const QByteArray &ba, RtpChannel *ch)
 			sock = tunnellingMappings[sock];
 		QByteArray data;
 		data.append('$');
-		data.append((char)0);
+		data.append((char)ch->interleaved);
 		data.append((char)(ba.size() >> 8));
 		data.append((char)(ba.size() & 0xff));
 		data.append(ba);
@@ -1314,7 +1314,15 @@ int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &stre
 	connect(rtpCh, SIGNAL(sessionTimedOut()), SLOT(rtcpTimedOut()));
 
 	if (incomingTransportString.contains("RTP/AVP/TCP")) {
-		transportString = QString("Transport: RTP/AVP/TCP;interleaved=0-1");
+		QString interleaveChannels;
+		QStringList trflds = incomingTransportString.split(";");
+		foreach (QString fld, trflds)
+			if (fld.startsWith("interleaved="))
+				interleaveChannels = fld.split("=").last().trimmed();
+		if (interleaveChannels.isEmpty())
+			interleaveChannels = "0-1";
+		rtpCh->interleaved = interleaveChannels.split("-").first().toInt();
+		transportString = QString("Transport: RTP/AVP/TCP;interleaved=%1").arg(interleaveChannels);
 		rtpAvpTcp = true;
 	} else if (multicast) {
 		transportString = QString("Transport: RTP/AVP;multicast;destination=%3;port=%1-%2;ttl=%4;mode=play")
