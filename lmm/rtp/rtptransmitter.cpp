@@ -723,102 +723,98 @@ int RtpChannel::sendJpegData(const uchar *buf, int size, qint64 ts)
 	jpegHeader[1] = 0;
 	jpegHeader[2] = 0;
 	jpegHeader[3] = 0;
-	jpegHeader[4] = 0;			/* type */
-	jpegHeader[5] = 128;		/* Q */
+	jpegHeader[4] = 64;			/* type, DM365 uses 4:2:0 */
+	jpegHeader[5] = 255;		/* Q */
 	jpegHeader[6] = 640 / 8;	/* width */
 	jpegHeader[7] = 368 / 8;	/* height */
-	int jpegHeaderSize = 8;
+	int jpegFixHeaderSize = 8;
+
+	/* restart interval */
+	jpegHeader[8] = 0;
+	jpegHeader[9] = 84;
+	jpegHeader[10] = 0xff;
+	jpegHeader[11] = 0xff;
+	jpegFixHeaderSize += 4;
 
 	/* we will skip restart markers */
-	uchar *qth = jpegHeader + 8;
+	uchar *qth = jpegHeader + jpegFixHeaderSize;
 	qth[0] = 0;
 	qth[1] = 0;
 	qth[2] = 0;
-	qth[3] = 130;
-	jpegHeaderSize += qth[3] + 4;
+	qth[3] = 128;
 
-	int contOff = 0;
-	uchar *contBuf = new uchar[size];
+	/*
+	 * JFIF: Jpeg File Interchange Format
+	 *
+	 * A JFIF consists segments of:
+	 *	FF xx s1 s2
+	 *
+	 * Segments:
+	 *	D8 -> Start Of Image (SOI)
+	 *	E0 -> APP0
+	 *
+	 *	D0 -> Restart (RSTn), in the range [D0 D7]
+	 *	D9 -> End Of Image (EOI)
+	 *	DA -> Start of Scan (SOS)
+	 *	DB -> Define Quantization Table (DQT)
+	 *	DD -> Define Restart Interval (DRI)
+	 *
+	 *  C0 -> Start Of Frame (SOF)
+	 *	C4 -> Define Huffman Table
+	 *
+	 * Now we do as ffmpeg does:
+	 *	1. Copy DQT to RTP header
+	 *	1. Skip up to and including SOS
+	 */
 
-	bool valid = true;
-	int off = 0;
-	while (off < size) {
-		if (buf[off] != 0xff) {
-			valid = false;
+	const uchar *qtables = NULL;
+	int sosOff = 0;
+
+	for (int i = 0; i < size; i++) {
+		if (buf[i] != 0xff)
+			continue;
+		int seqsize = buf[i + 2] * 256 + buf[i + 3] + 2;
+		int marker = buf[i + 1];
+		if (marker == 0xdb)
+			qtables = &buf[i + 4];
+		if (marker == 0xda) {
+			sosOff = i + seqsize;
 			break;
 		}
-
-		int type = buf[off + 1];
-		int segsize = 2;
-		if (type == 0xdd) {
-			segsize += 4;
-			//qDebug() << buf[off + 2] << buf[off + 3] << buf[off + 4] << buf[off + 5];
-		} else if (type >= 0xd0 && type <= 0xd9)
-			segsize += 0;
-		else
-			segsize += buf[off + 2] * 256 + buf[off + 3];
-
-		//qDebug("marker 0x%x", type);
-
-		if (type == 0xdb) {
-			/* copy to quantization table */
-			memcpy(qth + 4, &buf[off + 4], 130);
-		}
-
-		off += segsize;
-		if (type == 0xda) {
-			int prev = -1;
-			/* segsize is not the whole story */
-			while (off < size) {
-				//if (buf[off] == 0xff && buf[off + 1] != 0x00)
-					//qDebug("marker 0x%x %d %d", buf[off + 1], off, size);
-				if (buf[off + 1] >= 0xd0 && buf[off + 1] <= 0xd7) {
-					if (prev != -1) {
-						memcpy(contBuf + contOff, buf + prev, off + 2 - prev);
-						contOff += off + 2 - prev;
-					}
-					prev = off + 2;
-				}
-				off++;
-			}
-		}
-		//qDebug() << off << segsize << size << buf[off + 2] << buf[off + 3];
 	}
 
-	if (!valid) {
-		mDebug("invalid JPEG data");
-		delete contBuf;
-		return 0;
+	size -= sosOff;
+	buf += sosOff;
+
+	for (int i = size - 2; i >= 0; i--) {
+		if (buf[i] == 0xff && buf[i + 1] == 0xd9) {
+			size = i;
+			break;
+		}
 	}
-	//qDebug() << "-----";
 
-	//return 0;
-
-	size = contOff;
-	buf = contBuf;
 	int sentTotal = 0;
-	if (size <= maxPayloadSize - jpegHeaderSize) {
-		memcpy(rtpbuf + 12 + jpegHeaderSize, buf, size);
-		sendRtpData(rtpbuf, size + jpegHeaderSize, 1, sbuf, ts);
-	} else {
-		uchar *dstbuf = rtpbuf + 12 + jpegHeaderSize;
-		while (size + jpegHeaderSize > maxPayloadSize) {
-			memcpy(&dstbuf[0], buf, maxPayloadSize);
-			sendRtpData(rtpbuf, maxPayloadSize, 0, sbuf, ts);
-			buf += maxPayloadSize;
-			size -= maxPayloadSize;
-			sentTotal += maxPayloadSize;
+	while (size > 0) {
+		int hsize = jpegFixHeaderSize;
+		if (sentTotal == 0)
+			hsize += 132;
+		int len = qMin(size, maxPayloadSize - hsize);
+		uchar *jpegbuf = rtpbuf + 12;
 
-			jpegHeader[1] = (sentTotal >> 16) & 0xff;
-			jpegHeader[2] = (sentTotal >> 8) & 0xff;
-			jpegHeader[3] = (sentTotal >> 0) & 0xff;
-		}
-		memcpy(&dstbuf[0], buf, size);
-		sendRtpData(rtpbuf, size, 1, sbuf, ts);
-		sentTotal += size;
+		/* adjust header */
+		jpegHeader[1] = (sentTotal >> 16) & 0xff;
+		jpegHeader[2] = (sentTotal >> 8) & 0xff;
+		jpegHeader[3] = (sentTotal >> 0) & 0xff;
+		if (sentTotal == 0 && qtables)
+			memcpy(jpegbuf + jpegFixHeaderSize + 4, qtables, 128);
+		/* payload */
+		memcpy(jpegbuf + hsize, buf, len);
+		sendRtpData(rtpbuf, len + hsize, len == size, sbuf, ts);
+
+		buf += len;
+		size -= len;
+		sentTotal += len;
 	}
-	//qDebug() << "****" << sentTotal;
-	delete contBuf;
 	return 0;
 }
 
