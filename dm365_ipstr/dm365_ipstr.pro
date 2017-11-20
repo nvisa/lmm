@@ -34,6 +34,7 @@ lessThan(QT_VERSION, 4.7) {
 include($$PWD/../lmm/dm365/dm365_xdc.pri)
 
 INCLUDEPATH += $$INSTALL_PREFIX/usr/local/include
+INCLUDEPATH += $$INSTALL_PREFIX/usr/local/include/ecl/qjson
 LIBS += $$INSTALL_PREFIX/usr/local/lib/libEncoderCommonLibrary.a
 PRE_TARGETDEPS += $$INSTALL_PREFIX/usr/local/lib/libEncoderCommonLibrary.a
 

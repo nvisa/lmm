@@ -9,6 +9,7 @@ class MetadataGenerator;
 class ApplicationSettings;
 class StreamControlElementInterface;
 class TextOverlay;
+class QFileSystemWatcher;
 
 class GenericStreamer : public BaseStreamer, public LmmPBusInterface
 {
@@ -21,6 +22,7 @@ signals:
 
 protected slots:
 	virtual void timeout();
+	void onvifChanged(const QString &filename);
 protected:
 	void postInitPipeline(BaseLmmPipeline *p);
 	virtual int pipelineOutput(BaseLmmPipeline *p, const RawBuffer &);
@@ -28,6 +30,9 @@ protected:
 	int getWdogKey();
 	int generateCustomSEI(const RawBuffer &buf);
 	void initCustomSEI();
+	bool reloadEarlyOnvifBindings();
+	bool reloadLateOnvifBindings();
+	void initOnvifBindings();
 
 	TextOverlay * createTextOverlay(const QString &elementName, ApplicationSettings *s);
 	H264Encoder * createH264Encoder(const QString &elementName, ApplicationSettings *s, int ch, int w0, int h0);
@@ -48,6 +53,7 @@ protected:
 	int wdogimpl;
 	QElapsedTimer lockCheckTimer;
 	bool noRtspContinueSupport;
+	QFileSystemWatcher *onvifWatcher;
 
 	struct CustomSeiStruct {
 		qint32 cpuload;

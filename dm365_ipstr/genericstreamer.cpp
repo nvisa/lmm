@@ -27,8 +27,12 @@
 #include <lmm/interfaces/streamcontrolelementinterface.h>
 
 #include <QBuffer>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonDocument>
 #include <QCoreApplication>
 #include <QCryptographicHash>
+#include <QFileSystemWatcher>
 
 #include <errno.h>
 
@@ -80,6 +84,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	lastIrqkSource = 0;
 	wdogimpl = s->get("config.watchdog_implementation").toInt();
 	customSei.inited = false;
+
+	initOnvifBindings();
+	reloadEarlyOnvifBindings();
 
 	/* rtsp server */
 	QString rtspConfig = s->get("video_encoding.rtsp.stream_config").toString();
@@ -319,6 +326,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 		err = rtsp->loadSessions("/tmp/rtsp.sessions");
 		mDebug("RTSP session load from cache %d", err);
 	}
+
+	reloadLateOnvifBindings();
 }
 
 QList<RawBuffer> GenericStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
@@ -395,6 +404,15 @@ void GenericStreamer::timeout()
 		}
 		customSei.lock.unlock();
 	}
+}
+
+void GenericStreamer::onvifChanged(const QString &filename)
+{
+	ffDebug() << filename;
+	if (reloadEarlyOnvifBindings())
+		QCoreApplication::instance()->quit();
+	if (reloadLateOnvifBindings())
+		QCoreApplication::instance()->quit();
 }
 
 void GenericStreamer::postInitPipeline(BaseLmmPipeline *p)
@@ -651,6 +669,87 @@ void GenericStreamer::initCustomSEI()
 	customSei.frameHashPos = customSei.out.device()->pos() + 4; //remember first there is length field(32-bit)
 	QByteArray hash = QCryptographicHash::hash(QByteArray("0", 1), QCryptographicHash::Md5);
 	customSei.out.writeBytes(hash.constData(), hash.size());
+}
+
+bool GenericStreamer::reloadEarlyOnvifBindings()
+{
+	bool needRestart = false;
+	QFile f("/etc/encsoft/dbfolder/MediaCommon.json");
+	f.open(QIODevice::ReadOnly);
+	const QJsonObject &media = QJsonDocument::fromJson(f.readAll()).object();
+	f.close();
+	if (media.isEmpty())
+		return needRestart;
+	ApplicationSettings *s = ApplicationSettings::instance();
+	QJsonArray encoders = media["VideoEncoders"].toObject()["Configurations"].toArray();
+	for (int i = 0; i < encoders.size(); i++) {
+		QJsonObject enc = encoders[i].toObject();
+		QString token = enc["_attrs"].toArray().first().toObject()["value"].toString();
+		QJsonObject mcast = enc["Multicast"].toObject();
+		int ch = 0;
+		if (token == "VideoEncoder0")
+			ch = 0;
+		else if (token == "VideoEncoder2")
+			ch = 1;
+		else
+			continue;
+		int _br = s->get(QString("video_encoding.ch.%1.bitrate").arg(ch)).toInt();
+		int br = enc["RateControl"].toObject()["BitrateLimit"].toInt() * 1000;
+		int gov = enc["H264"].toObject()["GovLength"].toInt();
+		int _gov = s->get(QString("video_encoding.ch.%1.intraframe_interval").arg(ch)).toInt();
+		if ((br != _br) || (gov != _gov))
+			needRestart = true;
+		s->set(QString("video_encoding.ch.%1.bitrate").arg(ch), br);
+		s->set(QString("video_encoding.ch.%1.intraframe_interval").arg(ch), gov);
+	}
+	return needRestart;
+}
+
+bool GenericStreamer::reloadLateOnvifBindings()
+{
+	return false;
+	QFile f("/etc/encsoft/dbfolder/MediaCommon.json");
+	f.open(QIODevice::ReadOnly);
+	const QJsonObject &media = QJsonDocument::fromJson(f.readAll()).object();
+	f.close();
+	if (media.isEmpty())
+		return false;
+
+	QJsonArray encoders = media["VideoEncoders"].toObject()["Configurations"].toArray();
+	for (int i = 0; i < encoders.size(); i++) {
+		QJsonObject enc = encoders[i].toObject();
+		QString token = enc["_attrs"].toArray().first().toObject()["value"].toString();
+		QJsonObject mcast = enc["Multicast"].toObject();
+		RtpTransmitter *rtp = NULL;
+		if (!mcast["AutoStart"].toBool())
+			continue;
+		if (token == "VideoEncoder0")
+			rtp = rtsp->getSessionTransmitter("stream1m", "");
+		else if (token == "VideoEncoder1")
+			rtp = rtsp->getSessionTransmitter("stream3m", "");
+		if (!rtp)
+			continue;
+
+		QString target = mcast["Address"].toObject()["IPv4Address"].toString();
+		quint16 dport = mcast["Port"].toInt();
+		int srcport, srcport2;
+		rtsp->detectLocalPorts(srcport, srcport2);
+		uint ssrc = 0xdeadbeaf;
+
+		ffDebug() << "starting multicast streaming" << token << target << dport << srcport;
+		RtpChannel *ch = rtp->addChannel();
+		rtp->setupChannel(ch, target, dport, dport + 1, srcport, srcport2, ssrc);
+		rtp->playChannel(ch);
+	}
+
+	return false;
+}
+
+void GenericStreamer::initOnvifBindings()
+{
+	onvifWatcher = new QFileSystemWatcher(this);
+	connect(onvifWatcher, SIGNAL(fileChanged(QString)), SLOT(onvifChanged(QString)));
+	onvifWatcher->addPath("/etc/encsoft/dbfolder/MediaCommon.json");
 }
 
 TextOverlay * GenericStreamer::createTextOverlay(const QString &elementName, ApplicationSettings *s)

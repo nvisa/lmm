@@ -1,3 +1,4 @@
+#include <QSettings>
 #include <QStringList>
 #include <QCoreApplication>
 
@@ -82,12 +83,27 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
+	bool onvifEnabled = false;
+	QSettings amansets("/etc/appmanager.conf", QSettings::IniFormat);
+	amansets.beginGroup("Applications");
+	int size = amansets.beginReadArray("apps");
+	for (int i = 0; i < size; i++) {
+		amansets.setArrayIndex(i);
+		QString appPath = amansets.value("app_path").toString();
+		QString appRunMode = amansets.value("app_run_mode").toString();
+		if (appPath.endsWith("onvif_nvt") && appRunMode != "manual")
+			onvifEnabled = true;
+	}
+
 	installSignalHandlers();
 
 	LmmCommon::init();
 	ecl::initDebug();
 	ApplicationSettings *sets = ApplicationSettings::instance();
-	sets->load("/etc/encsoft/dm365_ipstr.json", QIODevice::ReadOnly);
+	if (onvifEnabled)
+		sets->load("/etc/encsoft/dm365_ipstr_onvif.json", QIODevice::ReadOnly);
+	else
+		sets->load("/etc/encsoft/dm365_ipstr.json", QIODevice::ReadOnly);
 
 	if (sets->get("config.remote_control.enabled").toBool()) {
 		fDebug("starting remote control");
