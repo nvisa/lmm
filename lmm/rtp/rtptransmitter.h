@@ -46,6 +46,7 @@ public:
 	uint lastRtpTs;
 	transportHook trHook;
 	void *trHookPriv;
+	int interleaved;
 
 signals:
 	void goodbyeRecved();
