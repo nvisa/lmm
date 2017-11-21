@@ -52,6 +52,11 @@ void QtVideoOutput::setParentWindow(QWidget *p)
 	w->show();
 }
 
+QWidget *QtVideoOutput::parentWindow()
+{
+	return w->parentWidget();
+}
+
 VideoWidget *QtVideoOutput::getWidget()
 {
 	return w;
@@ -70,9 +75,13 @@ VideoWidget::VideoWidget(QWidget *parent)
 	playbackTimer = new QTimer(this);
 	connect(playbackTimer, SIGNAL(timeout()), SLOT(timeout()));
 	sync = TIMER;
-	if (sync == TIMER)
+	if (sync == TIMER || sync == TIMESTAMP)
 		playbackTimer->start(80);
 	statusOverlay = -1;
+	frameStatsOverlay = -1;
+	dropCount = renderCount = 0;
+	_paintHook = NULL;
+	refWallTime = 0;
 }
 
 void VideoWidget::paintBuffer(const RawBuffer &buf)
@@ -82,6 +91,7 @@ void VideoWidget::paintBuffer(const RawBuffer &buf)
 	if (queue.size() > 5) {
 		mInfo("dropping frames");
 		queue.takeFirst();
+		dropCount++;
 	}
 	lock.unlock();
 	if (sync == IMMEDIATE)
@@ -105,30 +115,12 @@ void VideoWidget::addStaticOverlay(const QString &line, const QString &family, i
 	overlays << info;
 }
 
-void VideoWidget::addStatusOverlay(const QString &line, const QString &family, int size, int weight, QColor color, QRectF pos)
-{
-	if (statusOverlay != -1)
-		return;
-	OverlayInfo *info = new OverlayInfo;
-	if (!family.isEmpty())
-		info->fontFamily = family;
-	if (size)
-		info->fontSize = size;
-	if (weight)
-		info->fontWeight = weight;
-	info->color = color;
-	info->text = line;
-	info->type = VideoWidget::STATUS;
-	if (pos.width() && pos.height())
-		info->r = pos;
-	statusOverlay = overlays.size();
-	overlays << info;
-}
-
 void VideoWidget::setStatusOverlay(const QString &text)
 {
-	if (statusOverlay == -1)
-		addStatusOverlay(text);
+	if (statusOverlay == -1) {
+		addStaticOverlay(text, "Courier", 16, 8, Qt::yellow, QRectF(0.3, 0.3, 1.0, 1.0));
+		statusOverlay = overlays.size() - 1;
+	}
 	overlays[statusOverlay]->text = text;
 }
 
@@ -159,19 +151,38 @@ void VideoWidget::timeout()
 	repaint();
 }
 
+void VideoWidget::setFrameStats(const QString &text, QColor color)
+{
+	if (frameStatsOverlay < 0) {
+		addStaticOverlay("");
+		frameStatsOverlay = overlays.size() - 1;
+	}
+	OverlayInfo *overlay = overlays[frameStatsOverlay];
+	overlay->color = color;
+	overlay->text = text;
+}
+
+int VideoWidget::getBufferCount()
+{
+	QMutexLocker l(&lock);
+	return queue.size();
+}
+
+void VideoWidget::setNoVideoImage(const QImage &im)
+{
+	noVideoImage = im;
+}
+
 void VideoWidget::paintEvent(QPaintEvent *)
 {
 	QPainter p(this);
-	lock.lock();
-	if (queue.size()) {
-		/* video part */
-		const RawBuffer &buf = queue.takeFirst();
-		lock.unlock();
-		QImage im((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
-				  QImage::Format_RGB888);
-		p.drawImage(rect(), im);
-	} else
-		lock.unlock();
+	bool painted = false;
+	if (sync == TIMER)
+		painted = paintOneFrame(&p);
+	else if (sync == TIMESTAMP)
+		painted = paintWithTs(&p);
+	if (!painted && !noVideoImage.isNull())
+		p.drawImage(0, 0, noVideoImage);
 
 	/* draw overlay */
 	for (int i = 0; i < overlays.size(); i++) {
@@ -182,7 +193,7 @@ void VideoWidget::paintEvent(QPaintEvent *)
 
 			//p.setOpacity(info->opacity);
 			//p.drawPixmap(info->r.x(), info->r.y(), plot->toPixmap(info->r.width(), info->r.height()));
-		} else if (info->type == VideoWidget::TEXT || info->type == VideoWidget::STATUS) {
+		} else if (info->type == VideoWidget::TEXT) {
 			if (info->text.isEmpty())
 				continue;
 			p.setFont(QFont(info->fontFamily, info->fontSize, info->fontWeight));
@@ -194,4 +205,70 @@ void VideoWidget::paintEvent(QPaintEvent *)
 			p.drawText(r, Qt::AlignLeft | Qt::AlignTop, info->text);
 		}
 	}
+}
+
+qint64 VideoWidget::interpolatePts(int ts)
+{
+	if (!refWallTime) {
+		refWallTime = QDateTime::currentMSecsSinceEpoch();
+		refTs = ts;
+	}
+
+	return (ts - refTs) / 90 + refWallTime;
+}
+
+bool VideoWidget::paintOneFrame(QPainter *p)
+{
+	lock.lock();
+	if (queue.size()) {
+		/* video part */
+		const RawBuffer &buf = queue.takeFirst();
+		lock.unlock();
+		paintBuffer(buf, p);
+		return true;
+	} else
+		lock.unlock();
+	return false;
+}
+
+bool VideoWidget::paintWithTs(QPainter *p)
+{
+	lock.lock();
+	while (queue.size()) {
+		const RawBuffer &buf = queue.takeFirst();
+
+		qint64 now = QDateTime::currentMSecsSinceEpoch();
+		qint64 pts = interpolatePts(buf.constPars()->pts);
+		int diff = qAbs(now - pts);
+		if (diff > 1000) {
+			ffDebug() << "frame too late" << diff;
+			dropCount++;
+			continue;
+		}
+
+		/* we paint one frame and quit */
+		lock.unlock();
+		paintBuffer(buf, p);
+		return true;
+	}
+	lock.unlock();
+	return false;
+}
+
+void VideoWidget::paintBuffer(const RawBuffer &buf, QPainter *p)
+{
+	QImage im;
+	if (buf.size() == buf.constPars()->videoWidth * buf.constPars()->videoHeight * 3)
+		im = QImage((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
+			  QImage::Format_RGB888);
+	else
+		im = QImage((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
+					QImage::Format_RGB32);
+	p->drawImage(rect(), im);
+	lastBufferTs = buf.constPars()->captureTime;
+	lastBufferNo = buf.constPars()->streamBufferNo;
+	renderCount++;
+
+	if (_paintHook)
+		(*_paintHook)(this, _paintHookPriv, buf);
 }

@@ -21,9 +21,9 @@ class BaseRtspSession : public QObject
 {
 	Q_OBJECT
 public:
-	BaseRtspSession(BaseRtspServer *parent);
+	BaseRtspSession(const QString &iface, BaseRtspServer *parent);
 	~BaseRtspSession();
-	int setup(bool mcast, int dPort, int cPort, const QString &streamName, const QString &media);
+	int setup(bool mcast, int dPort, int cPort, const QString &streamName, const QString &media, const QString &incomingTransportString);
 	int play();
 	int teardown();
 	QString rtpInfo();
@@ -55,6 +55,7 @@ public:
 	int seq;
 	bool rtspTimeoutEnabled;
 	QList<BaseRtspSession *> siblings;
+	bool rtpAvpTcp;
 protected slots:
 	void rtpGoodbyeRecved();
 	void rtcpTimedOut();
@@ -88,6 +89,10 @@ public:
 	void addStreamParameter(const QString &streamName, const QString &mediaName, const QString &par, const QVariant &value);
 	const QHash<QString, QVariant> getStreamParameters(const QString &streamName, const QString &mediaName);
 	void setRtspAuthentication(Auth authMethod);
+	QString getNetworkInterface() { return nwInterfaceName; }
+	void setNetworkInterface(const QString &name) { nwInterfaceName = name; }
+	void setRtspAuthenticationCredentials(const QString &username, const QString &password);
+	RtpTransmitter * getSessionTransmitter(const QString &streamName, const QString &media);
 
 	/* session API */
 	const QStringList getSessions();
@@ -96,7 +101,15 @@ public:
 	void saveSessions(const QString &filename);
 	int loadSessions(const QString &filename);
 
+	int newRtpData(const char *data, int size, RtpChannel *ch);
+
+	bool detectLocalPorts(int &rtp, int &rtcp);
+	static bool detectLocalPorts(const QHostAddress &myIpAddr, int &rtp, int &rtcp);
+
+signals:
+	void newRtpTcpData(const QByteArray &ba, RtpChannel *ch);
 private slots:
+	void handleNewRtpTcpData(const QByteArray &ba, RtpChannel *ch);
 	void newRtspConnection();
 	void clientDisconnected(QObject*obj);
 	void clientError(QObject*);
@@ -106,8 +119,9 @@ protected:
 	friend class BaseRtspSession;
 
 	bool isMulticast(QString streamName, const QString &media); //protected
-	RtpTransmitter * getSessionTransmitter(const QString &streamName, const QString &media); //protected
 	void closeSession(QString sessionId);
+	QString getEndpointAddress();
+	void handlePostData(QTcpSocket *sock, QString mes, QString lsep);
 
 private:
 	struct StreamDescription {
@@ -125,7 +139,6 @@ private:
 	QSignalMapper *mapperDis, *mapperErr, *mapperRead;
 	QMap<QTcpSocket *, QString> msgbuffer;
 	QMap<QString, BaseRtspSession *> sessions;
-	QString currentPeerIp;
 	QString lastUserAgent;
 	QMap<QString, QString> currentCmdFields;
 	bool enabled;
@@ -134,6 +147,14 @@ private:
 	QHash<QString, StreamDescription> streamDescriptions;
 	Auth auth;
 	QMutex sessionLock;
+	QString nwInterfaceName;
+	QString authUsername;
+	QString authPassword;
+	QTcpSocket *currentSocket;
+	QHash<RtpChannel *, QTcpSocket *> avpTcpMappings;
+	QHash<QTcpSocket *, QTcpSocket *> tunnellingMappings;
+	QTcpSocket *lastTunnellingSocket;
+	quint16 serverPort;
 
 	QStringList createRtspErrorResponse(int errcode, QString lsep);
 	QStringList createDescribeResponse(int cseq, QString url, QString lsep);
@@ -154,6 +175,7 @@ private:
 	QStringList handleCommandPlay(QStringList lines, QString lsep);
 	QStringList handleCommandTeardown(QStringList lines, QString lsep);
 	QStringList handleCommandGetParameter(QStringList lines, QString lsep);
+	QStringList handleCommandSetParameter(QStringList lines, QString lsep);
 
 	uint getSessionBaseTimestamp(QString sid);
 	uint getSessionBaseSequence(QString sid);

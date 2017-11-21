@@ -29,6 +29,7 @@ public:
 	virtual BasePipeElement * addPipe(BaseLmmElement *, BaseLmmElement * = NULL) { return NULL; }
 	virtual int start();
 	virtual int stop();
+	virtual int flush();
 	int getPipeCount();
 	BaseLmmElement *getPipe(int off);
 	void setPipelineReady(bool v);

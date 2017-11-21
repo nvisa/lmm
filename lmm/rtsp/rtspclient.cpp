@@ -10,6 +10,19 @@
 #include <QUdpSocket>
 #include <QElapsedTimer>
 
+static QHostAddress getConnectionAddress(const QString &conninfo)
+{
+	QStringList flds = conninfo.split(" ", QString::SkipEmptyParts);
+	foreach (const QString &fld, flds) {
+		if (fld.count(".") != 3)
+			continue;
+		if (fld.contains("/"))
+			return QHostAddress(fld.split("/").first());
+		return QHostAddress(fld);
+	}
+	return QHostAddress();
+}
+
 static QPair<int, int> detectLocalPorts()
 {
 	QUdpSocket sock;
@@ -65,14 +78,11 @@ static QStringList createSetupReq(int cseq, QString controlUrl, QString connInfo
 	QStringList lines;
 	lines << QString("SETUP %1 RTSP/1.0").arg(controlUrl);
 	lines << QString("CSeq: %1").arg(cseq);
-	if (!connInfo.contains("239.")) {
-		p = detectLocalPorts();
+	p = detectLocalPorts();
+	if (!getConnectionAddress(connInfo).isInSubnet(QHostAddress::parseSubnet("224.0.0.0/3")))
 		lines << QString("Transport: RTP/AVP;unicast;client_port=%1-%2").arg(p.first).arg(p.second);
-	} else {
-		p.first = 15678;
-		p.second = 15679;
+	else
 		lines << QString("Transport: RTP/AVP;multicast;port=%1-%2").arg(p.first).arg(p.second);
-	}
 	lines << "\r\n";
 	return lines;
 }
@@ -113,9 +123,9 @@ RtspClient::RtspClient(QObject *parent) :
 {
 	timer = new QTimer(this);
 	connect(timer, SIGNAL(timeout()), SLOT(timeout()));
-	timer->start(100);
 	state = UNKNOWN;
 	asyncPlay = true;
+	asyncsock = NULL;
 }
 
 int RtspClient::setServerUrl(const QString &url)
@@ -133,6 +143,8 @@ int RtspClient::setServerUrl(const QString &url)
 	if (port < 0)
 		port = 554;
 	asyncsock->connectToHost(rurl.host(), port);
+
+	timer->start(100);
 
 	return 0;
 }
@@ -227,6 +239,10 @@ int RtspClient::setupUrlASync()
 			if (tracks[i].controlUrl == serverUrl)
 				continue;
 			QString controlUrl = tracks[i].controlUrl;
+			if (!trackReceivers.contains(tracks[i].name)) {
+				mDebug("No track receiver found for track %s", qPrintable(tracks[i].name));
+				return -ENOENT;
+			}
 			err = setupTrackASync(controlUrl, tracks[i].connection, trackReceivers[tracks[i].name]);
 			if (err) {
 				mDebug("error %d setting-up session %s", err, qPrintable(tracks[i].name));
@@ -353,6 +369,8 @@ void RtspClient::clearSetupTracks()
 
 void RtspClient::timeout()
 {
+	if (!asyncsock)
+		return;
 	mInfo("state=%d", state);
 #if 0
 	switch (state) {
@@ -470,6 +488,7 @@ void RtspClient::aSyncDataReady()
 			return;
 		}
 		CSeqRequest req = cseqRequests[cseq];
+		mDebug("Parsing request %s from %s", qPrintable(req.type), qPrintable(asyncsock->peerAddress().toString()));
 		if (req.type == "OPTIONS")
 			parseOptionsResponse(currentResp);
 		else if (req.type == "DESCRIBE")
@@ -483,7 +502,7 @@ void RtspClient::aSyncDataReady()
 		else if (req.type == "GET_PARAMETER")
 			parseKeepAliveResponse(currentResp, req.id);
 		else
-			ffDebug() << "bug is request type" << req.type;
+			ffDebug() << "buggy request type" << req.type;
 	}
 }
 
@@ -594,6 +613,8 @@ int RtspClient::setupTrackASync(const QString &controlUrl, const QString &connIn
 	int cseq = getCSeq();
 	QStringList lines = createSetupReq(cseq, controlUrl, connInfo, p);
 	CSeqRequest req("SETUP");
+	if (!rtp)
+		mDebug("NULL RTP receiver for %s", qPrintable(controlUrl));
 	req.rtp = rtp;
 	req.p = p;
 	cseqRequests.insert(cseq, req);
@@ -677,13 +698,22 @@ int RtspClient::parseSetupResponse(const QHash<QString, QString> &resp, RtpRecei
 	}
 
 	QUrl url(serverUrl);
-	rtp->setSourceAddress(QHostAddress(url.host()));
 	rtp->setSourceDataPort(p.first);
 	rtp->setSourceControlPort(p.second);
-	rtp->setDestinationControlPort(getField(resp["Transport"], "server_port").split("-").last().toInt());
+	QString transport = resp["Transport"];
+	if (transport.contains("multicast")) {
+		rtp->setDestinationControlPort(p.second);
+		rtp->setSourceAddress(QHostAddress(getField(transport, "destination")));
+	} else {
+		rtp->setDestinationControlPort(getField(transport, "server_port").split("-").last().toInt());
+		rtp->setSourceAddress(QHostAddress(url.host()));
+	}
 	rtp->stop();
-	if (rtp->start())
+	int err = rtp->start();
+	if (err) {
+		mDebug("error '%d' starting RTP session for '%s'", err, qPrintable(serverUrl));
 		return -EPERM;
+	}
 	ses.rtp = rtp;
 
 	setupedSessions.insert(ses.id, ses);

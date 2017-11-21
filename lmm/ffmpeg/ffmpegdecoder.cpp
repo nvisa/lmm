@@ -51,6 +51,7 @@ int FFmpegDecoder::startDecoding()
 	avFrame = av_frame_alloc();
 	decodeCount = 0;
 	detectedWidth = detectedHeight = 0;
+	bufferCount = 10;
 	return 0;
 }
 
@@ -90,7 +91,7 @@ int FFmpegDecoder::decode(RawBuffer buf)
 		currentFrame.append((const char *)buf.constData(), buf.size());
 		if (nal != SimpleH264Parser::NAL_SLICE && nal != SimpleH264Parser::NAL_SLICE_IDR)
 			return 0;
-		return decodeH264();
+		return decodeH264(buf);
 	} else if (codec->type == AVMEDIA_TYPE_AUDIO) {
 		int finished;
 		Q_UNUSED(finished);
@@ -113,7 +114,7 @@ int FFmpegDecoder::decode(RawBuffer buf)
 	return -EINVAL;
 }
 
-int FFmpegDecoder::decodeH264()
+int FFmpegDecoder::decodeH264(const RawBuffer &lastBuf)
 {
 	int finished;
 	AVPacket pkt;
@@ -129,7 +130,7 @@ int FFmpegDecoder::decodeH264()
 	if (finished) {
 		int bufsize = avpicture_get_size(codecCtx->pix_fmt, codecCtx->width, codecCtx->height);
 		if (pool->freeBufferCount() == 0 && pool->usedBufferCount() == 0) {
-			for (int i = 0; i < 10; i++)
+			for (int i = 0; i < bufferCount; i++)
 				pool->addBuffer(RawBuffer("video/h-264", bufsize, this));
 		}
 		RawBuffer refbuf = pool->take(true);
@@ -139,6 +140,12 @@ int FFmpegDecoder::decodeH264()
 		outbuf.pars()->videoWidth = codecCtx->width;
 		outbuf.pars()->videoHeight = codecCtx->height;
 		outbuf.pars()->avPixelFormat = codecCtx->pix_fmt;
+		outbuf.pars()->streamBufferNo = lastBuf.constPars()->streamBufferNo;
+		outbuf.pars()->captureTime = lastBuf.constPars()->captureTime;
+		outbuf.pars()->encodeTime = lastBuf.constPars()->encodeTime;
+		outbuf.pars()->pts = lastBuf.constPars()->pts;
+		outbuf.pars()->metaData = lastBuf.constPars()->metaData;
+		outbuf.pars()->duration = lastBuf.constPars()->duration;
 		avpicture_layout((AVPicture *)avFrame, codecCtx->pix_fmt, codecCtx->width, codecCtx->height, (uchar *)outbuf.data(), bufsize);
 		newOutputBuffer(0, outbuf);
 	}

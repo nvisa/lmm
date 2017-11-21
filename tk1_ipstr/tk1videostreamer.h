@@ -24,6 +24,7 @@ signals:
 
 protected:
 	virtual int pipelineOutput(BaseLmmPipeline *, const RawBuffer &);
+	int processFrame(const RawBuffer &buf);
 
 	UvcVideoInput *vin;
 	RtpReceiver *rtp;

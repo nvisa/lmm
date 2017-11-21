@@ -37,6 +37,17 @@ public:
 		qint64 rtcpMyEpoch;
 		uint rtcpTs;
 	};
+	struct SeiStats {
+		bool enabled;
+		int cpuload;
+		int freemem;
+		int uptime;
+		int pid;
+		int bufferUsage;
+		int bufferCount;
+		int sessionCount;
+		QByteArray meta;
+	};
 
 	int getSourceDataPort() { return srcDataPort; }
 	int getSourceControlPort() { return srcControlPort; }
@@ -48,21 +59,32 @@ public:
 	void setSourceControlPort(int port) { srcControlPort = port; }
 	void setSourceAddress(const QHostAddress &addr) { sourceAddr = addr; }
 	RtpStats getStatistics();
+	SeiStats getLastSeiData();
+	void setExpectedFramerate(float fps) { expectedFrameRate = fps; }
+	float getExpectedFramerate() { return expectedFrameRate; }
+	void enableBitrateSummarization(bool v, int interval = 10);
+	void enableUserSEIParsing(bool v);
 
 	int start();
 	int stop();
 
+signals:
+	void newSummarizationDataReady(uint size, qint64 ts);
 protected slots:
 	void readPendingRtpDatagrams();
 	void readPendingRtcpDatagrams();
 
 protected:
 	void sendRR(uint ssrc, const QHostAddress &sender);
-	int processRtpData(const QByteArray &ba, const QHostAddress &sender, quint16 senderPort);
+	virtual int processRtpData(const QByteArray &ba, const QHostAddress &sender, quint16 senderPort);
 	int handleRtpData(const QByteArray &ba);
+	void h264FramingError();
+	int getRtpClock();
+	void parseSeiUserData(const RawBuffer &buf);
 
 	int processh264Payload(const QByteArray &ba, uint ts, int last);
 	int processMetaPayload(const QByteArray &ba, uint ts, int last);
+	int processJpegPayload(const QByteArray &ba, uint ts, int last);
 	virtual int processBuffer(const RawBuffer &buf);
 
 	QUdpSocket *sock;
@@ -75,12 +97,33 @@ protected:
 	QHostAddress sourceAddr;
 	RtpStats stats;
 	QMap<uint, QByteArray> rtpData;
+	uint rtpPacketOffset;
+	float expectedFrameRate;
 
 	uint seqLast;
 	QByteArray currentNal;
 	QByteArray annexPrefix;
 	int maxPayloadSize;
 	QByteArray currentData;
+	bool containsMissing;
+	int validFrameCount;
+	uint firstPacketTs;
+	bool framingError;
+	SeiStats seistats;
+	struct BitrateSummarization {
+		BitrateSummarization()
+		{
+			summarizeBitrateStats = false;
+			total = 0;
+			interval = 10;
+		}
+
+		bool summarizeBitrateStats;
+		int total;
+		int interval;
+		QElapsedTimer slot;
+	};
+	BitrateSummarization bsum;
 };
 
 #endif // RTPRECEIVER_H

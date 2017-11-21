@@ -19,3 +19,8 @@ HEADERS += \
     tk1videostreamer.h \
     tk1omxpipeline.h
 
+via {
+    INCLUDEPATH += $$VIA_REPO_PATH
+    DEFINES += CONFIG_VIA
+}
+

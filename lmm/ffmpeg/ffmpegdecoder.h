@@ -20,9 +20,11 @@ public:
 	virtual int startDecoding();
 	virtual int stopDecoding();
 	virtual void aboutToDeleteBuffer(const RawBufferParameters *params);
+	int getBufferCount() { return bufferCount; }
+	void setBufferCount(int v) { bufferCount = v; }
 protected:
 	int decode(RawBuffer buf);
-	int decodeH264();
+	int decodeH264(const RawBuffer &lastBuf);
 	void printMotionVectors(AVFrame *pict);
 	void print_vector(int x, int y, int dx, int dy);
 private:
@@ -34,6 +36,7 @@ private:
 	int detectedWidth;
 	int detectedHeight;
 	QByteArray currentFrame;
+	int bufferCount;
 };
 
 #endif // FFMPEGDECODER_H

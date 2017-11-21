@@ -233,6 +233,7 @@ static void createQueues(QList<ElementIOQueue *> *list, int cnt, BaseLmmElement 
 BaseLmmElement::BaseLmmElement(QObject *parent) :
 	QObject(parent)
 {
+	debugElement = false;
 	state = INIT;
 	streamTime = NULL;
 	processTimeStat = new UnitTimeStat(UnitTimeStat::COUNT);
@@ -420,7 +421,7 @@ int BaseLmmElement::getOutputQueueCount()
 
 qint64 BaseLmmElement::getTotalMemoryUsage()
 {
-	qint64 totalSize;
+	qint64 totalSize = 0;
 	for (int j = 0; j < getInputQueueCount(); j++)
 		totalSize += getInputQueue(j)->getTotalSize();
 	for (int j = 0; j < getOutputQueueCount(); j++)
@@ -557,6 +558,9 @@ ElementIOQueue::ElementIOQueue()
 	fpsTiming->start();
 	fps = 0;
 	fpsBufferCount = 0;
+	bitrate = _bitrate = 0;
+	rlimit = LIMIT_NONE;
+	rlimitTimer = new QElapsedTimer;
 
 	rc = NULL;
 }
@@ -577,7 +581,7 @@ int ElementIOQueue::waitBuffers(int lessThan)
 	return 0;
 }
 
-int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
+int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src, bool releaseSem)
 {
 	if (buffer.size() == 0)
 		return -EINVAL;
@@ -588,6 +592,9 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 		return err;
 	}
 
+	rateLimit(buffer);
+	rlimitTimer->restart();
+
 	bool skip = false;
 	if (rc)
 		skip = rc->shouldSkip();
@@ -595,12 +602,13 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 	if (!skip) {
 		queue << buffer;
 		bufSize += buffer.size();
+		_bitrate += buffer.size();
 		calculateFps();
 	}
 	receivedCount++;
 	lock.unlock();
 	notifyEvent(EV_ADD, buffer, src);
-	if (!skip)
+	if (!skip && releaseSem)
 		bufSem->release();
 	return 0;
 }
@@ -608,10 +616,11 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src)
 int ElementIOQueue::addBuffer(const QList<RawBuffer> &list, BaseLmmElement *src)
 {
 	for (int i = 0; i < list.size(); i++) {
-		int err = addBuffer(list[i], src);
+		int err = addBuffer(list[i], src, false);
 		if (err)
 			return err;
 	}
+	bufSem->release(list.size());
 	return 0;
 }
 
@@ -712,6 +721,71 @@ int ElementIOQueue::setRateReduction(float inFps, float outFps)
 	return 0;
 }
 
+/**
+ * @brief ElementIOQueue::rateLimit
+ * @param buffer
+ *
+ * This function should be called with lock held.
+ */
+void ElementIOQueue::rateLimit(const RawBuffer &buffer)
+{
+	if (rlimit == LIMIT_INTERVAL) {
+		int interval = limitInterval;
+		if (!interval)
+			interval = buffer.constPars()->duration;
+		if (interval) {
+			lock.unlock();
+			while (rlimitTimer->elapsed() < interval)
+				usleep(100);
+			lock.lock();
+		}
+		rlimitTimer->restart();
+	}
+	if (rlimit == LIMIT_TOTAL_SIZE) {
+		lock.unlock();
+		while (bufSize > limitTotalSize)
+			usleep(100);
+		lock.lock();
+	}
+	while (rlimit == LIMIT_BUFFER_COUNT) {
+		while (1) {
+			int bc = queue.size();
+			if (bc < limitBufferCount)
+				break;
+			lock.unlock();
+			usleep(10000);
+			lock.lock();
+		}
+	}
+}
+
+int ElementIOQueue::setRateLimitInterval(qint64 interval)
+{
+	limitInterval = interval;
+	rlimitTimer->start();
+	rlimit = LIMIT_INTERVAL;
+	return 0;
+}
+
+int ElementIOQueue::setRateLimitBufferCount(int count)
+{
+	limitBufferCount = count;
+	rlimit = LIMIT_BUFFER_COUNT;
+	return 0;
+}
+
+int ElementIOQueue::setRateLimitTotalSize(int size)
+{
+	limitTotalSize = size;
+	rlimit = LIMIT_TOTAL_SIZE;
+	return 0;
+}
+
+qint64 ElementIOQueue::getElapsedSinceLastAdd()
+{
+	return rlimitTimer->elapsed();
+}
+
 bool ElementIOQueue::acquireSem()
 {
 	if (state == BaseLmmElement::STOPPED)
@@ -738,6 +812,8 @@ void ElementIOQueue::calculateFps()
 		int elapsed = fpsTiming->restart();
 		fps = fpsBufferCount * 1000.0 / elapsed;
 		fpsBufferCount = 0;
+		bitrate = _bitrate * 1000ull * 8 / elapsed;
+		_bitrate = 0;
 	}
 }
 

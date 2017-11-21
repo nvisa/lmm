@@ -74,6 +74,7 @@ public:
 	int getInputQueueCount();
 	int getOutputQueueCount();
 	virtual qint64 getTotalMemoryUsage();
+	void enableDebug(bool v) { debugElement = v; }
 
 	/* for settings framework */
 	virtual int setSetting(const QString &setting, const QVariant &value);
@@ -98,6 +99,7 @@ protected:
 	UnitTimeStat *processTimeStat;
 	bool passThru;
 	bool eofSent;
+	bool debugElement;
 private:
 	QList<int> inBufSize;
 	bool enabled;
@@ -123,11 +125,17 @@ public:
 		EV_ADD,
 		EV_GET,
 	};
+	enum RateLimit {
+		LIMIT_NONE,
+		LIMIT_INTERVAL,
+		LIMIT_BUFFER_COUNT,
+		LIMIT_TOTAL_SIZE,
+	};
 
 	ElementIOQueue();
 
 	int waitBuffers(int lessThan);
-	int addBuffer(const RawBuffer &buffer, BaseLmmElement *src);
+	int addBuffer(const RawBuffer &buffer, BaseLmmElement *src, bool releaseSem = true);
 	int addBuffer(const QList<RawBuffer> &list, BaseLmmElement *src);
 	int prependBuffer(const RawBuffer &buffer);
 	RawBuffer getBuffer(BaseLmmElement *src);
@@ -139,22 +147,28 @@ public:
 	void stop();
 	int setSizeLimit(int size, int hsize);
 	float getFps() const { return fps; }
+	int getBitrate() const { return bitrate; }
 	int getReceivedCount() const { return receivedCount; }
 	int getSentCount() const { return sentCount; }
 	void setEventHook(eventHook hook, void *priv);
-	int getTotalSize() { return bufSize; }
+	qint64 getTotalSize() { return bufSize; }
 	int setRateReduction(float inFps, float outFps);
+	int setRateLimitInterval(qint64 interval);
+	int setRateLimitBufferCount(int count);
+	int setRateLimitTotalSize(int size);
+	RateLimit getRateLimit() { return rlimit; }
+	qint64 getElapsedSinceLastAdd();
 
 protected:
+	void rateLimit(const RawBuffer &buffer);
 	bool acquireSem() __attribute__((warn_unused_result));
 	int checkSizeLimits();
 	void calculateFps();
 	void notifyEvent(Events ev, const RawBuffer &buf, BaseLmmElement *src);
 
 	QList<RawBuffer> queue;
-	int bufSize;
+	qint64 bufSize;
 	QMutex lock;
-	int totalSize;
 	int receivedCount;
 	int sentCount;
 	QSemaphore * bufSem;
@@ -163,7 +177,14 @@ protected:
 	int hysterisisSize;
 	int outputWakeThreshold;
 	QWaitCondition * outWc;
+	RateLimit rlimit;
+	qint64 limitInterval;
+	int limitBufferCount;
+	int limitTotalSize;
+	QElapsedTimer *rlimitTimer;
 
+	int _bitrate;
+	int bitrate;
 	int fpsBufferCount;
 	QElapsedTimer * fpsTiming;
 	float fps;

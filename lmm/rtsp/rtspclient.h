@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QObject>
 #include <QStringList>
+#include <QHostAddress>
 #include <QElapsedTimer>
 
 class QTimer;
@@ -117,7 +118,7 @@ protected:
 	public:
 		CSeqRequest()
 		{
-
+			rtp = NULL;
 		}
 
 		CSeqRequest(QString s)

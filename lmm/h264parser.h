@@ -75,10 +75,27 @@ public:
 		int frame_crop_right_offset;	//resolution
 		int frame_crop_top_offset;		//resolution
 		int frame_crop_bottom_offset;	//resolution
+		int vui_parameters_flags;
+		struct _vui {
+			bool aspect_ratio_present;
+			uchar aspect_idc;
+			ushort sar_w;
+			ushort sar_h;
+			bool overscan_present;
+			bool overscan_approp;
+			bool video_signal_type_present;
+			bool timing_info_present;
+			uint num_unit_in_ticks;
+			uint timescale;
+			bool fixed_frame_rate;
+
+		};
+		_vui vui;
 	};
 
 	explicit SimpleH264Parser(QObject *parent = 0);
 	static const uchar * findNextStartCode(const uchar *p, const uchar *end);
+	static int escapeEmulation(uchar *dst, const uchar *data, int size);
 	static int getNalType(const uchar *data);
 	static sps_t parseSps(const uchar *data);
 	void setSpsPpsInsertion(bool v) { insertSpsPps = v; }
@@ -93,17 +110,11 @@ protected:
 		H264_OUTPUT_NALU,
 		H264_OUTPUT_AU,
 	};
-	int findNextStartCode(const uchar *data, int size);
-	int parse(const uchar *data, int size);
 	H264SeiInfo parseNoStart(const uchar *data);
 	int processBuffer(const RawBuffer &buf);
 	void extractSeiData(RawBuffer buf);
 
-	int packState;
-	int packSize;
 	h264_output h264Mode;
-	QList<RawBuffer> nalBuffers;
-	QList<RawBuffer> au;
 	RawBuffer idrBuf;
 	RawBuffer spsBuf;
 	RawBuffer ppsBuf;
@@ -111,6 +122,8 @@ protected:
 	bool inputPacketized;
 	bool extractSei;
 	QMap<int, H264SeiInfo> seiData;
+	float spsFps;
+	bool spsParsed;
 };
 
 #endif // SIMPLEH264PARSER_H

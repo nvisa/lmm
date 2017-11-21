@@ -303,6 +303,8 @@ void TextOverlay::yuvSwPixmapOverlay(RawBuffer buffer)
 	int x, y, val;
 	for (int i = 0; i < ba.size(); i++) {
 		int ch = (int)ba.at(i);
+		if (ch < 32 || ch - 32 >= charPixelMap.size())
+			ch = 32;
 		maplock.lock();
 		const QList<int> map = charPixelMap[ch - 32];
 		maplock.unlock();

@@ -20,6 +20,7 @@ public:
 
 	virtual int start();
 	virtual int stop();
+	virtual int flush();
 
 	int getPipelineCount();
 	BaseLmmPipeline * getPipeline(int ind);

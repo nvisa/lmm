@@ -169,6 +169,7 @@ ffmpeg {
         ffmpeg/ffcompat.h \
         ffmpeg/ffmpegbuffer.h \
         ffmpeg/ffmpegcolorspace.h \
+        ffmpeg/ffmpegcontexter.H \
 
     SOURCES += \
         ffmpeg/baselmmdemux.cpp \
@@ -179,6 +180,7 @@ ffmpeg {
         ffmpeg/avimux.cpp \
         ffmpeg/ffmpegbuffer.cpp \
         ffmpeg/ffmpegcolorspace.cpp \
+        ffmpeg/ffmpegcontexter.cpp \
 
             x86 {
                     SOURCES += \
@@ -226,6 +228,16 @@ ffmpeg {
             -lx264 \
             -lpostproc \
     }
+}
+
+ffmpeg_extra {
+    SOURCES += \
+        ffmpeg/ffmpegextra.cpp \
+        ffmpeg/ffmpeg_extra.c
+    HEADERS += \
+        ffmpeg/ffmpegextra.h
+    INCLUDEPATH += "/home/amenmd/myfs/source-codes/oss/FFmpeg"
+    DEFINES += CONFIG_FFMPEG_EXTRA
 }
 
 dmai { include(dmai/dmai.pri) }
@@ -337,6 +349,15 @@ dm8168 {
 
 	OTHER_FILES += \
 		dm365/dm8168.pri \
+}
+
+srtp {
+    HEADERS += \
+        rtp/srtptransmitter.h \
+        rtp/srtpreceiver.h
+    SOURCES += \
+        rtp/srtptransmitter.cpp \
+        rtp/srtpreceiver.cpp
 }
 
 armv5te {

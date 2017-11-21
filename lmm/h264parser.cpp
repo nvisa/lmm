@@ -1,7 +1,6 @@
 #include "h264parser.h"
 
 #include <lmm/debug.h>
-#include <lmm/circularbuffer.h>
 
 /* according to table 7-1 */
 enum h264_nal_type
@@ -105,10 +104,11 @@ SimpleH264Parser::SimpleH264Parser(QObject *parent) :
 	BaseLmmParser(parent)
 {
 	h264Mode = H264_OUTPUT_NALU;
-	packState = 0;
 	insertSpsPps = false;
 	inputPacketized = true;
 	extractSei = false;
+	spsParsed = false;
+	spsFps = 0;
 }
 
 static const uint8_t * findNextStartCodeIn(const uint8_t *p, const uint8_t *end)
@@ -165,6 +165,29 @@ const uchar * SimpleH264Parser::findNextStartCode(const uchar *p, const uchar *e
 	return out;
 }
 
+int SimpleH264Parser::escapeEmulation(uchar *dst, const uchar *data, int size)
+{
+	int off = 0;
+	int i;
+	for (i = 0; i < size - 3; i++) {
+		if (data[i] == 0 && data[i + 1] == 0 && data[i + 2] == 0x3) {
+			if (data[i + 3] <= 0x3) {
+				dst[off++] = data[i++];
+				dst[off++] = data[i++];
+				i++;
+				dst[off++] = data[i];
+				continue;
+			}
+		}
+
+		dst[off++] = data[i];
+	}
+	while (i < size)
+		dst[off++] = data[i++];
+
+	return off;
+}
+
 void SimpleH264Parser::setExtractSei()
 {
 	extractSei = true;
@@ -175,77 +198,6 @@ H264SeiInfo SimpleH264Parser::getSeiData(int bufferNo)
 	if (seiData.contains(bufferNo))
 		return seiData.take(bufferNo);
 	return H264SeiInfo();
-}
-
-int SimpleH264Parser::parse(const uchar *data, int size)
-{
-	if (packState == 0)
-		return findNextStartCode(data, size);
-
-	for (int i = 4; i < size - 2; i++) {
-		if (packState == 1) {
-			if (data[i] == 0 && data[i + 1] == 0 && data[i + 2] == 1) {
-				/* parsed a complete nal unit */
-				RawBuffer buf2("video/x-h264", packSize);
-				memcpy(buf2.data(), data, packSize);
-				if (h264Mode == H264_OUTPUT_NALU) {
-					newOutputBuffer(0, buf2);
-					mInfo("new nal packet with size %d %d", packSize, i);
-				} else {
-					nalBuffers << buf2;
-				}
-				circBuf->lock();
-				circBuf->useData(packSize);
-				mInfo("using circular buffer data: %d", circBuf->freeSize());
-				circBuf->unlock();
-				packSize = 4;
-				break;
-			} else {
-				packSize++;
-			}
-		}
-	}
-
-	if (h264Mode == H264_OUTPUT_AU) {
-		while (nalBuffers.size()) {
-			RawBuffer buf = nalBuffers.takeFirst();
-			const uchar *data = (const uchar *)buf.constData();
-			//int nal_ref_idc = (data[3] & 0x60) >> 5;
-			h264_nal_type nal = h264_nal_type(data[3] & 0x1f);
-			//qDebug() << nal << nal_ref_idc;
-			au << buf;
-			switch (nal) {
-			case NAL_SLICE:
-			case NAL_SLICE_DPA:
-			case NAL_SLICE_DPB:
-			case NAL_SLICE_DPC:
-			case NAL_SLICE_IDR:
-				break;
-			case NAL_AU_DELIMITER: {
-				QMap<int, int> cnt;
-				for (int i = 0; i < au.size(); i++) {
-					buf = au.at(i);
-					data = (const uchar *)buf.constData();
-					cnt[data[3] & 0x1f] += 1;
-				}
-				qDebug() << "new access unit" << au.size() << cnt;
-				au.clear();
-				break;
-			}
-			case NAL_UNKNOWN:
-			case NAL_SEI:
-			case NAL_SPS:
-			case NAL_PPS:
-			case NAL_SEQ_END:
-			case NAL_STREAM_END:
-			case NAL_FILTER_DATA:
-			default:
-				break;
-			};
-
-		}
-	}
-	return 0;
 }
 
 H264SeiInfo SimpleH264Parser::parseNoStart(const uchar *data)
@@ -321,33 +273,54 @@ int SimpleH264Parser::processBuffer(const RawBuffer &buf)
 	if (inputPacketized)
 		return newOutputBuffer(0, buf);
 
-	const uchar *d = (const uchar *)buf.constData();
-	const uchar *start = (const uchar *)buf.constData();
-	int out = 0;
-	while (d) {
-		int nal = d[4] & 0x1f;
-		int next = findNextStartCode(&d[4], d + buf.size()) - d;
-		if (nal != NAL_SLICE)
-			qDebug("nal %d", nal);
-		if (d + next < start + buf.size()) {
-			RawBuffer buf2 = RawBuffer("video/x-h264", d, next);
-			buf2.pars()->h264NalType = nal;
-			newOutputBuffer(0, buf2);
-			d = d + next;
-			out += next;
-		} else {
-			RawBuffer buf2 = RawBuffer("video/x-h264", d, start - d + buf.size());
-			buf2.pars()->h264NalType = nal;
-			newOutputBuffer(0, buf2);
-			out += start - d + buf.size();
+	QList<int> offsets;
+	QList<int> nals;
+	const uchar *encdata = (const uchar *)buf.constData();
+	const uchar *encend = (const uchar *)buf.constData() + buf.size();
+	const uchar *nal = SimpleH264Parser::findNextStartCode(encdata, encend);
+	while (1) {
+		offsets << nal - encdata;
+		int naltype = SimpleH264Parser::getNalType(nal);
+		nals << naltype;
+		nal = SimpleH264Parser::findNextStartCode(nal + 4, encend);
+		if (nal >= encend - 4)
 			break;
+	}
+	int total = 0;
+	QList<RawBuffer> list;
+	for (int i = 0; i < offsets.size(); i++) {
+		int start = offsets[i];
+		int end = encend - encdata;
+		if (i < offsets.size() - 1)
+			end = offsets[i + 1];
+		RawBuffer outbuf = RawBuffer("video/x-h264", end - start);
+		outbuf.pars()->frameType = 1;
+		int esize = escapeEmulation((uchar *)outbuf.data(), encdata + start, end - start);
+		outbuf.setUsedSize(esize);
+		outbuf.pars()->h264NalType = nals[i];
+		if (nals[i] == NAL_SPS) {
+			if (!spsParsed) {
+				sps_t sps = parseSps((const uchar *)outbuf.constData());
+				float fps = (float)sps.vui.timescale / sps.vui.num_unit_in_ticks / 2;
+				if (fps > 0) {
+					spsParsed = true;
+					spsFps = fps;
+				}
+			}
+		} else if (nals[i] == NAL_SLICE_IDR) {
+			outbuf.pars()->frameType = 0;
 		}
+		outbuf.pars()->duration = 0;
+		if (spsParsed && (nals[i] == NAL_SLICE_IDR || nals[i] == NAL_SLICE))
+			outbuf.pars()->duration = 1000 / spsFps;
+		outbuf.pars()->metaData = buf.constPars()->metaData;
+		list << outbuf;
+		total += outbuf.size();
 	}
-	if (out != buf.size()) {
-		mDebug("there was an error in parsing, in %d bytes, out %d bytes", buf.size(), out);
-	}
-	//newOutputBuffer(0, buf);
-	return 0;
+	//if (buf.size() != total)
+		/* TODO : Add support for data accumulation */
+		//mDebug("input/output buffer size mismatch, accumulation is not supported!");
+	return newOutputBuffer(0, list);
 }
 
 void SimpleH264Parser::extractSeiData(RawBuffer buf)
@@ -368,22 +341,6 @@ void SimpleH264Parser::extractSeiData(RawBuffer buf)
 			break;
 		}
 	}
-}
-
-int SimpleH264Parser::findNextStartCode(const uchar *data, int size)
-{
-	for (int i = 0; i < size - 2; i++) {
-		if (data[i] == 0 && data[i + 1] == 0 && data[i + 2] == 1) {
-			packSize = 4;
-			packState = 1;
-			mDebug("found new start code at %d", i);
-			circBuf->lock();
-			circBuf->useData(i);
-			circBuf->unlock();
-			break;
-		}
-	}
-	return 0;
 }
 
 int SimpleH264Parser::getNalType(const uchar *data)
@@ -470,6 +427,38 @@ SimpleH264Parser::sps_t SimpleH264Parser::parseSps(const uchar *data)
 		sps.frame_crop_right_offset = getUeGolomb(data, &off);
 		sps.frame_crop_top_offset = getUeGolomb(data, &off);
 		sps.frame_crop_bottom_offset = getUeGolomb(data, &off);
+	}
+	sps.vui_parameters_flags = getBits(data, &off, 1);
+	if (sps.vui_parameters_flags) {
+		sps.vui.aspect_ratio_present = getBits(data, &off, 1);
+		if (sps.vui.aspect_ratio_present) {
+			sps.vui.aspect_idc = getBits(data, &off, 8);
+			if (sps.vui.aspect_idc == 255) {
+				sps.vui.sar_w = getBits(data, &off, 16);
+				sps.vui.sar_h = getBits(data, &off, 16);
+			}
+		}
+		sps.vui.overscan_present = getBits(data, &off, 1);
+		if (sps.vui.overscan_present)
+			sps.vui.overscan_approp = getBits(data, &off, 1);
+		sps.vui.video_signal_type_present = getBits(data, &off, 1);
+		if (sps.vui.video_signal_type_present) {
+			getBits(data, &off, 4);
+			if (getBits(data, &off, 1)) {
+				getBits(data, &off, 24);
+			}
+		}
+		if (getBits(data, &off, 1)) {
+			/* chroma loc */
+			fDebug("Unsupported SPS format, sorry");
+			return sps;
+		}
+		sps.vui.timing_info_present = getBits(data, &off, 1);
+		if (sps.vui.timing_info_present) {
+			sps.vui.num_unit_in_ticks = getBits(data, &off, 32);
+			sps.vui.timescale = getBits(data, &off, 32);
+			sps.vui.fixed_frame_rate = getBits(data, &off, 1);
+		}
 	}
 
 	return sps;

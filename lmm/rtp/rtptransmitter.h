@@ -21,8 +21,10 @@ class RtpChannel : public QObject
 	Q_OBJECT
 public:
 	RtpChannel(int psize, const QHostAddress &myIpAddr);
-	~RtpChannel();
+	virtual ~RtpChannel();
 	QString getSdp(Lmm::CodecType codec);
+
+	typedef int (*transportHook)(const char *data, int size, RtpChannel *, void *priv);
 
 	int seqFirst;
 	int seq;
@@ -42,6 +44,9 @@ public:
 	TokenBucket *tb;
 	bool useSR;
 	uint lastRtpTs;
+	transportHook trHook;
+	void *trHookPriv;
+	int interleaved;
 
 signals:
 	void goodbyeRecved();
@@ -58,10 +63,12 @@ protected:
 	int setup(const QString &target, int dport, int dcport, int sport, int scport, uint ssrc);
 	int sendNalUnit(const uchar *buf, int size, qint64 ts);
 	int sendPcmData(const uchar *buf, int size, qint64 ts);
+	int sendJpegData(const uchar *buf, int size, qint64 ts);
 	void sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 tsRef);
 	void sendSR(quint64 bufferTs);
 	RawNetworkSocket::SockBuffer * getSBuf();
 	uchar * getRtpBuf(RawNetworkSocket::SockBuffer *sbuf);
+	virtual void writeSockData(const char *buf, int size);
 
 	QHostAddress myIpAddr;
 	int maxPayloadSize;
@@ -86,14 +93,14 @@ class RtpTransmitter : public BaseLmmElement, public StreamControlElementInterfa
 public:
 	explicit RtpTransmitter(QObject *parent = 0, Lmm::CodecType codec = Lmm::CODEC_H264);
 
-	RtpChannel * addChannel();
+	virtual RtpChannel * addChannel();
 	int getChannelCount();
 	RtpChannel * getChannel(int ch);
 	void removeChannel(RtpChannel *ch);
 	Lmm::CodecType getCodec();
 	virtual int start();
 	virtual int stop();
-	int setupChannel(RtpChannel *ch, const QString &target, int dport, int dcport, int sport, int scport, uint ssrc);
+	virtual int setupChannel(RtpChannel *ch, const QString &target, int dport, int dcport, int sport, int scport, uint ssrc);
 	int playChannel(RtpChannel *ch);
 	int teardownChannel(RtpChannel *ch);
 	void setMulticastTTL(socklen_t ttl);
@@ -108,17 +115,17 @@ protected:
 	void packetizeAndSend(const RawBuffer &buf);
 	void sendPcmData(const RawBuffer &buf);
 	void sendMetaData(const RawBuffer &buf);
+	void sendJpegData(const RawBuffer &buf);
 
 	/* channel operations */
 	void channelsSendNal(const uchar *buf, int size, qint64 ts);
 	void channelsSendRtp(uchar *buf, int size, int last, void *sbuf, qint64 tsRef);
 	void channelsCheckRtcp(quint64 ts);
+	virtual RtpChannel * createChannel();
 
 	QHostAddress myIpAddr;
 	QList<RtpChannel *> channels;
 	int streamedBufferCount;
-	int bitrateBufSize;
-	int bitrate;
 	bool useAbsoluteTimestamp;
 	float frameRate;
 	bool useStapA;

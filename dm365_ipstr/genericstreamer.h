@@ -9,6 +9,7 @@ class MetadataGenerator;
 class ApplicationSettings;
 class StreamControlElementInterface;
 class TextOverlay;
+class QFileSystemWatcher;
 
 class GenericStreamer : public BaseStreamer, public LmmPBusInterface
 {
@@ -21,11 +22,17 @@ signals:
 
 protected slots:
 	virtual void timeout();
+	void onvifChanged(const QString &filename);
 protected:
 	void postInitPipeline(BaseLmmPipeline *p);
 	virtual int pipelineOutput(BaseLmmPipeline *p, const RawBuffer &);
 	QVariant getRtspStats(const QString &fld);
 	int getWdogKey();
+	int generateCustomSEI(const RawBuffer &buf);
+	void initCustomSEI();
+	bool reloadEarlyOnvifBindings();
+	bool reloadLateOnvifBindings();
+	void initOnvifBindings();
 
 	TextOverlay * createTextOverlay(const QString &elementName, ApplicationSettings *s);
 	H264Encoder * createH264Encoder(const QString &elementName, ApplicationSettings *s, int ch, int w0, int h0);
@@ -35,8 +42,8 @@ protected:
 	DM365CameraInput *camIn;
 	TextOverlay *mainTextOverlay;
 
-	QHash<BaseLmmPipeline *, int> streamControl;
-	QHash<BaseLmmPipeline *, StreamControlElementInterface *> streamControlElement;
+	QHash<BaseLmmPipeline *, QList<int> > streamControl;
+	QHash<BaseLmmPipeline *, QList<StreamControlElementInterface *> > streamControlElement;
 	QList<RtpTransmitter *> transmitters;
 	QList<MetadataGenerator *> metaGenerators;
 	BaseRtspServer *rtsp;
@@ -46,6 +53,27 @@ protected:
 	int wdogimpl;
 	QElapsedTimer lockCheckTimer;
 	bool noRtspContinueSupport;
+	QFileSystemWatcher *onvifWatcher;
+
+	struct CustomSeiStruct {
+		qint32 cpuload;
+		qint32 freemem;
+		qint32 uptime;
+		qint32 pid;
+		qint32 rtspSessionCount;
+		QElapsedTimer t;
+		QMutex lock;
+
+		bool inited;
+
+		QByteArray serdata;
+		QDataStream out;
+		qint64 encodeCountPos;
+		qint64 frameHashPos;
+		qint64 cpuLoadPos;
+		qint64 plStatsPos;
+	};
+	CustomSeiStruct customSei;
 
 	// LmmPBusInterface interface
 public:

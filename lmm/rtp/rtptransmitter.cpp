@@ -55,7 +55,7 @@ static QHostAddress findIp(const QString &ifname)
 
 static QByteArray createSei(const char *payload, int psize, uchar ptype)
 {
-	int tsize = psize + 20;
+	int tsize = psize + 16;
 	int i;
 	QByteArray ba;
 	ba.append((uchar)6);
@@ -65,11 +65,8 @@ static QByteArray createSei(const char *payload, int psize, uchar ptype)
 	ba.append((uchar)(tsize - i));
 	for (int i = 0; i < 16; i++)
 		ba.append((uchar)0xAA);
-	ba.append((uchar)(tsize & 0xff));
-	ba.append((uchar)(tsize >> 8));
-	ba.append((uchar)(0x1));
-	ba.append((uchar)(0x1));
 	ba.append(payload, psize);
+	ba.append((uchar)0x80); //RBSP
 	return ba;
 }
 
@@ -138,7 +135,9 @@ RtpChannel * RtpTransmitter::addChannel()
 		pt = 8;
 	else if (codec == Lmm::CODEC_META_BILKON)
 		pt = 98;
-	RtpChannel *ch = new RtpChannel(maxPayloadSize, myIpAddr);
+	else if (codec == Lmm::CODEC_JPEG)
+		pt = 26;
+	RtpChannel *ch = createChannel();
 	ch->payloadType = pt;
 	ch->ttl = ttl;
 	ch->useSR = rtcpEnabled;
@@ -176,15 +175,12 @@ Lmm::CodecType RtpTransmitter::getCodec()
 int RtpTransmitter::start()
 {
 	streamedBufferCount = 0;
-	bitrateBufSize = 0;
-	bitrate = 0;
 
 	return BaseLmmElement::start();
 }
 
 int RtpTransmitter::stop()
 {
-	bitrate = 0;
 	return BaseLmmElement::stop();
 }
 
@@ -230,7 +226,7 @@ int RtpTransmitter::setTrafficShaping(bool enabled, int average, int burst, int 
 
 	if (tsinfo.enabled) {
 		tb = new TokenBucket(this);
-		tb->setPars(tsinfo.avgBitsPerSec / 8, tsinfo.burstBitsPerSec / 8, tsinfo.controlDuration);
+		tb->setParsLeaky(tsinfo.avgBitsPerSec / 8, tsinfo.controlDuration);
 	}
 
 	return 0;
@@ -259,6 +255,8 @@ int RtpTransmitter::processBuffer(const RawBuffer &buf)
 		sendPcmData(buf);
 	else if (getCodec() == Lmm::CODEC_META_BILKON)
 		sendMetaData(buf);
+	else if (getCodec() == Lmm::CODEC_JPEG)
+		sendJpegData(buf);
 
 	streamLock.unlock();
 	streamedBufferCount++;
@@ -277,6 +275,8 @@ quint64 RtpTransmitter::packetTimestamp()
 		return (8000ll * streamedBufferCount / 50);
 	} else if (mediaCodec == Lmm::CODEC_META_BILKON)
 		return 90ull * lastBufferTime;
+	else if (mediaCodec == Lmm::CODEC_JPEG)
+		return 90ull * lastBufferTime;;
 	return 0;
 }
 
@@ -315,7 +315,6 @@ void RtpTransmitter::packetizeAndSend(const RawBuffer &buf)
 			uchar type = nalbuf[0] & 0x1F;
 			if (insertH264Sei && buf.constPars()->metaData.size()
 					&&(type == SimpleH264Parser::NAL_SLICE || type == SimpleH264Parser::NAL_SLICE_IDR)) {
-				qDebug() << "sei time";
 				QByteArray sei = createSei(buf.constPars()->metaData, buf.constPars()->metaData.size(), 5);
 				channelsSendNal((const uchar *)sei.constData(), sei.size(), ts);
 			}
@@ -427,16 +426,18 @@ void RtpTransmitter::sendMetaData(const RawBuffer &buf)
 		channels[i]->sendPcmData((const uchar *)buf.constData(), buf.size(), ts);
 }
 
+void RtpTransmitter::sendJpegData(const RawBuffer &buf)
+{
+	if (!channels.size())
+		return;
+	qint64 ts = packetTimestamp();
+	for (int i = 0; i < channels.size(); i++)
+		channels[i]->sendJpegData((const uchar *)buf.constData(), buf.size(), ts);
+}
+
 void RtpTransmitter::channelsSendNal(const uchar *buf, int size, qint64 ts)
 {
-	if (!tsinfo.enabled) {
-		/* if traffic shaping is not enabled we can do zero-copying */
-		for (int i = 0; i < channels.size(); i++)
-			channels[i]->sendNalUnit(buf, size, ts);
-		return;
-	}
-
-	/* shaping is active, we should packetize NAL before passing to channels */
+	/* shaping is active, we should split NAL before passing to channels */
 	if (!channels.size())
 		return;
 	uchar *rtpbuf = channels.first()->tempRtpBuf;
@@ -498,6 +499,11 @@ void RtpTransmitter::channelsCheckRtcp(quint64 ts)
 			channels[i]->sendSR(ts);
 }
 
+RtpChannel *RtpTransmitter::createChannel()
+{
+	return new RtpChannel(maxPayloadSize, myIpAddr);
+}
+
 RtpChannel::RtpChannel(int psize, const QHostAddress &myIpAddr)
 {
 	useSR = true;
@@ -526,6 +532,7 @@ RtpChannel::RtpChannel(int psize, const QHostAddress &myIpAddr)
 	timer->start(1000);
 	bufferCount = 0;
 	tb = NULL;
+	trHook = NULL;
 }
 
 RtpChannel::~RtpChannel()
@@ -697,6 +704,120 @@ int RtpChannel::sendPcmData(const uchar *buf, int size, qint64 ts)
 	return 0;
 }
 
+int RtpChannel::sendJpegData(const uchar *buf, int size, qint64 ts)
+{
+	if (state != 2)
+		return 0;
+	RawNetworkSocket::SockBuffer *sbuf = NULL;
+	uchar *rtpbuf;
+	if (zeroCopy) {
+		sbuf = rawsock->getNextFreeBuffer();
+		rtpbuf = (uchar *)sbuf->payload;
+	} else {
+		rtpbuf = tempRtpBuf;
+	}
+	bufferCount++;
+
+	uchar *jpegHeader = rtpbuf + 12;
+	jpegHeader[0] = 0;			/* type-specific */
+	jpegHeader[1] = 0;
+	jpegHeader[2] = 0;
+	jpegHeader[3] = 0;
+	jpegHeader[4] = 64;			/* type, DM365 uses 4:2:0 */
+	jpegHeader[5] = 255;		/* Q */
+	jpegHeader[6] = 640 / 8;	/* width */
+	jpegHeader[7] = 368 / 8;	/* height */
+	int jpegFixHeaderSize = 8;
+
+	/* restart interval */
+	jpegHeader[8] = 0;
+	jpegHeader[9] = 84;
+	jpegHeader[10] = 0xff;
+	jpegHeader[11] = 0xff;
+	jpegFixHeaderSize += 4;
+
+	/* we will skip restart markers */
+	uchar *qth = jpegHeader + jpegFixHeaderSize;
+	qth[0] = 0;
+	qth[1] = 0;
+	qth[2] = 0;
+	qth[3] = 128;
+
+	/*
+	 * JFIF: Jpeg File Interchange Format
+	 *
+	 * A JFIF consists segments of:
+	 *	FF xx s1 s2
+	 *
+	 * Segments:
+	 *	D8 -> Start Of Image (SOI)
+	 *	E0 -> APP0
+	 *
+	 *	D0 -> Restart (RSTn), in the range [D0 D7]
+	 *	D9 -> End Of Image (EOI)
+	 *	DA -> Start of Scan (SOS)
+	 *	DB -> Define Quantization Table (DQT)
+	 *	DD -> Define Restart Interval (DRI)
+	 *
+	 *  C0 -> Start Of Frame (SOF)
+	 *	C4 -> Define Huffman Table
+	 *
+	 * Now we do as ffmpeg does:
+	 *	1. Copy DQT to RTP header
+	 *	1. Skip up to and including SOS
+	 */
+
+	const uchar *qtables = NULL;
+	int sosOff = 0;
+
+	for (int i = 0; i < size; i++) {
+		if (buf[i] != 0xff)
+			continue;
+		int seqsize = buf[i + 2] * 256 + buf[i + 3] + 2;
+		int marker = buf[i + 1];
+		if (marker == 0xdb)
+			qtables = &buf[i + 4];
+		if (marker == 0xda) {
+			sosOff = i + seqsize;
+			break;
+		}
+	}
+
+	size -= sosOff;
+	buf += sosOff;
+
+	for (int i = size - 2; i >= 0; i--) {
+		if (buf[i] == 0xff && buf[i + 1] == 0xd9) {
+			size = i;
+			break;
+		}
+	}
+
+	int sentTotal = 0;
+	while (size > 0) {
+		int hsize = jpegFixHeaderSize;
+		if (sentTotal == 0)
+			hsize += 132;
+		int len = qMin(size, maxPayloadSize - hsize);
+		uchar *jpegbuf = rtpbuf + 12;
+
+		/* adjust header */
+		jpegHeader[1] = (sentTotal >> 16) & 0xff;
+		jpegHeader[2] = (sentTotal >> 8) & 0xff;
+		jpegHeader[3] = (sentTotal >> 0) & 0xff;
+		if (sentTotal == 0 && qtables)
+			memcpy(jpegbuf + jpegFixHeaderSize + 4, qtables, 128);
+		/* payload */
+		memcpy(jpegbuf + hsize, buf, len);
+		sendRtpData(rtpbuf, len + hsize, len == size, sbuf, ts);
+
+		buf += len;
+		size -= len;
+		sentTotal += len;
+	}
+	return 0;
+}
+
 void RtpChannel::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 tsRef)
 {
 	if (state != 2)
@@ -719,13 +840,15 @@ void RtpChannel::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 
 	buf[9] = (ssrc >> 16) & 0xff;
 	buf[10] = (ssrc >> 8) & 0xff;
 	buf[11] = (ssrc >> 0) & 0xff;
-	if (zeroCopy) {
+	if (trHook) {
+		(*trHook)((const char *)buf, size + 12, this, trHookPriv);
+	} else if (zeroCopy) {
 		if (sbuf)
 			rawsock->send((RawNetworkSocket::SockBuffer *)sbuf, size + 12);
 		else
 			rawsock->send((char *)buf, size + 12);
 	} else
-		sock->writeDatagram((const char *)buf, size + 12, QHostAddress(dstIp), dstDataPort);
+		writeSockData((const char *)buf, size + 12);
 	seq = (seq + 1) & 0xffff;
 	totalPacketCount++;
 	totalOctetCount += size;
@@ -855,6 +978,11 @@ uchar *RtpChannel::getRtpBuf(RawNetworkSocket::SockBuffer *sbuf)
 	if (zeroCopy)
 		return (uchar *)sbuf->payload;
 	return tempRtpBuf;
+}
+
+void RtpChannel::writeSockData(const char *buf, int size)
+{
+	sock->writeDatagram(buf, size, QHostAddress(dstIp), dstDataPort);
 }
 
 void RtpChannel::readPendingRtcpDatagrams()
