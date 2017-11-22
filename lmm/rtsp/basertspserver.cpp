@@ -1145,7 +1145,11 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 		return resp;
 	}
 
-	if (auth == AUTH_SIMPLE) {
+	bool doAuth = auth;
+	QString peerIp = currentSocket->peerAddress().toString();
+	if (peerIp == "127.0.0.1" || peerIp == myIpAddr.toString())
+		doAuth = AUTH_NONE;
+	if (doAuth == AUTH_SIMPLE) {
 		if (!currentCmdFields.contains("Authorization"))
 			return createRtspErrorResponse(401, lsep);
 		QStringList flds = currentCmdFields["Authorization"].split(" ");
