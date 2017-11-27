@@ -696,6 +696,7 @@ int RtspClient::parseSetupResponse(const QHash<QString, QString> &resp, RtpRecei
 		}
 		ses.id = s;
 	}
+	ses.rtspTimeout.start();
 
 	QUrl url(serverUrl);
 	rtp->setSourceDataPort(p.first);
