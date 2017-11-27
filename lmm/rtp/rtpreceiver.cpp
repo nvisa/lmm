@@ -436,6 +436,9 @@ int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)
 	} else
 		currentNal.append(ba.mid(12));
 
+	if (fui < 28)
+		last = 1;
+
 	if (last) {
 		/* try to extract frame-rate information from SPS */
 		int nal = SimpleH264Parser::getNalType((const uchar *)currentNal.constData());
