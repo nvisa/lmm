@@ -3,6 +3,7 @@
 
 #include <QTimer>
 #include <QPainter>
+#include <QKeyEvent>
 #include <QtWidgets/QVBoxLayout>
 
 class OverlayInfo
@@ -204,6 +205,15 @@ void VideoWidget::paintEvent(QPaintEvent *)
 			r = QRect(topLeft, bottomRight);
 			p.drawText(r, Qt::AlignLeft | Qt::AlignTop, info->text);
 		}
+	}
+}
+
+void VideoWidget::keyPressEvent(QKeyEvent *kev)
+{
+	if (kev->key() == Qt::Key_P && kev->modifiers() & Qt::ControlModifier) {
+		QImage im(geometry().width(), geometry().height(), QImage::Format_ARGB32);
+		render(&im);
+		im.save(QString("snapshot%1.jpg").arg(lastBufferNo));
 	}
 }
 

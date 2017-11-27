@@ -48,6 +48,7 @@ protected slots:
 	void timeout();
 protected:
 	void paintEvent(QPaintEvent *);
+	void keyPressEvent(QKeyEvent *kev);
 	qint64 interpolatePts(int ts);
 	bool paintOneFrame(QPainter *p);
 	bool paintWithTs(QPainter *p);
