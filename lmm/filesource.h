@@ -17,6 +17,7 @@ public:
 	int read(int size = 4096);
 	virtual int start();
 	virtual int stop();
+	virtual int processBlocking(int ch);
 
 signals:
 	

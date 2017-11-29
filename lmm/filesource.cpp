@@ -48,6 +48,13 @@ int FileSource::stop()
 	return BaseLmmElement::stop();
 }
 
+int FileSource::processBlocking(int ch)
+{
+	Q_UNUSED(ch);
+	read(4096);
+	return 0;
+}
+
 int FileSource::processBuffer(const RawBuffer &)
 {
 	return -EINVAL;
