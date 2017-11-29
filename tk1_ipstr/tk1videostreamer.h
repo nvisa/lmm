@@ -10,6 +10,8 @@ class RtpReceiver;
 class UvcVideoInput;
 class RtpTransmitter;
 class LmmGstPipeline;
+class FFmpegColorSpace;
+class MetaDataManager;
 
 class TK1VideoStreamer : public BaseStreamer
 {
@@ -20,6 +22,7 @@ public:
 	int viewSource(const QString &ip, const QString &stream);
 	int serveRtp(const QString &ip, const QString &stream, const QString &dstIp, quint16 dstPort);
 
+	int viewAnalogGst(const QString &device);
 signals:
 
 protected:
@@ -33,6 +36,8 @@ protected:
 	LmmGstPipeline *gst2;
 	RtpTransmitter *rtpout;
 	BaseRtspServer *rtspServer;
+	MetaDataManager *metaMan;
+	FFmpegColorSpace *cspc;
 };
 
 #endif // TK1VIDEOSTREAMER_H

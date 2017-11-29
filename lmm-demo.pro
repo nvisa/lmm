@@ -23,6 +23,11 @@ linux-g++-64 {
     message(x86 build)
 }
 
+linux-g++ {
+    message(Jetson TK1 native build)
+    SUBDIRS += tk1_ipstr
+}
+
 linux-oe-g++ {
     message(Apalis TK1 build)
     SUBDIRS += tk1_ipstr

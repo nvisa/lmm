@@ -4,6 +4,8 @@
 #include <QCoreApplication>
 
 #include <lmm/debug.h>
+#include <ecl/net/remotecontrol.h>
+#include <ecl/settings/applicationsettings.h>
 
 static const QMap<QString, QString> parseArgs(int &argc, char **argv)
 {
@@ -40,6 +42,14 @@ int main(int argc, char *argv[])
 
 	LmmCommon::init();
 
+	ApplicationSettings *sets = ApplicationSettings::instance();
+	sets->load("config.json", QIODevice::ReadWrite);
+
+	if (sets->get("config.remote_control.enabled").toBool()) {
+		fDebug("starting remote control");
+		RemoteControl *r = new RemoteControl(&a);
+		r->listen(QHostAddress::Any, sets->get("config.remote_control.port").toInt());
+	}
 	QMap<QString, QString> args = parseArgs(argc, argv);
 
 	TK1VideoStreamer s;
