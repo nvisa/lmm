@@ -1046,7 +1046,7 @@ QString BaseRtspServer::getEndpointAddress()
 {
 	if (server->serverPort() == 554)
 		return myIpAddr.toString();
-	return QString("%1:%2").arg(server->serverPort());
+	return QString("%1:%2").arg(myIpAddr.toString()).arg(server->serverPort());
 }
 
 void BaseRtspServer::handlePostData(QTcpSocket *sock, QString mes, QString lsep)
