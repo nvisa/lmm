@@ -23,6 +23,7 @@ public:
 	int getBufferCount() { return bufferCount; }
 	void setBufferCount(int v) { bufferCount = v; }
 	void setVideoResolution(int width, int height);
+	void setH264NalChecking(bool v);
 protected:
 	int decode(RawBuffer buf);
 	int decodeH264(const RawBuffer &lastBuf);
@@ -38,6 +39,7 @@ private:
 	int detectedHeight;
 	QByteArray currentFrame;
 	int bufferCount;
+	bool checkNalUnits;
 };
 
 #endif // FFMPEGDECODER_H

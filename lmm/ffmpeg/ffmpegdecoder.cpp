@@ -21,6 +21,7 @@ FFmpegDecoder::FFmpegDecoder(QObject *parent) :
 	codec = NULL;
 	pool = new LmmBufferPool(this);
 	avFrame = NULL;
+	checkNalUnits = true;
 }
 
 int FFmpegDecoder::startDecoding()
@@ -91,7 +92,7 @@ int FFmpegDecoder::decode(RawBuffer buf)
 	}
 	if (codec->type == AVMEDIA_TYPE_VIDEO) {
 		currentFrame.append((const char *)buf.constData(), buf.size());
-		if (nal != SimpleH264Parser::NAL_SLICE && nal != SimpleH264Parser::NAL_SLICE_IDR)
+		if (checkNalUnits && (nal != SimpleH264Parser::NAL_SLICE && nal != SimpleH264Parser::NAL_SLICE_IDR))
 			return 0;
 		return decodeH264(buf);
 	} else if (codec->type == AVMEDIA_TYPE_AUDIO) {
@@ -292,4 +293,9 @@ void FFmpegDecoder::setVideoResolution(int width, int height)
 {
 	detectedWidth = width;
 	detectedHeight = height;
+}
+
+void FFmpegDecoder::setH264NalChecking(bool v)
+{
+	checkNalUnits = v;
 }
