@@ -1208,15 +1208,13 @@ QStringList BaseRtspServer::createSdp(QString url)
 	myIpAddr = findIp(nwInterfaceName);
 
 	/* According to RFC2326 C.1.7 we should report 0.0.0.0 as dest address */
-	QString dstIp = "0.0.0.0";
 	bool multicast = isMulticast(stream, "");
 	int streamPort = 0;
-	if (multicast)
-		dstIp = getMulticastAddress(stream, "") + "/255";
 
 	sdp << "v=0";
 	sdp << "o=- 0 0 IN IP4 127.0.0.1";
-	sdp << "c=IN IP4 " + dstIp;
+	if (!multicast)
+		sdp << "c=IN IP4 0.0.0.0";
 	sdp << "a=tool:lmm 2.0.0";
 	sdp << "s=No Name";
 	sdp << QString("a=control:rtsp://%1/%2").arg(getEndpointAddress()).arg(stream);
@@ -1230,28 +1228,40 @@ QStringList BaseRtspServer::createSdp(QString url)
 		Lmm::CodecType codec = desc.rtp->getCodec();
 		if (codec == Lmm::CODEC_H264) {
 			sdp << QString("m=video %1 RTP/AVP 96").arg(streamPort);
+			if (multicast)
+				sdp << QString("c=IN IP4 %1").arg(getMulticastAddress(stream, hi.key()));
 			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
 			sdp << "a=rtpmap:96 H264/90000";
 			sdp << "a=fmtp:96 packetization-mode=1";
 			//sdp << QString("a=control:%1").arg(desc.streamUrlSuffix);
 		} else if (codec == Lmm::CODEC_JPEG) {
 			sdp << QString("m=video %1 RTP/AVP 26").arg(streamPort);
+			if (multicast)
+				sdp << QString("c=IN IP4 %1").arg(getMulticastAddress(stream, hi.key()));
 			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
 			sdp << "a=rtpmap:26 JPEG/90000";
 		} else if (codec == Lmm::CODEC_PCM_L16) {
 			sdp << QString("m=audio %1 RTP/AVP 97").arg(streamPort);
+			if (multicast)
+				sdp << QString("c=IN IP4 %1").arg(getMulticastAddress(stream, hi.key()));
 			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
 			sdp << "a=rtpmap:97 L16/8000/1";
 			//sdp << QString("a=control:%1").arg(desc.streamUrlSuffix);
 		} else if (codec == Lmm::CODEC_PCM_ALAW) {
 			sdp << QString("m=audio %1 RTP/AVP 8").arg(streamPort);
+			if (multicast)
+				sdp << QString("c=IN IP4 %1").arg(getMulticastAddress(stream, hi.key()));
 			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
 			sdp << "a=rtpmap:8 PCMA/8000/1";
 		} else if (codec == Lmm::CODEC_META_BILKON) {
 			sdp << QString("m=metadata %1 RTP/AVP 98").arg(streamPort);
+			if (multicast)
+				sdp << QString("c=IN IP4 %1").arg(getMulticastAddress(stream, hi.key()));
 			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
 		} else if (codec == Lmm::CODEC_JPEG) {
 			sdp << QString("m=video %1 RTP/AVP 26").arg(streamPort);
+			if (multicast)
+				sdp << QString("c=IN IP4 %1").arg(getMulticastAddress(stream, hi.key()));
 			sdp << QString("a=control:rtsp://%1/%2/%3").arg(getEndpointAddress()).arg(stream).arg(desc.streamUrlSuffix);
 		}
 	}
