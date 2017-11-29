@@ -73,6 +73,8 @@ int FFmpegDecoder::decode(RawBuffer buf)
 			detectedHeight = (2 - sps.frame_mbs_only_flag) * 16 * (sps.pic_height_in_map_units_minus1 + 1)
 					- sps.frame_crop_top_offset * 2 - sps.frame_crop_bottom_offset * 2;
 			ffDebug() << "encountered SPS" << detectedWidth << detectedHeight;
+			if (detectedWidth < 0 || detectedHeight < 0 || detectedHeight > 10000)
+				return -EINVAL;
 		} else
 			return 0;
 	}
@@ -284,4 +286,10 @@ void FFmpegDecoder::printMotionVectors(AVFrame *pict)
 void FFmpegDecoder::aboutToDeleteBuffer(const RawBufferParameters *params)
 {
 	pool->give(params->poolIndex);
+}
+
+void FFmpegDecoder::setVideoResolution(int width, int height)
+{
+	detectedWidth = width;
+	detectedHeight = height;
 }
