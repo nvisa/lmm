@@ -47,6 +47,7 @@ public:
 	int appendFinal(BaseLmmElement *el, int inputCh = 0);
 	int end();
 	int end(QList<BaseLmmElement *> joins);
+	void setQuitOnThreadError(bool v);
 
 	void waitForFinished(int timeout);
 

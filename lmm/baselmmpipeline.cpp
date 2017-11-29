@@ -240,6 +240,11 @@ int BaseLmmPipeline::end(QList<BaseLmmElement *> joins)
 	return 0;
 }
 
+void BaseLmmPipeline::setQuitOnThreadError(bool v)
+{
+	quitOnThreadError = v;
+}
+
 void BaseLmmPipeline::waitForFinished(int timeout)
 {
 	timeout *= 1000;
