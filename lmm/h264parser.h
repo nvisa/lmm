@@ -124,6 +124,8 @@ protected:
 	QMap<int, H264SeiInfo> seiData;
 	float spsFps;
 	bool spsParsed;
+	QByteArray accbuf;
+	int outputBufferNo;
 };
 
 #endif // SIMPLEH264PARSER_H

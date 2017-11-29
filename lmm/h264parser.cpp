@@ -109,6 +109,7 @@ SimpleH264Parser::SimpleH264Parser(QObject *parent) :
 	extractSei = false;
 	spsParsed = false;
 	spsFps = 0;
+	outputBufferNo = 0;
 }
 
 static const uint8_t * findNextStartCodeIn(const uint8_t *p, const uint8_t *end)
@@ -273,30 +274,31 @@ int SimpleH264Parser::processBuffer(const RawBuffer &buf)
 	if (inputPacketized)
 		return newOutputBuffer(0, buf);
 
+	accbuf.append((const char *)buf.constData(), buf.size());
+
 	QList<int> offsets;
 	QList<int> nals;
-	const uchar *encdata = (const uchar *)buf.constData();
-	const uchar *encend = (const uchar *)buf.constData() + buf.size();
+	const uchar *encdata = (const uchar *)accbuf.constData();
+	const uchar *encend = (const uchar *)accbuf.constData() + accbuf.size();
 	const uchar *nal = SimpleH264Parser::findNextStartCode(encdata, encend);
-	while (1) {
+	while (nal < encend - 4) {
 		offsets << nal - encdata;
 		int naltype = SimpleH264Parser::getNalType(nal);
 		nals << naltype;
 		nal = SimpleH264Parser::findNextStartCode(nal + 4, encend);
-		if (nal >= encend - 4)
-			break;
 	}
 	int total = 0;
 	QList<RawBuffer> list;
-	for (int i = 0; i < offsets.size(); i++) {
+	for (int i = 0; i < offsets.size() - 1; i++) {
 		int start = offsets[i];
 		int end = encend - encdata;
 		if (i < offsets.size() - 1)
 			end = offsets[i + 1];
 		RawBuffer outbuf = RawBuffer("video/x-h264", end - start);
 		outbuf.pars()->frameType = 1;
-		int esize = escapeEmulation((uchar *)outbuf.data(), encdata + start, end - start);
+		int esize = end - start;//escapeEmulation((uchar *)outbuf.data(), encdata + start, end - start);
 		outbuf.setUsedSize(esize);
+		memcpy((uchar *)outbuf.data(), encdata + start, end - start);
 		outbuf.pars()->h264NalType = nals[i];
 		if (nals[i] == NAL_SPS) {
 			if (!spsParsed) {
@@ -314,12 +316,15 @@ int SimpleH264Parser::processBuffer(const RawBuffer &buf)
 		if (spsParsed && (nals[i] == NAL_SLICE_IDR || nals[i] == NAL_SLICE))
 			outbuf.pars()->duration = 1000 / spsFps;
 		outbuf.pars()->metaData = buf.constPars()->metaData;
-		list << outbuf;
+		outbuf.pars()->streamBufferNo = outputBufferNo++;
+		newOutputBuffer(0, outbuf);
 		total += outbuf.size();
 	}
+	if (offsets.size())
+		accbuf = accbuf.mid(offsets.takeLast());
 	//if (buf.size() != total)
 		/* TODO : Add support for data accumulation */
-		//mDebug("input/output buffer size mismatch, accumulation is not supported!");
+		//mDebug("input/output buffer size mismatch (%d != %d), accumulation is not supported!", total, buf.size());
 	return newOutputBuffer(0, list);
 }
 
