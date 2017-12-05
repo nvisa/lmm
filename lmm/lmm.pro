@@ -55,6 +55,8 @@ SOURCES += \
     tools/tokenbucket.cpp \
     rtp/rtpreceiver.cpp \
     rtsp/rtspclient.cpp \
+    jobdistributorelement.cpp \
+    videoscaler.cpp
 
 HEADERS  += \
     filesource.h \
@@ -106,6 +108,9 @@ HEADERS  += \
     interfaces/motiondetectioninterface.h \
     rtp/rtpreceiver.h \
     rtsp/rtspclient.h \
+    version.h \
+    jobdistributorelement.h \
+    videoscaler.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
