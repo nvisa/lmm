@@ -12,6 +12,10 @@ class LmmThread;
 class BaseLmmPipeline;
 class PipelineDebugger;
 
+#if QT_VERSION > 0x050000
+typedef BaseLmmElement * (*elementCreateFactory)(const QJsonObject &elobj);
+#endif
+
 class PipelineManager : public BaseLmmElement
 {
 	Q_OBJECT
@@ -24,6 +28,12 @@ public:
 
 	int getPipelineCount();
 	BaseLmmPipeline * getPipeline(int ind);
+
+	int parseConfig(const QString &filename);
+#if QT_VERSION > 0x050000
+	static void registerElementFactory(const QString &type, elementCreateFactory factory);
+#endif
+
 signals:
 
 protected slots:
@@ -33,7 +43,7 @@ protected:
 	virtual void signalReceived(int sig);
 	virtual int processBuffer(const RawBuffer &buf);
 	BaseLmmPipeline * addPipeline();
-	virtual int pipelineOutput(BaseLmmPipeline *, const RawBuffer &) { return 0; }
+	virtual int pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf);
 	QList<BaseLmmElement *> getElements();
 	int startPipeline(int i);
 
@@ -48,6 +58,7 @@ private:
 	QHash<QString, BaseLmmPipeline *> pipelinesByThread;
 	QHash<BaseLmmPipeline *, QElapsedTimer *> pipelineWdts;
 	bool quitting;
+	int debug;
 };
 
 #endif // PIPELINEMANAGER_H

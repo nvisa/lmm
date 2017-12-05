@@ -9,6 +9,22 @@
 #include <errno.h>
 #include <signal.h>
 
+#if QT_VERSION > 0x050000
+#include "qtvideooutput.h"
+#endif
+#include "ffmpeg/baselmmdemux.h"
+#include "lmm/ffmpeg/ffmpegdecoder.h"
+#include "lmm/ffmpeg/ffmpegcolorspace.h"
+#include "lmm/jobdistributorelement.h"
+#include "lmm/videoscaler.h"
+#include "lmm/x264encoder.h"
+
+#if QT_VERSION > 0x050000
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonDocument>
+#endif
 #include <QElapsedTimer>
 #include <QCoreApplication>
 
@@ -18,6 +34,7 @@ static __thread BaseLmmPipeline *currentPipeline = NULL;
 PipelineManager::PipelineManager(QObject *parent) :
 	BaseLmmElement(parent)
 {
+	debug = 0;
 	quitting = false;
 	dbg = PipelineDebugger::GetInstance();
 	QTimer::singleShot(1000, this, SLOT(timeout()));
@@ -65,6 +82,118 @@ BaseLmmPipeline *PipelineManager::getPipeline(int ind)
 	return pipelines[ind];
 }
 
+#if QT_VERSION > 0x050000
+static QHash<QString, elementCreateFactory> registeredElements;
+static BaseLmmElement * createElement(const QJsonObject &elobj)
+{
+	QString elType = elobj["type"].toString();
+	BaseLmmElement *el = NULL;
+	if (elType == "demux") {
+		BaseLmmDemux *demux = new BaseLmmDemux;
+		el = demux;
+		demux->setAudioDemuxing(elobj["audio"].toBool());
+		demux->setSource(elobj["source"].toString());
+	} else if (elType == "decoder") {
+		FFmpegDecoder *dec = new FFmpegDecoder;
+		el = dec;
+		dec->setVideoResolution(elobj["width"].toInt(), elobj["height"].toInt());
+		dec->setH264NalChecking(elobj["h264NalChecking"].toBool());
+		dec->setBufferCount(elobj["bufferCount"].toInt());
+	} else if (elType == "colorspace") {
+		FFmpegColorSpace *cp = new FFmpegColorSpace;
+		el = cp;
+		cp->setBufferCount(elobj["bufferCount"].toInt());
+		cp->setOutputFormat(FFmpegColorSpace::getFormat(elobj["outputFormat"].toString()));
+		cp->setInputFormat(FFmpegColorSpace::getFormat(elobj["inputFormat"].toString()));
+	} else if (elType == "jobdistro") {
+		JobDistributorElement *dist = new JobDistributorElement;
+		dist->setMethod(JobDistributorElement::DistributionMethod(elobj["method"].toInt()));
+		el = dist;
+		int repeat = elobj["repeat"].toInt();
+		for (int i = 0; i < repeat; i++) {
+			foreach (QJsonValue v, elobj["elements"].toArray()) {
+				QJsonObject subel = v.toObject();
+				BaseLmmElement *sel = createElement(subel);
+				if (sel == NULL) {
+					fDebug("un-supported element '%s' in jobdistro definition", qPrintable(subel["type"].toString()));
+					return NULL;
+				}
+				dist->addElement(sel);
+			}
+		}
+	} else if (elType == "videoOutput") {
+		QtVideoOutput *vout = new QtVideoOutput;
+		el = vout;
+	} else if (elType == "videoScaler") {
+		VideoScaler *sc = new VideoScaler;
+		sc->setOutputResolution(elobj["width"].toInt(), elobj["height"].toInt());
+		sc->setMode(elobj["mode"].toInt());
+		el = sc;
+	} else if (elType == "videoEncoder") {
+		x264Encoder *enc = new x264Encoder;
+		enc->setVideoResolution(QSize(elobj["width"].toInt(), elobj["height"].toInt()));
+		enc->setBitrate(elobj["bitrate"].toInt());
+		enc->setThreadCount(elobj["threads"].toInt());
+		enc->setPreset(elobj["preset"].toString());
+		el = enc;
+	} else if (registeredElements.contains(elType))
+		return (*(registeredElements[elType]))(elobj);
+	return el;
+}
+
+int PipelineManager::parseConfig(const QString &filename)
+{
+	QFile f(filename);
+	f.open(QIODevice::ReadOnly);
+	QJsonObject tobj = QJsonDocument::fromJson(f.readAll()).object();
+	f.close();
+
+	debug = tobj["debug"].toInt();
+
+	QJsonArray pipelines = tobj["pipelines"].toArray();
+	foreach (QJsonValue v, pipelines) {
+		QJsonObject pipeline = v.toObject();
+		QJsonArray elements = pipeline["elements"].toArray();
+		QList<BaseLmmElement *> els;
+		foreach (QJsonValue v2, elements) {
+			QJsonObject elobj = v2.toObject();
+			if (elobj["disabled"].toBool())
+				continue;
+
+			QString elType = elobj["type"].toString();
+			BaseLmmElement *el = createElement(elobj);
+			if (!el) {
+				mDebug("un-supported element '%s' in pipeline definition", qPrintable(elType));
+				return -EINVAL;
+			}
+			els << el;
+		}
+
+		BaseLmmPipeline *pl = addPipeline();
+		for (int j = 0; j < els.size(); j++)
+			pl->append(els[j]);
+		//pl->setMaxTimeout(pipelineMaxTimeout);
+		pl->end();
+		pl->setQuitOnThreadError(pipeline["quitOnThreadError"].toBool());
+
+		//postInitPipeline(pl);
+	}
+
+	return 0;
+}
+
+void PipelineManager::registerElementFactory(const QString &type, elementCreateFactory factory)
+{
+	registeredElements.insert(type, factory);
+}
+#else
+int PipelineManager::parseConfig(const QString &filename)
+{
+	Q_UNUSED(filename);
+	return -1;
+}
+#endif
+
 void PipelineManager::timeout()
 {
 	if (checkPipelineWdts) {
@@ -109,6 +238,13 @@ BaseLmmPipeline *PipelineManager::addPipeline()
 	dbg->addPipeline(pipeline);
 	connect(pipeline, SIGNAL(playbackFinished()), SLOT(pipelineFinished()));
 	return pipeline;
+}
+
+int PipelineManager::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
+{
+	if (debug)
+		ffDebug() << p << buf.constPars()->streamBufferNo << buf.size() << p->getOutputQueue(0)->getFps();
+	return 0;
 }
 
 QList<BaseLmmElement *> PipelineManager::getElements()
