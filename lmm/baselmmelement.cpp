@@ -540,7 +540,7 @@ int BaseLmmElement::processBuffer(int ch, const RawBuffer &buf)
 {
 	Q_UNUSED(ch);
 	Q_UNUSED(buf);
-	return 0;
+	return processBuffer(buf);
 }
 
 ElementIOQueue::ElementIOQueue()
