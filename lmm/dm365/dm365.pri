@@ -32,8 +32,6 @@ xdc.path = $$INSTALL_PREFIX/usr/local/include/lmm/dm365
 
 INSTALLS += xdc
 
-CONFIG += arm
-
 OTHER_FILES += \
     dm365_xdc.pri \
     dm365.cfg \

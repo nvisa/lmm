@@ -170,6 +170,7 @@ ffmpeg {
         ffmpeg/ffmpegbuffer.h \
         ffmpeg/ffmpegcolorspace.h \
         ffmpeg/ffmpegcontexter.H \
+        ffmpeg/ffmpegdecoder.h \
 
     SOURCES += \
         ffmpeg/baselmmdemux.cpp \
@@ -181,14 +182,7 @@ ffmpeg {
         ffmpeg/ffmpegbuffer.cpp \
         ffmpeg/ffmpegcolorspace.cpp \
         ffmpeg/ffmpegcontexter.cpp \
-
-            x86 {
-                    SOURCES += \
-                            ffmpeg/ffmpegdecoder.cpp\
-
-                    HEADERS += \
-                            ffmpeg/ffmpegdecoder.h \
-            }
+        ffmpeg/ffmpegdecoder.cpp \
 
             dm6446 {
                     SOURCES += \
@@ -263,7 +257,6 @@ neon {
     HEADERS += neon/neonvideoscaler.h \
 	neon/neoncolorspace.h \
 	neon/libyuv.h \
-
 }
 
 zynq {
@@ -272,7 +265,6 @@ zynq {
 
     HEADERS += zynq/zynqvideoinput.h \
 
-    CONFIG += arm
 }
 
 dm365 { include(dm365/dm365.pri) }
@@ -293,7 +285,6 @@ dm6446 {
     xdc.files += dm6446/config.bld
     xdc.files += dm6446/dm6446.cfg
     xdc.path = $$INSTALL_PREFIX/usr/local/include/lmm/dm6446
-    CONFIG += arm
 
     OTHER_FILES += \
         dm6446/dm6446.pri \
@@ -345,7 +336,6 @@ dm8168 {
 	xdc.files += dm8168/tipaths.pri
 	xdc.files += dm8168/dm8168.pri
         xdc.path = $$INSTALL_PREFIX/usr/local/include/lmm/dm8168
-	CONFIG += arm
 
 	OTHER_FILES += \
 		dm365/dm8168.pri \
@@ -358,18 +348,6 @@ srtp {
     SOURCES += \
         rtp/srtptransmitter.cpp \
         rtp/srtpreceiver.cpp
-}
-
-armv5te {
-    CONFIG += arm
-}
-
-x86 {
-    DEFINES += TARGET_x86
-}
-
-arm {
-    DEFINES += TARGET_ARM
 }
 
 INCLUDEPATH += ..

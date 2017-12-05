@@ -23,12 +23,12 @@ linux-g++-64 {
     message(x86 build)
 }
 
-linux-g++ {
+qmake-platform-k1 {
     message(Jetson TK1 native build)
     SUBDIRS += tk1_ipstr
 }
 
-linux-oe-g++ {
+qmake-platform-cross-k1 {
     message(Apalis TK1 build)
     SUBDIRS += tk1_ipstr
 }
