@@ -20,6 +20,10 @@ struct x264EncoderPriv {
 	int h;
 	int stride;
 	int pixelFormat;
+
+	QString preset;
+	int bitrate;
+	int threadCount;
 };
 
 x264Encoder::x264Encoder(QObject *parent) :
@@ -31,11 +35,14 @@ x264Encoder::x264Encoder(QObject *parent) :
 	priv->h = 360;
 	priv->stride = priv->w * 1;
 	priv->pixelFormat = X264_CSP_I420;
+	priv->preset = "medium";
+	priv->bitrate = 4000;
+	priv->threadCount = 0;
 }
 
 int x264Encoder::start()
 {
-	if (x264_param_default_preset(&priv->param, "medium", NULL) < 0)
+	if (x264_param_default_preset(&priv->param, qPrintable(priv->preset), NULL) < 0)
 		return -EINVAL;
 	priv->param.i_csp = priv->pixelFormat;
 	priv->param.i_width  = priv->w;
@@ -48,10 +55,11 @@ int x264Encoder::start()
 	priv->param.b_repeat_headers = 1;
 	priv->param.b_annexb = 1;
 	priv->param.i_keyint_max = 25;
+	priv->param.i_threads = priv->threadCount;
 
 	/* rc - CBR at the moment */
 	priv->param.rc.i_rc_method = X264_RC_CRF;
-	priv->param.rc.i_bitrate = 4000;
+	priv->param.rc.i_bitrate = priv->bitrate;
 	priv->param.rc.i_vbv_max_bitrate = 4000;
 	priv->param.rc.i_vbv_buffer_size = priv->param.rc.i_vbv_max_bitrate * 2;
 
@@ -115,6 +123,21 @@ int x264Encoder::setPixelFormat(int fmt)
 	else
 		return -EINVAL;
 	return 0;
+}
+
+void x264Encoder::setThreadCount(int v)
+{
+	priv->threadCount = v;
+}
+
+void x264Encoder::setPreset(const QString &text)
+{
+	priv->preset = text;
+}
+
+void x264Encoder::setBitrate(int v)
+{
+	priv->bitrate = v;
 }
 
 int x264Encoder::processBuffer(const RawBuffer &buf)

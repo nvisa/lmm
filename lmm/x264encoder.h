@@ -17,6 +17,9 @@ public:
 
 	int setVideoResolution(const QSize &sz);
 	int setPixelFormat(int fmt);
+	void setThreadCount(int v);
+	void setPreset(const QString &text);
+	void setBitrate(int v);
 
 protected:
 	virtual int processBuffer(const RawBuffer &buf);
