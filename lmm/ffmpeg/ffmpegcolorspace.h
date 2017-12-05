@@ -16,7 +16,9 @@ public:
 	int setOutputFormat(int outfmt);
 	int setInputFormat(int infmt);
 	int getBufferCount() { return bufferCount; }
-	void setBufferCount(int v) { bufferCount = v; }
+	void setBufferCount(int v) { bufferCount = v ? v : bufferCount; }
+
+	static int getFormat(const QString &text);
 signals:
 	
 public slots:

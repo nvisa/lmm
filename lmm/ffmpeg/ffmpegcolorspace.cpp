@@ -78,6 +78,30 @@ public:
 	}
 };
 
+class ScalerGenericARGB : public BaseVideoScaler
+{
+public:
+	ScalerGenericARGB() {}
+	int convert(SwsContext *ctx, const uchar *data, int w, int h, uchar *out)
+	{
+		int stride = w;
+
+		/* src info */
+		int srcStride[3] = { stride, stride / 2, stride / 2};
+		const uchar *Y = data;
+		const uchar *U = data + stride * h;
+		const uchar *V = data + stride * h * 5 / 4;
+		const uchar *src[3] = { Y , U, V };
+
+		/* dst info */
+		int dstStride[1] = { w * 4 };
+		uchar * outData[1] = { out };
+		sws_scale(ctx, src, srcStride, 0, h,
+				  outData, dstStride);
+		return 0;
+	}
+};
+
 class ScalerNV12RGB32 : public BaseVideoScaler
 {
 public:
@@ -161,6 +185,10 @@ int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 			mime = "video/x-raw-rgb";
 		else if (outPixFmt == AV_PIX_FMT_GRAY8)
 			mime = "video/x-raw-gray";
+		else if (outPixFmt == AV_PIX_FMT_ARGB)
+			mime = "video/x-raw-argb";
+		else if (outPixFmt == AV_PIX_FMT_RGBA)
+			mime = "video/x-raw-rgba";
 		mDebug("inpix=%d outpix=%d mime=%s", inPixFmt, outPixFmt, qPrintable(mime));
 
 		if (inPixFmt == AV_PIX_FMT_NV12
@@ -171,6 +199,12 @@ int FFmpegColorSpace::processBuffer(const RawBuffer &buf)
 			scaler = new ScalerGenericRGB;
 		else if (outPixFmt == AV_PIX_FMT_RGB24)
 			scaler = new ScalerGenericRGB;
+		else if (outPixFmt == AV_PIX_FMT_ARGB)
+			scaler = new ScalerGenericARGB;
+		else if (outPixFmt == AV_PIX_FMT_RGBA)
+			scaler = new ScalerGenericARGB;
+		else if (outPixFmt == AV_PIX_FMT_BGRA)
+			scaler = new ScalerGenericARGB;
 		else if (inPixFmt == AV_PIX_FMT_RGBA
 				 && outPixFmt == AV_PIX_FMT_YUV420P)
 			scaler = new ScalerRGB32YUV420P;
@@ -209,6 +243,21 @@ int FFmpegColorSpace::setInputFormat(int infmt)
 {
 	inPixFmt = infmt;
 	return 0;
+}
+
+#define str2fmt(_fmt) \
+	if (text == #_fmt) \
+		return _fmt
+int FFmpegColorSpace::getFormat(const QString &text)
+{
+	str2fmt(AV_PIX_FMT_RGB24);
+	str2fmt(AV_PIX_FMT_GRAY8);
+	str2fmt(AV_PIX_FMT_NV12);
+	str2fmt(AV_PIX_FMT_YUV420P);
+	str2fmt(AV_PIX_FMT_ARGB);
+	str2fmt(AV_PIX_FMT_RGBA);
+	str2fmt(AV_PIX_FMT_BGRA);
+	return AV_PIX_FMT_RGB24;
 }
 
 void FFmpegColorSpace::aboutToDeleteBuffer(const RawBufferParameters *pars)

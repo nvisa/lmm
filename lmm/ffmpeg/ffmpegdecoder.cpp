@@ -22,6 +22,7 @@ FFmpegDecoder::FFmpegDecoder(QObject *parent) :
 	pool = new LmmBufferPool(this);
 	avFrame = NULL;
 	checkNalUnits = true;
+	detectedWidth = detectedHeight = 0;
 }
 
 int FFmpegDecoder::startDecoding()
@@ -51,7 +52,6 @@ int FFmpegDecoder::startDecoding()
 	}
 	avFrame = av_frame_alloc();
 	decodeCount = 0;
-	detectedWidth = detectedHeight = 0;
 	bufferCount = 10;
 	return 0;
 }
@@ -66,7 +66,8 @@ int FFmpegDecoder::stopDecoding()
 int FFmpegDecoder::decode(RawBuffer buf)
 {
 	int nal = SimpleH264Parser::getNalType((const uchar *)buf.constData());
-	if (detectedWidth == 0) {
+
+	if (checkNalUnits && detectedWidth == 0) {
 		if (nal == SimpleH264Parser::NAL_SPS) {
 			SimpleH264Parser::sps_t sps = SimpleH264Parser::parseSps((const uchar *)buf.constData());
 			detectedWidth = 16 * (sps.pic_width_in_mbs_minus1 + 1)

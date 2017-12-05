@@ -21,7 +21,7 @@ public:
 	virtual int stopDecoding();
 	virtual void aboutToDeleteBuffer(const RawBufferParameters *params);
 	int getBufferCount() { return bufferCount; }
-	void setBufferCount(int v) { bufferCount = v; }
+	void setBufferCount(int v) { bufferCount = v ? v : bufferCount; }
 	void setVideoResolution(int width, int height);
 	void setH264NalChecking(bool v);
 protected:
