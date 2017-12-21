@@ -27,13 +27,16 @@ public:
 	enum OverlayType {
 		HISTOGRAM,
 		TEXT,
+		POLYGON,
 	};
 
 	void paintBuffer(const RawBuffer &buf);
 	void addStaticOverlay(const QString &line, const QString &family = "Courier", int size = 16, int weight = 8, QColor color = Qt::yellow, QRectF pos = QRectF(0.1, 0.1, 1.0, 1.0));
 	void setStatusOverlay(const QString &text);
 	int addGraphicOverlay(OverlayType type, int x, int y, int w, int h, float opacity);
+	int addGraphicOverlay(const QPolygon &polygon, QColor color);
 	void * getOverlayObject(int index);
+	int setOverlay(int index, const QPolygon &polygon);
 	void setPaintHook(paintHook hook, void *priv) { _paintHook = hook; _paintHookPriv = priv; }
 	int getDropCount() { return dropCount; }
 	int getRenderCount() { return renderCount; }

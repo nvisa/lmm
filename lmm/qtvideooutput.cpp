@@ -6,6 +6,8 @@
 #include <QKeyEvent>
 #include <QtWidgets/QVBoxLayout>
 
+#include <errno.h>
+
 class OverlayInfo
 {
 public:
@@ -29,6 +31,7 @@ public:
 	QString fontFamily;
 	int fontSize;
 	int fontWeight;
+	QPolygon polygon;
 };
 
 QtVideoOutput::QtVideoOutput(QObject *parent)
@@ -140,11 +143,31 @@ int VideoWidget::addGraphicOverlay(OverlayType type, int x, int y, int w, int h,
 	return overlays.size() - 1;
 }
 
+int VideoWidget::addGraphicOverlay(const QPolygon &polygon, QColor color)
+{
+	OverlayInfo *info = new OverlayInfo;
+	info->color = color;
+	info->type = VideoWidget::POLYGON;
+	info->polygon = polygon;
+	overlays << info;
+	return overlays.size() - 1;
+}
+
 void *VideoWidget::getOverlayObject(int index)
 {
 	if (index >= overlays.size())
 		return NULL;
 	return overlays[index]->obj;
+}
+
+int VideoWidget::setOverlay(int index, const QPolygon &polygon)
+{
+	if (index >= overlays.size())
+		return -ENOENT;
+	if (overlays[index]->type != VideoWidget::POLYGON)
+		return -EINVAL;
+	overlays[index]->polygon = polygon;
+	return 0;
 }
 
 void VideoWidget::timeout()
@@ -204,6 +227,19 @@ void VideoWidget::paintEvent(QPaintEvent *)
 			QPoint bottomRight(r.width() * info->r.width(), r.height() * info->r.height());
 			r = QRect(topLeft, bottomRight);
 			p.drawText(r, Qt::AlignLeft | Qt::AlignTop, info->text);
+		} else if (info->type == VideoWidget::POLYGON) {
+			p.setPen(info->color);
+			p.setBrush(QBrush(info->color));
+			if (info->polygon.count() == 2) {
+				QColor cinv = QColor(info->color.blue(), info->color.green(), info->color.red(), info->color.alpha());
+				p.setPen(cinv);
+				p.setBrush(QBrush(cinv));
+				QRect r;
+				r.setTopLeft(info->polygon[0]);
+				r.setBottomRight(info->polygon[1]);
+				p.drawRect(r);
+			} else
+				p.drawPolygon(info->polygon);
 		}
 	}
 }
