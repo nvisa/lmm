@@ -615,8 +615,15 @@ int GenericStreamer::generateCustomSEI(const RawBuffer &buf)
 
 		/* write frame hash */
 		char *hashData = (char *)buf2->constPars()->metaData.data() + customSei.frameHashPos;
-		const QByteArray &ba = QByteArray::fromRawData((const char *)buf.constData(), buf.size() > 32768 ? 32768 : buf.size());
-		QByteArray hash = QCryptographicHash::hash(ba, QCryptographicHash::Md5);
+		QByteArray hash;
+		int hlen = buf.size() / 4;
+		if (hlen > 8192)
+			hlen = 8192;
+		const QByteArray &ba = QByteArray::fromRawData((const char *)buf.constData(), buf.size());
+		QCryptographicHash hashb(QCryptographicHash::Md5);
+		for (int i = 0; i < 4; i++)
+			hashb.addData(ba.mid(i * hlen, hlen));
+		hash = hashb.result();
 		memcpy(hashData, hash.constData(), hash.size());
 	}
 
