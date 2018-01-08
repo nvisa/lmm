@@ -433,6 +433,14 @@ int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)
 			h264FramingError();
 		}
 
+	} else if (fui == 24) {
+		int off = 13;
+		while (off < ba.size()) {
+			int nalusize = buf[off] * 256 + buf[off + 1];
+			currentNal.append(ba.mid(off + 2, nalusize));
+			currentNal.append(annexPrefix);
+			off += nalusize + 2;
+		}
 	} else
 		currentNal.append(ba.mid(12));
 
