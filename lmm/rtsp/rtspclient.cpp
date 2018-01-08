@@ -241,7 +241,7 @@ int RtspClient::setupUrlASync()
 			QString controlUrl = tracks[i].controlUrl;
 			if (!trackReceivers.contains(tracks[i].name)) {
 				mDebug("No track receiver found for track %s", qPrintable(tracks[i].name));
-				return -ENOENT;
+				continue;
 			}
 			err = setupTrackASync(controlUrl, tracks[i].connection, trackReceivers[tracks[i].name]);
 			if (err) {
@@ -635,8 +635,14 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 	const QStringList &sdplines = resp["__content__"].split("\n");
 	TrackDefinition tr;
 	foreach (QString line, sdplines) {
-		if (line.startsWith("m="))
+		if (line.startsWith("m=")) {
+			if (!tr.m.isEmpty()) {
+				tr.name = tr.controlUrl.split("/").last();
+				if (setupTracks.contains(tr.name))
+					serverDescriptions[serverUrl] << tr;
+			}
 			tr.m = line.remove("m=").trimmed();
+		}
 		else if (line.startsWith("a=rtpmap"))
 			tr.rtpmap = line.remove("a=").trimmed();
 		else if (line.startsWith("a=control:")) {
@@ -655,7 +661,8 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 		}
 	}
 	tr.name = tr.controlUrl.split("/").last();
-	serverDescriptions[serverUrl] << tr;
+	if (setupTracks.contains(tr.name))
+		serverDescriptions[serverUrl] << tr;
 
 	return 0;
 }
