@@ -3,6 +3,7 @@
 #include "alsa.h"
 
 #include <errno.h>
+#include <unistd.h>
 
 #include <lmm/streamtime.h>
 
