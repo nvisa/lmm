@@ -561,6 +561,11 @@ int H264Encoder::getMotionValue()
 	return motionValue;
 }
 
+int H264Encoder::getMotionRegions()
+{
+	return motionRegions;
+}
+
 typedef struct Venc1_Object {
 	VIDENC1_Handle          hEncode;
 	IVIDEO1_BufDesc         reconBufs;
@@ -862,14 +867,26 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			 * on the I-frame size [TODO].
 			*/
 		} else {
+			/* we use 4x4 regions */
+			int regions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 			for (int j = 0; j < imageHeight / 16; j++) {
 				int off = j * imageWidth / 16;
+				int ry = j * 4 * 16 / imageHeight;
 				for (int i = 0; i < imageWidth / 16; i++) {
+					int rx = i * 4 * 16 / imageWidth;
 					short hd = vbuf16[off * 4 + i * 4];
 					short vd = vbuf16[off * 4 + i * 4 + 1];
-					sum += qAbs(hd) + qAbs(vd);
+					int mval = qAbs(hd) + qAbs(vd);
+					sum += mval;
+					regions[rx + ry * 4] += mval;
 				}
 			}
+			motionRegions = 0;
+			for (int i = 0; i < 16; i++) {
+				if (regions[i] > motionDetectionThresh)
+					motionRegions |= (1 << i);
+			}
+			mInfo("motion regions: 0x%x", motionRegions);
 		}
 		motionValue = sum;
 	} else

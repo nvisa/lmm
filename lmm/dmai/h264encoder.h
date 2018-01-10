@@ -53,6 +53,7 @@ public:
 	void setSeiEnabled(bool value);
 	void setMotionDetectionThreshold(int th);
 	int getMotionValue();
+	int getMotionRegions();
 
 	IH264VENC_DynamicParams * getDynamicParams() { return dynH264Params; }
 	int setDynamicParamsNextLoop(bool v) { setDynamicParams = v; return 0; }
@@ -83,6 +84,7 @@ private:
 	bool seiEnabled;
 	int motionDetectionThresh;
 	int motionValue;
+	int motionRegions;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec(bool alloc = true);
