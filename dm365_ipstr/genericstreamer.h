@@ -54,6 +54,8 @@ protected:
 	QElapsedTimer lockCheckTimer;
 	bool noRtspContinueSupport;
 	QFileSystemWatcher *onvifWatcher;
+	QString uuid;
+	QString rtspCredHashData;
 
 	struct CustomSeiStruct {
 		qint32 cpuload;

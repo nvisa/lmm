@@ -8,6 +8,7 @@
 #include <lmm/alsa/alsaoutput.h>
 
 #include <ecl/debug.h>
+#include <ecl/uuid/uuid.h>
 #include <ecl/drivers/systeminfo.h>
 #include <ecl/drivers/hardwareoperations.h>
 #include <ecl/settings/applicationsettings.h>
@@ -37,6 +38,31 @@
 #include <errno.h>
 
 #define getss(nodedef) gets(s, pre, nodedef)
+
+static QString getMacAddress(const QString &iface)
+{
+	QFile f(QString("/sys/class/net/%1/address").arg(iface));
+	if (!f.open(QIODevice::ReadOnly))
+		return "ff:ff:ff:ff:ff:ff";
+	return QString::fromUtf8(f.readAll()).trimmed();
+}
+
+static QString createUuidV3(const QString &mac)
+{
+	char *vp = NULL;
+	size_t n;
+	uuid_t *uuid;
+	uuid_t *uuid_ns;
+	uuid_create(&uuid);
+	uuid_create(&uuid_ns);
+	uuid_load(uuid_ns, "ns:OID");
+	uuid_make(uuid, UUID_MAKE_V3, uuid_ns, qPrintable(mac));
+	uuid_destroy(uuid_ns);
+	uuid_export(uuid, UUID_FMT_STR, &vp, &n);
+	QString s = QString::fromUtf8(vp);
+	free(vp);
+	return s;
+}
 
 static inline void serH264IntData(QDataStream &out, qint32 data)
 {
@@ -85,6 +111,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	wdogimpl = s->get("config.watchdog_implementation").toInt();
 	customSei.inited = false;
 
+	uuid = createUuidV3(getMacAddress("eth0"));
+
 	initOnvifBindings();
 	reloadEarlyOnvifBindings();
 
@@ -96,6 +124,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	rtsp->setRtspAuthentication((BaseRtspServer::Auth)s->get("video_encoding.rtsp.auth").toInt());
 	rtsp->setRtspAuthenticationCredentials(s->get("video_encoding.rtsp.username").toString(),
 										   s->get("video_encoding.rtsp.password").toString());
+	rtspCredHashData += s->get("video_encoding.rtsp.username").toString();
+	rtspCredHashData += s->get("video_encoding.rtsp.password").toString();
 
 	/* camera input settings */
 	int cameraInputType = s->get("camera_device.input_type").toInt();
@@ -623,6 +653,9 @@ int GenericStreamer::generateCustomSEI(const RawBuffer &buf)
 		QCryptographicHash hashb(QCryptographicHash::Md5);
 		for (int i = 0; i < 4; i++)
 			hashb.addData(ba.mid(i * hlen, hlen));
+		hashb.addData(uuid.toUtf8());
+		if (rtspCredHashData.size())
+			hashb.addData(rtspCredHashData.toUtf8());
 		hash = hashb.result();
 		memcpy(hashData, hash.constData(), hash.size());
 	}
