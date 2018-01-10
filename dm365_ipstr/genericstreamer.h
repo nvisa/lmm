@@ -29,6 +29,8 @@ protected:
 	QVariant getRtspStats(const QString &fld);
 	int getWdogKey();
 	int generateCustomSEI(const RawBuffer &buf);
+	int generateCustomSEI2(const RawBuffer &buf);
+	QByteArray calculateFrameHash(const RawBuffer &buf);
 	void initCustomSEI();
 	bool reloadEarlyOnvifBindings();
 	bool reloadLateOnvifBindings();

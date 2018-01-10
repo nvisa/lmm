@@ -319,6 +319,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 			} else if (type == "CustomSeiFunction1") {
 
 				el = newFunctionPipe(GenericStreamer, this, GenericStreamer::generateCustomSEI);
+			} else if (type == "CustomSeiFunction2") {
+				el = newFunctionPipe(GenericStreamer, this, GenericStreamer::generateCustomSEI2);
 			}
 
 			if (!el) {
@@ -651,22 +653,36 @@ int GenericStreamer::generateCustomSEI(const RawBuffer &buf)
 
 		/* write frame hash */
 		char *hashData = (char *)buf2->constPars()->metaData.data() + customSei.frameHashPos;
-		QByteArray hash;
-		int hlen = buf.size() / 4;
-		if (hlen > 8192)
-			hlen = 8192;
-		const QByteArray &ba = QByteArray::fromRawData((const char *)buf.constData(), buf.size());
-		QCryptographicHash hashb(QCryptographicHash::Md5);
-		for (int i = 0; i < 4; i++)
-			hashb.addData(ba.mid(i * hlen, hlen));
-		hashb.addData(uuid.toUtf8());
-		if (rtspCredHashData.size())
-			hashb.addData(rtspCredHashData.toUtf8());
-		hash = hashb.result();
+		QByteArray hash = calculateFrameHash(buf);
 		memcpy(hashData, hash.constData(), hash.size());
 	}
 
 	return 0;
+}
+
+int GenericStreamer::generateCustomSEI2(const RawBuffer &buf)
+{
+	RawBuffer *buf2 = (RawBuffer *)&buf;
+	buf2->pars()->metaData = calculateFrameHash(buf);
+	ffDebug() << buf2->pars()->metaData.size();
+	return 0;
+}
+
+QByteArray GenericStreamer::calculateFrameHash(const RawBuffer &buf)
+{
+	QByteArray hash;
+	int hlen = buf.size() / 4;
+	if (hlen > 8192)
+		hlen = 8192;
+	const QByteArray &ba = QByteArray::fromRawData((const char *)buf.constData(), buf.size());
+	QCryptographicHash hashb(QCryptographicHash::Md5);
+	for (int i = 0; i < 4; i++)
+		hashb.addData(ba.mid(i * hlen, hlen));
+	hashb.addData(uuid.toUtf8());
+	if (rtspCredHashData.size())
+		hashb.addData(rtspCredHashData.toUtf8());
+	hash = hashb.result();
+	return hash;
 }
 
 void GenericStreamer::initCustomSEI()
