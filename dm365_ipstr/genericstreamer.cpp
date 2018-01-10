@@ -103,6 +103,10 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 {
 	ApplicationSettings *s = ApplicationSettings::instance();
 
+	ApplicationSettings *vks = ApplicationSettings::create("/etc/encsoft/vksystem.json", QIODevice::ReadOnly);
+	int gttl = vks->getm("network_settings.general_ttl").toInt();
+	delete vks;
+
 	mainTextOverlay = NULL;
 	pbus = new LmmProcessBus(this, this);
 	pbus->join();
@@ -235,6 +239,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 				else if (codec == "jpeg")
 					rtp = new RtpTransmitter(this, Lmm::CODEC_JPEG);
 				rtp->setMulticastTTL(getss("multicast_ttl").toInt());
+				if (gttl)
+					rtp->setMulticastTTL(gttl);
 				rtp->setMaximumPayloadSize(getss("rtp_max_payload_size").toInt());
 				rtp->setRtcp(!getss("disable_rtcp").toBool());
 				rtp->setTrafficShaping(getss("traffic_shaping").toBool(),
