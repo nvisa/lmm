@@ -459,7 +459,7 @@ void GenericStreamer::postInitPipeline(BaseLmmPipeline *p)
 		BaseLmmElement *el = p->getPipe(i);
 		SeiInserter *sel = qobject_cast<SeiInserter *>(el);
 		if (sel && i + 1 < p->getPipeCount()) {
-			BaseLmmElement *nel = p->getPipe(i + 1);
+			BaseLmmElement *nel = p->getPipe(i - 2);
 			H264Encoder *eel = qobject_cast<H264Encoder *>(nel);
 			if (eel)
 				sel->setMotionDetectionProvider(eel);
@@ -664,7 +664,7 @@ int GenericStreamer::generateCustomSEI2(const RawBuffer &buf)
 {
 	RawBuffer *buf2 = (RawBuffer *)&buf;
 	buf2->pars()->metaData = calculateFrameHash(buf);
-	ffDebug() << buf2->pars()->metaData.size();
+	//ffDebug() << buf2->pars()->metaData.size();
 	return 0;
 }
 
@@ -865,6 +865,10 @@ H264Encoder * GenericStreamer::createH264Encoder(const QString &elementName, App
 	else
 		enc->setMotionVectorExtraction(H264Encoder::MV_NONE);
 	enc->setMotionDetectionThreshold(s->get(QString("video_encoding.ch.%1.motion_detection_threshold").arg(ch)).toInt());
+	enc->setMotionSensitivity(s->get(QString("video_encoding.ch.%1.motion_sensitivity").arg(ch)).toInt());
+	enc->setTrainingSample(s->get(QString("video_encoding.ch.%1.training_sample_number").arg(ch)).toInt());
+	enc->setLearningCoef(s->get(QString("video_encoding.ch.%1.learning_coef").arg(ch)).toInt());
+	enc->setVarianceOffset(s->get(QString("video_encoding.ch.%1.variance_offset").arg(ch)).toInt());
 	return enc;
 }
 
