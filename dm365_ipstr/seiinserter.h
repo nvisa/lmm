@@ -86,7 +86,7 @@ protected:
 	};
 	AlarmInfo info;
 
-	const QByteArray generateAlarm();
+	const QByteArray generateAlarm(const RawBuffer &buf);
 	int processBuffer(const RawBuffer &buf);
 
 	/* SEI stuff */
@@ -113,6 +113,7 @@ protected:
 	QElapsedTimer seiTimer;
 	MotionDetectionInterface *motprov;
 	GpioController *gpio;
+	QElapsedTimer linkTimer;
 };
 
 #endif // SEIINSERTER_H

@@ -79,20 +79,25 @@ int SeiInserter::setAlarmInformation(const QString &templateFile, int alg, int g
 	return 0;
 }
 
-const QByteArray SeiInserter::generateAlarm()
+const QByteArray SeiInserter::generateAlarm(const RawBuffer &buf)
 {
+#define LINK_ALARM_TIME 5000
 	QByteArray ba;
 	int activeio;
-
 	/* we will generate our own alarms */
 	if (info.algorithm == 1) {
 		int alarmActive = 0;
-		int alarmSource = 0;
-		int motv = motprov->getMotionValue();
+		static int alarmSource = 0;
+		int motv = 0;
+		int motRegs = 0;
+		if (motprov) {
+			motv = motprov->getMotionValue();
+			motRegs = motRegs;
+		}
 		if (motv == 0)
 			/* this one is I-frame */
-			motv = info.lastMotionValue;
-		info.lastMotionValue = motv;
+			motRegs = info.lastMotionValue;
+		info.lastMotionValue = motRegs;
 		int ioState = 0;
 
 		/* we shouldn't generate alarms more often than minAlarmDuration*/
@@ -102,7 +107,8 @@ const QByteArray SeiInserter::generateAlarm()
 
 		if (canTrigger) {
 			/* let's first check motion alarm */
-			if (motv > info.motionAlarmThreshold) {
+			//if (motv > info.motionAlarmThreshold) {
+			if (motRegs > 0) {
 				alarmActive = 1;
 				alarmSource = info.current.source | 0x1;
 
@@ -111,13 +117,14 @@ const QByteArray SeiInserter::generateAlarm()
 					/* we should generate a new alarm */
 					info.current.triggerNew(alarmSource);
 				}
+				linkTimer.start();
 #if 0
 				else if (info.current.t.elapsed() > info.minAlarmDuration) {
 					/* we should trigger a new alarm */
 					info.current.triggerNew(alarmSource);
 				}
 #endif
-			} else if (info.current.active && info.current.source != 2) {
+			} else if (info.current.active && info.current.source != 2 && linkTimer.elapsed() > LINK_ALARM_TIME) {
 				/* motion alarm should suppress */
 				info.current.suppress();
 				alarmSource = 0;
@@ -145,41 +152,52 @@ const QByteArray SeiInserter::generateAlarm()
 				ioState = val;
 			}
 		}
+		QByteArray sign = ((RawBuffer *)&buf)->pars()->metaData.toHex();
 
-		if (!info.current.active)
-			return 0;
-
+		if (!info.current.active) {
+			QString templ = "<?xml version='1.0' encoding='UTF-8'?><SEI><SIGN>%1</SIGN></SEI>";
+			return templ.arg(sign.constData()).toUtf8();
+		}
+#if 0
 		motv /= NORMALIZE_MOTION;
 		if (motv > 100)
 			motv = 100;
-
+#endif
 		bool ok;
 		ba = info.alarmTemplate
 				/*
-						 * We have N fields in our template file:
-						 *  1st: alarm status, 0: inactive, 1: active
-						 *	2nd: alarm ID if alarm is present
-						 *  3rd: alarm source if alarm is present
-						 *  4th: absolute motion value
-						 *  5th: motion detection threshold
-						 *  6th: IO-1 output state
-						 */
+				* We have 14 fields in our template file:
+				*	1st: current date and time
+				*	2nd: alarm ID if alarm is present for text overlay
+				*	3rd: current date and time for text overlay
+				*	4th: alarm source if alarm is present - 0: no alarm, 1: motion alarm, 2: gpio alarm, 3: both
+				*	5th: 16-bit number showing the regions that has motion for text overlay
+				*	6th: motion detection threshold
+				*	7th: IO-1 output state
+				*	8th: alarm ID if alarm is present for NVR
+				*	9th: alarm source if alarm is present - 0: no alarm, 1: motion alarm, 2: gpio alarm, 3: both
+				*	10th: 16-bit number showing the regions that has motion
+				*	11th: motion detection threshold
+				*	12th: IO-1 output state
+				*	13th: 16-bit number showing the regions that has motion
+				*	14th: frame signature based on MD5 for hash control
+				*/
 				.arg(QDateTime::currentDateTime().toString("yyyyMMddhhmmsszzz"))
-				.arg(info.current.id.toLongLong(&ok, 16))
-				.arg(info.current.source)
-				.arg(motv)
-				.arg(info.motionAlarmThrPercent)
-				.arg(info.ios.at(0))
 				.arg(info.current.id.toLongLong(&ok, 16))
 				.arg(QDateTime::currentDateTime().toString("yyyyMMdd_hh:mm:ss:zzz"))
 				.arg(info.current.source)
-				.arg(motv)
+				.arg(motRegs)
 				.arg(info.motionAlarmThrPercent)
 				.arg(info.ios.at(0))
+				.arg(info.current.id.toLongLong(&ok, 16))
+				.arg(info.current.source)
+				.arg(motRegs)
+				.arg(info.motionAlarmThrPercent)
+				.arg(info.ios.at(0))
+				.arg(motRegs)
+				.arg(sign.constData())
 
 				.toUtf8();
-
-		//qDebug() << QString::fromUtf8(ba);
 	}
 
 	return ba;
@@ -215,7 +233,6 @@ void SeiInserter::setSeiField(RawBuffer buf)
 int SeiInserter::processBuffer(const RawBuffer &buf)
 {
 	lock.lock();
-
 	/* first check alarm duration */
 	if (seiAlarm.alarmType == ALARM_POST && seiTimer.elapsed() > seiActDur) {
 		insertSeiAlarm = false;
@@ -227,7 +244,7 @@ int SeiInserter::processBuffer(const RawBuffer &buf)
 	if (info.algorithm == 0)
 		setSeiField(buf);
 	else if (info.algorithm == 1)
-		((RawBuffer *)&buf)->pars()->metaData = generateAlarm();
+		((RawBuffer *)&buf)->pars()->metaData = generateAlarm(buf);
 
 	/* we are done */
 	lock.unlock();
