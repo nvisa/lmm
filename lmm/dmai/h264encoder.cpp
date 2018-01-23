@@ -164,7 +164,7 @@ static void printErrorMsg(XDAS_Int32 errorCode)
 		printf("IH264VENC_ERR_MEALGO\n");
 		break;
 
-    case IH264VENC_ERR_UNRESTRICTEDMV :
+	case IH264VENC_ERR_UNRESTRICTEDMV :
 		printf("IH264VENC_ERR_UNRESTRICTEDMV\n");
 		break;
 
@@ -284,7 +284,7 @@ static void printErrorMsg(XDAS_Int32 errorCode)
 		printf("IH264VENC_ERR_MAXBITRATE_CVBR\n");
 		break;
 
-    case IH264VENC_ERR_MVSADOUTFLAG :
+	case IH264VENC_ERR_MVSADOUTFLAG :
 		printf("IH264VENC_ERR_MVSADOUTFLAG\n");
 		break;
 
@@ -452,6 +452,11 @@ H264Encoder::H264Encoder(QObject *parent) :
 	pmod = PMOD_PACKETIZED;
 	motionDetectionThresh = 0;
 	motionValue = 0;
+	trainingSample = 250;
+	learnCoef = 8;
+	numSample = 0;
+	varianceOffset = 0;
+	preMotionRegions = 0xffff;
 	enablePictureTimingSei(true);
 
 	setLockUpFixLockerType(2);
@@ -566,6 +571,26 @@ int H264Encoder::getMotionRegions()
 	return motionRegions;
 }
 
+void H264Encoder::setMotionSensitivity(int sens)
+{
+	motionSensitivity = sens * 16.0 / 100.0;
+}
+
+void H264Encoder::setTrainingSample(int samp)
+{
+	trainingSample = samp;
+}
+
+void H264Encoder::setLearningCoef(int coef)
+{
+	learnCoef = coef;
+}
+
+void H264Encoder::setVarianceOffset(int offset)
+{
+	varianceOffset = offset;
+}
+
 typedef struct Venc1_Object {
 	VIDENC1_Handle          hEncode;
 	IVIDEO1_BufDesc         reconBufs;
@@ -638,9 +663,9 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 
 	outBufSizeArray[0]                  = Buffer_getSize(hOutBuf);
 
-    outBufDesc.numBufs                  = 1;
-    outBufDesc.bufs	                    = outPtr;
-    outBufDesc.bufSizes                 = outBufSizeArray;
+	outBufDesc.numBufs                  = 1;
+	outBufDesc.bufs	                    = outPtr;
+	outBufDesc.bufSizes                 = outBufSizeArray;
 
 	if (genFinf) {
 		outBufSizeArray[1]                  = Buffer_getSize(finfg[0]);
@@ -678,7 +703,7 @@ static Int Venc1_processL(Venc1_Handle hVe, Buffer_Handle hInBuf, Buffer_Handle 
 							 (VIDENC1_OutArgs *)&outArgs);
 
 	//fDebug("VIDENC1_process() ret %d inId %d outID %d generated %d bytes",
-		//   (int)status, Buffer_getId(hInBuf), (int)outArgs.outputID, (int)outArgs.bytesGenerated);
+	//   (int)status, Buffer_getId(hInBuf), (int)outArgs.outputID, (int)outArgs.bytesGenerated);
 
 	if (status != VIDENC1_EOK) {
 		fDebug("VIDENC1_process() failed with error (%d ext: 0x%x)",
@@ -826,8 +851,8 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 					   mVecs != MV_NONE) < 0) {
 		mDebug("Failed to encode video buffer");
 		mDebug("width=%d height=%d imageWidth=%d imageHeight=%d seiEnabled=%d videoWidth=%d videoHeight=%d buffer=%p",
-			(int)dim.width, (int)dim.height,
-			imageWidth, imageHeight, seiEnabled, source.constPars()->videoWidth, source.constPars()->videoHeight, buffer);
+			   (int)dim.width, (int)dim.height,
+			   imageWidth, imageHeight, seiEnabled, source.constPars()->videoWidth, source.constPars()->videoHeight, buffer);
 		BufferGfx_getDimensions(buffer, &dim);
 		mInfo("colorspace=%d dims: x=%d y=%d width=%d height=%d linelen=%d",
 			  BufferGfx_getColorSpace(buffer),
@@ -883,9 +908,33 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			}
 			motionRegions = 0;
 			for (int i = 0; i < 16; i++) {
+				if (numSample < trainingSample) {
+					if (numSample == 0) {
+						motMeanVar[0][i] = regions[i];
+						motMeanVar[1][i] = 0;
+					} else {
+						int prevMean = motMeanVar[0][i];
+						motMeanVar[0][i] = motMeanVar[0][i] / numSample * (numSample - 1) + regions[i] / numSample;
+						motMeanVar[1][i] = (numSample - 1) * motMeanVar[1][i] / numSample + (regions[i] - prevMean) * (regions[i] - motMeanVar[0][i]) / numSample;
+					}
+				} else {
+					motMeanVar[0][i] = learnCoef / 100.0 * motMeanVar[0][i] + (1.0 - learnCoef / 100.0) * regions[i];
+					float currentVal = (regions[i] - motMeanVar[0][i]) * (regions[i] - motMeanVar[0][i]);
+					float calcThresh = motMeanVar[1][i] * motionSensitivity + varianceOffset;
+					if (currentVal > calcThresh) {
+						motionRegions |= (1 << i);
+
+					}
+				}
+#if 0
 				if (regions[i] > motionDetectionThresh)
 					motionRegions |= (1 << i);
+#endif
 			}
+			numSample++;
+			int tmpRegs = motionRegions;
+			motionRegions = preMotionRegions & motionRegions;
+			preMotionRegions = tmpRegs;
 			mInfo("motion regions: 0x%x", motionRegions);
 		}
 		motionValue = sum;
@@ -964,7 +1013,7 @@ int H264Encoder::insertSeiData(int seiDataOffset, Buffer_Handle hDstBuf, RawBuff
 {
 	int seiBufferSize = source.constPars()->metaData.size() + 20;
 	mInfo("inserting %d bytes sei user data at offset %d, total size is %d",
-		   seiBufferSize, seiDataOffset, (int)Buffer_getNumBytesUsed(hDstBuf));
+		  seiBufferSize, seiDataOffset, (int)Buffer_getNumBytesUsed(hDstBuf));
 	char *seidata = (char *)Buffer_getUserPtr(hDstBuf) + seiDataOffset;
 	/* add IEC 11578 uuid */
 	for (int i = 0; i < 16; i++)
@@ -1184,7 +1233,7 @@ int H264Encoder::setDefaultParams(IH264VENC_Params *params)
 	params->encQuality = 2;
 	params->enableARM926Tcm = 0;
 	params->enableDDRbuff = 0;
-    params->sliceMode = 0;
+	params->sliceMode = 0;
 	params->numTemporalLayers = 0;
 	params->svcSyntaxEnable = 0;
 	params->EnableLongTermFrame = 0;

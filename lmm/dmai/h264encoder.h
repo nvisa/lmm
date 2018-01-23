@@ -54,6 +54,10 @@ public:
 	void setMotionDetectionThreshold(int th);
 	int getMotionValue();
 	int getMotionRegions();
+	void setMotionSensitivity(int sens);
+	void setTrainingSample(int samp);
+	void setLearningCoef(int coef);
+	void setVarianceOffset(int offset);
 
 	IH264VENC_DynamicParams * getDynamicParams() { return dynH264Params; }
 	int setDynamicParamsNextLoop(bool v) { setDynamicParams = v; return 0; }
@@ -85,6 +89,13 @@ private:
 	int motionDetectionThresh;
 	int motionValue;
 	int motionRegions;
+	int preMotionRegions;
+	int motionSensitivity;
+	int trainingSample;
+	int learnCoef;
+	int numSample;
+	int varianceOffset;
+	float motMeanVar[2][16];
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec(bool alloc = true);
