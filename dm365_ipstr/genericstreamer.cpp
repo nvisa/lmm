@@ -670,14 +670,28 @@ int GenericStreamer::generateCustomSEI2(const RawBuffer &buf)
 
 QByteArray GenericStreamer::calculateFrameHash(const RawBuffer &buf)
 {
+	int nalType = ((RawBuffer *)&buf)->pars()->h264NalType;
+	if (!(nalType == 1 || nalType == 5))	//1: P-frame, 5: I-frame
+		return 0;
+
 	QByteArray hash;
-	int hlen = buf.size() / 4;
-	if (hlen > 8192)
-		hlen = 8192;
-	const QByteArray &ba = QByteArray::fromRawData((const char *)buf.constData(), buf.size());
+	const QByteArray &ba = QByteArray::fromRawData((const char *)buf.constData(), buf.size()).mid(5, buf.size() - 5);
 	QCryptographicHash hashb(QCryptographicHash::Md5);
-	for (int i = 0; i < 4; i++)
-		hashb.addData(ba.mid(i * hlen, hlen));
+
+	int hlen = 0;
+	int blen = ba.size() / 4;
+	if (blen > 8192) {
+		hlen = 8192;
+		for (int i = 0; i < 4; i++) {
+			hashb.addData(ba.mid(i * blen, hlen));
+		}
+	} else
+		hashb.addData(ba);
+
+
+	//qDebug() << "size of buffer: " << buf.size() << "blen: " << blen << "hlen: " << hlen << "frame type: " << nalType << ba.left(10).toHex() << ba.right(10).toHex();
+
+
 	hashb.addData(uuid.toUtf8());
 	if (rtspCredHashData.size())
 		hashb.addData(rtspCredHashData.toUtf8());
