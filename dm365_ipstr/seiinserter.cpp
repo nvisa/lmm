@@ -92,7 +92,7 @@ const QByteArray SeiInserter::generateAlarm(const RawBuffer &buf)
 		int motRegs = 0;
 		if (motprov) {
 			motv = motprov->getMotionValue();
-			motRegs = motRegs;
+			motRegs = motprov->getMotionRegions();
 		}
 		if (motv == 0)
 			/* this one is I-frame */
