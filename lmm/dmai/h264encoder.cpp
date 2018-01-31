@@ -23,6 +23,18 @@
 
 extern VUIParamBuffer H264VENC_TI_VUIPARAMBUFFER;
 
+class MotionDetectionPars {
+public:
+	MotionDetectionPars()
+	{
+		skipCnt = 0;
+		firstRun = 0;
+	}
+
+	int skipCnt;
+	bool firstRun;
+};
+
 static void printErrorMsg(XDAS_Int32 errorCode)
 {
 	if(0 == errorCode)
@@ -458,6 +470,7 @@ H264Encoder::H264Encoder(QObject *parent) :
 	varianceOffset = 0;
 	preMotionRegions = 0xffff;
 	enablePictureTimingSei(true);
+	motionPars = new MotionDetectionPars;
 
 	setLockUpFixLockerType(2);
 }
@@ -884,6 +897,8 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 		uchar *motVectBuf = (uchar *)Buffer_getUserPtr(metadataBuf[1]);
 		qint16 *vbuf16 = (qint16 *)motVectBuf;
 		int sum = 0;
+		float sqrt_varoffset, scaleRegion;
+
 		if (BufferGfx_getFrameType(buffer) == IVIDEO_IDR_FRAME ||
 				BufferGfx_getFrameType(buffer) == IVIDEO_I_FRAME) {
 			/*
@@ -892,52 +907,72 @@ int H264Encoder::encode(Buffer_Handle buffer, const RawBuffer source)
 			 * on the I-frame size [TODO].
 			*/
 		} else {
-			/* we use 4x4 regions */
-			int regions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-			for (int j = 0; j < imageHeight / 16; j++) {
-				int off = j * imageWidth / 16;
-				int ry = j * 4 * 16 / imageHeight;
-				for (int i = 0; i < imageWidth / 16; i++) {
-					int rx = i * 4 * 16 / imageWidth;
-					short hd = vbuf16[off * 4 + i * 4];
-					short vd = vbuf16[off * 4 + i * 4 + 1];
-					int mval = qAbs(hd) + qAbs(vd);
-					sum += mval;
-					regions[rx + ry * 4] += mval;
+			// motion detection runs only one of three frames. Calculate constant values only once
+			if (motionPars->skipCnt == 2) {
+				motionPars->skipCnt = 0;
+				if (motionPars->firstRun) {
+					motionPars->firstRun = false;
+					sqrt_varoffset = sqrt(varianceOffset);
+					scaleRegion = (imageWidth / 64) * (imageHeight / 64);
 				}
-			}
-			motionRegions = 0;
-			for (int i = 0; i < 16; i++) {
-				if (numSample < trainingSample) {
-					if (numSample == 0) {
-						motMeanVar[0][i] = regions[i];
-						motMeanVar[1][i] = 0;
-					} else {
-						int prevMean = motMeanVar[0][i];
-						motMeanVar[0][i] = motMeanVar[0][i] / numSample * (numSample - 1) + regions[i] / numSample;
-						motMeanVar[1][i] = (numSample - 1) * motMeanVar[1][i] / numSample + (regions[i] - prevMean) * (regions[i] - motMeanVar[0][i]) / numSample;
-					}
-				} else {
-					motMeanVar[0][i] = learnCoef / 100.0 * motMeanVar[0][i] + (1.0 - learnCoef / 100.0) * regions[i];
-					float currentVal = (regions[i] - motMeanVar[0][i]) * (regions[i] - motMeanVar[0][i]);
-					float calcThresh = motMeanVar[1][i] * motionSensitivity + varianceOffset;
-					if (currentVal > calcThresh) {
-						motionRegions |= (1 << i);
+				/* we use 4x4 regions */
+				float regions[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				int regionscounter[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				float sqrt_motMeanvar[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				for(int k = 0; k < 16; k++)
+					sqrt_motMeanvar[k] = sqrt(motMeanVar[1][k]);
 
+				for (int j = 0; j < imageHeight / 16; j++) {
+					int off = j * imageWidth / 16;
+					int ry = j * 4 * 16 / imageHeight;
+					for (int i = 0; i < imageWidth / 16; i++) {
+						int rx = i * 4 * 16 / imageWidth;
+						short hd = vbuf16[off * 4 + i * 4];
+						short vd = vbuf16[off * 4 + i * 4 + 1];
+						//int mval = qAbs(hd) + qAbs(vd);
+						int mval = sqrt(hd*hd + vd*vd);
+						sum += mval;
+
+						int region_index = rx + ry * 4;
+						regions[region_index] += mval;
+						if(mval > motMeanVar[0][region_index] + sqrt_motMeanvar[region_index]*motionSensitivity / (2 - (region_index / 4) / 3.0) + sqrt_varoffset)
+							regionscounter[region_index]++;
 					}
 				}
-#if 0
-				if (regions[i] > motionDetectionThresh)
-					motionRegions |= (1 << i);
-#endif
+
+				for(int k = 0; k < 16; k++)
+					regions[k] /= scaleRegion;
+
+				motionRegions = 0;
+				for (int i = 0; i < 16; i++) {
+					if (numSample < trainingSample) {
+						if (numSample == 0) {
+							motMeanVar[0][i] = regions[i];
+							motMeanVar[1][i] = 0;
+						} else {
+							int prevMean = motMeanVar[0][i];
+							motMeanVar[0][i] = motMeanVar[0][i] / numSample * (numSample - 1) + regions[i] / numSample;
+							motMeanVar[1][i] = (numSample - 1) * motMeanVar[1][i] / numSample + (regions[i] - prevMean) * (regions[i] - motMeanVar[0][i]) / numSample;
+						}
+					}
+					else {
+						if (regionscounter[i] > (scaleRegion / (50 * (2 - (i / 4) / 3.0))))
+							motionRegions |= (1 << i);
+						motMeanVar[0][i] = learnCoef / 100.0 * motMeanVar[0][i] + (1.0 - learnCoef / 100.0) * regions[i];
+						float currentVal = (regions[i] - motMeanVar[0][i]) * (regions[i] - motMeanVar[0][i]);
+						motMeanVar[1][i] = learnCoef / 100.0 * motMeanVar[1][i] + (1.0 - learnCoef / 100.0) * currentVal;
+					}
+				}
+				numSample++;
+				int tmpRegs = motionRegions;
+				motionRegions = preMotionRegions & motionRegions;
+				preMotionRegions = tmpRegs;
+				mInfo("motion regions: 0x%x", motionRegions);
+			} else {
+				motionPars->skipCnt++;
 			}
-			numSample++;
-			int tmpRegs = motionRegions;
-			motionRegions = preMotionRegions & motionRegions;
-			preMotionRegions = tmpRegs;
-			mInfo("motion regions: 0x%x", motionRegions);
+			motionValue = sum;
 		}
-		motionValue = sum;
 	} else
 		motionValue = 0;
 

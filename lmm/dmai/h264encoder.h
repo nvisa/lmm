@@ -11,6 +11,8 @@ struct VUIParamBuffer;
 
 #include <QRect>
 
+class MotionDetectionPars;
+
 class H264Encoder : public DmaiEncoder, public MotionDetectionInterface
 {
 	Q_OBJECT
@@ -96,6 +98,7 @@ private:
 	int numSample;
 	int varianceOffset;
 	float motMeanVar[2][16];
+	MotionDetectionPars *motionPars;
 
 	int encode(Buffer_Handle buffer, const RawBuffer source);
 	int startCodec(bool alloc = true);
