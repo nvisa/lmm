@@ -28,7 +28,7 @@ public:
 	MotionDetectionPars()
 	{
 		skipCnt = 0;
-		firstRun = 0;
+		firstRun = true;
 	}
 
 	int skipCnt;
