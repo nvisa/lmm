@@ -105,6 +105,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 
 	ApplicationSettings *vks = ApplicationSettings::create("/etc/encsoft/vksystem.json", QIODevice::ReadOnly);
 	int gttl = vks->getm("network_settings.general_ttl").toInt();
+	int rtpMtu = vks->getm("network_settings.rtp_mtu").toInt();
 	delete vks;
 
 	mainTextOverlay = NULL;
@@ -241,7 +242,10 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 				rtp->setMulticastTTL(getss("multicast_ttl").toInt());
 				if (gttl)
 					rtp->setMulticastTTL(gttl);
-				rtp->setMaximumPayloadSize(getss("rtp_max_payload_size").toInt());
+				if (rtpMtu)
+					rtp->setMaximumPayloadSize(rtpMtu);
+				else
+					rtp->setMaximumPayloadSize(getss("rtp_max_payload_size").toInt());
 				rtp->setRtcp(!getss("disable_rtcp").toBool());
 				rtp->setTrafficShaping(getss("traffic_shaping").toBool(),
 									   getss("traffic_shaping_average").toInt(),
