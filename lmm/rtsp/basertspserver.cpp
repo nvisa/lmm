@@ -237,6 +237,11 @@ void BaseRtspServer::setRtspAuthentication(BaseRtspServer::Auth authMethod)
 	auth = authMethod;
 }
 
+BaseRtspServer::Auth BaseRtspServer::getRtspAuthentication()
+{
+	return auth;
+}
+
 void BaseRtspServer::setRtspAuthenticationCredentials(const QString &username, const QString &password)
 {
 	authUsername = username;
