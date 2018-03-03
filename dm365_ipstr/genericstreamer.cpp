@@ -692,12 +692,8 @@ QByteArray GenericStreamer::calculateFrameHash(const RawBuffer &buf)
 	} else
 		hashb.addData(ba);
 
-
-	//qDebug() << "size of buffer: " << buf.size() << "blen: " << blen << "hlen: " << hlen << "frame type: " << nalType << ba.left(10).toHex() << ba.right(10).toHex();
-
-
 	hashb.addData(uuid.toUtf8());
-	if (rtspCredHashData.size())
+	if (rtsp->getRtspAuthentication() && rtspCredHashData.size())
 		hashb.addData(rtspCredHashData.toUtf8());
 	hash = hashb.result();
 	return hash;
