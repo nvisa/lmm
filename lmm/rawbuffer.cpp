@@ -151,7 +151,7 @@ void RawBuffer::setSize(int size)
 {
 	if (d->rawData && !d->refData)
 		delete [] d->rawData;
-	d->prependLen = d->prependPos = 4096;
+	d->prependLen = d->prependPos = 0;
 	d->appendLen = 0;
 	d->rawData = new char[d->prependLen + size + d->appendLen];
 	d->rawDataLen = size;

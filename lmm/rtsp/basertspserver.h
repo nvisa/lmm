@@ -89,6 +89,8 @@ public:
 	void addStreamParameter(const QString &streamName, const QString &mediaName, const QString &par, const QVariant &value);
 	const QHash<QString, QVariant> getStreamParameters(const QString &streamName, const QString &mediaName);
 	void setRtspAuthentication(Auth authMethod);
+	Auth getRtspAuthentication();
+
 	QString getNetworkInterface() { return nwInterfaceName; }
 	void setNetworkInterface(const QString &name) { nwInterfaceName = name; }
 	void setRtspAuthenticationCredentials(const QString &username, const QString &password);
