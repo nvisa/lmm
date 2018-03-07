@@ -54,10 +54,10 @@ static QString getField(const QString &line, const QString &field)
 	return "";
 }
 
-static QStringList createOptionsReq(int cseq)
+static QStringList createOptionsReq(int cseq, const QString &serverUrl)
 {
 	QStringList lines;
-	lines << "OPTIONS * RTSP/1.0";
+	lines << QString("OPTIONS %1 RTSP/1.0").arg(serverUrl);
 	lines << QString("CSeq: %1").arg(cseq);
 	lines << "\r\n";
 	return lines;
@@ -154,7 +154,7 @@ int RtspClient::getOptions()
 	if (serverUrl.isEmpty())
 		return -EINVAL;
 	serverInfo.options.clear();
-	QStringList lines = createOptionsReq(getCSeq());
+	QStringList lines = createOptionsReq(getCSeq(), serverUrl);
 	QHash<QString, QString> resp;
 	int err = waitResponse(lines, resp);
 	if (err)
@@ -168,7 +168,7 @@ int RtspClient::getOptionsASync()
 	if (devstatus != ALIVE)
 		return -EINVAL;
 	int cseq = getCSeq();
-	QStringList lines = createOptionsReq(cseq);
+	QStringList lines = createOptionsReq(cseq, serverUrl);
 	cseqRequests.insert(cseq, CSeqRequest("OPTIONS"));
 	asyncsock->write(lines.join("\r\n").toUtf8());
 	return 0;
