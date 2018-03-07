@@ -202,7 +202,7 @@ void RtpReceiver::readPendingRtcpDatagrams()
 int RtpReceiver::processRtpData(const QByteArray &ba, const QHostAddress &sender, quint16 senderPort)
 {
 	const uchar *buf = (const uchar *)ba.constData();
-	if (buf[0] != RTP_VERSION << 6) {
+	if ((buf[0] >> 6) != RTP_VERSION) {
 		mDebug("un-expected RTP version %d", buf[0] >> 6);
 		stats.headerError++;
 		return -EINVAL;
