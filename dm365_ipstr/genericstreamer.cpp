@@ -213,7 +213,7 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 										 getss("gpio").toInt(),
 										 getss("io_alarm_level").toInt(),
 										 getss("minimum_alarm_duration").toInt(),
-										 getss("motion_threshold").toInt()
+										 gets(s,"video_encoding.ch.0", "motion_sensitivity").toInt()
 										 );
 				mDebug("SEI algorithm adjusted with err '%d'", seierr);
 				el = sel;
@@ -691,8 +691,7 @@ QByteArray GenericStreamer::calculateFrameHash(const RawBuffer &buf)
 		}
 	} else
 		hashb.addData(ba);
-
-	hashb.addData(uuid.toUtf8());
+	hashb.addData("Ekinoks_AVIYS_Aselsan_2018");
 	if (rtsp->getRtspAuthentication() && rtspCredHashData.size())
 		hashb.addData(rtspCredHashData.toUtf8());
 	hash = hashb.result();
