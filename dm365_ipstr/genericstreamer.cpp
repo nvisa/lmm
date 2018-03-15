@@ -104,7 +104,13 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 	ApplicationSettings *s = ApplicationSettings::instance();
 
 	ApplicationSettings *vks = ApplicationSettings::create("/etc/encsoft/vksystem.json", QIODevice::ReadOnly);
-	int gttl = vks->getm("network_settings.general_ttl").toInt();
+	int gttl = vks->get("network_settings.general_ttl").toInt();
+	if (gttl) {
+		QFile f("/proc/sys/net/ipv4/ip_default_ttl");
+		f.open(QIODevice::WriteOnly | QIODevice::Unbuffered);
+		f.write(QString("%1\n").arg(gttl).toUtf8());
+		f.close();
+	}
 	int rtpMtu = vks->getm("network_settings.rtp_mtu").toInt();
 	delete vks;
 
