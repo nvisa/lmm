@@ -132,7 +132,7 @@ int RawNetworkSocket::sendData(char *datagram, int size)
 	udph->len = htons(8 + size); //udp header size
 
 	//Ip checksum
-	iph->check = csum ((unsigned short *) datagram, iph->tot_len);
+	iph->check = 0xff;;//csum ((unsigned short *) datagram, iph->tot_len);
 #if 0
 	char *pseudogram;
 	struct pseudo_header psh;
