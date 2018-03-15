@@ -131,6 +131,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 										   s->get("video_encoding.rtsp.password").toString());
 	rtspCredHashData += s->get("video_encoding.rtsp.username").toString();
 	rtspCredHashData += s->get("video_encoding.rtsp.password").toString();
+	int tv = s->get("video_encoding.rtsp.timeout_value").toInt();
+	if (tv)
+		rtsp->setRtspTimeoutValue(tv);
 
 	/* camera input settings */
 	int cameraInputType = s->get("camera_device.input_type").toInt();
@@ -253,6 +256,9 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 									   getss("traffic_shaping_duration").toInt());
 				if (getss("object_name") == "RtpHigh")
 					rtp->setH264SEIInsertion(s->get("video_encoding.ch.0.sei_enabled").toBool());
+				int tv = getss("rtcp_timeout").toInt();
+				if (tv)
+					rtp->setRtcpTimeoutValue(tv);
 				el = rtp;
 
 				int streamCount = s->getArraySize(QString("%1.rtsp").arg(pre));

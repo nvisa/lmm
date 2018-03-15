@@ -141,6 +141,7 @@ RtpChannel * RtpTransmitter::addChannel()
 	ch->payloadType = pt;
 	ch->ttl = ttl;
 	ch->useSR = rtcpEnabled;
+	ch->rtcpTimeoutValue = rtcpTimeoutValue;
 	QMutexLocker l(&streamLock);
 	channels << ch;
 	return ch;
@@ -510,6 +511,7 @@ RtpChannel *RtpTransmitter::createChannel()
 
 RtpChannel::RtpChannel(int psize, const QHostAddress &myIpAddr)
 {
+	rtcpTimeoutValue = 60000;
 	useSR = true;
 	state = 0;
 	this->myIpAddr = myIpAddr;
@@ -966,7 +968,7 @@ void RtpChannel::timeout()
 {
 	if (state == 0)
 		return;
-	if (rrTime->elapsed() > 60000)
+	if (rrTime->elapsed() > rtcpTimeoutValue)
 		emit sessionTimedOut();
 }
 

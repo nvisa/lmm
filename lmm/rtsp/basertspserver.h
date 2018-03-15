@@ -54,6 +54,7 @@ public:
 	int rtptime;
 	int seq;
 	bool rtspTimeoutEnabled;
+	int rtspTimeoutValue;
 	QList<BaseRtspSession *> siblings;
 	bool rtpAvpTcp;
 protected slots:
@@ -90,6 +91,8 @@ public:
 	const QHash<QString, QVariant> getStreamParameters(const QString &streamName, const QString &mediaName);
 	void setRtspAuthentication(Auth authMethod);
 	Auth getRtspAuthentication();
+	void setRtspTimeoutValue(int v) { rtspTimeoutValue = v; }
+	int getRtspTimeoutValue() { return rtspTimeoutValue; }
 
 	QString getNetworkInterface() { return nwInterfaceName; }
 	void setNetworkInterface(const QString &name) { nwInterfaceName = name; }
@@ -157,6 +160,7 @@ private:
 	QHash<QTcpSocket *, QTcpSocket *> tunnellingMappings;
 	QTcpSocket *lastTunnellingSocket;
 	quint16 serverPort;
+	int rtspTimeoutValue;
 
 	QStringList createRtspErrorResponse(int errcode, QString lsep);
 	QStringList createDescribeResponse(int cseq, QString url, QString lsep);

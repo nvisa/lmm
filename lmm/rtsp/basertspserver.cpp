@@ -130,6 +130,7 @@ static inline QString createDateHeader()
 BaseRtspServer::BaseRtspServer(QObject *parent, int port) :
 	QObject(parent)
 {
+	rtspTimeoutValue = 60000;
 	serverPort = port;
 	nwInterfaceName = "eth0";
 	auth = AUTH_NONE;
@@ -838,7 +839,7 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 		resp << QString("CSeq: %1").arg(cseq);
 		resp << createDateHeader();
 		resp << ses->transportString;
-		resp << QString("Session:%1;timeout=%2").arg(ses->sessionId).arg(60);
+		resp << QString("Session:%1;timeout=%2").arg(ses->sessionId).arg(rtspTimeoutValue / 1000);
 		resp << "Content-Length: 0";
 		resp << "Cache-Control: no-cache";
 		resp << lsep;
@@ -972,6 +973,7 @@ QStringList BaseRtspServer::handleCommandGetParameter(QStringList lines, QString
 		BaseRtspSession *ses = sessions[sid];
 		ses->timeout->restart();
 		ses->rtspTimeoutEnabled = true;
+		ses->rtspTimeoutValue = rtspTimeoutValue;
 		/* we need to kick-out related sessions as well */
 		foreach (BaseRtspSession *sibling, ses->siblings) {
 			sibling->timeout->restart();
@@ -1284,6 +1286,7 @@ BaseRtspSession::BaseRtspSession(const QString &iface, BaseRtspServer *parent)
 	myIpAddr = findIp(iface);
 	clientCount = 1;
 	rtspTimeoutEnabled = false;
+	rtspTimeoutValue = 60000;
 	rtpCh = NULL;
 	sourceDataPort = sourceControlPort = 0;
 }
@@ -1381,7 +1384,7 @@ void BaseRtspSession::rtcpTimedOut()
 		server->closeSession(sessionId);
 		return;
 	}
-	if (timeout->elapsed() < 60000)
+	if (timeout->elapsed() < rtspTimeoutValue)
 		/* we use RTSP timeout and it is not timed-out yet */
 		return;
 	mDebug("both RTSP and RTCP timed-out, closing session '%s'", qPrintable(sessionId));

@@ -26,6 +26,7 @@ public:
 
 	typedef int (*transportHook)(const char *data, int size, RtpChannel *, void *priv);
 
+	int rtcpTimeoutValue;
 	int seqFirst;
 	int seq;
 	uint ssrc;
@@ -109,6 +110,8 @@ public:
 	int setTrafficShaping(bool enabled, int average, int burst, int duration = 50);
 	void setRtcp(bool enabled);
 	void setH264SEIInsertion(bool v) { insertH264Sei = v; }
+	void setRtcpTimeoutValue(int v) { rtcpTimeoutValue = v; }
+	int getRtcpTimeoutValue() { return rtcpTimeoutValue; }
 protected:
 	int processBuffer(const RawBuffer &buf);
 	quint64 packetTimestamp();
@@ -137,6 +140,7 @@ protected:
 	qint64 lastBufferTime;
 	TokenBucket *tb;
 	bool insertH264Sei;
+	int rtcpTimeoutValue;
 
 	int bufferCount;
 	bool rtcpEnabled;
