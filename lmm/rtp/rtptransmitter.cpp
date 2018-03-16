@@ -113,6 +113,7 @@ RtpTransmitter::RtpTransmitter(QObject *parent, Lmm::CodecType codec) :
 	useStapA = false;
 	maxPayloadSize = 1460;
 	ttl = 10;
+	rtcpTimeoutValue = 60000;
 
 	frameRate = 30.0;
 	useAbsoluteTimestamp = true;
