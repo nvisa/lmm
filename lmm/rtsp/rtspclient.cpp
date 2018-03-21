@@ -9,6 +9,7 @@
 #include <QTcpSocket>
 #include <QUdpSocket>
 #include <QElapsedTimer>
+#include <QCryptographicHash>
 
 static QHostAddress getConnectionAddress(const QString &conninfo)
 {
@@ -367,6 +368,12 @@ void RtspClient::clearSetupTracks()
 	trackReceivers.clear();
 }
 
+void RtspClient::setAuthCredentials(const QString &username, const QString &password)
+{
+	user = username;
+	pass = password;
+}
+
 void RtspClient::timeout()
 {
 	if (!asyncsock)
@@ -522,6 +529,98 @@ int RtspClient::getCSeq()
 {
 	return cseq++;
 }
+static QByteArray digestMd5ResponseHelper(
+		const QByteArray &alg,
+		const QByteArray &userName,
+		const QByteArray &realm,
+		const QByteArray &password,
+		const QByteArray &nonce,       /* nonce from server */
+		const QByteArray &nonceCount,  /* 8 hex digits */
+		const QByteArray &cNonce,      /* client nonce */
+		const QByteArray &qop,         /* qop-value: "", "auth", "auth-int" */
+		const QByteArray &method,      /* method from the request */
+		const QByteArray &digestUri,   /* requested URL */
+		const QByteArray &hEntity       /* H(entity body) if qop="auth-int" */
+		)
+{
+	QCryptographicHash hash(QCryptographicHash::Md5);
+	hash.addData(userName);
+	hash.addData(":", 1);
+	hash.addData(realm);
+	hash.addData(":", 1);
+	hash.addData(password);
+	QByteArray ha1 = hash.result();
+	if (alg.toLower() == "md5-sess") {
+		hash.reset();
+		// RFC 2617 contains an error, it was:
+		// hash.addData(ha1);
+		// but according to the errata page at http://www.rfc-editor.org/errata_list.php, ID 1649, it
+		// must be the following line:
+		hash.addData(ha1.toHex());
+		hash.addData(":", 1);
+		hash.addData(nonce);
+		hash.addData(":", 1);
+		hash.addData(cNonce);
+		ha1 = hash.result();
+	};
+	ha1 = ha1.toHex();
+
+	// calculate H(A2)
+	hash.reset();
+	hash.addData(method);
+	hash.addData(":", 1);
+	hash.addData(digestUri);
+	if (qop.toLower() == "auth-int") {
+		hash.addData(":", 1);
+		hash.addData(hEntity);
+	}
+	QByteArray ha2hex = hash.result().toHex();
+
+	// calculate response
+	hash.reset();
+	hash.addData(ha1);
+	hash.addData(":", 1);
+	hash.addData(nonce);
+	hash.addData(":", 1);
+	if (!qop.isNull()) {
+		hash.addData(nonceCount);
+		hash.addData(":", 1);
+		hash.addData(cNonce);
+		hash.addData(":", 1);
+		hash.addData(qop);
+		hash.addData(":", 1);
+	}
+	hash.addData(ha2hex);
+	return hash.result().toHex();
+}
+
+void RtspClient::addAuthHeaders(QStringList &lines, const QString &method)
+{
+	if (realm.isEmpty() || nonce.isEmpty()) {
+		mDebug("No realm, no auth");
+		return;
+	}
+
+	QString username = user;
+	QString password = pass;
+	QString uri = serverUrl;
+
+	QByteArray response = digestMd5ResponseHelper(QByteArray(),
+											 username.toLatin1(),
+											 realm.toLatin1(),
+											 password.toLatin1(),
+											 nonce.toLatin1(),
+											 QByteArray(),
+											 QByteArray(),
+											 QByteArray(),
+											 method.toLatin1(),
+											 uri.toLatin1(),
+											 QByteArray()
+											 );
+	lines << QString("Authorization: Digest username=\"%5\", realm=\"%1\", nonce=\"%2\", uri=\"%3\", response=\"%4\"")
+			 .arg(realm).arg(nonce).arg(uri).arg(QString::fromUtf8(response)).arg(username);
+
+}
 
 int RtspClient::waitResponse(const QStringList &lines, QHash<QString, QString> &resp)
 {
@@ -632,6 +731,20 @@ int RtspClient::parseOptionsResponse(const QHash<QString, QString> &resp)
 
 int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 {
+	if (!resp.contains("RTSP/1.0 200 OK") && resp.contains("WWW-Authenticate")) {
+		QStringList flds = resp["WWW-Authenticate"].split(" ", QString::KeepEmptyParts);
+		foreach (QString fld, flds) {
+			if (fld.contains("realm")) {
+				realm = fld.split("realm=").last().remove("\"").remove(",");
+			} else if (fld.contains("nonce")) {
+				nonce = fld.split("nonce=").last().remove("\"").remove(",");
+			}
+		}
+		state = OPTIONS_WAIT;
+		return 0;
+		//WWW-Authenticate: Digest realm="TAGBC1070436", nonce="1a49b085185b188b05804c5c546df108"
+
+	}
 	const QStringList &sdplines = resp["__content__"].split("\n");
 	TrackDefinition tr;
 	foreach (QString line, sdplines) {

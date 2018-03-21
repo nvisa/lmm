@@ -58,6 +58,8 @@ public:
 	DeviceStatus getDeviceStatus() { return devstatus; }
 	ConnectionState getConnectionState() { return state; }
 
+	void setAuthCredentials(const QString &username, const QString &password);
+
 protected slots:
 	void timeout();
 	void aSyncDataReady();
@@ -66,6 +68,7 @@ protected slots:
 
 protected:
 	int getCSeq();
+	void addAuthHeaders(QStringList &lines, const QString &method);
 	int waitResponse(const QStringList &lines, QHash<QString, QString> &resp);
 	bool readResponse(const QString &str, QHash<QString, QString> &resp);
 	int setupTrack(const QString &controlUrl, const QString &connInfo, RtpReceiver *rtp);
@@ -85,6 +88,10 @@ protected:
 	QTimer *timer;
 	QHash<QString, QString> currentResp;
 	bool asyncPlay;
+	QString realm;
+	QString nonce;
+	QString user;
+	QString pass;
 
 	struct ServerInfo
 	{
