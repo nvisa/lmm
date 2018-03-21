@@ -496,6 +496,7 @@ void RtspClient::aSyncDataReady()
 		int cseq = currentResp["CSeq"].toInt();
 		mInfo("async resp %d ready", cseq);
 		if (!cseqRequests.contains(cseq)) {
+			currentResp.clear();
 			mDebug("invalid response request received:\n%s", qPrintable(currentResp["__content__"]));
 			return;
 		}
@@ -524,6 +525,7 @@ void RtspClient::aSyncDataReady()
 			parseKeepAliveResponse(currentResp, req.id);
 		else
 			ffDebug() << "buggy request type" << req.type;
+		currentResp.clear();
 	}
 }
 
@@ -677,7 +679,7 @@ bool RtspClient::readResponse(const QString &str, QHash<QString, QString> &resp)
 		foreach (const QString &line, lines) {
 			if (line.isEmpty()) {
 				/* this can be content */
-				if (resp.contains("Content-Length"))
+				if (resp.contains("Content-Length") || resp.contains("Content-length"))
 					inContent = true;
 			}
 			if (inContent) {
@@ -834,10 +836,24 @@ int RtspClient::parseSetupResponse(const QHash<QString, QString> &resp, RtpRecei
 	}
 	ses.rtspTimeout.start();
 
+	QString transport = resp["Transport"];
+	QStringList transportFlds = transport.split(";");
+	foreach (QString fld, transportFlds) {
+		QStringList vals = fld.split("=");
+		if (vals.size() != 2)
+			continue;
+		if (vals[0] == "port") {
+			QStringList ports = vals[1].split("-");
+			mDebug("overriding server ports from setup response");
+			p.first = ports[0].toInt();
+			if (ports.size() > 1)
+				p.second = ports[1].toInt();
+		}
+	}
+
 	QUrl url(serverUrl);
 	rtp->setSourceDataPort(p.first);
 	rtp->setSourceControlPort(p.second);
-	QString transport = resp["Transport"];
 	if (transport.contains("multicast")) {
 		rtp->setDestinationControlPort(p.second);
 		rtp->setSourceAddress(QHostAddress(getField(transport, "destination")));
