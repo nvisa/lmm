@@ -19,6 +19,7 @@ public:
 	void setBufferCount(int v) { bufferCount = v ? v : bufferCount; }
 
 	static int getFormat(const QString &text);
+	static QString getName(int fmt);
 signals:
 	
 public slots:

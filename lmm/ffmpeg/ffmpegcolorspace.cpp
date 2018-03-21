@@ -9,6 +9,7 @@ extern "C" {
 	#include <libavformat/avformat.h>
 	#include <libavcodec/avcodec.h>
 	#include <libswscale/swscale.h>
+	#include <libavutil/pixdesc.h>
 }
 
 class BaseVideoScaler
@@ -258,6 +259,11 @@ int FFmpegColorSpace::getFormat(const QString &text)
 	str2fmt(AV_PIX_FMT_RGBA);
 	str2fmt(AV_PIX_FMT_BGRA);
 	return AV_PIX_FMT_RGB24;
+}
+
+QString FFmpegColorSpace::getName(int fmt)
+{
+	return av_get_pix_fmt_name((AVPixelFormat)fmt);
 }
 
 void FFmpegColorSpace::aboutToDeleteBuffer(const RawBufferParameters *pars)
