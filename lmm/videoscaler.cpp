@@ -1,7 +1,12 @@
 #include "videoscaler.h"
+#include "ffmpeg/ffmpegcolorspace.h" //for format name conversion
 
 #include <lmm/debug.h>
 #include <lmm/lmmbufferpool.h>
+
+extern "C" {
+	#include <libavformat/avformat.h>
+}
 
 #ifdef HAVE_LIBYUV
 #include <libyuv.h>
@@ -73,6 +78,9 @@ int VideoScaler::processScaler(const RawBuffer &buf)
 
 	int bufsize = (unsigned long long)buf.size() * dstW * dstH / w / h;
 	if (pool->freeBufferCount() == 0 && pool->usedBufferCount() == 0) {
+		mime = "video/x-raw-yuv";
+		if (buf.constPars()->avPixelFormat == AV_PIX_FMT_ARGB)
+			mime = "video/x-raw-rgb";
 		for (int i = 0; i < bufferCount; i++) {
 			mInfo("allocating sw scale buffer %d with size %dx%d", i, dstW, dstH);
 			RawBuffer buffer(mime, bufsize);
@@ -86,7 +94,23 @@ int VideoScaler::processScaler(const RawBuffer &buf)
 	outbuf.setRefData(mime, poolbuf.data(), poolbuf.size());
 
 #ifdef HAVE_LIBYUV
-	TileARGBScale((const uchar *)buf.constData(), w * 4, w, h, (uchar *)outbuf.data(), dstW * 4, dstW, dstH, libyuv::kFilterNone);
+	if (buf.constPars()->avPixelFormat == AV_PIX_FMT_ARGB)
+		libyuv::ARGBScale((const uchar *)buf.constData(), w * 4, w, h, (uchar *)outbuf.data(), dstW * 4, dstW, dstH, libyuv::kFilterNone);
+	else if (buf.constPars()->avPixelFormat == AV_PIX_FMT_YUV420P ||
+			 buf.constPars()->avPixelFormat == AV_PIX_FMT_YUVJ420P) {
+		const uchar *Y = (const uchar *)buf.constData();
+		const uchar *U = Y + w * h;
+		const uchar *V = Y + w * h * 5 / 4;
+
+		uchar *Yd = (uchar *)outbuf.data();
+		uchar *Ud = Yd + w * h;
+		uchar *Vd = Yd + w * h * 5 / 4;
+
+		libyuv::I420Scale(Y, w, U, w / 2, V, w / 2, w, h, Yd, dstW, Ud, dstW / 2, Vd, dstW / 2, dstW, dstH, libyuv::kFilterNone);
+	} else
+		mDebug("Un-supported input color-space format: %s",
+			   qPrintable(FFmpegColorSpace::getName(buf.constPars()->avPixelFormat)));
+	//TileARGBScale((const uchar *)buf.constData(), w * 4, w, h, (uchar *)outbuf.data(), dstW * 4, dstW, dstH, libyuv::kFilterNone);
 #endif
 
 	outbuf.pars()->videoWidth = dstW;
@@ -114,6 +138,7 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 
 	int bufsize = dstW * dstH * 4;
 	if (pool->freeBufferCount() == 0 && pool->usedBufferCount() == 0) {
+		mime = "video/x-raw-rgb";
 		for (int i = 0; i < bufferCount; i++) {
 			mInfo("allocating sw scale buffer %d with size %dx%d", i, dstW, dstH);
 			RawBuffer buffer(mime, bufsize);
@@ -136,7 +161,7 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 
 	outbuf.pars()->videoWidth = dstW;
 	outbuf.pars()->videoHeight = dstH;
-	outbuf.pars()->avPixelFormat = buf.constPars()->avPixelFormat;
+	outbuf.pars()->avPixelFormat = AV_PIX_FMT_ARGB;
 	outbuf.pars()->poolIndex = poolbuf.constPars()->poolIndex;
 	outbuf.pars()->pts = buf.constPars()->pts;
 	outbuf.pars()->streamBufferNo = buf.constPars()->streamBufferNo;
