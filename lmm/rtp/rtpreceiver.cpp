@@ -208,7 +208,7 @@ int RtpReceiver::processRtpData(const QByteArray &ba, const QHostAddress &sender
 		return -EINVAL;
 	}
 	int ptype = buf[1] & 0x7f;
-	if (ptype != 96 && ptype != 98 && ptype != 26) {
+	if (ptype != 96 && ptype != 98 && ptype != 26 && ptype != 97) {
 		stats.payloadErr++;
 		mDebug("un-supported payload type %d", ptype);
 		return -EINVAL;
@@ -269,7 +269,7 @@ int RtpReceiver::handleRtpData(const QByteArray &ba)
 		rtpPacketOffset += 65536;
 	seqLast = seq;
 	stats.packetCount++;
-	if (ptype == 96)
+	if (ptype == 96 || ptype == 97)
 		processh264Payload(ba, ts, last);
 	else if (ptype == 98)
 		processMetaPayload(ba, ts, last);
