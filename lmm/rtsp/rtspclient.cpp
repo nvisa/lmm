@@ -70,7 +70,6 @@ static QStringList createDescribeReq(int cseq, QString serverUrl)
 	lines << QString("DESCRIBE %1 RTSP/1.0").arg(serverUrl);
 	lines << QString("CSeq: %1").arg(cseq);
 	lines << QString("Accept: application/sdp");
-	lines << "\r\n";
 	return lines;
 }
 
@@ -84,7 +83,6 @@ static QStringList createSetupReq(int cseq, QString controlUrl, QString connInfo
 		lines << QString("Transport: RTP/AVP;unicast;client_port=%1-%2").arg(p.first).arg(p.second);
 	else
 		lines << QString("Transport: RTP/AVP;multicast;port=%1-%2").arg(p.first).arg(p.second);
-	lines << "\r\n";
 	return lines;
 }
 
@@ -95,7 +93,6 @@ static QStringList createPlayReq(int cseq, QString serverUrl, QString id)
 	lines << QString("CSeq: %1").arg(cseq);
 	lines << QString("Session: %1").arg(id);
 	lines << QString("Range: npt=0.000-");
-	lines << "\r\n";
 	return lines;
 }
 
@@ -105,7 +102,6 @@ static QStringList createTeardownReq(int cseq, QString serverUrl, QString id)
 	lines << QString("TEARDOWN %1 RTSP/1.0").arg(serverUrl);
 	lines << QString("CSeq: %1").arg(cseq);
 	lines << QString("Session: %1").arg(id);
-	lines << "\r\n";
 	return lines;
 }
 
@@ -115,7 +111,6 @@ static QStringList createKeepAliveReq(int cseq, QString serverUrl, QString id)
 	lines << QString("GET_PARAMETER %1 RTSP/1.0").arg(serverUrl);
 	lines << QString("CSeq: %1").arg(cseq);
 	lines << QString("Session: %1").arg(id);
-	lines << "\r\n";
 	return lines;
 }
 
@@ -180,6 +175,7 @@ int RtspClient::describeUrl()
 	if (serverUrl.isEmpty())
 		return -EINVAL;
 	QStringList lines = createDescribeReq(getCSeq(), serverUrl);
+	addAuthHeaders(lines, "DESCRIBE");
 	QHash<QString, QString> resp;
 	int err = waitResponse(lines, resp);
 	if (err)
@@ -193,6 +189,8 @@ int RtspClient::describeUrlASync()
 		return -EINVAL;
 	int cseq = getCSeq();
 	QStringList lines = createDescribeReq(cseq, serverUrl);
+	addAuthHeaders(lines, "DESCRIBE");
+	lines << "\r\n";
 	cseqRequests.insert(cseq, CSeqRequest("DESCRIBE"));
 	asyncsock->write(lines.join("\r\n").toUtf8());
 	return 0;
@@ -279,6 +277,8 @@ int RtspClient::playSessionASync(const QString &id)
 		return -EINVAL;
 	int cseq = getCSeq();
 	QStringList lines = createPlayReq(cseq, serverUrl, id);
+	addAuthHeaders(lines, "PLAY");
+	lines << "\r\n";
 	CSeqRequest req("PLAY");
 	req.id = id;
 	cseqRequests.insert(cseq, req);
@@ -307,6 +307,8 @@ int RtspClient::teardownSessionASync(const QString &id)
 		return -EINVAL;
 	int cseq = getCSeq();
 	QStringList lines = createTeardownReq(cseq, serverUrl, id);
+	addAuthHeaders(lines, "TEARDOWN");
+	lines << "\r\n";
 	CSeqRequest req("TEARDOWN");
 	req.id = id;
 	cseqRequests.insert(cseq, req);
@@ -711,6 +713,8 @@ int RtspClient::setupTrackASync(const QString &controlUrl, const QString &connIn
 	QPair<int, int> p;
 	int cseq = getCSeq();
 	QStringList lines = createSetupReq(cseq, controlUrl, connInfo, p);
+	addAuthHeaders(lines, "SETUP");
+	lines << "\r\n";
 	CSeqRequest req("SETUP");
 	if (!rtp)
 		mDebug("NULL RTP receiver for %s", qPrintable(controlUrl));
