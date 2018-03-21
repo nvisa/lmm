@@ -3,12 +3,14 @@
 #include "debug.h"
 
 #include <errno.h>
+#include <unistd.h>
 
 #include <QUrl>
 #include <QTimer>
 #include <QTcpSocket>
 #include <QUdpSocket>
 #include <QElapsedTimer>
+#include <QCoreApplication>
 #include <QCryptographicHash>
 
 static QHostAddress getConnectionAddress(const QString &conninfo)
@@ -122,6 +124,7 @@ RtspClient::RtspClient(QObject *parent) :
 	state = UNKNOWN;
 	asyncPlay = true;
 	asyncsock = NULL;
+	doMoxaHacks = false;
 }
 
 int RtspClient::setServerUrl(const QString &url)
@@ -500,8 +503,17 @@ void RtspClient::aSyncDataReady()
 		mDebug("Parsing request %s from %s", qPrintable(req.type), qPrintable(asyncsock->peerAddress().toString()));
 		if (req.type == "OPTIONS")
 			parseOptionsResponse(currentResp);
-		else if (req.type == "DESCRIBE")
+		else if (req.type == "DESCRIBE") {
+			if (doMoxaHacks) {
+				sleep(1);
+				QCoreApplication::processEvents();
+				QCoreApplication::processEvents();
+				QCoreApplication::processEvents();
+				QCoreApplication::processEvents();
+				currentResp.insert("__content__", asyncsock->readAll());
+			}
 			parseDescribeResponse(currentResp);
+		}
 		else if (req.type == "SETUP")
 			parseSetupResponse(currentResp, req.rtp, req.p);
 		else if (req.type == "PLAY")

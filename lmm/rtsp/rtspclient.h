@@ -92,6 +92,7 @@ protected:
 	QString nonce;
 	QString user;
 	QString pass;
+	bool doMoxaHacks;
 
 	struct ServerInfo
 	{
