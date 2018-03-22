@@ -112,6 +112,8 @@ public:
 	void setH264SEIInsertion(bool v) { insertH264Sei = v; }
 	void setRtcpTimeoutValue(int v) { rtcpTimeoutValue = v; }
 	int getRtcpTimeoutValue() { return rtcpTimeoutValue; }
+	void useIncomingTimestamp(bool v) { useIncomingTs = v; }
+	bool isUsingIncomingTimestamp() { return useIncomingTs; }
 protected:
 	int processBuffer(const RawBuffer &buf);
 	quint64 packetTimestamp();
@@ -141,6 +143,7 @@ protected:
 	TokenBucket *tb;
 	bool insertH264Sei;
 	int rtcpTimeoutValue;
+	bool useIncomingTs;
 
 	int bufferCount;
 	bool rtcpEnabled;
