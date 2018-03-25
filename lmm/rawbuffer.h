@@ -30,7 +30,7 @@ public:
 	int h264NalType;
 	quintptr * omxBuf;
 	int poolIndex;
-	int pts;
+	qint64 pts;
 	int streamBufferNo;
 	quintptr *targetElement;
 	quintptr *v4l2Buffer;
