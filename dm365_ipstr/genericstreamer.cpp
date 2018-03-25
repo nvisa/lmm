@@ -545,6 +545,7 @@ QVariant GenericStreamer::getRtspStats(const QString &fld)
 			printSessionPar(rtptime);
 			printSessionPar(seq);
 			printSessionPar(rtspTimeoutEnabled);
+			printSessionPar(rtspTimeoutValue);
 		}
 
 		return lines.join("\n");
@@ -580,6 +581,7 @@ QVariant GenericStreamer::getRtspStats(const QString &fld)
 		checkSessionPar(rtptime);
 		checkSessionPar(seq);
 		checkSessionPar(rtspTimeoutEnabled);
+		checkSessionPar(rtspTimeoutValue);
 		if (info == "siblings") {
 			QStringList list;
 			foreach (BaseRtspSession *s, ses->siblings)
