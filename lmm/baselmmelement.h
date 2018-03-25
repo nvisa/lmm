@@ -131,6 +131,11 @@ public:
 		LIMIT_BUFFER_COUNT,
 		LIMIT_TOTAL_SIZE,
 	};
+	enum TimeStamping {
+		TS_NONE,
+		TS_DURATION,
+		TS_STREAM_TIME,
+	};
 
 	ElementIOQueue();
 
@@ -158,6 +163,8 @@ public:
 	int setRateLimitTotalSize(int size);
 	RateLimit getRateLimit() { return rlimit; }
 	qint64 getElapsedSinceLastAdd();
+	void setTimestampingMethod(TimeStamping m);
+	void setBufferDuration(qint64 v);
 
 protected:
 	void rateLimit(const RawBuffer &buffer);
@@ -189,6 +196,8 @@ protected:
 	QElapsedTimer * fpsTiming;
 	float fps;
 	RateReducto *rc;
+	TimeStamping tsMethod;
+	qint64 tsBufferDuration;
 
 private:
 	QMutex evLock;

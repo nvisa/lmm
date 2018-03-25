@@ -563,6 +563,8 @@ ElementIOQueue::ElementIOQueue()
 	rlimitTimer = new QElapsedTimer;
 
 	rc = NULL;
+	tsMethod = TS_NONE;
+	tsBufferDuration = 0;
 }
 
 int ElementIOQueue::waitBuffers(int lessThan)
@@ -604,6 +606,16 @@ int ElementIOQueue::addBuffer(const RawBuffer &buffer, BaseLmmElement *src, bool
 		bufSize += buffer.size();
 		_bitrate += buffer.size();
 		calculateFps();
+
+		if (tsMethod != TS_NONE) {
+			RawBuffer *b = (RawBuffer *)&buffer;
+			b->pars()->duration = tsBufferDuration;
+			if (tsMethod == TS_DURATION) {
+				b->pars()->pts = b->pars()->streamBufferNo * (qint64)b->pars()->duration;
+			} else if (tsMethod == TS_STREAM_TIME) {
+				b->pars()->pts = src->getStreamTime()->getCurrentTimeMili();
+			}
+		}
 	}
 	receivedCount++;
 	lock.unlock();
@@ -784,6 +796,16 @@ int ElementIOQueue::setRateLimitTotalSize(int size)
 qint64 ElementIOQueue::getElapsedSinceLastAdd()
 {
 	return rlimitTimer->elapsed();
+}
+
+void ElementIOQueue::setTimestampingMethod(ElementIOQueue::TimeStamping m)
+{
+	tsMethod = m;
+}
+
+void ElementIOQueue::setBufferDuration(qint64 v)
+{
+	tsBufferDuration = v;
 }
 
 bool ElementIOQueue::acquireSem()
