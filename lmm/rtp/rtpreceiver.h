@@ -64,6 +64,7 @@ public:
 	float getExpectedFramerate() { return expectedFrameRate; }
 	void enableBitrateSummarization(bool v, int interval = 10);
 	void enableUserSEIParsing(bool v);
+	void useThreadedReading(bool v);
 
 	int start();
 	int stop();
@@ -81,6 +82,8 @@ protected:
 	void h264FramingError();
 	int getRtpClock();
 	void parseSeiUserData(const RawBuffer &buf);
+	int initSockets();
+	int processBlocking(int ch);
 
 	int processh264Payload(const QByteArray &ba, uint ts, int last);
 	int processMetaPayload(const QByteArray &ba, uint ts, int last);
@@ -99,6 +102,7 @@ protected:
 	QMap<uint, QByteArray> rtpData;
 	uint rtpPacketOffset;
 	float expectedFrameRate;
+	bool threadedRead;
 
 	uint seqLast;
 	QByteArray currentNal;
