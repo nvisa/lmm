@@ -70,7 +70,7 @@ void RtpReceiver::enableUserSEIParsing(bool v)
 
 void RtpReceiver::useThreadedReading(bool v)
 {
-	threadedRead = true;
+	threadedRead = v;
 }
 
 int RtpReceiver::start()
