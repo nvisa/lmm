@@ -773,6 +773,8 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 				tr.name = tr.controlUrl.split("/").last();
 				if (setupTracks.contains(tr.name))
 					serverDescriptions[serverUrl] << tr;
+				else
+					mDebug("no setup track for '%s'", qPrintable(tr.name));
 			}
 			tr.m = line.remove("m=").trimmed();
 		}
@@ -796,6 +798,8 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 	tr.name = tr.controlUrl.split("/").last();
 	if (setupTracks.contains(tr.name))
 		serverDescriptions[serverUrl] << tr;
+	else
+		mDebug("no setup track for '%s'", qPrintable(tr.name));
 
 	return 0;
 }
