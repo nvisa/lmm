@@ -24,6 +24,8 @@ public:
 	void setBufferCount(int v) { bufferCount = v ? v : bufferCount; }
 	void setVideoResolution(int width, int height);
 	void setH264NalChecking(bool v);
+
+	static void suppressDebugMessages();
 protected:
 	int decode(RawBuffer buf);
 	int decodeH264(const RawBuffer &lastBuf);
