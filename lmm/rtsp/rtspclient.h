@@ -49,6 +49,8 @@ public:
 	void playASync();
 	void teardownASync();
 
+	void setDefaultRtpTrack(RtpReceiver *rtp);
+	RtpReceiver * getTrackReceiver(const QString &name);
 	void addSetupTrack(const QString &name, RtpReceiver *rtp);
 	void clearSetupTracks();
 

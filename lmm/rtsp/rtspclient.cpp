@@ -206,19 +206,20 @@ int RtspClient::setupUrl()
 
 	int err = 0;
 	bool tracksUp = false;
-	if (trackReceivers.size()) {
-		const QList<TrackDefinition> &tracks = serverDescriptions[serverUrl];
-		for (int i = 0; i < tracks.size(); i++) {
-			if (tracks[i].controlUrl == serverUrl)
-				continue;
-			QString controlUrl = tracks[i].controlUrl;
-			err = setupTrack(controlUrl, tracks[i].connection, trackReceivers[tracks[i].name]);
-			if (err) {
-				mDebug("error %d setting-up session %s", err, qPrintable(tracks[i].name));
-				return err;
-			}
-			tracksUp = true;
+	const QList<TrackDefinition> &tracks = serverDescriptions[serverUrl];
+	for (int i = 0; i < tracks.size(); i++) {
+		if (tracks[i].controlUrl == serverUrl)
+			continue;
+		RtpReceiver *rtp = getTrackReceiver(tracks[i].name);
+		if (!rtp)
+			continue;
+		QString controlUrl = tracks[i].controlUrl;
+		err = setupTrack(controlUrl, tracks[i].connection, rtp);
+		if (err) {
+			mDebug("error %d setting-up session %s", err, qPrintable(tracks[i].name));
+			return err;
 		}
+		tracksUp = true;
 	}
 
 	if (!tracksUp)
@@ -235,23 +236,22 @@ int RtspClient::setupUrlASync()
 
 	int err = 0;
 	bool tracksUp = false;
-	if (trackReceivers.size()) {
-		const QList<TrackDefinition> &tracks = serverDescriptions[serverUrl];
-		for (int i = 0; i < tracks.size(); i++) {
-			if (tracks[i].controlUrl == serverUrl)
-				continue;
-			QString controlUrl = tracks[i].controlUrl;
-			if (!trackReceivers.contains(tracks[i].name)) {
-				mDebug("No track receiver found for track %s", qPrintable(tracks[i].name));
-				continue;
-			}
-			err = setupTrackASync(controlUrl, tracks[i].connection, trackReceivers[tracks[i].name]);
-			if (err) {
-				mDebug("error %d setting-up session %s", err, qPrintable(tracks[i].name));
-				return err;
-			}
-			tracksUp = true;
+	const QList<TrackDefinition> &tracks = serverDescriptions[serverUrl];
+	for (int i = 0; i < tracks.size(); i++) {
+		if (tracks[i].controlUrl == serverUrl)
+			continue;
+		QString controlUrl = tracks[i].controlUrl;
+		RtpReceiver *rtp = getTrackReceiver(tracks[i].name);
+		if (!rtp) {
+			mDebug("No track receiver found for track %s", qPrintable(tracks[i].name));
+			continue;
 		}
+		err = setupTrackASync(controlUrl, tracks[i].connection, rtp);
+		if (err) {
+			mDebug("error %d setting-up session %s", err, qPrintable(tracks[i].name));
+			return err;
+		}
+		tracksUp = true;
 	}
 
 	if (!tracksUp)
@@ -359,6 +359,20 @@ void RtspClient::playASync()
 void RtspClient::teardownASync()
 {
 	asyncPlay = false;
+}
+
+void RtspClient::setDefaultRtpTrack(RtpReceiver *rtp)
+{
+	trackReceivers.insert("__default__", rtp);
+}
+
+RtpReceiver *RtspClient::getTrackReceiver(const QString &name)
+{
+	if (trackReceivers.contains(name))
+		return trackReceivers[name];
+	if (trackReceivers.size() > 1)
+		return NULL;
+	return trackReceivers["__default__"];
 }
 
 void RtspClient::addSetupTrack(const QString &name, RtpReceiver *rtp)
@@ -767,8 +781,7 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 		if (line.startsWith("m=")) {
 			if (!tr.m.isEmpty()) {
 				tr.name = tr.controlUrl.split("/").last();
-				if (trackReceivers.contains(tr.name))
-					serverDescriptions[serverUrl] << tr;
+				serverDescriptions[serverUrl] << tr;
 			}
 			tr.m = line.remove("m=").trimmed();
 		}
@@ -790,8 +803,7 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 		}
 	}
 	tr.name = tr.controlUrl.split("/").last();
-	if (trackReceivers.contains(tr.name))
-		serverDescriptions[serverUrl] << tr;
+	serverDescriptions[serverUrl] << tr;
 
 	return 0;
 }
