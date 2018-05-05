@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package Lmm;
+
+service PipelineService {
+	rpc GetInfo (GenericQ) returns (PipelinesInfo) {}
+	rpc GetQueueInfo(QueueInfoQ) returns (QueueInfo) {}
+}
+
+message GenericQ {
+	int32 dummy = 1;
+}
+
+message QueueInfoQ {
+	int32 pipeline = 1;
+	int32 element = 2;
+	int32 outqi = 3;
+	int32 inqi = 4;
+}
+
+message PipelinesInfo {
+	repeated Pipeline pipelines = 1;
+}
+
+message Pipeline {
+	string name = 1;
+	repeated Element elements = 2;
+}
+
+message Element {
+	string name = 1;
+	repeated QueueInfo outq = 2;
+	repeated QueueInfo inq = 3;
+}
+
+message QueueInfo {
+	int32 bufferCount = 1;
+	float fps = 2;
+	int64 elapsedSinceLastAdd = 3;
+	int32 receivedCount = 4;
+	int32 sentCount = 5;
+	int64 totalSize = 6;
+	int32 bitrate = 7;
+
+	enum RateLimit {
+		NONE = 0;
+		INTERVAL = 1;
+		BUFFER_COUNT = 2;
+		TOTAL_SIZE = 3;
+	}
+	RateLimit rateLimit = 8;
+}

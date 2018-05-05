@@ -9,6 +9,7 @@
 #include <QDataStream>
 
 #include <errno.h>
+#include <unistd.h>
 #include <sys/time.h>
 
 static inline ushort getUInt16BE(const uchar *buf)
@@ -27,6 +28,7 @@ static inline uint getUInt32BE(const uchar *buf)
 RtpReceiver::RtpReceiver(QObject *parent) :
 	BaseLmmElement(parent)
 {
+	threadedRead = false;
 	maxPayloadSize = 1460;
 	annexPrefix.append(char(0));
 	annexPrefix.append(char(0));
@@ -66,33 +68,17 @@ void RtpReceiver::enableUserSEIParsing(bool v)
 	seistats.enabled = v;
 }
 
+void RtpReceiver::useThreadedReading(bool v)
+{
+	threadedRead = v;
+}
+
 int RtpReceiver::start()
 {
-#if QT_VERSION > 0x050000
-	sock = new QUdpSocket(this);
-	sock2 = new QUdpSocket(this);
-	if (!sock->bind(QHostAddress::AnyIPv4, srcDataPort)) {
-		sock->deleteLater();
-		sock2->deleteLater();
-		sock = NULL;
-		sock2 = NULL;
-		return -EPERM;
-	}
-	if (!sock2->bind(QHostAddress::AnyIPv4, srcControlPort)) {
-		sock->deleteLater();
-		sock2->deleteLater();
-		sock = NULL;
-		sock2 = NULL;
-		return -EPERM;
-	}
-	connect(sock, SIGNAL(readyRead()), SLOT(readPendingRtpDatagrams()));
-	connect(sock2, SIGNAL(readyRead()), SLOT(readPendingRtcpDatagrams()));
-
-	if (sourceAddr.isInSubnet(QHostAddress::parseSubnet("224.0.0.0/3"))) {
-		if (!sock->joinMulticastGroup(sourceAddr))
-			ffDebug() << trUtf8("Error joining multicast port, maybe it in use by another program?");
-		if (!sock2->joinMulticastGroup(sourceAddr))
-			ffDebug() << trUtf8("Error joining multicast port, maybe it in use by another program?");
+	if (!threadedRead) {
+		int err = initSockets();
+		if (err)
+			return err;
 	}
 
 	stats.packetCount = 0;
@@ -103,7 +89,7 @@ int RtpReceiver::start()
 	validFrameCount = 0;
 	framingError = false;
 	rtcpTime.start();
-#endif
+
 	return 0;
 }
 
@@ -400,6 +386,73 @@ void RtpReceiver::parseSeiUserData(const RawBuffer &buf)
 	seistats.bufferCount = encoderCount;
 	seistats.sessionCount = sessionCount;
 	seistats.meta = meta;
+}
+
+int RtpReceiver::initSockets()
+{
+#if QT_VERSION > 0x050000
+	sock = new QUdpSocket();
+	sock2 = new QUdpSocket();
+	if (!sock->bind(QHostAddress::AnyIPv4, srcDataPort)) {
+		sock->deleteLater();
+		sock2->deleteLater();
+		sock = NULL;
+		sock2 = NULL;
+		return -EPERM;
+	}
+	if (!sock2->bind(QHostAddress::AnyIPv4, srcControlPort)) {
+		sock->deleteLater();
+		sock2->deleteLater();
+		sock = NULL;
+		sock2 = NULL;
+		return -EPERM;
+	}
+	if (!threadedRead) {
+		connect(sock, SIGNAL(readyRead()), SLOT(readPendingRtpDatagrams()));
+		connect(sock2, SIGNAL(readyRead()), SLOT(readPendingRtcpDatagrams()));
+	}
+
+	if (sourceAddr.isInSubnet(QHostAddress::parseSubnet("224.0.0.0/3"))) {
+		if (!sock->joinMulticastGroup(sourceAddr))
+			ffDebug() << trUtf8("Error joining multicast port, maybe it in use by another program?");
+		if (!sock2->joinMulticastGroup(sourceAddr))
+			ffDebug() << trUtf8("Error joining multicast port, maybe it in use by another program?");
+	}
+#endif
+	return 0;
+}
+
+int RtpReceiver::processBlocking(int ch)
+{
+	if (!threadedRead)
+		return BaseLmmElement::processBlocking(ch);
+
+	/* init sockets for the first time */
+	if (!sock) {
+		int err = initSockets();
+		if (err)
+			return err;
+	}
+
+	/*
+	 * readPendingRtpDatagrams() will check socket buffers
+	 * and read all available data and push resulting buffers
+	 * to our input queue
+	 */
+	readPendingRtpDatagrams();
+	readPendingRtcpDatagrams();
+
+	if (getInputQueue(0)->getBufferCount()) {
+		/* we have some data, let's push to output */
+		RawBuffer buf = getInputQueue(0)->getBuffer(this);
+		if (!buf.size())
+			return -ENOENT;
+		return newOutputBuffer(0, buf);
+	}
+
+	/* we have nothing waiting, let's relax CPU a bit */
+	usleep(1000);
+	return 0;
 }
 
 int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)

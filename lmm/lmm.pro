@@ -118,6 +118,11 @@ lessThan(QT_VERSION, 4.7) {
     INCLUDEPATH += compat
 }
 
+grpc {
+	DEFINES += HAVE_GRPC
+	include(pipeline/proto/proto.pri)
+}
+
 widgets {
     SOURCES += qtvideooutput.cpp
     HEADERS += qtvideooutput.h

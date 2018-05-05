@@ -12,6 +12,12 @@ extern "C" {
 	#include <libavformat/avformat.h>
 	#include <libavcodec/avcodec.h>
 	#include <libswscale/swscale.h>
+
+	void log_callback(void *ptr, int level, const char *fmt, va_list vargs)
+	{
+
+	}
+
 }
 
 FFmpegDecoder::FFmpegDecoder(QObject *parent) :
@@ -299,4 +305,9 @@ void FFmpegDecoder::setVideoResolution(int width, int height)
 void FFmpegDecoder::setH264NalChecking(bool v)
 {
 	checkNalUnits = v;
+}
+
+void FFmpegDecoder::suppressDebugMessages()
+{
+	av_log_set_callback(log_callback);
 }

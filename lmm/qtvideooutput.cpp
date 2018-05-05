@@ -69,7 +69,7 @@ VideoWidget *QtVideoOutput::getWidget()
 int QtVideoOutput::processBuffer(const RawBuffer &buf)
 {
 	w->paintBuffer(buf);
-	return 0;
+	return newOutputBuffer(0, buf);
 }
 
 VideoWidget::VideoWidget(QWidget *parent)

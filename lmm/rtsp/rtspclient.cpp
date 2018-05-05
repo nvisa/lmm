@@ -337,6 +337,8 @@ int RtspClient::keepAliveASync(const QString &id)
 		return -EINVAL;
 	int cseq = getCSeq();
 	QStringList lines = createKeepAliveReq(cseq, serverUrl, id);
+	addAuthHeaders(lines, "GET_PARAMETER");
+	lines << "\r\n";
 	CSeqRequest req("GET_PARAMETER");
 	req.id = id;
 	cseqRequests.insert(cseq, req);
@@ -496,7 +498,7 @@ void RtspClient::timeout()
 		const RtspSession &ses = i.value();
 		int stout = ses.pars["timeout"].toInt() * 1000;
 		if (stout && ses.rtspTimeout.elapsed() > stout - 5000)
-			keepAlive(ses.id);
+			keepAliveASync(ses.id);
 	}
 }
 

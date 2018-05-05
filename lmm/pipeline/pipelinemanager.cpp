@@ -214,6 +214,9 @@ void PipelineManager::timeout()
 		}
 	}
 
+	if (!dbg->isStarted())
+		dbg->start();
+
 	QTimer::singleShot(1000, this, SLOT(timeout()));
 }
 

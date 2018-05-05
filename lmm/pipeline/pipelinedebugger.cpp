@@ -2,6 +2,7 @@
 #include "baselmmpipeline.h"
 #include "debug.h"
 
+#include <QThread>
 #include <QDateTime>
 #include <QUdpSocket>
 #include <QDataStream>
@@ -10,6 +11,123 @@
 #include <stdint.h>
 
 PipelineDebugger * PipelineDebugger::inst = NULL;
+
+#ifdef HAVE_GRPC
+#include <grpc/grpc.h>
+#include <grpc++/server.h>
+#include <grpc++/channel.h>
+#include <grpc++/create_channel.h>
+#include <grpc++/client_context.h>
+#include <grpc++/server_builder.h>
+#include <grpc++/server_context.h>
+#include <grpc++/security/credentials.h>
+
+#include <grpc++/security/server_credentials.h>
+
+#include "proto/pipeline.grpc.pb.h"
+
+using grpc::Server;
+using grpc::ServerBuilder;
+using grpc::ServerContext;
+using grpc::ServerReader;
+using grpc::ServerWriter;
+using grpc::Status;
+using namespace std;
+
+class GRpcServerImpl : public Lmm::PipelineService::Service
+{
+public:
+	GRpcServerImpl(PipelineDebugger *dbg)
+	{
+		pd = dbg;
+	}
+
+	virtual grpc::Status GetInfo(grpc::ServerContext *, const Lmm::GenericQ *, Lmm::PipelinesInfo *response)
+	{
+		for (int i = 0; i < pd->getPipelineCount(); i++) {
+			BaseLmmPipeline *lmmp = pd->getPipeline(i);
+
+			Lmm::Pipeline *p = response->add_pipelines();
+			p->set_name(qPrintable(lmmp->objectName()));
+			for (int j = 0; j < lmmp->getPipeCount(); j++) {
+				BaseLmmElement *lmmel = lmmp->getPipe(j);
+				Lmm::Element *el = p->add_elements();
+				el->set_name(qPrintable(lmmel->objectName()));
+
+				for (int k = 0; k < lmmel->getInputQueueCount(); k++) {
+					ElementIOQueue *lmmq = lmmel->getInputQueue(k);
+					Lmm::QueueInfo *q = el->add_inq();
+					q->set_buffercount(lmmq->getBufferCount());
+				}
+
+				for (int k = 0; k < lmmel->getOutputQueueCount(); k++) {
+					ElementIOQueue *lmmq = lmmel->getOutputQueue(k);
+					Lmm::QueueInfo *q = el->add_outq();
+					q->set_buffercount(lmmq->getBufferCount());
+				}
+			}
+		}
+
+		return Status::OK;
+	}
+
+	virtual grpc::Status GetQueueInfo(grpc::ServerContext *, const Lmm::QueueInfoQ *request, Lmm::QueueInfo *response)
+	{
+		int pi = request->pipeline();
+		int ei = request->element();
+		int inqi = request->inqi();
+		int outi = request->outqi();
+		ElementIOQueue *q = NULL;
+		if (inqi >= 0)
+			q = pd->getPipeline(pi)->getPipe(ei)->getInputQueue(inqi);
+		else if (outi >= 0)
+			q = pd->getPipeline(pi)->getPipe(ei)->getOutputQueue(outi);
+		response->set_buffercount(0);
+		if (!q)
+			return Status::OK;
+
+		response->set_buffercount(q->getBufferCount());
+		response->set_elapsedsincelastadd(q->getElapsedSinceLastAdd());
+		response->set_fps(q->getFps());
+		response->set_receivedcount(q->getReceivedCount());
+		response->set_sentcount(q->getSentCount());
+		response->set_totalsize(q->getTotalSize());
+		response->set_bitrate(q->getBitrate());
+		response->set_ratelimit((Lmm::QueueInfo_RateLimit)q->getRateLimit());
+
+		return Status::OK;
+	}
+
+protected:
+	PipelineDebugger *pd;
+
+protected:
+};
+
+class GrpcThread : public QThread
+{
+public:
+	GrpcThread(quint16 port, GRpcServerImpl *s)
+	{
+		servicePort = port;
+		service = s;
+	}
+
+	void run()
+	{
+		string ep(qPrintable(QString("0.0.0.0:%1").arg(servicePort)));
+		ServerBuilder builder;
+		builder.AddListeningPort(ep, grpc::InsecureServerCredentials());
+		builder.RegisterService(service);
+		std::unique_ptr<Server> server(builder.BuildAndStart());
+		server->Wait();
+	}
+protected:
+	int servicePort;
+	GRpcServerImpl *service;
+};
+
+#endif
 
 static void queueEventHook(ElementIOQueue *queue, const RawBuffer &buf, int ev, BaseLmmElement *src, void *priv)
 {
@@ -157,7 +275,7 @@ PipelineDebugger::PipelineDebugger(QObject *parent) :
 	elementEvents = new EventData(CMD_INFO_ELEMENT_EVENTS, QDateTime::currentDateTime().toTime_t());
 	sock = new QUdpSocket(this);
 	sock->bind(19000);
-	connect(sock, SIGNAL(readyRead()), SLOT(udpDataReady()));
+	started = false;
 }
 
 PipelineDebugger *PipelineDebugger::GetInstance()
@@ -189,6 +307,25 @@ BaseLmmPipeline *PipelineDebugger::getPipeline(int ind)
 void PipelineDebugger::removePipeline(BaseLmmPipeline *pl)
 {
 	pipelines.removeAll(pl);
+}
+
+int PipelineDebugger::start()
+{
+	connect(sock, SIGNAL(readyRead()), SLOT(udpDataReady()));
+
+#ifdef HAVE_GRPC
+	GrpcThread *thr = new GrpcThread(19101, new GRpcServerImpl(this));
+	thr->start();
+#endif
+
+	started = true;
+
+	return 0;
+}
+
+bool PipelineDebugger::isStarted()
+{
+	return started;
 }
 
 void PipelineDebugger::queueHook(ElementIOQueue *queue, const RawBuffer &buf, int ev, BaseLmmElement *src)

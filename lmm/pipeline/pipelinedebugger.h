@@ -40,6 +40,8 @@ public:
 	int getPipelineCount();
 	BaseLmmPipeline * getPipeline(int ind);
 	void removePipeline(BaseLmmPipeline *pl);
+	int start();
+	bool isStarted();
 
 	void queueHook(ElementIOQueue *queue, const RawBuffer &, int ev, BaseLmmElement *src);
 	void elementHook(BaseLmmElement *el, const RawBuffer &buf, int ev);
@@ -61,6 +63,7 @@ protected:
 	EventData *elementEvents;
 	QHash<int, PipelineInfo *> pipelineInfo;
 	static PipelineDebugger *inst;
+	bool started;
 };
 
 #endif // PIPELINEDEBUGGER_H

@@ -70,7 +70,10 @@ int CpuLoad::getInstLoadFromProc()
 			+ list[9].toInt()
 			;
 	int idle = list[5].toInt();
-	int load = 100 * (nonIdle - lastNonIdle) / (nonIdle + idle - lastNonIdle - lastIdle);
+	int d = nonIdle + idle - lastNonIdle - lastIdle;
+	int load = 0;
+	if (d)
+		load = 100 * (nonIdle - lastNonIdle) / d;
 	lastIdle = idle;
 	lastNonIdle = nonIdle;
 	return load;
