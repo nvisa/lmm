@@ -118,7 +118,6 @@ protected:
 	QHash<QString, RtspSession> setupedSessions;
 	QHash<QString, RtspSession> playedSessions;
 	QHash<QString, RtpReceiver *> trackReceivers;
-	QStringList setupTracks;
 	ConnectionState state;
 	QTcpSocket *asyncsock;
 	DeviceStatus devstatus;

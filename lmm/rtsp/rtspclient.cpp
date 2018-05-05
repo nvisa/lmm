@@ -206,7 +206,7 @@ int RtspClient::setupUrl()
 
 	int err = 0;
 	bool tracksUp = false;
-	if (setupTracks.size()) {
+	if (trackReceivers.size()) {
 		const QList<TrackDefinition> &tracks = serverDescriptions[serverUrl];
 		for (int i = 0; i < tracks.size(); i++) {
 			if (tracks[i].controlUrl == serverUrl)
@@ -235,7 +235,7 @@ int RtspClient::setupUrlASync()
 
 	int err = 0;
 	bool tracksUp = false;
-	if (setupTracks.size()) {
+	if (trackReceivers.size()) {
 		const QList<TrackDefinition> &tracks = serverDescriptions[serverUrl];
 		for (int i = 0; i < tracks.size(); i++) {
 			if (tracks[i].controlUrl == serverUrl)
@@ -363,13 +363,11 @@ void RtspClient::teardownASync()
 
 void RtspClient::addSetupTrack(const QString &name, RtpReceiver *rtp)
 {
-	setupTracks << name;
 	trackReceivers.insert(name, rtp);
 }
 
 void RtspClient::clearSetupTracks()
 {
-	setupTracks.clear();
 	trackReceivers.clear();
 }
 
@@ -769,7 +767,7 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 		if (line.startsWith("m=")) {
 			if (!tr.m.isEmpty()) {
 				tr.name = tr.controlUrl.split("/").last();
-				if (setupTracks.contains(tr.name))
+				if (trackReceivers.contains(tr.name))
 					serverDescriptions[serverUrl] << tr;
 			}
 			tr.m = line.remove("m=").trimmed();
@@ -792,7 +790,7 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 		}
 	}
 	tr.name = tr.controlUrl.split("/").last();
-	if (setupTracks.contains(tr.name))
+	if (trackReceivers.contains(tr.name))
 		serverDescriptions[serverUrl] << tr;
 
 	return 0;
