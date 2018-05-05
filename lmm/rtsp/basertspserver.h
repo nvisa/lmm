@@ -21,7 +21,7 @@ class BaseRtspSession : public QObject
 {
 	Q_OBJECT
 public:
-	BaseRtspSession(const QString &iface, BaseRtspServer *parent);
+	BaseRtspSession(const QHostAddress &ifaceIpAddr, BaseRtspServer *parent);
 	~BaseRtspSession();
 	int setup(bool mcast, int dPort, int cPort, const QString &streamName, const QString &media, const QString &incomingTransportString);
 	int play();
@@ -78,7 +78,7 @@ public:
 	};
 
 	explicit BaseRtspServer(QObject *parent = 0, int port = 554);
-	QString getMulticastAddress(const QString &streamName, const QString &media);
+	QString getMulticastAddress(const QHostAddress &myIpAddr, const QString &streamName, const QString &media);
 	int getMulticastPort(QString streamName, const QString &media);
 	int setEnabled(bool val);
 	QString getMulticastAddressBase(const QString &streamName, const QString &media);
@@ -94,8 +94,6 @@ public:
 	void setRtspTimeoutValue(int v) { rtspTimeoutValue = v; }
 	int getRtspTimeoutValue() { return rtspTimeoutValue; }
 
-	QString getNetworkInterface() { return nwInterfaceName; }
-	void setNetworkInterface(const QString &name) { nwInterfaceName = name; }
 	void setRtspAuthenticationCredentials(const QString &username, const QString &password);
 	RtpTransmitter * getSessionTransmitter(const QString &streamName, const QString &media);
 
@@ -147,12 +145,10 @@ private:
 	QString lastUserAgent;
 	QMap<QString, QString> currentCmdFields;
 	bool enabled;
-	QHostAddress myIpAddr;
 	QHostAddress myNetmask;
 	QHash<QString, StreamDescription> streamDescriptions;
 	Auth auth;
 	QMutex sessionLock;
-	QString nwInterfaceName;
 	QString authUsername;
 	QString authPassword;
 	QTcpSocket *currentSocket;
@@ -173,6 +169,8 @@ private:
 	BaseRtspSession * findMulticastSession(const QString &streamName, const QString &media);
 	bool isSessionMulticast(QString sid);
 	const StreamDescription getStreamDesc(const QString &streamName, const QString &mediaName);
+	QString getCurrentPeerAddress();
+	QHostAddress getCurrentInterfaceAddress();
 
 	/* command handling */
 	QStringList handleCommandOptions(QStringList lines, QString lsep);
