@@ -478,8 +478,8 @@ int RtpReceiver::processh264Payload(const QByteArray &ba, uint ts, int last)
 
 		/* check end-last mismatch */
 		if (end && !last) {
-			ffDebug() << "end and last mismatch";
-			h264FramingError();
+			mLog("Fixing end-last mismatch");
+			last = 1;
 		}
 		if (!end && last) {
 			ffDebug() << "last and end mismatch";
