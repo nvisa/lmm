@@ -56,7 +56,8 @@ SOURCES += \
     rtp/rtpreceiver.cpp \
     rtsp/rtspclient.cpp \
     jobdistributorelement.cpp \
-    videoscaler.cpp
+    videoscaler.cpp \
+    interfaces/videostreaminterface.cpp
 
 HEADERS  += \
     filesource.h \
@@ -110,7 +111,8 @@ HEADERS  += \
     rtsp/rtspclient.h \
     version.h \
     jobdistributorelement.h \
-    videoscaler.h
+    videoscaler.h \
+    interfaces/videostreaminterface.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
