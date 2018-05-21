@@ -885,3 +885,8 @@ int RtspClient::parseSetupResponse(const QHash<QString, QString> &resp, RtpRecei
 
 	return 0;
 }
+
+void RtspClient::setMoxaHacks(bool moxaHacks)
+{
+    doMoxaHacks = moxaHacks;
+}
