@@ -12,4 +12,14 @@ linux-gnueabi-oe-g++ {
     CONFIG += staticlib x264 x11 ffmpeg x86
 
     INCLUDEPATH += /home/amenmd/myfs/source-codes/oss/ffmpeg/ffmpeg/ffmpeg_build/include/
+} else:linux-g++ {
+    message("building native")
+    #This is our default build config
+    INSTALL_PREFIX=$$OUT_PWD/../../
+    DEFINES += DEBUG INFO LOG LOGV DEBUG_TIMING
+    CONFIG += staticlib x264 ffmpeg srtp widgets c++11
+
+    INCLUDEPATH += $$INSTALL_PREFIX/usr/local/include
+    INCLUDEPATH += /usr/local/include
+    DEFINES += HAVE_LIBYUV
 }
