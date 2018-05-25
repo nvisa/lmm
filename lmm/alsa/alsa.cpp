@@ -245,7 +245,8 @@ int Alsa::read(void *buf, int length)
 	int err = snd_pcm_readi(handle, buf, length / bytesPerSample / ch);
 	mutex.unlock();
 	if (err == -EPIPE) {
-
+		/* overrun, we need to recover */
+		snd_pcm_prepare(handle);
 	}
 	if (err < 0) {
 		mDebug("read error %d: %s", err, snd_strerror(err));
