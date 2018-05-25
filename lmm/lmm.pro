@@ -56,7 +56,6 @@ SOURCES += \
     rtp/rtpreceiver.cpp \
     rtsp/rtspclient.cpp \
     jobdistributorelement.cpp \
-    videoscaler.cpp \
     interfaces/videostreaminterface.cpp
 
 HEADERS  += \
@@ -111,7 +110,6 @@ HEADERS  += \
     rtsp/rtspclient.h \
     version.h \
     jobdistributorelement.h \
-    videoscaler.h \
     interfaces/videostreaminterface.h
 
 lessThan(QT_VERSION, 4.7) {
@@ -183,6 +181,7 @@ ffmpeg {
         ffmpeg/ffmpegcolorspace.h \
         ffmpeg/ffmpegcontexter.H \
         ffmpeg/ffmpegdecoder.h \
+        videoscaler.h \
 
     SOURCES += \
         ffmpeg/baselmmdemux.cpp \
@@ -195,6 +194,7 @@ ffmpeg {
         ffmpeg/ffmpegcolorspace.cpp \
         ffmpeg/ffmpegcontexter.cpp \
         ffmpeg/ffmpegdecoder.cpp \
+        videoscaler.cpp \
 
             dm6446 {
                     SOURCES += \
