@@ -15,7 +15,7 @@ class GenericStreamer : public BaseStreamer, public LmmPBusInterface
 {
 	Q_OBJECT
 public:
-	explicit GenericStreamer(QObject *parent = 0);
+	explicit GenericStreamer(bool enableOnvif, QObject *parent = 0);
 
 	virtual QList<RawBuffer> getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount);
 signals:
@@ -58,6 +58,7 @@ protected:
 	QFileSystemWatcher *onvifWatcher;
 	QString uuid;
 	QString rtspCredHashData;
+	bool onvifEnabled;
 
 	struct CustomSeiStruct {
 		qint32 cpuload;

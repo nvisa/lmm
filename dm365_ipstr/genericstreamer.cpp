@@ -98,9 +98,10 @@ static QVariant gets(ApplicationSettings *s, const QString &prefix, const QStrin
 	return s->get(QString("%1.%2").arg(prefix).arg(nodedef));
 }
 
-GenericStreamer::GenericStreamer(QObject *parent) :
+GenericStreamer::GenericStreamer(bool enableOnvif, QObject *parent) :
 	BaseStreamer(parent)
 {
+	this->onvifEnabled = enableOnvif;
 	ApplicationSettings *s = ApplicationSettings::instance();
 
 	ApplicationSettings *vks = ApplicationSettings::create("/etc/encsoft/vksystem.json", QIODevice::ReadOnly);
@@ -766,6 +767,8 @@ void GenericStreamer::initCustomSEI()
 
 bool GenericStreamer::reloadEarlyOnvifBindings()
 {
+	if (!onvifEnabled)
+		return false;
 	bool needRestart = false;
 	QFile f("/etc/encsoft/dbfolder/MediaCommon.json");
 	f.open(QIODevice::ReadOnly);
@@ -840,6 +843,8 @@ bool GenericStreamer::reloadLateOnvifBindings()
 
 void GenericStreamer::initOnvifBindings()
 {
+	if (!onvifEnabled)
+		return;
 	onvifWatcher = new QFileSystemWatcher(this);
 	connect(onvifWatcher, SIGNAL(fileChanged(QString)), SLOT(onvifChanged(QString)));
 	onvifWatcher->addPath("/etc/encsoft/dbfolder/MediaCommon.json");

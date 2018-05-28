@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 	else if (a.arguments().contains("--cvbs"))
 		s = new CVBSStreamer;
 	else
-		s = new GenericStreamer;
+		s = new GenericStreamer(onvifEnabled);
 	s->start();
 
 	return a.exec();
