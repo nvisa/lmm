@@ -111,6 +111,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 		f.write(QString("%1\n").arg(gttl).toUtf8());
 		f.close();
 	}
+	bool audioEnabled = vks->get("debugging_settings.test.audio_in").toBool();
+	bool forceRtcpClosed = audioEnabled;
 	int rtpMtu = vks->getm("network_settings.rtp_mtu").toInt();
 	delete vks;
 
@@ -256,6 +258,8 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 				else
 					rtp->setMaximumPayloadSize(getss("rtp_max_payload_size").toInt());
 				rtp->setRtcp(!getss("disable_rtcp").toBool());
+				if (forceRtcpClosed)
+					rtp->setRtcp(false);
 				rtp->setTrafficShaping(getss("traffic_shaping").toBool(),
 									   getss("traffic_shaping_average").toInt(),
 									   getss("traffic_shaping_burst").toInt(),
