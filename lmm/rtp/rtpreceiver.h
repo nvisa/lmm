@@ -104,6 +104,7 @@ protected:
 	float expectedFrameRate;
 	bool threadedRead;
 
+	QMutex sockLock;
 	uint seqLast;
 	QByteArray currentNal;
 	QByteArray annexPrefix;

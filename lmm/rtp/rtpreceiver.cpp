@@ -95,18 +95,22 @@ int RtpReceiver::start()
 
 int RtpReceiver::stop()
 {
+	sockLock.lock();
 	if (sock) {
+		mDebug("Closing sockets");
 		sock->close();
 		sock2->close();
 		sock->deleteLater();
 		sock2->deleteLater();
 		sock = sock2 = NULL;
 	}
+	sockLock.unlock();
 	return 0;
 }
 
 void RtpReceiver::readPendingRtpDatagrams()
 {
+	sockLock.lock();
 	while (sock && sock->hasPendingDatagrams()) {
 		QByteArray datagram;
 		datagram.resize(sock->pendingDatagramSize());
@@ -131,10 +135,12 @@ void RtpReceiver::readPendingRtpDatagrams()
 		}
 
 	}
+	sockLock.unlock();
 }
 
 void RtpReceiver::readPendingRtcpDatagrams()
 {
+	sockLock.lock();
 	while (sock2 && sock2->hasPendingDatagrams()) {
 		QByteArray datagram;
 		datagram.resize(sock2->pendingDatagramSize());
@@ -183,6 +189,7 @@ void RtpReceiver::readPendingRtcpDatagrams()
 		uint ntps = tv.tv_sec + NTP_OFFSET;
 		uint ntpf = (uint)((tv.tv_usec / 15625.0 ) * 0x04000000 + 0.5);*/
 	}
+	sockLock.unlock();
 }
 
 int RtpReceiver::processRtpData(const QByteArray &ba, const QHostAddress &sender, quint16 senderPort)
@@ -390,6 +397,7 @@ void RtpReceiver::parseSeiUserData(const RawBuffer &buf)
 
 int RtpReceiver::initSockets()
 {
+	QMutexLocker lock(&sockLock);
 #if QT_VERSION > 0x050000
 	sock = new QUdpSocket();
 	sock2 = new QUdpSocket();
