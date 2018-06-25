@@ -67,6 +67,7 @@ protected slots:
 	void aSyncDataReady();
 	void aSyncConnected();
 	void aSyncDisConnected();
+	void aSyncError(QAbstractSocket::SocketError);
 
 protected:
 	int getCSeq();
@@ -83,6 +84,8 @@ protected:
 	int parseKeepAliveResponse(const QHash<QString, QString> &resp, const QString &id);
 	int parsePlayResponse(const QHash<QString, QString> &resp, const QString &id);
 	int parseTeardownResponse(const QHash<QString, QString> &resp, const QString &id);
+
+	void closeAll();
 
 	QString serverUrl;
 	int cseq;

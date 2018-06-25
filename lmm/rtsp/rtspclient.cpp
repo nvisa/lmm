@@ -4,6 +4,10 @@
 
 #include <errno.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/tcp.h>
+#include <netinet/ip.h>
 
 #include <QUrl>
 #include <QTimer>
@@ -135,6 +139,7 @@ int RtspClient::setServerUrl(const QString &url)
 	connect(asyncsock, SIGNAL(readyRead()), SLOT(aSyncDataReady()));
 	connect(asyncsock, SIGNAL(connected()), SLOT(aSyncConnected()));
 	connect(asyncsock, SIGNAL(disconnected()), SLOT(aSyncDisConnected()));
+	connect(asyncsock, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(aSyncError(QAbstractSocket::SocketError)));
 	devstatus = DEAD;
 
 	QUrl rurl(serverUrl);
@@ -426,6 +431,18 @@ void RtspClient::timeout()
 		break;
 	}
 #else
+	/* if we're disconnected from device, we restart next time we connected */
+	if (devstatus == DEAD) {
+		state = UNKNOWN;
+		if (asyncsock->state() != QAbstractSocket::ConnectingState) {
+			QUrl rurl(serverUrl);
+			int port = rurl.port();
+			if (port < 0)
+				port = 554;
+			mDebug("Trying to connect %s", qPrintable(rurl.host()));
+			asyncsock->connectToHost(rurl.host(), port);
+		}
+	}
 	switch (state) {
 	case UNKNOWN:
 		if (!getOptionsASync())
@@ -444,6 +461,7 @@ void RtspClient::timeout()
 		break;
 	case SETUP_WAIT: {
 		const QList<TrackDefinition> &tracks = serverDescriptions[serverUrl];
+		mDebug("%d tracks, %d setted-up", tracks.size(), settedUpSessions().size());
 		if (tracks.size() == settedUpSessions().size()) {
 			int count = 0;
 			foreach (const QString &ses, setupedSessions.keys()) {
@@ -547,12 +565,30 @@ void RtspClient::aSyncConnected()
 {
 	mDebug("device is alive");
 	devstatus = ALIVE;
+	int enableKeepAlive = 1;
+	int fd = asyncsock->socketDescriptor();
+	setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &enableKeepAlive, sizeof(enableKeepAlive));
+
+	int maxIdle = 10; /* seconds */
+	setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &maxIdle, sizeof(maxIdle));
+
+	int count = 3;  // send up to 3 keepalive packets out, then disconnect if no response
+	setsockopt(fd, SOL_TCP, TCP_KEEPCNT, &count, sizeof(count));
+
+	int interval = 2;   // send a keepalive packet out every 2 seconds (after the 5 second idle period)
+	setsockopt(fd, SOL_TCP, TCP_KEEPINTVL, &interval, sizeof(interval));
 }
 
 void RtspClient::aSyncDisConnected()
 {
 	mDebug("device is dead");
 	devstatus = DEAD;
+	closeAll();
+}
+
+void RtspClient::aSyncError(QAbstractSocket::SocketError error)
+{
+	Q_UNUSED(error);
 }
 
 int RtspClient::getCSeq()
@@ -832,6 +868,19 @@ int RtspClient::parseTeardownResponse(const QHash<QString, QString> &resp, const
 	playedSessions[id].rtp->stop();
 	playedSessions.remove(id);
 	return 0;
+}
+
+void RtspClient::closeAll()
+{
+	QHashIterator<QString, RtspSession> hi(playedSessions);
+	while (hi.hasNext()) {
+		hi.next();
+		mDebug("Closing session %s", qPrintable(hi.key()));
+		hi.value().rtp->stop();
+	}
+	serverDescriptions.clear();
+	playedSessions.clear();
+	setupedSessions.clear();
 }
 
 int RtspClient::parseSetupResponse(const QHash<QString, QString> &resp, RtpReceiver *rtp, QPair<int, int> p)
