@@ -49,6 +49,7 @@ public:
 	int overlayInPlace(const RawBuffer &buffer);
 	void setOverlayTimeZone(int tz);
 	void setOverlayDateFormat(const QString &format);
+	void setClearBackground(bool en) { clearBackground = en; }
 
 protected:
 	int processBuffer(const RawBuffer &buffer);
@@ -72,6 +73,7 @@ private:
 	int mapCount;
 	int tzone;
 	QString dateStringFormat;
+	bool clearBackground;
 
 	bool readMapsFromCache();
 	QByteArray createCharMap(int fontWidth, const QImage &image);

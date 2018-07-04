@@ -23,6 +23,7 @@
 TextOverlay::TextOverlay(overlayType t, QObject *parent) :
 	BaseLmmElement(parent)
 {
+	clearBackground = false;
 	tzone = 0;
 	type = t;
 	mmapfd = -1;
@@ -33,6 +34,7 @@ TextOverlay::TextOverlay(overlayType t, QObject *parent) :
 
 int TextOverlay::setFontSize(int size)
 {
+	clearBackground = false;
 	fontSize = size;
 	/* refresh maps */
 	maplock.lock();
@@ -301,6 +303,29 @@ void TextOverlay::yuvSwPixmapOverlay(RawBuffer buffer)
 	QString text = compileOverlayText(buffer);
 	QByteArray ba = text.toLatin1();
 	int x, y, val;
+
+	if (clearBackground) {
+		int hmax = 0, wmax = 0;
+		for (int i = 0; i < ba.size(); i++) {
+			int ch = (int)ba.at(i);
+			if (ch < 32 || ch - 32 >= charPixelMap.size())
+				ch = 32;
+			const QList<int> map = charPixelMap[ch - 32];
+			int w = charFontWidth[ch - 32];
+			foreach (int j, map) {
+				y = (j >> 19) & 0x7ff;
+				x = (j >> 8) & 0x7ff;
+				if (y > hmax)
+					hmax = y;
+			}
+			wmax += w;
+		}
+		wmax += 5 * 2; //margin
+		int lmargin = qMin(overlayPos.x(), 5);
+		for (int i = 0; i < hmax + 5; i++)
+			memset(dst + linelen * i - lmargin, 0, wmax);
+	}
+
 	for (int i = 0; i < ba.size(); i++) {
 		int ch = (int)ba.at(i);
 		if (ch < 32 || ch - 32 >= charPixelMap.size())
