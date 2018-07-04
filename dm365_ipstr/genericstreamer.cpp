@@ -856,6 +856,7 @@ TextOverlay * GenericStreamer::createTextOverlay(const QString &elementName, App
 	textOverlay->setOverlayText(s->get("text_overlay.overlay_text").toString());
 	textOverlay->setOverlayTimeZone(s->get("text_overlay.overlay_timezone").toInt());
 	textOverlay->setOverlayDateFormat(s->get("text_overlay.overlay_date_format").toString());
+	textOverlay->setClearBackground(s->get("text_overlay.clear_background").toInt());
 	int cnt = s->get("text_overlay.fields.count").toInt();
 	for (int i = 0; i < cnt; i++) {
 		QString pre = QString("text_overlay.field.%1").arg(i);
