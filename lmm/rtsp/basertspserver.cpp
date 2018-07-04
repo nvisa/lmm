@@ -136,6 +136,17 @@ static QHostAddress findIpForPeer(QTcpSocket *sock)
 				return myIpAddr;
 		}
 	}
+
+	/* we are not in the same subnet, default to first up interface */
+	foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
+		if (!iface.isValid())
+			continue;
+		if (iface.flags() & QNetworkInterface::IsLoopBack)
+			continue;
+		if (iface.addressEntries().size())
+			return iface.addressEntries().at(0).ip();
+	}
+
 	return QHostAddress();
 }
 
