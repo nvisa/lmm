@@ -130,6 +130,7 @@ public:
 		LIMIT_INTERVAL,
 		LIMIT_BUFFER_COUNT,
 		LIMIT_TOTAL_SIZE,
+		LIMIT_BUFFER_COUNT_DROP,
 	};
 	enum TimeStamping {
 		TS_NONE,
@@ -159,7 +160,7 @@ public:
 	qint64 getTotalSize() { return bufSize; }
 	int setRateReduction(float inFps, float outFps);
 	int setRateLimitInterval(qint64 interval);
-	int setRateLimitBufferCount(int count);
+	int setRateLimitBufferCount(int count, bool drop = false);
 	int setRateLimitTotalSize(int size);
 	RateLimit getRateLimit() { return rlimit; }
 	qint64 getElapsedSinceLastAdd();

@@ -759,7 +759,7 @@ void ElementIOQueue::rateLimit(const RawBuffer &buffer)
 			usleep(100);
 		lock.lock();
 	}
-	while (rlimit == LIMIT_BUFFER_COUNT) {
+	if (rlimit == LIMIT_BUFFER_COUNT) {
 		while (1) {
 			int bc = queue.size();
 			if (bc < limitBufferCount)
@@ -768,6 +768,10 @@ void ElementIOQueue::rateLimit(const RawBuffer &buffer)
 			usleep(10000);
 			lock.lock();
 		}
+	}
+	if (rlimit == LIMIT_BUFFER_COUNT_DROP) {
+		while (queue.size() >= limitBufferCount)
+			queue.removeFirst();
 	}
 }
 
@@ -779,10 +783,13 @@ int ElementIOQueue::setRateLimitInterval(qint64 interval)
 	return 0;
 }
 
-int ElementIOQueue::setRateLimitBufferCount(int count)
+int ElementIOQueue::setRateLimitBufferCount(int count, bool drop)
 {
 	limitBufferCount = count;
-	rlimit = LIMIT_BUFFER_COUNT;
+	if (drop)
+		rlimit = LIMIT_BUFFER_COUNT_DROP;
+	else
+		rlimit = LIMIT_BUFFER_COUNT;
 	return 0;
 }
 
