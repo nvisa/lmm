@@ -262,6 +262,7 @@ int JpegEncoder::encode(Buffer_Handle buffer, const RawBuffer source)
 	buf.setParameters(source.constPars());
 	buf.pars()->frameType = IVIDEO_I_FRAME;
 	buf.pars()->encodeTime = streamTime->getCurrentTime();
+	buf.pars()->captureTime = source.constPars()->captureTime;
 	buf.pars()->streamBufferNo = source.constPars()->streamBufferNo;
 	if (bufferCount)
 		buf.pars()->dmaiBuffer = (quintptr *)hDstBuf;
