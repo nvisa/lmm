@@ -107,6 +107,10 @@ void MjpegServer::transmitImage(const RawBuffer &buf)
 	resp.append(QString("--someboundrydefinition\r\n").toUtf8());
 	resp.append(QString("Content-Type: image/jpeg\r\n").toUtf8());
 	resp.append(QString("Content-Length: %1\r\n").arg(buf.size()).toUtf8());
+	resp.append(QString("Content-Timestamp-Usecs: %1\r\n").arg(buf.constPars()->captureTime));
+	resp.append(QString("Content-Bufferno: %1\r\n").arg(buf.constPars()->streamBufferNo));
+	resp.append(QString("Content-Timestamp: %1\r\n")
+				.arg(QDateTime::fromTime_t(buf.constPars()->captureTime / 1000 / 1000).toString()));
 	resp.append(QString("\r\n").toUtf8());
 
 	/* now send message to all connected clients */
