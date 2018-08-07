@@ -483,6 +483,11 @@ void GenericStreamer::postInitPipeline(BaseLmmPipeline *p)
 			if (eel)
 				sel->setMotionDetectionProvider(eel);
 		}
+		MjpegElement *mjpeg = qobject_cast<MjpegElement *>(el);
+		if (mjpeg) {
+			mDebug("Rate limit MJPEG ***************************");
+			mjpeg->getInputQueue(0)->setRateLimitBufferCount(3, true);
+		}
 	}
 
 	if (ApplicationSettings::instance()->get("video_encoding.ch.0.sei_enabled").toBool())
