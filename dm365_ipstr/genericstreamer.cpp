@@ -129,8 +129,11 @@ GenericStreamer::GenericStreamer(QObject *parent) :
 
 	/* rtsp server */
 	QString rtspConfig = s->get("video_encoding.rtsp.stream_config").toString();
+	int rtspPort = s->get("video_encoding.rtsp.server_port").toInt();
+	if (!rtspPort)
+		rtspPort = 554;
 	mDebug("using '%s' RTSP config", qPrintable(rtspConfig));
-	rtsp = new BaseRtspServer(this);
+	rtsp = new BaseRtspServer(this, rtspPort);
 	rtsp->setEnabled(false);
 	rtsp->setRtspAuthentication((BaseRtspServer::Auth)s->get("video_encoding.rtsp.auth").toInt());
 	rtsp->setRtspAuthenticationCredentials(s->get("video_encoding.rtsp.username").toString(),
