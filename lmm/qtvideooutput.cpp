@@ -2,6 +2,7 @@
 #include "debug.h"
 
 #include <QTimer>
+#include <QBuffer>
 #include <QPainter>
 #include <QKeyEvent>
 #include <QtWidgets/QVBoxLayout>
@@ -304,7 +305,13 @@ bool VideoWidget::paintWithTs(QPainter *p)
 void VideoWidget::paintBuffer(const RawBuffer &buf, QPainter *p)
 {
 	QImage im;
-	if (buf.size() == buf.constPars()->videoWidth * buf.constPars()->videoHeight * 3)
+	if (buf.getMimeType() == "application/generic") {
+		QHash<QString, QVariant> hash = RawBuffer::deserializeMetadata(buf.constPars()->metaData);
+		//im = QImage(hash["sourceFileName"].toString());
+		QByteArray ba = hash["overlayJpegImage"].toByteArray();
+		QBuffer imbuf(&ba);
+		im.load(&imbuf, "JPG");
+	} else if (buf.size() == buf.constPars()->videoWidth * buf.constPars()->videoHeight * 3)
 		im = QImage((const uchar *)buf.constData(), buf.constPars()->videoWidth, buf.constPars()->videoHeight,
 			  QImage::Format_RGB888);
 	else
