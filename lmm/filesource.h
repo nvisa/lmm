@@ -26,8 +26,11 @@ protected:
 	QString filename;
 	QFile *file;
 	QMutex fileLock;
+	QStringList dirEntries;
+	int entryIndex;
 
 	int processBuffer(const RawBuffer &buf);
+	int readDir();
 };
 
 #endif // FILESOURCE_H
