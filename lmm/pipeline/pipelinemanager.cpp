@@ -18,6 +18,7 @@
 #include "lmm/jobdistributorelement.h"
 #include "lmm/videoscaler.h"
 #include "lmm/x264encoder.h"
+#include "lmm/filesource.h"
 
 #if QT_VERSION > 0x050000
 #include <QFile>
@@ -136,6 +137,10 @@ static BaseLmmElement * createElement(const QJsonObject &elobj)
 		enc->setThreadCount(elobj["threads"].toInt());
 		enc->setPreset(elobj["preset"].toString());
 		el = enc;
+	} else if (elType == "fileSource") {
+		FileSource *src = new FileSource;
+		src->setFilename(elobj["filename"].toString());
+		el = src;
 	} else if (registeredElements.contains(elType))
 		return (*(registeredElements[elType]))(elobj);
 	return el;
