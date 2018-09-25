@@ -533,7 +533,7 @@ void RtspClient::aSyncDataReady()
 			return;
 		}
 		CSeqRequest req = cseqRequests[cseq];
-		mDebug("Parsing request %s from %s", qPrintable(req.type), qPrintable(asyncsock->peerAddress().toString()));
+		mInfo("Parsing request %s from %s", qPrintable(req.type), qPrintable(asyncsock->peerAddress().toString()));
 		if (req.type == "OPTIONS")
 			parseOptionsResponse(currentResp);
 		else if (req.type == "DESCRIBE") {
@@ -663,7 +663,7 @@ static QByteArray digestMd5ResponseHelper(
 void RtspClient::addAuthHeaders(QStringList &lines, const QString &method)
 {
 	if (realm.isEmpty() || nonce.isEmpty()) {
-		mDebug("No realm, no auth");
+		mInfo("No realm, no auth");
 		return;
 	}
 
