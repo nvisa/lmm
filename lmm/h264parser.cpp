@@ -317,6 +317,7 @@ int SimpleH264Parser::processBuffer(const RawBuffer &buf)
 			outbuf.pars()->duration = 1000 / spsFps;
 		outbuf.pars()->metaData = buf.constPars()->metaData;
 		outbuf.pars()->streamBufferNo = outputBufferNo++;
+		outbuf.pars()->captureTime = buf.constPars()->captureTime;
 		newOutputBuffer(0, outbuf);
 		total += outbuf.size();
 	}
