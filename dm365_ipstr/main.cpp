@@ -117,9 +117,13 @@ int main(int argc, char *argv[])
 		s = new Simple1080pStreamer;
 	else if (a.arguments().contains("--cvbs"))
 		s = new CVBSStreamer;
-	else if (a.arguments().contains("--jpeg"))
-		s = new JpegStreamer;
-	else
+	else if (a.arguments().contains("--jpeg")) {
+		int index = a.arguments().indexOf("--jpeg");
+		int bufferCount = 10;
+		if (a.arguments().size() > index + 1)
+			bufferCount = a.arguments()[index + 1].toInt();
+		s = new JpegStreamer(bufferCount);
+	} else
 		s = new GenericStreamer;
 	s->start();
 

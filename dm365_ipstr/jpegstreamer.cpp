@@ -7,7 +7,7 @@
 #include <lmm/dmai/jpegencoder.h>
 #include <lmm/baselmmpipeline.h>
 
-JpegStreamer::JpegStreamer(QObject *parent)
+JpegStreamer::JpegStreamer(int bufferCount, QObject *parent)
 	: BaseStreamer(parent)
 {
 	DM365CameraInput *camIn = new DM365CameraInput;
@@ -17,7 +17,9 @@ JpegStreamer::JpegStreamer(QObject *parent)
 	jpeg->setParameter("videoHeight", 1080);
 	jpeg->setQualityFactor(70);
 	que1 = new BufferQueue;
-	que1->setQueueSize(10);
+	if (!bufferCount)
+		bufferCount = 1;
+	que1->setQueueSize(bufferCount);
 
 	BaseLmmPipeline *p1 = addPipeline();
 	p1->append(camIn);
