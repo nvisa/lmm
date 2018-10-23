@@ -23,7 +23,8 @@ SOURCES += main.cpp \
     mjpegserver.cpp \
     audiosource.cpp \
     metadatagenerator.cpp \
-    seiinserter.cpp
+    seiinserter.cpp \
+    jpegstreamer.cpp
 
 include (build_config.pri)
 
@@ -48,4 +49,5 @@ HEADERS += \
     mjpegserver.h \
     audiosource.h \
     metadatagenerator.h \
-    seiinserter.h
+    seiinserter.h \
+    jpegstreamer.h

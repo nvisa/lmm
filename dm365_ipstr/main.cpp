@@ -14,6 +14,7 @@
 #include <ecl/settings/applicationsettings.h>
 
 #include "genericstreamer.h"
+#include "jpegstreamer.h"
 
 #include <signal.h>
 #include <execinfo.h>
@@ -116,6 +117,8 @@ int main(int argc, char *argv[])
 		s = new Simple1080pStreamer;
 	else if (a.arguments().contains("--cvbs"))
 		s = new CVBSStreamer;
+	else if (a.arguments().contains("--jpeg"))
+		s = new JpegStreamer;
 	else
 		s = new GenericStreamer;
 	s->start();
