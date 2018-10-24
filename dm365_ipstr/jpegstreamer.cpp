@@ -7,6 +7,8 @@
 #include <lmm/dmai/jpegencoder.h>
 #include <lmm/baselmmpipeline.h>
 
+#include <QUdpSocket>
+
 JpegStreamer::JpegStreamer(int bufferCount, QObject *parent)
 	: BaseStreamer(parent)
 {
@@ -32,6 +34,36 @@ JpegStreamer::JpegStreamer(int bufferCount, QObject *parent)
 	p2->end();
 
 	JpegShotServer *server = new JpegShotServer(this, 4571);
+
+	pinger = new QUdpSocket;
+	/*
+	 * Let's start watchdog ping
+	 */
+	QByteArray ba;
+	ba.append('m');
+	ba.append('0');
+	ba.append(1);
+	ba.append((char)0);
+	ba.append((char)0);
+	ba.append((char)0);
+	ba.append(1);
+	ba.append((char)0);
+	ba.append((char)0);
+	ba.append((char)0);
+	pinger->writeDatagram(ba, QHostAddress("localhost"), 7878);
+	pingmes = ba;
+	ba.clear();
+	ba.append('m');
+	ba.append('1');
+	ba.append(2); //first encoder
+	ba.append((char)0);
+	ba.append((char)0);
+	ba.append((char)0);
+	ba.append(1); //1: terminate, 2: kill, 3:reboot
+	ba.append((char)0);
+	ba.append((char)0);
+	ba.append((char)0);
+	pinger->writeDatagram(ba, QHostAddress("localhost"), 7878);
 }
 
 QList<RawBuffer> JpegStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
@@ -44,8 +76,10 @@ QList<RawBuffer> JpegStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 
 
 int JpegStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 {
-	if (p == getPipeline(0))
-		ffDebug() << buf.size();
+	if (p == getPipeline(0) && (buf.constPars()->streamBufferNo & 0x8)) {
+		/* time-to say goodbye (hello) */
+		pinger->writeDatagram(pingmes, QHostAddress("localhost"), 7878);
+	}
 	return 0;
 }
 
