@@ -13,11 +13,13 @@ JpegStreamer::JpegStreamer(int bufferCount, QObject *parent)
 	: BaseStreamer(parent)
 {
 	DM365CameraInput *camIn = new DM365CameraInput;
+	camIn->setBufferCount(3);
+	camIn->setNonStdOffsets(41, 192);
 	camIn->setSize(0, QSize(1920, 1080));
 	JpegEncoder *jpeg = new JpegEncoder;
 	jpeg->setParameter("videoWidth", 1920);
 	jpeg->setParameter("videoHeight", 1080);
-	jpeg->setQualityFactor(70);
+	jpeg->setQualityFactor(85);
 	que1 = new BufferQueue;
 	if (!bufferCount)
 		bufferCount = 1;
@@ -42,6 +44,8 @@ JpegStreamer::JpegStreamer(int bufferCount, QObject *parent)
 	QByteArray ba;
 	ba.append('m');
 	ba.append('0');
+	ba.append((char)0);
+	ba.append((char)0);
 	ba.append(1);
 	ba.append((char)0);
 	ba.append((char)0);
@@ -50,12 +54,14 @@ JpegStreamer::JpegStreamer(int bufferCount, QObject *parent)
 	ba.append((char)0);
 	ba.append((char)0);
 	ba.append((char)0);
-	pinger->writeDatagram(ba, QHostAddress("localhost"), 7878);
+	pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
 	pingmes = ba;
 	ba.clear();
 	ba.append('m');
 	ba.append('1');
-	ba.append(2); //first encoder
+	ba.append((char)0);
+	ba.append((char)0);
+	ba.append((char)1); //capture normally, using for this encoder
 	ba.append((char)0);
 	ba.append((char)0);
 	ba.append((char)0);
@@ -63,22 +69,21 @@ JpegStreamer::JpegStreamer(int bufferCount, QObject *parent)
 	ba.append((char)0);
 	ba.append((char)0);
 	ba.append((char)0);
-	pinger->writeDatagram(ba, QHostAddress("localhost"), 7878);
+	pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
 }
 
 QList<RawBuffer> JpegStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
 {
 	Q_UNUSED(ch);
 	Q_UNUSED(codec);
-	Q_UNUSED(ts);
-	return que1->getLast(frameCount);
+	return que1->findBuffers(ts, frameCount);
 }
 
 int JpegStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 {
 	if (p == getPipeline(0) && (buf.constPars()->streamBufferNo & 0x8)) {
 		/* time-to say goodbye (hello) */
-		pinger->writeDatagram(pingmes, QHostAddress("localhost"), 7878);
+		pinger->writeDatagram(pingmes, QHostAddress::LocalHost, 7878);
 	}
 	return 0;
 }
