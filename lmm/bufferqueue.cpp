@@ -5,6 +5,7 @@ BufferQueue::BufferQueue(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	queueLen = 1;
+	totalSize = 0;
 }
 
 RawBuffer BufferQueue::getBuffer(int ind)
