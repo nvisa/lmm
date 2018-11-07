@@ -94,6 +94,10 @@ const QByteArray JpegShotServer::getFile(const QString filename, QString &mime, 
 		}
 		infoLines << "";
 		infoLines << reqtime;
+		infoLines << url.toString();
+		infoLines << QString("PC ts: %1").arg(ts);
+		infoLines << QString("PC ts decoded: %1.%2").arg(QDateTime::fromTime_t(ts / 1000 / 1000).toString("hh.mm.ss"))
+					 .arg((ts / 1000) % 1000, 3, QChar('0'));
 		zip.addFile("snapshot_info.txt", infoLines.join("\n").toUtf8());
 		return zip.getArchive();
 	} else if (filename.endsWith(".bin")) {
