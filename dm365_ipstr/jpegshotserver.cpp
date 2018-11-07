@@ -26,6 +26,7 @@ QStringList JpegShotServer::addCustomGetHeaders(const QString &filename)
 
 const QByteArray JpegShotServer::getFile(const QString filename, QString &mime, QUrl &url)
 {
+	QString reqtime = QString("request_time: %1").arg(QDateTime::currentDateTime().toString("hh.mm.ss.zzz"));
 	mime = "image/jpeg";
 	if (filename.endsWith(".zip"))
 		mime = "application/zip";
@@ -55,6 +56,7 @@ const QByteArray JpegShotServer::getFile(const QString filename, QString &mime, 
 		frameCnt = 1;
 	QList<RawBuffer> snapshots = streamer->getSnapshot(ch, codec, ts, frameCnt);
 	if (filename.endsWith(".zip")) {
+		QStringList infoLines;
 		SimpleZip zip;
 		zip.addDirectory("snapshot_images/");
 		qint64 last = 0;
@@ -76,7 +78,23 @@ const QByteArray JpegShotServer::getFile(const QString filename, QString &mime, 
 						.arg(buf.constPars()->frameType)
 						, ba);
 			last = buf.constPars()->captureTime;
+			int secs = last / 1000 / 1000;
+			int msecs = (last / 1000) % 1000;
+			int esecs = buf.constPars()->encodeTime;
+			int emsecs = (buf.constPars()->encodeTime / 1000) % 1000;
+			infoLines << QString("frame%1: ts=%2 time=%3 msecs=%4 size=%5 no=%6 etime=%7 etime_msecs=%8")
+					 .arg(i)
+					 .arg(buf.constPars()->captureTime)
+					 .arg(QDateTime::fromTime_t(secs).toString("hh.mm.ss"))
+					 .arg(msecs)
+					 .arg(buf.size())
+					 .arg(buf.constPars()->streamBufferNo)
+					 .arg(QDateTime::fromTime_t(esecs).toString("hh.mm.ss"))
+					 .arg(emsecs);
 		}
+		infoLines << "";
+		infoLines << reqtime;
+		zip.addFile("snapshot_info.txt", infoLines.join("\n").toUtf8());
 		return zip.getArchive();
 	} else if (filename.endsWith(".bin")) {
 		QByteArray all;
