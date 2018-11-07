@@ -16,7 +16,7 @@ static bool checkFlag(int flags, int flag)
 	return true;
 }
 
-JpegStreamer::JpegStreamer(int bufferCount, int flags, QObject *parent)
+JpegStreamer::JpegStreamer(int bufferCount, int flags, int qfact, QObject *parent)
 	: BaseStreamer(parent)
 {
 	DM365CameraInput *camIn = new DM365CameraInput;
@@ -26,7 +26,7 @@ JpegStreamer::JpegStreamer(int bufferCount, int flags, QObject *parent)
 	JpegEncoder *jpeg = new JpegEncoder;
 	jpeg->setParameter("videoWidth", 1920);
 	jpeg->setParameter("videoHeight", 1080);
-	jpeg->setQualityFactor(90);
+	jpeg->setQualityFactor(qfact);
 	que1 = new BufferQueue;
 	if (!bufferCount)
 		bufferCount = 1;

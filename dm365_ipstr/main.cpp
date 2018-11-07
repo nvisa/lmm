@@ -121,12 +121,16 @@ int main(int argc, char *argv[])
 		int index = a.arguments().indexOf("--jpeg");
 		int bufferCount = 10;
 		int flags = 0;
+		int qfact = 90;
 		if (a.arguments().size() > index + 1)
 			bufferCount = a.arguments()[index + 1].toInt();
 		index = a.arguments().indexOf("--flags");
 		if (a.arguments().size() > index + 1)
 			flags = a.arguments()[index + 1].toInt();
-		s = new JpegStreamer(bufferCount, flags);
+		index = a.arguments().indexOf("--quality");
+		if (a.arguments().size() > index + 1)
+			qfact = a.arguments()[index + 1].toInt();
+		s = new JpegStreamer(bufferCount, flags, qfact);
 	} else
 		s = new GenericStreamer;
 	s->start();

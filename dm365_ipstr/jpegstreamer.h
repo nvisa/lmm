@@ -11,7 +11,7 @@ class JpegStreamer : public BaseStreamer, ImageSnapshotInterface
 {
 	Q_OBJECT
 public:
-	explicit JpegStreamer(int bufferCount = 10, int flags = 0, QObject *parent = 0);
+	explicit JpegStreamer(int bufferCount = 10, int flags = 0, int qfact = 90, QObject *parent = 0);
 
 	QList<RawBuffer> getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount);
 signals:
