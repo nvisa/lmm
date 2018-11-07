@@ -13,16 +13,17 @@ JpegStreamer::JpegStreamer(int bufferCount, QObject *parent)
 	: BaseStreamer(parent)
 {
 	DM365CameraInput *camIn = new DM365CameraInput;
-	camIn->setBufferCount(3);
+	camIn->setBufferCount(5);
 	camIn->setNonStdOffsets(41, 192);
 	camIn->setSize(0, QSize(1920, 1080));
 	JpegEncoder *jpeg = new JpegEncoder;
 	jpeg->setParameter("videoWidth", 1920);
 	jpeg->setParameter("videoHeight", 1080);
-	jpeg->setQualityFactor(85);
+	jpeg->setQualityFactor(90);
 	que1 = new BufferQueue;
 	if (!bufferCount)
 		bufferCount = 1;
+	jpeg->setBufferCount(bufferCount + 1, 1024 * 1024);
 	que1->setQueueSize(bufferCount);
 
 	BaseLmmPipeline *p1 = addPipeline();
