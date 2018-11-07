@@ -120,9 +120,13 @@ int main(int argc, char *argv[])
 	else if (a.arguments().contains("--jpeg")) {
 		int index = a.arguments().indexOf("--jpeg");
 		int bufferCount = 10;
+		int flags = 0;
 		if (a.arguments().size() > index + 1)
 			bufferCount = a.arguments()[index + 1].toInt();
-		s = new JpegStreamer(bufferCount);
+		index = a.arguments().indexOf("--flags");
+		if (a.arguments().size() > index + 1)
+			flags = a.arguments()[index + 1].toInt();
+		s = new JpegStreamer(bufferCount, flags);
 	} else
 		s = new GenericStreamer;
 	s->start();

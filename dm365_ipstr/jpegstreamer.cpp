@@ -9,7 +9,14 @@
 
 #include <QUdpSocket>
 
-JpegStreamer::JpegStreamer(int bufferCount, QObject *parent)
+static bool checkFlag(int flags, int flag)
+{
+	if (flags & flag)
+		return false;
+	return true;
+}
+
+JpegStreamer::JpegStreamer(int bufferCount, int flags, QObject *parent)
 	: BaseStreamer(parent)
 {
 	DM365CameraInput *camIn = new DM365CameraInput;
@@ -28,49 +35,55 @@ JpegStreamer::JpegStreamer(int bufferCount, QObject *parent)
 
 	BaseLmmPipeline *p1 = addPipeline();
 	p1->append(camIn);
-	p1->append(jpeg);
-	p1->append(que1);
+	if (checkFlag(flags, 0x04))
+		p1->append(jpeg);
+	if (checkFlag(flags, 0x08))
+		p1->append(que1);
 	p1->end();
 
 	BaseLmmPipeline *p2 = addPipeline();
 	p2->append(camIn);
 	p2->end();
 
-	JpegShotServer *server = new JpegShotServer(this, 4571);
+	if (checkFlag(flags, 0x01))
+		JpegShotServer *server = new JpegShotServer(this, 4571);
 
-	pinger = new QUdpSocket;
-	/*
-	 * Let's start watchdog ping
-	 */
-	QByteArray ba;
-	ba.append('m');
-	ba.append('0');
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append(1);
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append(1);
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append((char)0);
-	pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
-	pingmes = ba;
-	ba.clear();
-	ba.append('m');
-	ba.append('1');
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append((char)1); //capture normally, using for this encoder
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append(1); //1: terminate, 2: kill, 3:reboot
-	ba.append((char)0);
-	ba.append((char)0);
-	ba.append((char)0);
-	pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
+	pinger = NULL;
+	if (checkFlag(flags, 0x02)) {
+		pinger = new QUdpSocket;
+		/*
+		 * Let's start watchdog ping
+		 */
+		QByteArray ba;
+		ba.append('m');
+		ba.append('0');
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append(1);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append(1);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)0);
+		pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
+		pingmes = ba;
+		ba.clear();
+		ba.append('m');
+		ba.append('1');
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)1); //capture normally, using for this encoder
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append(1); //1: terminate, 2: kill, 3:reboot
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)0);
+		pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
+	}
 }
 
 QList<RawBuffer> JpegStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 ts, int frameCount)
@@ -82,7 +95,9 @@ QList<RawBuffer> JpegStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 
 
 int JpegStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 {
-	if (p == getPipeline(0) && (buf.constPars()->streamBufferNo & 0x8)) {
+	if (p == getPipeline(0))
+		ffDebug() << p->getPipe(0)->getOutputQueue(0)->getFps() << buf.size();
+	if (pinger && p == getPipeline(0) && (buf.constPars()->streamBufferNo & 0x8)) {
 		/* time-to say goodbye (hello) */
 		pinger->writeDatagram(pingmes, QHostAddress::LocalHost, 7878);
 	}
