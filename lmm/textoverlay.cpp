@@ -30,6 +30,7 @@ TextOverlay::TextOverlay(overlayType t, QObject *parent) :
 	fontSize = 28;
 	fontHeight = 0;
 	setEnabled(true);
+	dateStringFormat = "dd/MM/yyyy hh:mm:ss";
 }
 
 int TextOverlay::setFontSize(int size)
@@ -383,6 +384,9 @@ QString TextOverlay::compileOverlayText(const RawBuffer &buf)
 			break;
 		case FIELD_AVG_CPU_LOAD:
 			args << QString::number(CpuLoad::getAverageCpuLoad());
+			break;
+		case FIELD_META:
+			args << QString::fromUtf8(buf.constPars()->metaData);
 			break;
 		case FIELD_FRAME_TIME: {
 			qint64 epoch = buf.constPars()->captureTime;
