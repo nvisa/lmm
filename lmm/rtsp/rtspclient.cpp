@@ -164,7 +164,6 @@ int RtspClient::getOptions()
 	if (err)
 		return err;
 	return parseOptionsResponse(resp);
-
 }
 
 int RtspClient::getOptionsASync()
@@ -813,6 +812,7 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 		//WWW-Authenticate: Digest realm="TAGBC1070436", nonce="1a49b085185b188b05804c5c546df108"
 
 	}
+
 	const QStringList &sdplines = resp["__content__"].split("\n");
 	TrackDefinition tr;
 	foreach (QString line, sdplines) {

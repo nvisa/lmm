@@ -62,7 +62,7 @@ public:
 
 	void setAuthCredentials(const QString &username, const QString &password);
 
-    void setMoxaHacks(bool moxaHacks);
+	void setMoxaHacks(bool moxaHacks);
 protected slots:
 	void timeout();
 	void aSyncDataReady();
