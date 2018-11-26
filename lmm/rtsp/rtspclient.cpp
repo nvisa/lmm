@@ -668,7 +668,7 @@ static QByteArray digestMd5ResponseHelper(
 
 void RtspClient::addAuthHeaders(QStringList &lines, const QString &method)
 {
-	if (realm.isEmpty() || nonce.isEmpty()) {
+	if (realm.isEmpty() && nonce.isEmpty()) {
 		mInfo("No realm, no auth");
 		return;
 	}
@@ -677,21 +677,25 @@ void RtspClient::addAuthHeaders(QStringList &lines, const QString &method)
 	QString password = pass;
 	QString uri = serverUrl;
 
-	QByteArray response = digestMd5ResponseHelper(QByteArray(),
-											 username.toLatin1(),
-											 realm.toLatin1(),
-											 password.toLatin1(),
-											 nonce.toLatin1(),
-											 QByteArray(),
-											 QByteArray(),
-											 QByteArray(),
-											 method.toLatin1(),
-											 uri.toLatin1(),
-											 QByteArray()
-											 );
-	lines << QString("Authorization: Digest username=\"%5\", realm=\"%1\", nonce=\"%2\", uri=\"%3\", response=\"%4\"")
-			 .arg(realm).arg(nonce).arg(uri).arg(QString::fromUtf8(response)).arg(username);
-
+	if (!nonce.isEmpty()) {
+		QByteArray response = digestMd5ResponseHelper(QByteArray(),
+													  username.toLatin1(),
+													  realm.toLatin1(),
+													  password.toLatin1(),
+													  nonce.toLatin1(),
+													  QByteArray(),
+													  QByteArray(),
+													  QByteArray(),
+													  method.toLatin1(),
+													  uri.toLatin1(),
+													  QByteArray()
+													  );
+		lines << QString("Authorization: Digest username=\"%5\", realm=\"%1\", nonce=\"%2\", uri=\"%3\", response=\"%4\"")
+				 .arg(realm).arg(nonce).arg(uri).arg(QString::fromUtf8(response)).arg(username);
+	} else {
+		QString auth = QString::fromUtf8(QString("%1:%2").arg(username).arg(password).toUtf8().toBase64());
+		lines << QString("Authorization: Basic %1").arg(auth);
+	}
 }
 
 int RtspClient::waitResponse(const QStringList &lines, QHash<QString, QString> &resp)
