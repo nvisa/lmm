@@ -81,9 +81,12 @@ int TokenBucket::releaseLeakyTokens()
 	if (t.elapsed() >= M) {
 		l.lock();
 		b = r;
-		int br = tokens * 1000 / t.restart();
-		if (br * 8 > 9000000)
-			qDebug() << br;
+		/* following if statement can be enabled to print bitrate */
+		if (0) {
+			int br = tokens * 1000 / t.restart();
+			if (br * 8 > 9000000)
+				qDebug() << br;
+		}
 		tokens = 0;
 		l.unlock();
 		return b;
