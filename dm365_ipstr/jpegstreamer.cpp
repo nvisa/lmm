@@ -30,7 +30,7 @@ JpegStreamer::JpegStreamer(int bufferCount, int flags, int qfact, QObject *paren
 	que1 = new BufferQueue;
 	if (!bufferCount)
 		bufferCount = 1;
-	jpeg->setBufferCount(bufferCount + 1, 1024 * 1024);
+	jpeg->setBufferCount(bufferCount + 10, 1024 * 1024);
 	que1->setQueueSize(bufferCount);
 
 	BaseLmmPipeline *p1 = addPipeline();
@@ -44,6 +44,8 @@ JpegStreamer::JpegStreamer(int bufferCount, int flags, int qfact, QObject *paren
 	BaseLmmPipeline *p2 = addPipeline();
 	p2->append(camIn);
 	p2->end();
+
+	camIn->getOutputQueue(0)->setRateReduction(25, 15);
 
 	if (checkFlag(flags, 0x01))
 		JpegShotServer *server = new JpegShotServer(this, 4571);
@@ -95,8 +97,6 @@ QList<RawBuffer> JpegStreamer::getSnapshot(int ch, Lmm::CodecType codec, qint64 
 
 int JpegStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 {
-	if (p == getPipeline(0))
-		ffDebug() << p->getPipe(0)->getOutputQueue(0)->getFps() << buf.size();
 	if (pinger && p == getPipeline(0) && (buf.constPars()->streamBufferNo & 0x8)) {
 		/* time-to say goodbye (hello) */
 		pinger->writeDatagram(pingmes, QHostAddress::LocalHost, 7878);
