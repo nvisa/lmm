@@ -166,6 +166,7 @@ public:
 	qint64 getElapsedSinceLastAdd();
 	void setTimestampingMethod(TimeStamping m);
 	void setBufferDuration(qint64 v);
+	void enableDebugQueue() { debugQueue = true; }
 
 protected:
 	void rateLimit(const RawBuffer &buffer);
@@ -199,6 +200,7 @@ protected:
 	RateReducto *rc;
 	TimeStamping tsMethod;
 	qint64 tsBufferDuration;
+	bool debugQueue;
 
 private:
 	QMutex evLock;

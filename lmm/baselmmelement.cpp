@@ -545,6 +545,7 @@ int BaseLmmElement::processBuffer(int ch, const RawBuffer &buf)
 
 ElementIOQueue::ElementIOQueue()
 {
+	debugQueue = false;
 	evHook = NULL;
 	state = BaseLmmElement::INIT;
 
