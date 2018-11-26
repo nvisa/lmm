@@ -39,14 +39,17 @@ class FunctionPipeElement : public BaseLmmElement
 	Q_OBJECT
 public:
 	typedef int (*processFunc)(const RawBuffer &buf);
+	typedef RawBuffer (*processFunc2)(const RawBuffer &buf);
 
 	FunctionPipeElement(processFunc func, QObject *parent = NULL);
+	FunctionPipeElement(processFunc2 func, QObject *parent = NULL);
 	FunctionPipeElement(PipeElementoid *eoid, QObject *parent = NULL);
 
 protected:
 	virtual int processBuffer(const RawBuffer &buf);
 
 	processFunc ftarget;
+	processFunc2 f2target;
 	PipeElementoid *otarget;
 };
 
