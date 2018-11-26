@@ -32,6 +32,7 @@ public:
 	AVCodecContext * getVideoCodecContext();
 	AVCodecContext * getAudioCodecContext();
 	bool isAvformatContextDone() { return unblockContext; }
+	void setLoopFile(bool value);
 
 	void setAudioDemuxing(bool v) { demuxAudio = v; } /* TODO: clear existing buffers */
 	void setVideoDemuxing(bool v) { demuxVideo = v; } /* TODO: clear existing buffers */
@@ -65,6 +66,7 @@ protected:
 	uchar *avioBuffer;
 	QHash<int, int> demuxedCount;
 	bool unblockContext;
+	bool loopFile;
 	/*
 	 * In older FFmpeg releases AVIOContext is typedef to
 	 * anonymous struct so it is not possible to forward

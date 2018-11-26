@@ -96,6 +96,7 @@ BaseLmmDemux::BaseLmmDemux(QObject *parent) :
 	audioStream = NULL;
 	videoStream = NULL;
 	libavAnalayzeDuration = 5000000; /* this is ffmpeg default */
+	loopFile = false;
 
 	demuxNumber = demuxPriv.size();
 
@@ -249,6 +250,12 @@ int BaseLmmDemux::demuxOne()
 	conlock.lock();
 	packet = nextPacket();
 	if (!packet) {
+		if (loopFile) {
+			avformat_seek_file(context, videoStreamIndex, 0, 0, 0, AVSEEK_FLAG_BACKWARD);
+			demuxedCount[videoStreamIndex] = 0;
+			conlock.unlock();
+			return 0;
+		}
 		conlock.unlock();
 		if (demuxVideo)
 			newOutputBuffer(0, RawBuffer());
@@ -333,6 +340,11 @@ AVCodecContext * BaseLmmDemux::getVideoCodecContext()
 AVCodecContext *BaseLmmDemux::getAudioCodecContext()
 {
 	return context->streams[audioStreamIndex]->codec;
+}
+
+void BaseLmmDemux::setLoopFile(bool value)
+{
+	loopFile = value;
 }
 
 int BaseLmmDemux::getAudioSampleRate()
