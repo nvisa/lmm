@@ -267,7 +267,7 @@ int BaseLmmDemux::demuxOne()
 		mInfo("new audio stream: size=%d", packet->size);
 		if (demuxAudio) {
 			FFmpegBuffer buf("audio/mpeg", packet);
-			buf.pars()->duration = packet->duration * audioTimeBaseN / 1000;
+			buf.pars()->duration = packet->duration * audioTimeBaseN / 1000 / 1000;
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
 				buf.pars()->pts = packet->pts * audioTimeBaseN / 1000;
 			} else {
@@ -284,9 +284,9 @@ int BaseLmmDemux::demuxOne()
 			   packet->duration, packet->flags);
 		if (demuxVideo) {
 			FFmpegBuffer buf("video/mpeg", packet);
-			buf.pars()->duration = packet->duration * videoTimeBaseN / 1000;
+			buf.pars()->duration = packet->duration * videoTimeBaseN / 1000 / 1000;
 			if (packet->pts != (int64_t)AV_NOPTS_VALUE) {
-				buf.pars()->pts = packet->pts * videoTimeBaseN / 1000;
+				buf.pars()->pts = packet->pts * videoTimeBaseN / 1000 / 1000;
 			} else {
 				buf.pars()->pts = -1;
 			}
