@@ -580,6 +580,13 @@ void RtspClient::aSyncConnected()
 
 void RtspClient::aSyncDisConnected()
 {
+	QUrl rurl(serverUrl);
+	int port = rurl.port();
+	if (port < 0)
+		port = 554;
+	asyncsock->connectToHost(rurl.host(), port);
+	return;
+
 	mDebug("device is dead");
 	devstatus = DEAD;
 	closeAll();
