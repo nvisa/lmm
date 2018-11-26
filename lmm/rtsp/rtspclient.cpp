@@ -799,6 +799,17 @@ int RtspClient::setupTrackASync(const QString &controlUrl, const QString &connIn
 	return 0;
 }
 
+bool RtspClient::addFromDescribe(const QString &track)
+{
+	if (!trackReceivers.size())
+		return true;
+	if (trackReceivers.size() == 1 && trackReceivers.contains("__default__"))
+		return true;
+	if (trackReceivers.contains(track))
+		return true;
+	return false;
+}
+
 int RtspClient::parseOptionsResponse(const QHash<QString, QString> &resp)
 {
 	QStringList options = resp["Public"].split(",");
@@ -828,10 +839,9 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 	TrackDefinition tr;
 	foreach (QString line, sdplines) {
 		if (line.startsWith("m=")) {
-			if (!tr.m.isEmpty()) {
-				tr.name = tr.controlUrl.split("/").last();
+			tr.name = tr.controlUrl.split("/").last();
+			if (!tr.m.isEmpty() && addFromDescribe(tr.name))
 				serverDescriptions[serverUrl] << tr;
-			}
 			tr.m = line.remove("m=").trimmed();
 		}
 		else if (line.startsWith("a=rtpmap"))
@@ -852,7 +862,8 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 		}
 	}
 	tr.name = tr.controlUrl.split("/").last();
-	serverDescriptions[serverUrl] << tr;
+	if (addFromDescribe(tr.name))
+		serverDescriptions[serverUrl] << tr;
 
 	return 0;
 }

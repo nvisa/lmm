@@ -77,6 +77,7 @@ protected:
 	bool readResponse(const QString &str, QHash<QString, QString> &resp);
 	int setupTrack(const QString &controlUrl, const QString &connInfo, RtpReceiver *rtp);
 	int setupTrackASync(const QString &controlUrl, const QString &connInfo, RtpReceiver *rtp);
+	bool addFromDescribe(const QString &track);
 
 	/* parsers */
 	int parseOptionsResponse(const QHash<QString, QString> &resp);
