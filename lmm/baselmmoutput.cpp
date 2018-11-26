@@ -42,7 +42,7 @@ int BaseLmmOutput::processBuffer(const RawBuffer &buf)
 {
 	int err = outputBuffer(buf);
 	lastOutputPts = buf.constPars()->pts;
-	return err;
+	return newOutputBuffer(buf);
 }
 
 int BaseLmmOutput::outputBuffer(RawBuffer)
