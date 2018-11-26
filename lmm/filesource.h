@@ -3,6 +3,7 @@
 
 #include <QMap>
 #include <QObject>
+#include <QStringList>
 
 #include <lmm/baselmmelement.h>
 
