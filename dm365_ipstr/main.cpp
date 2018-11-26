@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 			qfact = a.arguments()[index + 1].toInt();
 		s = new JpegStreamer(bufferCount, flags, qfact);
 	} else
-		s = new GenericStreamer;
+		s = new GenericStreamer(onvifEnabled);
 	s->start();
 
 	return a.exec();
