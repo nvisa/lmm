@@ -865,11 +865,28 @@ TextOverlay * GenericStreamer::createTextOverlay(const QString &elementName, App
 	textOverlay->setObjectName(elementName);
 	/* overlay settings */
 	textOverlay->setEnabled(s->get("text_overlay.enabled").toBool());
+	QString autoscl = s->get("text_overlay.auto_scale.desc").toString();
+	if (autoscl.isEmpty() || !autoscl.contains("x"))
+		autoscl = "1920x1080";
+	int w0 = s->get("camera_device.ch.0.width").toInt();
+	int h0 = s->get("camera_device.ch.0.height").toInt();
+	int w0s = autoscl.split("x")[0].toInt();
+	int h0s = autoscl.split("x")[1].toInt();
+	int fontSize = s->get("text_overlay.font_size").toInt();
+	if (w0 != w0s) {
+		fontSize *= float(w0) / w0s;
+		if (fontSize < 8) //upper condition is checked by text overlay
+			fontSize = 8;
+	}
 	QPoint pt;
 	pt.setX(s->get("text_overlay.position.x").toInt());
 	pt.setY(s->get("text_overlay.position.y").toInt());
+	if (pt.y() > h0) {
+		int diff = qAbs(pt.y() - h0s);
+		pt.setY(h0 - diff);
+	}
 	textOverlay->setOverlayPosition(pt);
-	textOverlay->setFontSize(s->get("text_overlay.font_size").toInt());
+	textOverlay->setFontSize(fontSize);
 	textOverlay->setOverlayText(s->get("text_overlay.overlay_text").toString());
 	textOverlay->setOverlayTimeZone(s->get("text_overlay.overlay_timezone").toInt());
 	textOverlay->setOverlayDateFormat(s->get("text_overlay.overlay_date_format").toString());
