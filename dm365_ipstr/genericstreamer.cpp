@@ -29,6 +29,7 @@
 
 #include <QBuffer>
 #include <QJsonArray>
+#include <QUdpSocket>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QCoreApplication>
@@ -101,6 +102,7 @@ static QVariant gets(ApplicationSettings *s, const QString &prefix, const QStrin
 GenericStreamer::GenericStreamer(bool enableOnvif, QObject *parent) :
 	BaseStreamer(parent)
 {
+	pinger = NULL;
 	this->onvifEnabled = enableOnvif;
 	ApplicationSettings *s = ApplicationSettings::instance();
 
@@ -447,6 +449,43 @@ void GenericStreamer::timeout()
 			checkPipelineWdts = true;
 			rtsp->setEnabled(true);
 		}
+
+		/*
+		 * Let's start watchdog ping
+		 */
+		if (pinger == NULL) {
+			pinger = new QUdpSocket;
+			QByteArray ba;
+			ba.append('m');
+			ba.append('0');
+			ba.append((char)0);
+			ba.append((char)0);
+			ba.append(1);
+			ba.append((char)0);
+			ba.append((char)0);
+			ba.append((char)0);
+			ba.append(1);
+			ba.append((char)0);
+			ba.append((char)0);
+			ba.append((char)0);
+			pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
+			pingmes = ba;
+			ba.clear();
+			ba.append('m');
+			ba.append('1');
+			ba.append((char)0);
+			ba.append((char)0);
+			ba.append((char)1); //capture normally, using for this as encoder
+			ba.append((char)0);
+			ba.append((char)0);
+			ba.append((char)0);
+			ba.append(3); //1: terminate, 2: kill, 3:reboot
+			ba.append((char)0);
+			ba.append((char)0);
+			ba.append((char)0);
+			pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
+		} else
+			pinger->writeDatagram(pingmes, QHostAddress::LocalHost, 7878);
 	}
 	PipelineManager::timeout();
 

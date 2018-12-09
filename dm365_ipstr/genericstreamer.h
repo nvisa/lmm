@@ -10,6 +10,7 @@ class ApplicationSettings;
 class StreamControlElementInterface;
 class TextOverlay;
 class QFileSystemWatcher;
+class QUdpSocket;
 
 class GenericStreamer : public BaseStreamer, public LmmPBusInterface
 {
@@ -59,6 +60,8 @@ protected:
 	QString uuid;
 	QString rtspCredHashData;
 	bool onvifEnabled;
+	QUdpSocket *pinger;
+	QByteArray pingmes;
 
 	struct CustomSeiStruct {
 		qint32 cpuload;
