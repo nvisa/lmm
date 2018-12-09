@@ -62,6 +62,7 @@ protected:
 	bool onvifEnabled;
 	QUdpSocket *pinger;
 	QByteArray pingmes;
+	QElapsedTimer pingTimer;
 
 	struct CustomSeiStruct {
 		qint32 cpuload;

@@ -449,43 +449,6 @@ void GenericStreamer::timeout()
 			checkPipelineWdts = true;
 			rtsp->setEnabled(true);
 		}
-
-		/*
-		 * Let's start watchdog ping
-		 */
-		if (pinger == NULL) {
-			pinger = new QUdpSocket;
-			QByteArray ba;
-			ba.append('m');
-			ba.append('0');
-			ba.append((char)0);
-			ba.append((char)0);
-			ba.append(1);
-			ba.append((char)0);
-			ba.append((char)0);
-			ba.append((char)0);
-			ba.append(1);
-			ba.append((char)0);
-			ba.append((char)0);
-			ba.append((char)0);
-			pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
-			pingmes = ba;
-			ba.clear();
-			ba.append('m');
-			ba.append('1');
-			ba.append((char)0);
-			ba.append((char)0);
-			ba.append((char)1); //capture normally, using for this as encoder
-			ba.append((char)0);
-			ba.append((char)0);
-			ba.append((char)0);
-			ba.append(3); //1: terminate, 2: kill, 3:reboot
-			ba.append((char)0);
-			ba.append((char)0);
-			ba.append((char)0);
-			pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
-		} else
-			pinger->writeDatagram(pingmes, QHostAddress::LocalHost, 7878);
 	}
 	PipelineManager::timeout();
 
@@ -561,6 +524,46 @@ int GenericStreamer::pipelineOutput(BaseLmmPipeline *p, const RawBuffer &buf)
 
 	if (noRtspContinueSupport == false)
 		rtsp->saveSessions("/tmp/rtsp.sessions");
+
+	/*
+	 * Let's start watchdog ping
+	 */
+	if (pinger == NULL) {
+		pinger = new QUdpSocket;
+		QByteArray ba;
+		ba.append('m');
+		ba.append('0');
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append(1);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append(1);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)0);
+		pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
+		pingmes = ba;
+		ba.clear();
+		ba.append('m');
+		ba.append('1');
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)1); //capture normally, using for this as encoder
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append(4); //1: terminate, 2: kill, 4:reboot
+		ba.append((char)0);
+		ba.append((char)0);
+		ba.append((char)0);
+		pinger->writeDatagram(ba, QHostAddress::LocalHost, 7878);
+		pingTimer.start();
+	} else if (p == getPipeline(0) && pingTimer.elapsed() > 5000) {
+		pingTimer.restart();
+		pinger->writeDatagram(pingmes, QHostAddress::LocalHost, 7878);
+	}
 
 	return 0;
 }
