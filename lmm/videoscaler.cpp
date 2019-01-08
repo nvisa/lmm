@@ -8,6 +8,8 @@ extern "C" {
 	#include <libavformat/avformat.h>
 }
 
+#include <linux/videodev2.h>
+
 #ifdef HAVE_LIBYUV
 #include <libyuv.h>
 
@@ -51,12 +53,18 @@ VideoScaler::VideoScaler(QObject *parent)
 	bufferCount = 15;
 	setOutputResolution(0, 0);
 	mode = 0;
+	outPixFmt = AV_PIX_FMT_ARGB;
 }
 
 void VideoScaler::setOutputResolution(int width, int height)
 {
 	dstW = width;
 	dstH = height;
+}
+
+void VideoScaler::setOutputFormat(int outfmt)
+{
+	outPixFmt = outfmt;
 }
 
 int VideoScaler::processBuffer(const RawBuffer &buf)
@@ -136,9 +144,15 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 	if (!dstH)
 		dstH = h;
 
-	int bufsize = dstW * dstH * 4;
 	if (pool->freeBufferCount() == 0 && pool->usedBufferCount() == 0) {
-		mime = "video/x-raw-rgb";
+		int bufsize = dstW * dstH * 4;
+		if (outPixFmt == AV_PIX_FMT_ARGB) {
+			mime = "video/x-raw-rgb";
+			bufsize = dstW * dstH * 4;
+		} else if (outPixFmt == AV_PIX_FMT_NV12) {
+			mime = "video/x-raw-yuv";
+			bufsize = dstW * dstH * 3 / 2;
+		}
 		for (int i = 0; i < bufferCount; i++) {
 			mInfo("allocating sw scale buffer %d with size %dx%d", i, dstW, dstH);
 			RawBuffer buffer(mime, bufsize);
@@ -151,17 +165,30 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 	RawBuffer outbuf(this);
 	outbuf.setRefData(mime, poolbuf.data(), poolbuf.size());
 
-	const uchar *Y = (const uchar *)buf.constData();
-	const uchar *U = Y + w * h;
-	const uchar *V = Y + w * h * 5 / 4;
-
 #ifdef HAVE_LIBYUV
-	libyuv::I420ToARGB(Y, w, U, w / 2, V, w / 2, (uchar *)outbuf.data(), w * 4, w, h);
+	if (buf.constPars()->v4l2PixelFormat == V4L2_PIX_FMT_UYVY && outPixFmt == AV_PIX_FMT_NV12) {
+		//qDebug() << "YUYV -> NV12";
+		uchar *Y = (uchar *)outbuf.data();
+		uchar *U = Y + w * h;
+		uchar *V = Y + w * h * 5 / 4;
+		libyuv::YUY2ToI420((const uchar *)buf.constData(), w * 2, Y, w, U, w / 2, V, w / 2, w, h);
+	} else if (buf.constPars()->v4l2PixelFormat == V4L2_PIX_FMT_UYVY && outPixFmt == AV_PIX_FMT_ARGB) {
+		const uchar *Y = (const uchar *)buf.constData();
+		libyuv::YUY2ToARGB(Y, w * 2, (uchar *)outbuf.data(), w * 4, w, h);
+		//qDebug() << "YUYV -> ARGB";
+	} else if (buf.constPars()->avPixelFormat == AV_PIX_FMT_NV12 && outPixFmt == AV_PIX_FMT_ARGB) {
+		//qDebug() << "NV12 -> ARGB";
+		const uchar *Y = (const uchar *)buf.constData();
+		const uchar *U = Y + w * h;
+		const uchar *V = Y + w * h * 5 / 4;
+		libyuv::I420ToARGB(Y, w, U, w / 2, V, w / 2, (uchar *)outbuf.data(), w * 4, w, h);
+	}
+
 #endif
 
 	outbuf.pars()->videoWidth = dstW;
 	outbuf.pars()->videoHeight = dstH;
-	outbuf.pars()->avPixelFormat = AV_PIX_FMT_ARGB;
+	outbuf.pars()->avPixelFormat = outPixFmt;
 	outbuf.pars()->poolIndex = poolbuf.constPars()->poolIndex;
 	outbuf.pars()->pts = buf.constPars()->pts;
 	outbuf.pars()->streamBufferNo = buf.constPars()->streamBufferNo;

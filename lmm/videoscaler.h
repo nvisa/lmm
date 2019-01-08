@@ -12,6 +12,7 @@ public:
 	VideoScaler(QObject *parent = NULL);
 
 	void setOutputResolution(int width, int height);
+	void setOutputFormat(int outfmt);
 	void setMode(int m) { mode = m; }
 protected:
 	int processBuffer(const RawBuffer &buf);
@@ -25,6 +26,7 @@ protected:
 	int dstW;
 	int dstH;
 	int mode;
+	int outPixFmt;
 };
 
 #endif // VIDEOSCALER_H
