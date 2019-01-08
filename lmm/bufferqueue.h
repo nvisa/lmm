@@ -19,11 +19,14 @@ public:
 	int getTotalSize() { return totalSize; }
 protected:
 	int processBuffer(const RawBuffer &buf);
+	int processBlocking(int ch);
 
 	QList<RawBuffer> buffers;
 	int queueLen;
 	QMutex block;
 	int totalSize;
+
+	Qt::HANDLE processingThread;
 };
 
 #endif // BUFFERQUEUE_H

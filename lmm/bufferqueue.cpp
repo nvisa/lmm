@@ -1,11 +1,16 @@
 #include "bufferqueue.h"
 #include "debug.h"
 
+#include <QThread>
+
+#include <unistd.h>
+
 BufferQueue::BufferQueue(QObject *parent) :
 	BaseLmmElement(parent)
 {
 	queueLen = 1;
 	totalSize = 0;
+	processingThread = NULL;
 }
 
 RawBuffer BufferQueue::getBuffer(int ind)
@@ -109,4 +114,17 @@ int BufferQueue::processBuffer(const RawBuffer &buf)
 	}
 	block.unlock();
 	return 0;
+}
+
+int BufferQueue::processBlocking(int ch)
+{
+	if (!processingThread)
+		processingThread = QThread::currentThreadId();
+
+	if (processingThread != QThread::currentThreadId()) {
+		sleep(1);
+		return 0;
+	}
+
+	return BaseLmmElement::processBlocking(ch);
 }
