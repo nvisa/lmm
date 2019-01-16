@@ -840,7 +840,7 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 	foreach (QString line, sdplines) {
 		if (line.startsWith("m=")) {
 			tr.name = tr.controlUrl.split("/").last();
-			if (!tr.m.isEmpty() && addFromDescribe(tr.name))
+			if (!tr.m.isEmpty() && addFromDescribe(tr.name) && tr.rtpmap.contains("264"))
 				serverDescriptions[serverUrl] << tr;
 			tr.m = line.remove("m=").trimmed();
 		}
@@ -862,7 +862,7 @@ int RtspClient::parseDescribeResponse(const QHash<QString, QString> &resp)
 		}
 	}
 	tr.name = tr.controlUrl.split("/").last();
-	if (addFromDescribe(tr.name))
+	if (addFromDescribe(tr.name) && tr.rtpmap.contains("264"))
 		serverDescriptions[serverUrl] << tr;
 
 	return 0;
