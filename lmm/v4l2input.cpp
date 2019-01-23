@@ -83,6 +83,7 @@ int V4l2Input::start()
 		if (h)
 			captureHeight = h;
 		mInfo("opening camera");
+		deviceName = getParameter("device").toString();
 		int err = openCamera();
 		if (err)
 			return err;
@@ -138,7 +139,6 @@ int V4l2Input::closeCamera()
 
 int V4l2Input::openCamera()
 {
-	v4l2_std_id std_id = V4L2_STD_PAL;
 	struct v4l2_capability cap;
 	struct v4l2_format fmt;
 	struct v4l2_input input;
@@ -146,15 +146,6 @@ int V4l2Input::openCamera()
 	int err = 0;
 
 	err = openDeviceNode();
-	if (err)
-		return err;
-
-	enumInput(&input);
-	err = setInput(&input);
-	if (err)
-		return err;
-
-	err = setStandard(&std_id);
 	if (err)
 		return err;
 

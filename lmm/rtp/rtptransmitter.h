@@ -114,6 +114,7 @@ public:
 	int getRtcpTimeoutValue() { return rtcpTimeoutValue; }
 	void useIncomingTimestamp(bool v) { useIncomingTs = v; }
 	bool isUsingIncomingTimestamp() { return useIncomingTs; }
+	void forwardRtpTs(bool v) { forwardIncomingTimestamp = v; }
 protected:
 	int processBuffer(const RawBuffer &buf);
 	quint64 packetTimestamp();
@@ -144,6 +145,8 @@ protected:
 	bool insertH264Sei;
 	int rtcpTimeoutValue;
 	bool useIncomingTs;
+	qint64 incomingRtpTimestamp;
+	bool forwardIncomingTimestamp;
 
 	int bufferCount;
 	bool rtcpEnabled;

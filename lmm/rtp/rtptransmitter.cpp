@@ -105,6 +105,7 @@ protected:
 RtpTransmitter::RtpTransmitter(QObject *parent, Lmm::CodecType codec) :
 	BaseLmmElement(parent)
 {
+	forwardIncomingTimestamp = false;
 	useIncomingTs = true;
 	insertH264Sei = false;
 	rtcpEnabled = true;
@@ -242,6 +243,7 @@ void RtpTransmitter::setRtcp(bool enabled)
 
 int RtpTransmitter::processBuffer(const RawBuffer &buf)
 {
+	incomingRtpTimestamp = buf.constPars()->pts;
 	if (useIncomingTs && buf.constPars()->encodeTime)
 		lastBufferTime = buf.constPars()->encodeTime / 1000;
 	else
@@ -272,7 +274,9 @@ int RtpTransmitter::processBuffer(const RawBuffer &buf)
 
 quint64 RtpTransmitter::packetTimestamp()
 {
-	if (mediaCodec == Lmm::CODEC_H264) {
+	if (forwardIncomingTimestamp)
+		return incomingRtpTimestamp;
+	else if (mediaCodec == Lmm::CODEC_H264) {
 		if (useAbsoluteTimestamp)
 			return 90ull * lastBufferTime;
 		return (90000ll * (streamedBufferCount) / (int)frameRate);

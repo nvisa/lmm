@@ -362,6 +362,8 @@ srtp {
         rtp/srtpreceiver.cpp
 }
 
+tx1 { include(tx1/tx1.pri) }
+
 INCLUDEPATH += ..
 
 headers.files = lmm.pri
