@@ -115,6 +115,8 @@ public:
 	void useIncomingTimestamp(bool v) { useIncomingTs = v; }
 	bool isUsingIncomingTimestamp() { return useIncomingTs; }
 	void forwardRtpTs(bool v) { forwardIncomingTimestamp = v; }
+	void setFrameRate(float fps) { frameRate = fps; }
+	void setUseAbsoluteTimestamp(bool v) { useAbsoluteTimestamp = v; }
 protected:
 	int processBuffer(const RawBuffer &buf);
 	quint64 packetTimestamp();
