@@ -1357,6 +1357,19 @@ int TX1VideoEncoder::processBuffer(const RawBuffer &buf)
 	return 0;
 }
 
+void TX1VideoEncoder::setBitrate(int bitrate)
+{
+	priv->ctx.bitrate = bitrate;
+}
+
+void TX1VideoEncoder::setFps(float fps)
+{
+	priv->ctx.iframe_interval = int(fps);
+	priv->ctx.idr_interval = int(fps);
+	priv->ctx.fps_n = int(fps);
+	priv->ctx.fps_d = 1;
+}
+
 void TX1VideoEncoder::encodedFrameReady(TX1VideoEncoder *enc, unsigned char *data, uint32_t length)
 {
 	enc->processEncodedFrame(data, length);

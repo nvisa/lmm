@@ -14,6 +14,8 @@ public:
 	virtual int start();
 	virtual int stop();
 	int processBuffer(const RawBuffer &buf);
+	void setBitrate(int bitrate);
+	void setFps(float fps);
 
 	static void encodedFrameReady(TX1VideoEncoder *enc, unsigned char *data, uint32_t length);
 
