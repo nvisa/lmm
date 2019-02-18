@@ -1,0 +1,3 @@
+include:
+        - project: 'AselsanProjects/Ci-Cd_Configuration'
+          file: '.gitlab-ci-lmm.yml'
