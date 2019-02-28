@@ -1,13 +1,13 @@
 linux-gnueabi-oe-g++ {
     message("building dm365")
     #This is our default build config
-    INSTALL_PREFIX=$$OUT_PWD/../../
+    INSTALL_PREFIX=$$OUT_PWD/../
     DEFINES += DEBUG INFO LOG LOGV DEBUG_TIMING
     CONFIG += dmai staticlib dm365 alsa
 } else:linux-g++-64 {
     message("building x86")
     #This is our default build config
-    INSTALL_PREFIX=$$OUT_PWD/../../
+    INSTALL_PREFIX=$$OUT_PWD/../
     DEFINES += DEBUG INFO LOG LOGV DEBUG_TIMING
     CONFIG += staticlib x264 x11 ffmpeg x86
 
@@ -15,7 +15,7 @@ linux-gnueabi-oe-g++ {
 } else:linux-g++ {
     message("building native")
     #This is our default build config
-    INSTALL_PREFIX=$$OUT_PWD/../../
+    INSTALL_PREFIX=$$OUT_PWD/../
     DEFINES += DEBUG INFO LOG LOGV DEBUG_TIMING
     CONFIG += staticlib x264 ffmpeg srtp widgets c++11
 
