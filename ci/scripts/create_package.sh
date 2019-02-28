@@ -45,7 +45,7 @@ package(){
     ./prepare-deb.sh -a $NAME-$BRANCH-$JNAME-release -v $COMMITID
     ls
     cp -r ./build-release/usr $NAME-$BRANCH-$JNAME-release_${COMMITID}
-    cp build_config.pri.sample $NAME-$BRANCH-$JNAME-release_${COMMITID} 
+    cp lmm/build_config.pri.sample $NAME-$BRANCH-$JNAME-release_${COMMITID} 
     mkdir -p debPackage-release
     cp -r $NAME-$BRANCH-$JNAME-release_${COMMITID}/ debPackage-release/
     cd debPackage-release
@@ -54,7 +54,7 @@ package(){
     cd ../
     ./prepare-deb.sh -a $NAME-$BRANCH-$JNAME-debug -v ${COMMITID}
     cp -r ./build-debug/usr $NAME-$BRANCH-$JNAME-debug_${COMMITID}
-    cp build_config.pri.sample $NAME-$BRANCH-$JNAME-debug_${COMMITID} 
+    cp lmm/build_config.pri.sample $NAME-$BRANCH-$JNAME-debug_${COMMITID} 
     mkdir -p debPackage-debug
     cp -r $NAME-$BRANCH-$JNAME-debug_${COMMITID}/ debPackage-debug/
     cd debPackage-debug
