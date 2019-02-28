@@ -1,4 +1,4 @@
- 
+set -x
 warning(){
     echo "-n: Bu parametre zorunludur. Uygulama ismini içermelidir. Örneğin ecl, lmm vb. gibi."
     echo "-b: Bu parametre zorunludur. Branch ismini içermelidir."
@@ -34,19 +34,23 @@ esac
 done
 
 package(){
-apt update
+    apt update
+    ls
     apt-get install -y wget libssl1.0.0
     wget https://gitlab.com/ozogulf/ci-files/raw/master/paketleme/DEBIAN_FILES.tar.gz
     tar -xvf DEBIAN_FILES.tar.gz
+    ls
     wget https://gitlab.com/ozogulf/ci-files/raw/master/paketleme/prepare-deb.sh
     chmod +x prepare-deb.sh
     ./prepare-deb.sh -a $NAME-$BRANCH-$JNAME-release -v $COMMITID
+    ls
     cp -r ./build-release/usr $NAME-$BRANCH-$JNAME-release_${COMMITID}
     cp build_config.pri.sample $NAME-$BRANCH-$JNAME-release_${COMMITID} 
     mkdir -p debPackage-release
     cp -r $NAME-$BRANCH-$JNAME-release_${COMMITID}/ debPackage-release/
     cd debPackage-release
     dpkg-deb -b $NAME-$BRANCH-$JNAME-release_${COMMITID}
+    ls
     cd ../
     ./prepare-deb.sh -a $NAME-$BRANCH-$JNAME-debug -v ${COMMITID}
     cp -r ./build-debug/usr $NAME-$BRANCH-$JNAME-debug_${COMMITID}
@@ -54,6 +58,7 @@ apt update
     mkdir -p debPackage-debug
     cp -r $NAME-$BRANCH-$JNAME-debug_${COMMITID}/ debPackage-debug/
     cd debPackage-debug
+    ls
     dpkg-deb -b $NAME-$BRANCH-$JNAME-debug_${COMMITID}
 }
 
