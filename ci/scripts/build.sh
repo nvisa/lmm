@@ -86,10 +86,6 @@ jtk1build(){
     apt install -y libx264-dev libsrtp0-dev liblzma-dev
     apt install -y libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad 
     apt install -y gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools 
-    wget https://gitlab.com/ozogulf/ci-files/raw/master/tk1/libyuv.tar.gz
-    tar xf libyuv.tar.gz -C /usr/local
-    wget https://gitlab.com/ozogulf/ci-files/raw/master/tk1/ffmpeg_k1.tar.gz
-    tar xf ffmpeg_k1.tar.gz -C /usr/local
     cp lmm/build_config.pri.sample lmm/build_config.pri 
     mkdir -p build-debug/lmm && cd build-debug/lmm
     qmake ../../lmm CONFIG+=debug
@@ -110,8 +106,6 @@ amd64_16(){
     apt install -y libx264-dev libsrtp0-dev liblzma-dev 
     apt install -y libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
     apt install -y gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools libxv-dev
-    wget https://gitlab.com/ozogulf/ci-files/raw/master/x86_64/libyuv_16_04.tar.gz
-    tar xf libyuv_16_04.tar.gz -C /usr/local
     cp lmm/build_config.pri.sample lmm/build_config.pri 
     mkdir -p build-debug/lmm && cd build-debug/lmm
     qmake ../../lmm CONFIG+=debug
