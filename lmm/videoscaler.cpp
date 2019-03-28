@@ -12,6 +12,7 @@ extern "C" {
 
 #ifdef HAVE_LIBYUV
 #include <libyuv.h>
+#include <neon/libyuv.h>
 
 static const int kTileX = 32;
 static const int kTileY = 32;
@@ -111,8 +112,8 @@ int VideoScaler::processScaler(const RawBuffer &buf)
 		const uchar *V = Y + w * h * 5 / 4;
 
 		uchar *Yd = (uchar *)outbuf.data();
-		uchar *Ud = Yd + w * h;
-		uchar *Vd = Yd + w * h * 5 / 4;
+		uchar *Ud = Yd + dstW * dstH;
+		uchar *Vd = Yd + dstW * dstH * 5 / 4;
 
 		libyuv::I420Scale(Y, w, U, w / 2, V, w / 2, w, h, Yd, dstW, Ud, dstW / 2, Vd, dstW / 2, dstW, dstH, libyuv::kFilterNone);
 	} else
@@ -149,7 +150,7 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 		if (outPixFmt == AV_PIX_FMT_ARGB) {
 			mime = "video/x-raw-rgb";
 			bufsize = dstW * dstH * 4;
-		} else if (outPixFmt == AV_PIX_FMT_NV12) {
+		} else if (outPixFmt == AV_PIX_FMT_YUV420P) {
 			mime = "video/x-raw-yuv";
 			bufsize = dstW * dstH * 3 / 2;
 		}
@@ -166,7 +167,7 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 	outbuf.setRefData(mime, poolbuf.data(), poolbuf.size());
 
 #ifdef HAVE_LIBYUV
-	if (buf.constPars()->v4l2PixelFormat == V4L2_PIX_FMT_UYVY && outPixFmt == AV_PIX_FMT_NV12) {
+	if (buf.constPars()->v4l2PixelFormat == V4L2_PIX_FMT_UYVY && outPixFmt == AV_PIX_FMT_YUV420P) {
 		//qDebug() << "YUYV -> NV12";
 		uchar *Y = (uchar *)outbuf.data();
 		uchar *U = Y + w * h;
@@ -176,7 +177,7 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 		const uchar *Y = (const uchar *)buf.constData();
 		libyuv::YUY2ToARGB(Y, w * 2, (uchar *)outbuf.data(), w * 4, w, h);
 		//qDebug() << "YUYV -> ARGB";
-	} else if (buf.constPars()->avPixelFormat == AV_PIX_FMT_NV12 && outPixFmt == AV_PIX_FMT_ARGB) {
+	} else if (buf.constPars()->avPixelFormat == AV_PIX_FMT_YUV420P && outPixFmt == AV_PIX_FMT_ARGB) {
 		//qDebug() << "NV12 -> ARGB";
 		const uchar *Y = (const uchar *)buf.constData();
 		const uchar *U = Y + w * h;
