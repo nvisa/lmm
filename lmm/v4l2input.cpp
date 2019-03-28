@@ -342,6 +342,8 @@ int V4l2Input::processBlocking(int ch)
 		ret = processBuffer(buffer);
 		processTimeStat->addStat();
 		return ret;
+	} else if (errno == ENODEV) {
+		return -ENODEV;
 	}
 
 	usleep(10000);
