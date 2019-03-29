@@ -1370,6 +1370,12 @@ void TX1VideoEncoder::setFps(float fps)
 	priv->ctx.fps_d = 1;
 }
 
+void TX1VideoEncoder::setOutputResolution(int width, int height)
+{
+	priv->ctx.width = width;
+	priv->ctx.height = height;
+}
+
 void TX1VideoEncoder::encodedFrameReady(TX1VideoEncoder *enc, unsigned char *data, uint32_t length)
 {
 	enc->processEncodedFrame(data, length);

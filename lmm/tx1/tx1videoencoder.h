@@ -16,7 +16,7 @@ public:
 	int processBuffer(const RawBuffer &buf);
 	void setBitrate(int bitrate);
 	void setFps(float fps);
-
+	void setOutputResolution(int width, int height);
 	static void encodedFrameReady(TX1VideoEncoder *enc, unsigned char *data, uint32_t length);
 
 public slots:
