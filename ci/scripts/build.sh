@@ -68,11 +68,11 @@ tx1build() {
     tar xf libyuv_TX1.tar.gz -C /usr/local
     cp lmm/build_config.pri.sample lmm/build_config.pri 
     mkdir -p build-debug/lmm && cd build-debug/lmm
-    qmake ../../lmm CONFIG+=debug
+    qmake ../../lmm CONFIG+=debug CONFIG+=tx1
     make -j4 install
     cd ../../
     mkdir -p build-release/lmm && cd build-release/lmm
-    qmake ../../lmm
+    qmake ../../lmm CONFIG+=tx1
     make -j4 install
 
 }
