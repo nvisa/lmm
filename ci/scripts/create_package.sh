@@ -51,6 +51,7 @@ package(){
     cd debPackage-release
     dpkg-deb -b $NAME-$BRANCH-$JNAME-release_${COMMITID}
     ls
+    mv $NAME-$BRANCH-$JNAME-release_${COMMITID}.deb $NAME:$BRANCH:$JNAME:release_${COMMITID}.deb
     cd ../
     ./prepare-deb.sh -a $NAME-$BRANCH-$JNAME-debug -v ${COMMITID}
     cp -r ./build-debug/usr $NAME-$BRANCH-$JNAME-debug_${COMMITID}
@@ -60,6 +61,7 @@ package(){
     cd debPackage-debug
     ls
     dpkg-deb -b $NAME-$BRANCH-$JNAME-debug_${COMMITID}
+    mv $NAME-$BRANCH-$JNAME-debug_${COMMITID}.deb $NAME:$BRANCH:$JNAME:debug_${COMMITID}.deb
 }
 
 package
