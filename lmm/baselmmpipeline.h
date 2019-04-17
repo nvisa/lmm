@@ -60,6 +60,7 @@ protected:
 
 	QMap<QString, LmmThread *> threads;
 	QList<BaseLmmElement *> pipesNew;
+	QList<int> pipesChannels;
 	QMutex thLock;
 	int finishedThreadCount;
 	bool pipelineReady;

@@ -65,6 +65,7 @@ int BaseLmmPipeline::start()
 	for (int i = 0; i < pipesNew.size(); i++) {
 		/* start element */
 		BaseLmmElement *el = pipesNew[i];
+		int processChannel = pipesChannels[i];
 		mDebug("starting element %s(%s)", el->metaObject()->className(), qPrintable(el->objectName()));
 		el->flush();
 		el->setStreamTime(streamTime);
@@ -80,12 +81,9 @@ int BaseLmmPipeline::start()
 		QString desc = el->objectName();
 		if (desc.isEmpty())
 			desc = el->metaObject()->className();
-		int incnt = el->getInputQueueCount();
-		if (!incnt)
-			incnt = 1; /* we need at least one thread per element */
-		for (int j = 0; j < incnt; j++) {
+		if (processChannel >= 0) {
 			LmmThread *th = new OpThread2<BaseLmmElement>(el, &BaseLmmElement::processBlocking,
-														  objectName().append("P%1%2_%3").arg(j).arg(desc).arg(threads.size()), 0);
+														  objectName().append("P%1%2_%3").arg(processChannel).arg(desc).arg(threads.size()), processChannel);
 			threads.insert(th->threadName(), th);
 			th->start(QThread::LowestPriority);
 		}
@@ -195,6 +193,7 @@ int BaseLmmPipeline::append(BaseLmmElement *el, int inputCh)
 		last->addOutputQueue(el->getInputQueue(inputCh));
 	}
 	pipesNew << el;
+	pipesChannels << inputCh;
 	return 0;
 }
 
