@@ -38,6 +38,7 @@ public:
 	int videoWidth;
 	int videoHeight;
 	QByteArray metaData;
+	QList<RawBuffer> subbufs;
 };
 
 class RawBufferData : public QSharedData
