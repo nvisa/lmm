@@ -166,16 +166,27 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 	RawBuffer outbuf(this);
 	outbuf.setRefData(mime, poolbuf.data(), poolbuf.size());
 
+	bool isyuv422 = false;
+	if (buf.constPars()->v4l2PixelFormat == V4L2_PIX_FMT_UYVY ||
+			buf.constPars()->v4l2PixelFormat == V4L2_PIX_FMT_YUYV) {
+		isyuv422 = true;
+	}
 #ifdef HAVE_LIBYUV
-	if (buf.constPars()->v4l2PixelFormat == V4L2_PIX_FMT_UYVY && outPixFmt == AV_PIX_FMT_YUV420P) {
+	if (isyuv422 && outPixFmt == AV_PIX_FMT_YUV420P) {
 		//qDebug() << "YUYV -> NV12";
 		uchar *Y = (uchar *)outbuf.data();
 		uchar *U = Y + w * h;
 		uchar *V = Y + w * h * 5 / 4;
-		libyuv::YUY2ToI420((const uchar *)buf.constData(), w * 2, Y, w, U, w / 2, V, w / 2, w, h);
-	} else if (buf.constPars()->v4l2PixelFormat == V4L2_PIX_FMT_UYVY && outPixFmt == AV_PIX_FMT_ARGB) {
+		if (buf.constPars()->v4l2PixelFormat == V4L2_PIX_FMT_UYVY)
+			libyuv::UYVYToI420((const uchar *)buf.constData(), w * 2, Y, w, U, w / 2, V, w / 2, w, h);
+		else
+			libyuv::YUY2ToI420((const uchar *)buf.constData(), w * 2, Y, w, U, w / 2, V, w / 2, w, h);
+	} else if (isyuv422 && outPixFmt == AV_PIX_FMT_ARGB) {
 		const uchar *Y = (const uchar *)buf.constData();
-		libyuv::YUY2ToARGB(Y, w * 2, (uchar *)outbuf.data(), w * 4, w, h);
+		if (buf.constPars()->v4l2PixelFormat == V4L2_PIX_FMT_UYVY)
+			libyuv::UYVYToARGB(Y, w * 2, (uchar *)outbuf.data(), w * 4, w, h);
+		else
+			libyuv::YUY2ToARGB(Y, w * 2, (uchar *)outbuf.data(), w * 4, w, h);
 		//qDebug() << "YUYV -> ARGB";
 	} else if (buf.constPars()->avPixelFormat == AV_PIX_FMT_YUV420P && outPixFmt == AV_PIX_FMT_ARGB) {
 		//qDebug() << "NV12 -> ARGB";
