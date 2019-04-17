@@ -173,6 +173,14 @@ int V4l2Input::openCamera()
 		goto cleanup_devnode;
 	}
 
+	if (captureWidth == 720 && captureHeight == 576) {
+		v4l2_std_id id = V4L2_STD_PAL;
+		setStandard(&id);
+	} else if (captureWidth == 720 && captureHeight == 480) {
+		v4l2_std_id id = V4L2_STD_NTSC;
+		setStandard(&id);
+	}
+
 	if (allocBuffers(5, V4L2_BUF_TYPE_VIDEO_CAPTURE) < 0) {
 		mDebug("Unable to allocate capture driver buffers");
 		err = ENOMEM;
@@ -442,6 +450,8 @@ int V4l2Input::processBuffer(v4l2_buffer *buffer)
 	newbuf.setParentElement(this);
 
 	newbuf.setRefData("video/x-raw-yuv", data, buffer->length);
+	newbuf.pars()->captureTime = buffer->timestamp.tv_sec * (qint64)1000000 + buffer->timestamp.tv_usec;
+	newbuf.pars()->streamBufferNo = captureCount;
 	newbuf.pars()->videoWidth = captureWidth;
 	newbuf.pars()->videoHeight = captureHeight;
 	newbuf.pars()->v4l2Buffer = (quintptr *)buffer;
