@@ -58,6 +58,7 @@ protected:
 	int frameSkipCount;
 	int frameSkip;
 	int captureCount;
+	int pixelFormat;
 
 	virtual int openCamera();
 	virtual int closeCamera();

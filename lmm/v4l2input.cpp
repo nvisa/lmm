@@ -173,6 +173,8 @@ int V4l2Input::openCamera()
 		goto cleanup_devnode;
 	}
 
+	pixelFormat = fmt.fmt.pix.pixelformat;
+
 	if (captureWidth == 720 && captureHeight == 576) {
 		v4l2_std_id id = V4L2_STD_PAL;
 		setStandard(&id);
@@ -455,7 +457,7 @@ int V4l2Input::processBuffer(v4l2_buffer *buffer)
 	newbuf.pars()->videoWidth = captureWidth;
 	newbuf.pars()->videoHeight = captureHeight;
 	newbuf.pars()->v4l2Buffer = (quintptr *)buffer;
-	newbuf.pars()->v4l2PixelFormat = V4L2_PIX_FMT_UYVY;
+	newbuf.pars()->v4l2PixelFormat = pixelFormat;
 	newOutputBuffer(0, newbuf);
 
 	return 0;
