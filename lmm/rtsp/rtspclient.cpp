@@ -527,8 +527,8 @@ void RtspClient::aSyncDataReady()
 		int cseq = currentResp["CSeq"].toInt();
 		mInfo("async resp %d ready", cseq);
 		if (!cseqRequests.contains(cseq)) {
-			currentResp.clear();
 			mDebug("invalid response request received:\n%s", qPrintable(currentResp["__content__"]));
+			currentResp.clear();
 			return;
 		}
 		CSeqRequest req = cseqRequests[cseq];
