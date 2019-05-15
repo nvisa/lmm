@@ -79,8 +79,8 @@ tx1build() {
     tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/
     curl --request GET --header 'PRIVATE-TOKEN: -X1wjQnHacSky81ZHEYa' 'https://gitlab.com/api/v4/projects/10838582/repository/files/ciuser.pem/raw?ref=master' >> ciuser.pem
     chmod 400 ciuser.pem
-    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz build-debug/ ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
-    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/ ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
+    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
+    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
 }
 
 jtk1build(){
@@ -105,8 +105,8 @@ jtk1build(){
     tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/
     curl --request GET --header 'PRIVATE-TOKEN: -X1wjQnHacSky81ZHEYa' 'https://gitlab.com/api/v4/projects/10838582/repository/files/ciuser.pem/raw?ref=master' >> ciuser.pem
     chmod 400 ciuser.pem
-    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz build-debug/ ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
-    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/ ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
+    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
+    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
 }
 
 amd64_16(){
@@ -133,8 +133,8 @@ amd64_16(){
     tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/
     curl --request GET --header 'PRIVATE-TOKEN: -X1wjQnHacSky81ZHEYa' 'https://gitlab.com/api/v4/projects/10838582/repository/files/ciuser.pem/raw?ref=master' >> ciuser.pem
     chmod 400 ciuser.pem
-    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz build-debug/ ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
-    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/ ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
+    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
+    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
 }
 
 amd64_18(){
@@ -161,8 +161,8 @@ amd64_18(){
     tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/
     curl --request GET --header 'PRIVATE-TOKEN: -X1wjQnHacSky81ZHEYa' 'https://gitlab.com/api/v4/projects/10838582/repository/files/ciuser.pem/raw?ref=master' >> ciuser.pem
     chmod 400 ciuser.pem
-    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz build-debug/ ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
-    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/ ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
+    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
+    scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
 }
 
 choose_device
