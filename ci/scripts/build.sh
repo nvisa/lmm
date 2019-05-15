@@ -59,7 +59,7 @@ tx1build() {
     echo "tx1 build script"
     apt update
     apt install -y qt5-default make libqt5serialport5-dev libserial-dev g++ wget git libssl1.0.0 
-    apt install -y libgtk2.0-dev libavcodec-dev libavformat-dev libavutil-dev
+    apt install -y libgtk2.0-dev libavcodec-dev libavformat-dev libavutil-dev curl openssh-client
     apt install -y libavfilter-dev libgnutls-dev libjson0-dev libgcrypt11-dev ffmpeg 
     apt install -y libx264-dev libsrtp0-dev liblzma-dev
     apt install -y libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad 
@@ -113,7 +113,7 @@ amd64_16(){
     echo "16.04 build script"
     apt update
     apt install -y qt5-default make libqt5serialport5-dev libserial-dev g++ wget git 
-    apt install -y libgtk2.0-dev libavcodec-dev libavformat-dev libavutil-dev
+    apt install -y libgtk2.0-dev libavcodec-dev libavformat-dev libavutil-dev curl openssh-client
     apt install -y libavfilter-dev libgnutls-dev libjson0-dev libgcrypt11-dev ffmpeg 
     apt install -y libx264-dev libsrtp0-dev liblzma-dev 
     apt install -y libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
@@ -141,7 +141,7 @@ amd64_18(){
     echo "18.04 build script"
     apt update
     apt install -y qt5-default make libqt5serialport5-dev libserial-dev g++ wget git
-    apt install -y libgtk2.0-dev libavcodec-dev libavformat-dev libavutil-dev
+    apt install -y libgtk2.0-dev libavcodec-dev libavformat-dev libavutil-dev curl openssh-client
     apt install -y libavfilter-dev libgnutls-dev libjson0-dev libgcrypt11-dev ffmpeg 
     apt install -y libx264-dev libsrtp0-dev liblzma-dev
     apt install -y libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad 
