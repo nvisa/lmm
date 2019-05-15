@@ -75,8 +75,8 @@ tx1build() {
     qmake ../../lmm CONFIG+=tx1
     make -j4 install
     cd ../../
-    tar cvf $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-debug-0.${CI_COMMIT_SHORT_SHA}.tar.gz build-debug/
-    tar cvf $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-release-0.${CI_COMMIT_SHORT_SHA}.tar.gz build-release/
+    tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz build-debug/
+    tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/
     curl --request GET --header 'PRIVATE-TOKEN: -X1wjQnHacSky81ZHEYa' 'https://gitlab.com/api/v4/projects/10838582/repository/files/ciuser.pem/raw?ref=master' >> ciuser.pem
     chmod 400 ciuser.pem
     scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-debug-0.${CI_COMMIT_SHORT_SHA}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
@@ -101,8 +101,8 @@ jtk1build(){
     qmake ../../lmm
     make -j4 install
     cd ../../
-    tar cvf $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-debug-0.${CI_COMMIT_SHORT_SHA}.tar.gz build-debug/
-    tar cvf $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-release-0.${CI_COMMIT_SHORT_SHA}.tar.gz build-release/
+    tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz build-debug/
+    tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/
     curl --request GET --header 'PRIVATE-TOKEN: -X1wjQnHacSky81ZHEYa' 'https://gitlab.com/api/v4/projects/10838582/repository/files/ciuser.pem/raw?ref=master' >> ciuser.pem
     chmod 400 ciuser.pem
     scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-debug-0.${CI_COMMIT_SHORT_SHA}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
@@ -129,8 +129,8 @@ amd64_16(){
     qmake ../../lmm
     make -j4 install
     cd ../../
-    tar cvf $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-debug-0.${CI_COMMIT_SHORT_SHA}.tar.gz build-debug/
-    tar cvf $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-release-0.${CI_COMMIT_SHORT_SHA}.tar.gz build-release/
+    tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz build-debug/
+    tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/
     curl --request GET --header 'PRIVATE-TOKEN: -X1wjQnHacSky81ZHEYa' 'https://gitlab.com/api/v4/projects/10838582/repository/files/ciuser.pem/raw?ref=master' >> ciuser.pem
     chmod 400 ciuser.pem
     scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-debug-0.${CI_COMMIT_SHORT_SHA}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
@@ -157,8 +157,8 @@ amd64_18(){
     qmake ../../lmm
     make -j4 install
     cd ../../
-    tar cvf $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-debug-0.${CI_COMMIT_SHORT_SHA}.tar.gz build-debug/
-    tar cvf $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-release-0.${CI_COMMIT_SHORT_SHA}.tar.gz build-release/
+    tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-debug-${CI_JOB_NAME}.tar.gz build-debug/
+    tar cvf $NAME-${CI_COMMIT_REF_NAME}-0.${CI_COMMIT_SHORT_SHA}-release-${CI_JOB_NAME}.tar.gz build-release/
     curl --request GET --header 'PRIVATE-TOKEN: -X1wjQnHacSky81ZHEYa' 'https://gitlab.com/api/v4/projects/10838582/repository/files/ciuser.pem/raw?ref=master' >> ciuser.pem
     chmod 400 ciuser.pem
     scp -i ciuser.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $NAME-${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}-debug-0.${CI_COMMIT_SHORT_SHA}.tar.gz ciuser@storage.sparsetechnology.com:/var/www/html/ci/tar-packages/
