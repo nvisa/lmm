@@ -5,7 +5,8 @@ HEADERS += \
     tx1/nvidia/TRTStreamConsumer.h \
     tx1/nvidia/VideoEncoder.h \
     tx1/nvidia/VideoEncodeStreamConsumer.h \
-    tx1/tx1videodecoder.h
+    tx1/tx1videodecoder.h \
+    tx1/tx1jpegencoder.h
 
 SOURCES += \
     tx1/tx1videoencoder.cpp \
@@ -24,7 +25,8 @@ SOURCES += \
     tx1/nvidia/NvVideoDecoder.cpp \
     tx1/nvidia/NvVideoEncoder.cpp \
     tx1/nvidia/VideoEncoder.cpp \
-    tx1/tx1videodecoder.cpp
+    tx1/tx1videodecoder.cpp \
+    tx1/tx1jpegencoder.cpp
 
 UNUSED_SOURCES = \
     tx1/nvidia/NvDrmRenderer.cpp \
