@@ -16,7 +16,8 @@ public:
 	enum overlayType {
 		SIMPLE,
 		CHAR_MAP,
-		PIXEL_MAP
+		PIXEL_MAP,
+		QPAINTER
 	};
 	enum overlayTextFields {
 		FIELD_CURRENT_DATE,
@@ -83,6 +84,7 @@ private:
 	void yuvSwOverlay(RawBuffer buffer);
 	void yuvSwMapOverlay(RawBuffer buffer);
 	void yuvSwPixmapOverlay(RawBuffer buffer);
+	void qpainterOverlay(RawBuffer buffer);
 	QString compileOverlayText(const RawBuffer &buf);
 };
 

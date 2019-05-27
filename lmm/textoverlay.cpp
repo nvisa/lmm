@@ -37,14 +37,16 @@ int TextOverlay::setFontSize(int size)
 {
 	clearBackground = false;
 	fontSize = size;
-	/* refresh maps */
-	maplock.lock();
-	charMap.clear();
-	charPixelMap.clear();
-	charFontWidth.clear();
-	readMapsFromCache();
-	mDebug("new size is %d", size);
-	maplock.unlock();
+	if (type == CHAR_MAP || type == PIXEL_MAP) {
+		/* refresh maps */
+		maplock.lock();
+		charMap.clear();
+		charPixelMap.clear();
+		charFontWidth.clear();
+		readMapsFromCache();
+		mDebug("new size is %d", size);
+		maplock.unlock();
+	}
 	return 0;
 }
 
@@ -103,10 +105,10 @@ int TextOverlay::start()
 	if (type == CHAR_MAP || type == PIXEL_MAP) {
 		if (!readMapsFromCache())
 			createYuvMap();
+		mmapfd = open("/dev/dm365mmap", O_RDWR | O_SYNC);
+		if (mmapfd == -1)
+			return -ENOENT;
 	}
-	mmapfd = open("/dev/dm365mmap", O_RDWR | O_SYNC);
-	if (mmapfd == -1)
-		return -ENOENT;
 	return BaseLmmElement::start();
 }
 
@@ -127,6 +129,8 @@ int TextOverlay::processBuffer(const RawBuffer &buffer)
 			yuvSwMapOverlay(buffer);
 		else if (type == PIXEL_MAP)
 			yuvSwPixmapOverlay(buffer);
+		else if (type == QPAINTER)
+			qpainterOverlay(buffer);
 	}
 	newOutputBuffer(0, buffer);
 	return 0;
@@ -346,6 +350,18 @@ void TextOverlay::yuvSwPixmapOverlay(RawBuffer buffer)
 		}
 		dst += w;
 	}
+}
+
+void TextOverlay::qpainterOverlay(RawBuffer buffer)
+{
+	QString text = compileOverlayText(buffer);
+	QImage im((uchar *)buffer.data(), buffer.pars()->videoWidth, buffer.pars()->videoHeight, QImage::Format_Grayscale8);
+	QPainter p(&im);
+	p.setPen(Qt::white);
+	p.setBrush(Qt::white);
+	p.setFont(QFont("Arial", fontSize));
+	//p.drawText(im.rect(), Qt::AlignVCenter | Qt::AlignHCenter, text);
+	p.drawText(overlayPos.x(), overlayPos.y(), text);
 }
 
 QString TextOverlay::compileOverlayText(const RawBuffer &buf)
