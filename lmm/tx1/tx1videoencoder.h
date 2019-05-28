@@ -3,6 +3,8 @@
 
 #include <lmm/baselmmelement.h>
 
+#include <QSize>
+
 class NvPriv;
 
 class TX1VideoEncoder : public BaseLmmElement
@@ -16,7 +18,9 @@ public:
 	int processBuffer(const RawBuffer &buf);
 	void setBitrate(int bitrate);
 	void setFps(float fps);
+	float getFps();
 	void setOutputResolution(int width, int height);
+	QSize getOutputResolution();
 	static void encodedFrameReady(TX1VideoEncoder *enc, unsigned char *data, uint32_t length);
 
 public slots:

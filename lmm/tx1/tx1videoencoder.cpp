@@ -654,6 +654,7 @@ public:
 	context_t ctx;
 	uint input_frames_queued_count;
 	uint mappedIndex;
+	float fps;
 	NvPriv(TX1VideoEncoder *enc)
 	{
 		input_frames_queued_count = 0;
@@ -1368,12 +1369,23 @@ void TX1VideoEncoder::setFps(float fps)
 	priv->ctx.idr_interval = int(fps);
 	priv->ctx.fps_n = int(fps);
 	priv->ctx.fps_d = 1;
+	priv->fps = fps;
+}
+
+float TX1VideoEncoder::getFps()
+{
+	return priv->fps;
 }
 
 void TX1VideoEncoder::setOutputResolution(int width, int height)
 {
 	priv->ctx.width = width;
 	priv->ctx.height = height;
+}
+
+QSize TX1VideoEncoder::getOutputResolution()
+{
+	return QSize(priv->ctx.width, priv->ctx.height);
 }
 
 void TX1VideoEncoder::encodedFrameReady(TX1VideoEncoder *enc, unsigned char *data, uint32_t length)
