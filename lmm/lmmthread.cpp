@@ -50,7 +50,7 @@ void LmmThread::run()
 	mDebug("starting thread %s(%p)", qPrintable(name)
 		   , QThread::currentThreadId());
 #else
-	mDebug("starting thread %s(%lld)", qPrintable(name)
+	mDebug("starting thread %s(%p)", qPrintable(name)
 		   , QThread::currentThreadId());
 #endif
 	time.start();
