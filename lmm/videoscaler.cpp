@@ -188,7 +188,9 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 		else
 			libyuv::YUY2ToARGB(Y, w * 2, (uchar *)outbuf.data(), w * 4, w, h);
 		//qDebug() << "YUYV -> ARGB";
-	} else if (buf.constPars()->avPixelFormat == AV_PIX_FMT_YUV420P && outPixFmt == AV_PIX_FMT_ARGB) {
+	} else if ((buf.constPars()->avPixelFormat == AV_PIX_FMT_YUV420P ||
+			   buf.constPars()->avPixelFormat == AV_PIX_FMT_YUVJ420P)
+			   && outPixFmt == AV_PIX_FMT_ARGB) {
 		//qDebug() << "NV12 -> ARGB";
 		const uchar *Y = (const uchar *)buf.constData();
 		const uchar *U = Y + w * h;
