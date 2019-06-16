@@ -589,8 +589,10 @@ int BaseLmmMux::initMuxer()
 #ifdef URL_RDONLY
 	st->stream_copy = 1;
 #endif
+#ifndef FF_INPUT_BUFFER_PADDING_SIZE
 	st->pts.num = codec->time_base.num;
 	st->pts.den = codec->time_base.den;
+#endif
 	st->time_base.num = codec->time_base.num;
 	st->time_base.den = codec->time_base.den;
 	if (context->oformat->flags & AVFMT_GLOBALHEADER)

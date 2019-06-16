@@ -36,7 +36,8 @@ static void avformat_free_context(AVFormatContext *c)
 #endif
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(55, 45, 101)
-
+	#define FF_INPUT_BUFFER_PADDING_SIZE AV_INPUT_BUFFER_PADDING_SIZE
+	#define CODEC_FLAG_GLOBAL_HEADER AV_CODEC_FLAG_GLOBAL_HEADER
 #elif LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 25, 0)
 	#define av_frame_alloc avcodec_alloc_frame
 #endif
