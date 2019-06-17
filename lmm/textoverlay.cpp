@@ -355,7 +355,11 @@ void TextOverlay::yuvSwPixmapOverlay(RawBuffer buffer)
 void TextOverlay::qpainterOverlay(RawBuffer buffer)
 {
 	QString text = compileOverlayText(buffer);
+#if QT_VERSION > QT_VERSION_CHECK(5, 5, 0)
 	QImage im((uchar *)buffer.data(), buffer.pars()->videoWidth, buffer.pars()->videoHeight, QImage::Format_Grayscale8);
+#else
+	QImage im((uchar *)buffer.data(), buffer.pars()->videoWidth, buffer.pars()->videoHeight, QImage::Format_Indexed8);
+#endif
 	QPainter p(&im);
 	p.setPen(Qt::white);
 	p.setBrush(Qt::white);
