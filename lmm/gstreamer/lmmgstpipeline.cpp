@@ -222,7 +222,7 @@ bool LmmGstPipeline::gstBusFunction(GstMessage *msg)
 	case GST_MESSAGE_QOS:
 	case GST_MESSAGE_ANY:
 	default:
-		mDebug("new message %s from %s", gst_message_type_get_name(GST_MESSAGE_TYPE(msg)),
+		mInfo("new message %s from %s", gst_message_type_get_name(GST_MESSAGE_TYPE(msg)),
 			   GST_OBJECT_NAME(msg->src));
 		break;
 	}
