@@ -561,6 +561,7 @@ ElementIOQueue::ElementIOQueue()
 	bitrate = _bitrate = 0;
 	rlimit = LIMIT_NONE;
 	rlimitTimer = new QElapsedTimer;
+	rlimitTimer->start();
 
 	rc = NULL;
 	tsMethod = TS_NONE;
