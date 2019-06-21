@@ -254,7 +254,6 @@ int BaseLmmElement::addBuffer(int ch, const RawBuffer &buffer)
 
 RawBuffer BaseLmmElement::nextBufferBlocking(int ch)
 {
-	QMutexLocker l(&outql);
 	return outq[ch]->getBuffer(this);
 }
 
