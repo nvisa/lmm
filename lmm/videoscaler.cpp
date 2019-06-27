@@ -196,7 +196,14 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 		const uchar *U = Y + w * h;
 		const uchar *V = Y + w * h * 5 / 4;
 		libyuv::I420ToARGB(Y, w, U, w / 2, V, w / 2, (uchar *)outbuf.data(), w * 4, w, h);
-	}
+	} else if ((outPixFmt == AV_PIX_FMT_YUV420P ||
+				outPixFmt == AV_PIX_FMT_YUVJ420P)
+				&& buf.constPars()->avPixelFormat == AV_PIX_FMT_ARGB) {
+		 uchar *Y = (uchar *)outbuf.data();
+		 uchar *U = Y + w * h;
+		 uchar *V = Y + w * h * 5 / 4;
+		 libyuv::ARGBToI420((const uchar *)buf.constData(), w * 4, Y, w, U, w / 2, V, w / 2, w, h);
+	 }
 
 #endif
 

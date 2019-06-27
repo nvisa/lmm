@@ -207,7 +207,7 @@ static int
 write_encoder_output_frame(NvBuffer * buffer, context_t *ctx)
 {
 	//stream->write((char *) buffer->planes[0].data, buffer->planes[0].bytesused);
-	//cout << "new encoded video buffer " << buffer->planes[0].bytesused << endl;
+//	cout << "new encoded video buffer " << buffer->planes[0].bytesused << endl;
 	TX1VideoEncoder::encodedFrameReady(ctx->parent, buffer->planes[0].data, buffer->planes[0].bytesused);
 	return 0;
 }
@@ -1158,6 +1158,7 @@ cleanup:
 		*/
 
 		struct v4l2_buffer v4l2_buf;
+//		qDebug() << ctx.enc->output_plane.getNumBuffers() << "num buffers" << mappedIndex;
 		if (mappedIndex < ctx.enc->output_plane.getNumBuffers()) {
 			/* this is the first time, let's map buffer */
 			struct v4l2_plane planes[MAX_PLANES];
@@ -1191,13 +1192,16 @@ cleanup:
 			memset(planes, 0, sizeof(planes));
 
 			v4l2_buf.m.planes = planes;
+			v4l2_buf.index = mappedIndex;
 
+//			qDebug() << "IM HERE LSE FUNCTIN" << mappedIndex;
 			if (ctx.enc->output_plane.dqBuffer(v4l2_buf, &buffer, NULL, 10) < 0)
 			{
 				cerr << "ERROR while DQing buffer at output plane" << endl;
 				abort(&ctx);
 				return -EIO;
 			}
+//			qDebug() << "asdasasds";
 		}
 
 		if (ctx.input_metadata)
@@ -1354,6 +1358,7 @@ int TX1VideoEncoder::stop()
 
 int TX1VideoEncoder::processBuffer(const RawBuffer &buf)
 {
+//	qDebug() << buf.size() << "encode process buff";
 	priv->queueBufferForEncode(buf);
 	return 0;
 }

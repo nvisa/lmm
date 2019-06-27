@@ -27,7 +27,7 @@ void asel_via_EGO(unsigned char *buf, int size, int width, int height,int RGB_ca
 
 void record_video(unsigned char *buf, int size, int width, int height);
 
-void asel_pan(unsigned char *buf, int size, int width, int height,int RGB_case,int record_case,int shadow_case,int ill_norm_case,int debug_case,unsigned char* meta,unsigned char* metaPC,unsigned char* dataSize,int tilt_degree, int pan_degree);
+void asel_pan(unsigned char *buf, int size, int width, int height,int RGB_case,int shadow_case,int ill_norm_case,int debug_case,unsigned char* meta,unsigned char* metaPC,unsigned char* dataSize,int tilt_degree, int pan_degree);
 
 void asel_via_track(unsigned char *buf, int size, int width, int height,int RGB_case,int record_case,int shadow_case,int ill_norm_case,int debug_case,unsigned char* meta,unsigned char* metaPC,unsigned char* dataSize,int tilt_degree, int pan_degree);
 
