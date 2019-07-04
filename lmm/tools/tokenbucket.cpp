@@ -86,7 +86,8 @@ int TokenBucket::releaseLeakyTokens()
 			int br = tokens * 1000 / t.restart();
 			if (br * 8 > 9000000)
 				qDebug() << br;
-		}
+		} else
+			t.restart();
 		tokens = 0;
 		l.unlock();
 		return b;
