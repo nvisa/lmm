@@ -60,7 +60,7 @@ int x264Encoder::start()
 	/* rc - CBR at the moment */
 	priv->param.rc.i_rc_method = X264_RC_CRF;
 	priv->param.rc.i_bitrate = priv->bitrate;
-	priv->param.rc.i_vbv_max_bitrate = 4000;
+	priv->param.rc.i_vbv_max_bitrate = priv->bitrate;
 	priv->param.rc.i_vbv_buffer_size = priv->param.rc.i_vbv_max_bitrate * 2;
 
 	/* Apply profile restrictions. */
