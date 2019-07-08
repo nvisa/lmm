@@ -70,6 +70,7 @@ V4l2Input::V4l2Input(QObject *parent) :
 	nonBlockingIO = true;
 	manualStart = false;
 	frameSkip = 0;
+	dropMalformedFrame = false;
 }
 
 int V4l2Input::start()
@@ -164,6 +165,7 @@ int V4l2Input::openCamera()
 	fmt.fmt.pix.bytesperline = width * 2;
 	fmt.fmt.pix.pixelformat  = V4L2_PIX_FMT_UYVY;
 	fmt.fmt.pix.field        = V4L2_FIELD_INTERLACED;
+	exptectedFrameSize = fmt.fmt.pix.bytesperline * height;
 
 	//adjustCropping(width, height);
 
@@ -313,6 +315,7 @@ v4l2_buffer *V4l2Input::getFrame()
 		return NULL;
 	}
 
+	v4l2buf[buffer.index]->bytesused = buffer.bytesused;
 	return v4l2buf[buffer.index];
 }
 
@@ -348,6 +351,10 @@ int V4l2Input::processBlocking(int ch)
 				return ret;
 			}
 			frameSkipCount = frameSkip;
+		}
+		if (dropMalformedFrame && buffer->bytesused != exptectedFrameSize) {
+			putFrame(buffer);
+			return ret;
 		}
 		ret = processBuffer(buffer);
 		processTimeStat->addStat();
@@ -442,6 +449,11 @@ int V4l2Input::setFrameSkip(int cnt)
 	frameSkip = cnt - 1;
 	frameSkipCount = 0;
 	return 0;
+}
+
+void V4l2Input::dropMalformed(bool value)
+{
+	dropMalformedFrame = value;
 }
 
 int V4l2Input::processBuffer(v4l2_buffer *buffer)

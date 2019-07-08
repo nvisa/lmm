@@ -27,6 +27,7 @@ public:
 
 	int info();
 	int setFrameSkip(int cnt);
+	void dropMalformed(bool value);
 
 	void setBufferCount(int v) { captureBufferCount = v; }
 	int getBufferCount() { return captureBufferCount; }
@@ -59,6 +60,8 @@ protected:
 	int frameSkip;
 	int captureCount;
 	int pixelFormat;
+	bool dropMalformedFrame;
+	int exptectedFrameSize;
 
 	virtual int openCamera();
 	virtual int closeCamera();
