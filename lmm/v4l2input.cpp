@@ -142,7 +142,6 @@ int V4l2Input::openCamera()
 {
 	struct v4l2_capability cap;
 	struct v4l2_format fmt;
-	struct v4l2_input input;
 	int width = captureWidth, height = captureHeight;
 	int err = 0;
 

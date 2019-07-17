@@ -61,7 +61,7 @@ protected:
 	int captureCount;
 	int pixelFormat;
 	bool dropMalformedFrame;
-	int exptectedFrameSize;
+	uint exptectedFrameSize;
 
 	virtual int openCamera();
 	virtual int closeCamera();
