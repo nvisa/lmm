@@ -21,6 +21,7 @@
 #include <QDateTime>
 #include <QMutex>
 #include <QElapsedTimer>
+#include <QProcess>
 
 /**
  *
@@ -137,7 +138,29 @@ static QHostAddress findIpForPeer(QTcpSocket *sock)
 		}
 	}
 
-	/* we are not in the same subnet, default to first up interface */
+	/* we are not in the same subnet, default to gateway interface */
+	QProcess p;
+	p.start("route -n");
+	p.waitForStarted();
+	p.waitForFinished();
+	QStringList lines = QString::fromUtf8(p.readAllStandardOutput()).split("\n");
+	QString gatewayif;
+	foreach (QString line, lines) {
+		if (line.contains("0.0.0.0")) {
+			//parsing: Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+			QStringList fields = line.trimmed().split(" ", QString::SkipEmptyParts);
+			/* we are interested in default gateway */
+			if (fields[0] != "0.0.0.0") {
+				fDebug("skipping non-default gateway: %s", qPrintable(fields[1]));
+				continue;
+			}
+			gatewayif = fields[fields.size() - 1];
+			fDebug("gateway found: %s", qPrintable(gatewayif));
+			return findIp(gatewayif);
+		}
+	}
+
+	/* we are not in the same subnet and no default gateway, default to first up interface */
 	foreach (const QNetworkInterface iface, QNetworkInterface::allInterfaces()) {
 		if (!iface.isValid())
 			continue;
