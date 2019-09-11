@@ -1359,7 +1359,7 @@ QStringList BaseRtspServer::createSdp(QString url)
 BaseRtspSession::BaseRtspSession(const QHostAddress &ifaceIpAddr, BaseRtspServer *parent)
 	: QObject(parent)
 {
-	timeout = new MyTime;
+	timeout = new MyTime; /* TODO: fix possible memory leak */
 	server = parent;
 	state = TEARDOWN;
 	/* Let's find our IP address */
