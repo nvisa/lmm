@@ -5,6 +5,7 @@
 #include "h264parser.h"
 #include "tools/tokenbucket.h"
 #include "platform_info.h"
+#include "metrics.h"
 
 #include <QTimer>
 #include <QUdpSocket>
@@ -251,6 +252,7 @@ int RtpTransmitter::processBuffer(const RawBuffer &buf)
 	streamLock.lock();
 	/* check rtcp first */
 	channelsCheckRtcp(packetTimestamp());
+	Metrics::instance().outRtpDataBytesInc(buf.size());
 
 	/* rtp part */
 	if (getCodec() == Lmm::CODEC_H264)
@@ -558,6 +560,10 @@ RtpChannel::~RtpChannel()
 	timer->deleteLater();
 	if (rawsock)
 		delete rawsock;
+	Metrics::instance().outRtpChannelCountDec();
+	quint32 ip = QHostAddress(dstIp).toIPv4Address();
+	if (ip >> 28 == 0xe)
+		Metrics::instance().outRtpMulticastChannelCountDec();
 }
 
 int RtpChannel::setup(const QString &target, int dport, int dcport, int sport, int scport, uint ssrc)
@@ -616,10 +622,12 @@ int RtpChannel::setup(const QString &target, int dport, int dcport, int sport, i
 		mreq.imr_interface.s_addr = htons(INADDR_ANY);
 		if (setsockopt(sock2->socketDescriptor(), IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 			ffDebug() << "error joining multicast group";
+		Metrics::instance().outRtpMulticastChannelCountInc();
 	}
 	rtcpTime->start();
 	state = 1;
 	rrTime->start();
+	Metrics::instance().outRtpChannelCountInc();
 
 	return 0;
 }
@@ -628,12 +636,16 @@ int RtpChannel::play()
 {
 	state = 2;
 	rrTime->restart();
+	Metrics::instance().outVideoStreamsInc();
+	Metrics::instance().outRtpPlayingChannelCountInc();
 	return 0;
 }
 
 int RtpChannel::teardown()
 {
 	state = 0;
+	Metrics::instance().outRtpPlayingChannelCountDec();
+	Metrics::instance().outVideoStreamsDec();
 	return 0;
 }
 
@@ -864,6 +876,8 @@ void RtpChannel::sendRtpData(uchar *buf, int size, int last, void *sbuf, qint64 
 	seq = (seq + 1) & 0xffff;
 	totalPacketCount++;
 	totalOctetCount += size;
+	Metrics::instance().outRtpPacketsInc();
+	Metrics::instance().outRtpBytesInc(size + 12);
 
 	mLog("sending %d bytes", size + 12);
 }
@@ -936,6 +950,7 @@ void RtpChannel::sendSR(quint64 bufferTs)
 	sock2->writeDatagram((const char *)buf, (length + 1) * 4, QHostAddress(dstIp), dstControlPort);
 	sockLock.unlock();
 	rtcpTime->restart();
+	Metrics::instance().outRtpPacketsSRInc();
 }
 
 QString RtpChannel::getSdp(Lmm::CodecType codec)
@@ -974,8 +989,10 @@ void RtpChannel::timeout()
 {
 	if (state == 0)
 		return;
-	if (rrTime->elapsed() > rtcpTimeoutValue)
+	if (rrTime->elapsed() > rtcpTimeoutValue) {
+		Metrics::instance().outRtpTimeoutInc();
 		emit sessionTimedOut();
+	}
 }
 
 RawNetworkSocket::SockBuffer *RtpChannel::getSBuf()
@@ -1030,6 +1047,7 @@ void RtpChannel::readPendingRtcpDatagrams()
 		}
 #else
 		rrTime->restart();
+		Metrics::instance().outRtpPacketsRRInc();
 #endif
 	}
 	sockLock.unlock();

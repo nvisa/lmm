@@ -3,6 +3,7 @@
 #include "rtp/rtptransmitter.h"
 #include "tools/tokenbucket.h"
 #include "platform_info.h"
+#include "metrics.h"
 
 #include "debug.h"
 
@@ -222,6 +223,7 @@ void BaseRtspServer::addStream(const QString streamName, bool multicast, int por
 	desc.multicastAddr = mcastAddress;
 	desc.streamUrlSuffix = streamName;
 	streamDescriptions.insert(streamName, desc);
+	Metrics::instance().inRtspStreamCountInc();
 }
 
 /**
@@ -245,6 +247,7 @@ void BaseRtspServer::addStream(const QString streamName, bool multicast, RtpTran
 	desc.multicastAddr = mcastAddress;
 	desc.multicastAddressBase = "239.0.0.0";
 	streamDescriptions.insert(streamName, desc);
+	Metrics::instance().inRtspStreamCountInc();
 }
 
 void BaseRtspServer::addMedia2Stream(const QString &mediaName, const QString &streamName, bool multicast, RtpTransmitter *rtp, int port, const QString &mcastAddress)
@@ -758,6 +761,7 @@ QStringList BaseRtspServer::createRtspErrorResponse(int errcode, QString lsep)
 	resp << QString("RTSP/1.0 %1 %2").arg(errcode).arg(errString);
 	if (errcode == 401)
 		resp << "WWW-Authenticate: Basic realm=\"streaming\"";
+	Metrics::instance().inRtspHttpErrorCodeInc();
 	resp << lsep;
 	return resp;
 }
@@ -1101,6 +1105,13 @@ void BaseRtspServer::closeSession(QString sessionId)
 		return;
 	BaseRtspSession *ses = sessions[sessionId];
 	if (ses->clientCount == 1) {
+		if (ses->multicast)
+			Metrics::instance().inRtspSettedUpMulticastSessionDec();
+		else if (ses->rtpAvpTcp)
+			Metrics::instance().inRtspSettedUpTCPSessionDec();
+		else
+			Metrics::instance().inRtspSettedUpUDPSessionDec();
+		Metrics::instance().inRtspSettedUpSessionDec();
 		ses->teardown();
 		sessions.remove(sessionId);
 		ses->deleteLater();
@@ -1176,10 +1187,12 @@ void BaseRtspServer::handlePostData(QTcpSocket *sock, QString mes, QString lsep)
 
 QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 {
+	Metrics::instance().inRtspRequestInc();
 	QStringList resp;
 	QStringList lines = mes.split(lsep);
 	if (!lines.last().isEmpty() || lines.first().isEmpty()) {
 		mDebug("un-espected last line: \n%s", qPrintable(mes));
+		Metrics::instance().inRtspErrorLastLineInc();
 		return resp;
 	}
 	currentCmdFields.clear();
@@ -1198,6 +1211,7 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 
 	QString urlAction = lines.first().trimmed().split(" ").first();
 	if (urlAction == "GET") {
+		Metrics::instance().inRtspHttpTunnelledGetInc();
 		/* http tunneling */
 		QStringList resp;
 		resp << "HTTP/1.0 200 OK";
@@ -1231,20 +1245,28 @@ QStringList BaseRtspServer::handleRtspMessage(QString mes, QString lsep)
 
 	QMutexLocker l(&sessionLock);
 	if (urlAction.startsWith("OPTIONS")) {
+		Metrics::instance().inRtspOptionsCommandInc();
 		resp = handleCommandOptions(lines, lsep);
 	} else if (urlAction.startsWith("DESCRIBE")) {
+		Metrics::instance().inRtspDescribeCommandInc();
 		resp = handleCommandDescribe(lines, lsep);
 	} else if (urlAction.startsWith("SETUP")) {
+		Metrics::instance().inRtspSetupCommandInc();
 		resp = handleCommandSetup(lines, lsep);
 	} else if (urlAction.startsWith("PLAY")) {
+		Metrics::instance().inRtspPlayCommandInc();
 		resp = handleCommandPlay(lines, lsep);
 	} else if (urlAction.startsWith("TEARDOWN")) {
+		Metrics::instance().inRtspTeardownCommandInc();
 		resp = handleCommandTeardown(lines, lsep);
 	} else if (urlAction.startsWith("GET_PARAMETER")) {
+		Metrics::instance().inRtspGetParameterCommandInc();
 		resp = handleCommandGetParameter(lines, lsep);
 	} else if (urlAction.startsWith("SET_PARAMETER")) {
+		Metrics::instance().inRtspSetParameterCommandInc();
 		resp = handleCommandSetParameter(lines, lsep);
 	} else {
+		Metrics::instance().inRtspUnknownCommandInc();
 		mDebug("Unknown RTSP directive:\n %s", qPrintable(mes));
 		return createRtspErrorResponse(501, lsep);
 	}
@@ -1347,10 +1369,12 @@ BaseRtspSession::BaseRtspSession(const QHostAddress &ifaceIpAddr, BaseRtspServer
 	rtspTimeoutValue = 60000;
 	rtpCh = NULL;
 	sourceDataPort = sourceControlPort = 0;
+	Metrics::instance().inRtspSessionInc();
 }
 
 BaseRtspSession::~BaseRtspSession()
 {
+	Metrics::instance().inRtspSessionDec();
 }
 
 int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &streamName, const QString &media, const QString &incomingTransportString)
@@ -1404,19 +1428,23 @@ int BaseRtspSession::setup(bool mcast, int dPort, int cPort, const QString &stre
 		rtpCh->interleaved = interleaveChannels.split("-").first().toInt();
 		transportString = QString("Transport: RTP/AVP/TCP;interleaved=%1").arg(interleaveChannels);
 		rtpAvpTcp = true;
+		Metrics::instance().inRtspSettedUpTCPSessionInc();
 	} else if (multicast) {
 		transportString = QString("Transport: RTP/AVP;multicast;destination=%3;port=%1-%2;ttl=%4;mode=play")
 				.arg(dataPort).arg(controlPort).arg(streamIp).arg(ttl);
+		Metrics::instance().inRtspSettedUpMulticastSessionInc();
 	} else {
 		transportString = QString("Transport: RTP/AVP/UDP;unicast;client_port=%1-%2;server_port=%3-%4;ssrc=%5;mode=play")
 				.arg(dataPort).arg(controlPort).arg(sourceDataPort)
 				.arg(sourceControlPort).arg(ssrc, 0, 16);
+		Metrics::instance().inRtspSettedUpUDPSessionInc();
 	}
 
 	/* create session identifier */
 	if (sessionId.isEmpty())
 		sessionId = QUuid::createUuid().toString().split("-")[4].remove("}");
 	state = SETUP;
+	Metrics::instance().inRtspSettedUpSessionInc();
 
 	return 0;
 }
