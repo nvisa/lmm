@@ -57,7 +57,8 @@ SOURCES += \
     rtsp/rtspclient.cpp \
     jobdistributorelement.cpp \
     interfaces/videostreaminterface.cpp \
-    multibuffersource.cpp
+    multibuffersource.cpp \
+    metrics.cpp
 
 HEADERS  += \
     filesource.h \
@@ -112,7 +113,8 @@ HEADERS  += \
     version.h \
     jobdistributorelement.h \
     interfaces/videostreaminterface.h \
-    multibuffersource.h
+    multibuffersource.h \
+    metrics.h
 
 lessThan(QT_VERSION, 4.7) {
     SOURCES += compat/qelapsedtimer.cpp compat/qelapsedtimer_unix.cpp
@@ -123,6 +125,11 @@ lessThan(QT_VERSION, 4.7) {
 grpc {
 	DEFINES += HAVE_GRPC
 	include(pipeline/proto/proto.pri)
+}
+
+metrics {
+	include($$PWD/../../../yca/MetricsLib/metrics.pri)
+	INCLUDEPATH += $$PWD/../../../yca/MetricsLib
 }
 
 widgets {

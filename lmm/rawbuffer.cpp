@@ -1,5 +1,6 @@
 #include "rawbuffer.h"
 #include "baselmmelement.h"
+#include "metrics.h"
 
 #include <errno.h>
 
@@ -81,6 +82,7 @@ RawBuffer::RawBuffer(QString mimeType, const void *data, int size, BaseLmmElemen
 	setSize(size);
 	memcpy(d->rawData + d->prependPos, data, size);
 	d->myParent = parent;
+	Metrics::instance().pRawBuffersInc();
 }
 
 RawBuffer::RawBuffer(QString mimeType, int size, BaseLmmElement *parent)
@@ -91,11 +93,13 @@ RawBuffer::RawBuffer(QString mimeType, int size, BaseLmmElement *parent)
 	d->mimeType = mimeType;
 	setSize(size);
 	d->myParent = parent;
+	Metrics::instance().pRawBuffersDec();
 }
 
 RawBuffer::RawBuffer(const RawBuffer &other)
 	: d (other.d)
 {
+	Metrics::instance().pRawBuffersInc();
 }
 
 void RawBuffer::setParentElement(BaseLmmElement *el)
@@ -109,10 +113,12 @@ RawBuffer::RawBuffer(BaseLmmElement *parent)
 	d->myParent = parent;
 	d->rawData = NULL;
 	d->refData = false;
+	Metrics::instance().pRawBuffersInc();
 }
 
 RawBuffer::~RawBuffer()
 {
+	Metrics::instance().pRawBuffersDec();
 }
 
 RawBuffer RawBuffer::makeCopy(bool noPointers) const
@@ -254,6 +260,7 @@ RawBufferData::~RawBufferData()
 		delete [] rawData;
 	if (myParent)
 		myParent->aboutToDeleteBuffer(parameters);
+	Metrics::instance().pRawBuffersDataDec();
 	delete parameters;
 }
 
@@ -276,6 +283,7 @@ RawBufferParameters::RawBufferParameters()
 	this->v4l2PixelFormat = -1;
 	this->videoHeight = 0;
 	this->videoWidth = 0;
+	Metrics::instance().pRawBuffersDataInc();
 }
 
 RawBufferParameters::RawBufferParameters(const RawBufferParameters &other)
@@ -296,4 +304,5 @@ RawBufferParameters::RawBufferParameters(const RawBufferParameters &other)
 	this->v4l2PixelFormat = other.v4l2PixelFormat;
 	this->videoHeight = other.videoHeight;
 	this->videoWidth = other.videoWidth;
+	Metrics::instance().pRawBuffersDataInc();
 }

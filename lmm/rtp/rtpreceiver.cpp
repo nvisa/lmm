@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "rawbuffer.h"
 #include "h264parser.h"
+#include "metrics.h"
 
 #include <QFile>
 #include <QDateTime>
@@ -89,6 +90,7 @@ int RtpReceiver::start()
 	validFrameCount = 0;
 	framingError = false;
 	rtcpTime.start();
+	Metrics::instance().inVideoStreamsInc();
 
 	return 0;
 }
@@ -103,6 +105,7 @@ int RtpReceiver::stop()
 		sock->deleteLater();
 		sock2->deleteLater();
 		sock = sock2 = NULL;
+		Metrics::instance().inVideoStreamsDec();
 	}
 	sockLock.unlock();
 	return 0;
@@ -179,6 +182,7 @@ void RtpReceiver::readPendingRtcpDatagrams()
 			//qint64 epoch = QDateTime::currentDateTime().toMSecsSinceEpoch();
 			//qDebug() << (epoch - timet) << timet << epoch << tv_sec << tv_usec << tv.tv_sec << tv.tv_usec;
 #endif
+			Metrics::instance().inRtpPacketsRRInc();
 		}
 
 
@@ -198,14 +202,20 @@ int RtpReceiver::processRtpData(const QByteArray &ba, const QHostAddress &sender
 	if ((buf[0] >> 6) != RTP_VERSION) {
 		mDebug("un-expected RTP version %d", buf[0] >> 6);
 		stats.headerError++;
+		Metrics::instance().inRtpPacketsHeaderErrInc();
+		Metrics::instance().inRtpBytesHeaderErrInc(ba.size());
 		return -EINVAL;
 	}
 	int ptype = buf[1] & 0x7f;
 	if (ptype != 96 && ptype != 98 && ptype != 26 && ptype != 97 && ptype != 35) {
 		stats.payloadErr++;
 		mDebug("un-supported payload type %d", ptype);
+		Metrics::instance().inRtpPacketsPayloadErrInc();
+		Metrics::instance().inRtpBytesPayloadErrInc(ba.size());
 		return -EINVAL;
 	}
+	Metrics::instance().inRtpPacketsValidInc();
+	Metrics::instance().inRtpBytesValidInc(ba.size());
 	int last = buf[1] >> 7;
 	uint seq = buf[2] << 8 | buf[3];
 	uint ts = (buf[4] << 24) | (buf[5] << 16) | (buf[6] << 8) | buf[7];
@@ -262,16 +272,20 @@ int RtpReceiver::handleRtpData(const QByteArray &ba)
 		rtpPacketOffset += 65536;
 	seqLast = seq;
 	stats.packetCount++;
-	if (ptype == 96 || ptype == 97)
+	Metrics::instance().inRtpBytesPayloadInc(ba.size() - 12);
+	if (ptype == 96 || ptype == 97 || ptype == 35) {
+		Metrics::instance().inRtpBytesPayloadH264Inc(ba.size() - 12);
 		processh264Payload(ba, ts, last);
-	else if (ptype == 98)
+	} else if (ptype == 98) {
+		Metrics::instance().inRtpBytesPayloadMetaInc(ba.size() - 12);
 		processMetaPayload(ba, ts, last);
-	else if (ptype == 26)
+	} else if (ptype == 26) {
+		Metrics::instance().inRtpBytesPayloadJPEGInc(ba.size() - 12);
 		processJpegPayload(ba, ts, last);
-	else if (ptype == 35)
-		processh264Payload(ba,ts, last);
-	else
+	} else {
+		Metrics::instance().inRtpBytesPayloadUnknownInc(ba.size() - 12);
 		qDebug() << "unknown payload type" << ptype;
+	}
 
 	return 0;
 }
@@ -607,6 +621,7 @@ int RtpReceiver::processBuffer(const RawBuffer &buf)
 
 void RtpReceiver::sendRR(uint ssrc, const QHostAddress &sender)
 {
+	Metrics::instance().inRtpPacketsSRInc();
 	int length = 6; //in words, 7 - 1
 	uchar buf[(length + 1) * 4];
 	buf[0] = RTP_VERSION << 6;
