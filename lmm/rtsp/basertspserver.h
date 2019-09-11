@@ -93,6 +93,7 @@ public:
 	Auth getRtspAuthentication();
 	void setRtspTimeoutValue(int v) { rtspTimeoutValue = v; }
 	int getRtspTimeoutValue() { return rtspTimeoutValue; }
+	void setForceTCP(const QString &stream, bool v);
 
 	void setRtspAuthenticationCredentials(const QString &username, const QString &password);
 	RtpTransmitter * getSessionTransmitter(const QString &streamName, const QString &media);
@@ -136,6 +137,7 @@ private:
 		QString multicastAddressBase;
 		QHash<QString, QVariant> meta;
 		QHash<QString, StreamDescription> media;
+		bool forceTcp;
 	};
 
 	QTcpServer *server;

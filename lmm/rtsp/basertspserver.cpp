@@ -221,6 +221,7 @@ void BaseRtspServer::addStream(const QString streamName, bool multicast, int por
 	desc.port = port;
 	desc.multicastAddr = mcastAddress;
 	desc.streamUrlSuffix = streamName;
+	desc.forceTcp = false;
 	streamDescriptions.insert(streamName, desc);
 }
 
@@ -244,6 +245,7 @@ void BaseRtspServer::addStream(const QString streamName, bool multicast, RtpTran
 	desc.port = port;
 	desc.multicastAddr = mcastAddress;
 	desc.multicastAddressBase = "239.0.0.0";
+	desc.forceTcp = false;
 	streamDescriptions.insert(streamName, desc);
 }
 
@@ -290,6 +292,11 @@ void BaseRtspServer::setRtspAuthentication(BaseRtspServer::Auth authMethod)
 BaseRtspServer::Auth BaseRtspServer::getRtspAuthentication()
 {
 	return auth;
+}
+
+void BaseRtspServer::setForceTCP(const QString &stream, bool v)
+{
+	streamDescriptions[stream].forceTcp = v;
 }
 
 void BaseRtspServer::setRtspAuthenticationCredentials(const QString &username, const QString &password)
@@ -878,6 +885,8 @@ QStringList BaseRtspServer::handleCommandSetup(QStringList lines, QString lsep)
 			ses->mediaName = media;
 			ses->ssrc = rand();
 			ses->ttl = 10;
+			if (streamDescriptions[stream].forceTcp)
+				transportString = "RTP/AVP/TCP";
 			int err = ses->setup(multicast, dataPort, controlPort, stream, media, transportString);
 			if (err) {
 				mDebug("cannot create session, error is %d", err);
