@@ -121,9 +121,11 @@ void Metrics::addRtpMetrics()
 
 void Metrics::addPipelineMetrics()
 {
+#ifdef HAVE_METRICS_PROMETHEUS
 	pipelineInformation = &addGauge("pipeline_information", "Detailed pipeline information");
 	pipelineStats = &addCounter("pipeline_stats", "Detailed pipeline statistics");
 
 	pRawBuffers = &addLabel(*pipelineInformation, {{"buffers", "count"}});
+#endif
 }
 
