@@ -1,4 +1,5 @@
 #include "tx1videoencoder.h"
+#include "streamtime.h"
 #include "debug.h"
 
 #include "NvUtils.h"
@@ -1401,6 +1402,7 @@ void TX1VideoEncoder::encodedFrameReady(TX1VideoEncoder *enc, unsigned char *dat
 void TX1VideoEncoder::processEncodedFrame(unsigned char *data, uint32_t length)
 {
 	RawBuffer buf("video/x264", data, length);
+	buf.pars()->encodeTime = streamTime->getCurrentTime();
 	newOutputBuffer(0, buf);
 }
 
