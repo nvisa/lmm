@@ -165,6 +165,7 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 	RawBuffer poolbuf = pool->take();
 	RawBuffer outbuf(this);
 	outbuf.setRefData(mime, poolbuf.data(), poolbuf.size());
+	outbuf.pars()->poolIndex = poolbuf.constPars()->poolIndex;
 
 	bool isyuv422 = false;
 	if (buf.constPars()->v4l2PixelFormat == V4L2_PIX_FMT_UYVY ||
@@ -203,14 +204,15 @@ int VideoScaler::processConverter(const RawBuffer &buf)
 		 uchar *U = Y + w * h;
 		 uchar *V = Y + w * h * 5 / 4;
 		 libyuv::ARGBToI420((const uchar *)buf.constData(), w * 4, Y, w, U, w / 2, V, w / 2, w, h);
-	 }
+	 } else
+		/* pass as is */
+		return newOutputBuffer(0, buf);
 
 #endif
 
 	outbuf.pars()->videoWidth = dstW;
 	outbuf.pars()->videoHeight = dstH;
 	outbuf.pars()->avPixelFormat = outPixFmt;
-	outbuf.pars()->poolIndex = poolbuf.constPars()->poolIndex;
 	outbuf.pars()->pts = buf.constPars()->pts;
 	outbuf.pars()->streamBufferNo = buf.constPars()->streamBufferNo;
 	outbuf.pars()->duration = buf.constPars()->duration;
