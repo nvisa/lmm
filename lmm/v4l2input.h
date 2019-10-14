@@ -63,6 +63,8 @@ protected:
 	bool dropMalformedFrame;
 	uint exptectedFrameSize;
 
+	QElapsedTimer frameElapse;
+
 	virtual int openCamera();
 	virtual int closeCamera();
 	virtual int adjustCropping(int width, int height, int left = 0, int top = 0);

@@ -89,6 +89,7 @@ int V4l2Input::start()
 		if (err)
 			return err;
 		timing.start();
+		frameElapse.start();
 		captureCount = 0;
 		return BaseLmmElement::start();
 	}
@@ -342,6 +343,10 @@ int V4l2Input::processBlocking(int ch)
 	if (getState() == STOPPED)
 		return -EINVAL;
 	if (buffer) {
+		if (frameElapse.elapsed() > 60) {
+			mDebug("Frame delay is %d msec", frameElapse.elapsed())
+		}
+		frameElapse.restart();
 		captureCount++;
 		processTimeStat->startStat();
 		int ret = 0;
@@ -353,6 +358,7 @@ int V4l2Input::processBlocking(int ch)
 			frameSkipCount = frameSkip;
 		}
 		if (dropMalformedFrame && buffer->bytesused != exptectedFrameSize) {
+			mDebug("Malformed Frame Dropped [size: %d] [expectedsize: %d] [diff: %d]", buffer->bytesused, exptectedFrameSize, exptectedFrameSize - buffer->bytesused);
 			putFrame(buffer);
 			return ret;
 		}
