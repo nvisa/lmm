@@ -15,9 +15,9 @@ linux-gnueabi-oe-g++ {
 } else:linux-g++ {
     message("building native")
     #This is our default build config
-    INSTALL_PREFIX=$$OUT_PWD/../
+    INSTALL_PREFIX=$$OUT_PWD/../../../
     DEFINES += DEBUG INFO LOG LOGV DEBUG_TIMING
-    CONFIG += staticlib x264 ffmpeg srtp widgets c++11
+    CONFIG += staticlib x264 ffmpeg srtp widgets c++11 gstreamer
 
     INCLUDEPATH += $$INSTALL_PREFIX/usr/local/include
     INCLUDEPATH += /usr/local/include
