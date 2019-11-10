@@ -344,9 +344,6 @@ gstreamer {
 
 }
 
-
-}
-
 dm8168 {
 	include(dm8168/tipaths.pri)
 	DEFINES += CONFIG_DM8168
