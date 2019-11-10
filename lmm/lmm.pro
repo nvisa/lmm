@@ -331,6 +331,8 @@ omx {
 
 gstreamer {
 	DEFINES += CONFIG_GSTREAMER
+        GST_FLAGS = $$system(pkg-config gstreamer-1.0 --cflags-only-I | sed 's/-I//g')
+        INCLUDEPATH += $$GST_FLAGS
 
 	SOURCES += \
                 gstreamer/lmmgstpipeline.cpp \
@@ -339,6 +341,9 @@ gstreamer {
 	HEADERS += \
 		gstreamer/lmmgstpipeline.h \
                 gstreamer/basegstcaps.h \
+
+}
+
 
 }
 
