@@ -315,6 +315,7 @@ v4l2_buffer *V4l2Input::getFrame()
 	}
 
 	v4l2buf[buffer.index]->bytesused = buffer.bytesused;
+	v4l2buf[buffer.index]->timestamp = buffer.timestamp;
 	return v4l2buf[buffer.index];
 }
 
