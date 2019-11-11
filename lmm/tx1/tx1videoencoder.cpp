@@ -492,7 +492,7 @@ set_defaults(context_t * ctx)
 
 	ctx->bitrate = 4 * 1024 * 1024;
 	ctx->peak_bitrate = 0;
-	ctx->profile = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE;
+	ctx->profile = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH;
 	ctx->ratecontrol = V4L2_MPEG_VIDEO_BITRATE_MODE_CBR;
 	ctx->iframe_interval = 30;
 	ctx->externalRPS = false;
