@@ -772,7 +772,6 @@ public:
 		}
 
 		ret = ctx.enc->setIDRInterval(ctx.idr_interval);
-		qDebug() << "******************************************************" << ctx.idr_interval;
 		TEST_ERROR(ret < 0, "Could not set encoder IDR interval", cleanup);
 
 		ret = ctx.enc->setIFrameInterval(ctx.iframe_interval);
